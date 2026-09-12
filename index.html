@@ -64,7 +64,7 @@
         h1 {
             font-size: clamp(2.5rem, 6vw, 5rem);
             font-weight: 900;
-            letter-spacing: 0.05em; /* Widened slightly for the all-caps look */
+            letter-spacing: 0.05em; 
             margin-bottom: 1rem;
         }
 
@@ -114,6 +114,33 @@
             color: #52525b;
         }
 
+        /* SECTION 4 & SPACE INVADERS LINK STYLES */
+        #section-4 {
+            justify-content: center; /* Centers the link perfectly over the 3D object */
+            padding-top: 0; 
+        }
+
+        .space-invaders-link {
+            font-size: clamp(2.5rem, 6vw, 6rem);
+            font-weight: 900;
+            color: #ffffff;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px #ff00a0, 0 0 40px #ff00a0;
+            /* Large padding makes the entire 3D object behind it clickable */
+            padding: 15vh 10vw; 
+            transition: all 0.3s ease;
+            cursor: pointer;
+            z-index: 20;
+        }
+
+        .space-invaders-link:hover {
+            color: #ffea00;
+            text-shadow: 0 0 30px #ffea00, 0 0 60px #ffea00, 0 0 90px #ff7a00;
+            transform: scale(1.05);
+        }
+
         @keyframes bounce {
             0%, 100% { transform: translate(-50%, 0); }
             50% { transform: translate(-50%, 10px); }
@@ -126,7 +153,6 @@
 
     <main id="scroll-container">
         <section id="section-1">
-            <!-- UPDATED TITLE: TRAVIESO glowing and multi-colored -->
             <h1>
                 <span class="neon-1">T</span><span class="neon-2">R</span><span class="neon-3">A</span><span class="neon-4">V</span><span class="neon-5">I</span><span class="neon-6">E</span><span class="neon-7">S</span><span class="neon-8">O</span>
             </h1>
@@ -141,7 +167,12 @@
 
         <section id="section-3">
             <h1>Perfect <span class="text-cyan">Harmony</span></h1>
-            <p>The text remains accessible and selectable, while the 3D graphics run at 60 FPS in the background. You have reached the bottom.</p>
+            <p>The text remains accessible and selectable, while the 3D graphics run at 60 FPS in the background.</p>
+        </section>
+
+        <!-- NEW BOTTOM SECTION -->
+        <section id="section-4">
+            <a href="new.html" class="space-invaders-link">Space Invaders</a>
         </section>
     </main>
 
@@ -250,18 +281,27 @@
                 }
             });
 
+            // Transition: Section 1 -> Section 2
             tl.to(torusKnot.position, { x: 1.5, y: -2, z: -1 }, 0);
             tl.to(torusKnot.rotation, { x: Math.PI, y: Math.PI * 2 }, 0);
-            
             tl.to(icosahedron.position, { x: -1.5, y: -2.5, z: -2 }, 0);
             tl.to(icosahedron.rotation, { x: Math.PI * -1, y: Math.PI }, 0);
 
+            // Transition: Section 2 -> Section 3
             tl.to(torusKnot.position, { x: -1.5, y: -0.8, z: -2 }, 1); 
             tl.to(torusKnot.rotation, { x: Math.PI * 2, y: Math.PI * 4 }, 1);
             tl.to(torusKnot.scale, { x: 1.2, y: 1.2, z: 1.2 }, 1); 
-
             tl.to(icosahedron.position, { x: 1.8, y: -0.8, z: 1 }, 1); 
             tl.to(icosahedron.rotation, { x: Math.PI * -2, y: Math.PI * 3 }, 1);
+
+            // Transition: Section 3 -> Section 4 (NEW)
+            // Shrink the infinity sign and move it completely away
+            tl.to(torusKnot.scale, { x: 0, y: 0, z: 0 }, 2); 
+            tl.to(torusKnot.position, { y: 5 }, 2); 
+            
+            // Move the red object dead center and pull it slightly forward
+            tl.to(icosahedron.position, { x: 0, y: 0, z: 1.5 }, 2); 
+            tl.to(icosahedron.rotation, { x: Math.PI * -4, y: Math.PI * 5 }, 2);
 
             const clock = new THREE.Clock();
 
