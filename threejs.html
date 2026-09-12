@@ -63,10 +63,19 @@
         h1 {
             font-size: clamp(2.5rem, 6vw, 5rem);
             font-weight: 900;
-            letter-spacing: -0.05em;
+            letter-spacing: 0.05em; /* Widened slightly for the all-caps look */
             margin-bottom: 1rem;
-            text-shadow: 0 4px 20px rgba(0,0,0,0.8);
         }
+
+        /* TRAVIESO NEON GLOW CLASSES */
+        .neon-1 { color: #ff2a2a; text-shadow: 0 0 15px rgba(255, 42, 42, 0.8), 0 0 30px rgba(255, 42, 42, 0.5); }
+        .neon-2 { color: #ff7a00; text-shadow: 0 0 15px rgba(255, 122, 0, 0.8), 0 0 30px rgba(255, 122, 0, 0.5); }
+        .neon-3 { color: #ffea00; text-shadow: 0 0 15px rgba(255, 234, 0, 0.8), 0 0 30px rgba(255, 234, 0, 0.5); }
+        .neon-4 { color: #00ff00; text-shadow: 0 0 15px rgba(0, 255, 0, 0.8), 0 0 30px rgba(0, 255, 0, 0.5); }
+        .neon-5 { color: #00ffff; text-shadow: 0 0 15px rgba(0, 255, 255, 0.8), 0 0 30px rgba(0, 255, 255, 0.5); }
+        .neon-6 { color: #0088ff; text-shadow: 0 0 15px rgba(0, 136, 255, 0.8), 0 0 30px rgba(0, 136, 255, 0.5); }
+        .neon-7 { color: #aa00ff; text-shadow: 0 0 15px rgba(170, 0, 255, 0.8), 0 0 30px rgba(170, 0, 255, 0.5); }
+        .neon-8 { color: #ff00ff; text-shadow: 0 0 15px rgba(255, 0, 255, 0.8), 0 0 30px rgba(255, 0, 255, 0.5); }
 
         h2 {
             font-size: clamp(2rem, 5vw, 4rem);
@@ -116,7 +125,10 @@
 
     <main id="scroll-container">
         <section id="section-1">
-            <h1>The <span class="text-cyan">Engine</span></h1>
+            <!-- UPDATED TITLE: TRAVIESO glowing and multi-colored -->
+            <h1>
+                <span class="neon-1">T</span><span class="neon-2">R</span><span class="neon-3">A</span><span class="neon-4">V</span><span class="neon-5">I</span><span class="neon-6">E</span><span class="neon-7">S</span><span class="neon-8">O</span>
+            </h1>
             <p>This is a native HTML and Three.js implementation. No heavy frameworks, no virtual DOM. Just pure performance built for high-end mobile displays.</p>
             <div class="scroll-indicator">Scroll Down</div>
         </section>
@@ -161,7 +173,6 @@
             cyanLight.position.set(-5, -5, 5);
             scene.add(cyanLight);
 
-            // Procedural Symbol Generator
             const symbolCanvas = document.createElement('canvas');
             symbolCanvas.width = 256;
             symbolCanvas.height = 256;
@@ -204,13 +215,11 @@
                 wireframe: false 
             });
 
-            // Torus Knot (Infinity Snake)
             const torusGeometry = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);
             const torusKnot = new THREE.Mesh(torusGeometry, neonCyanMaterial);
             torusKnot.position.set(-2, -2, -2);
             scene.add(torusKnot);
 
-            // Icosahedron (Geometric Shape)
             const icoGeometry = new THREE.IcosahedronGeometry(1.2, 0);
             
             const uvAttribute = icoGeometry.attributes.uv;
@@ -240,14 +249,12 @@
                 }
             });
 
-            // Section 2
             tl.to(torusKnot.position, { x: 1.5, y: -2, z: -1 }, 0);
             tl.to(torusKnot.rotation, { x: Math.PI, y: Math.PI * 2 }, 0);
             
             tl.to(icosahedron.position, { x: -1.5, y: -2.5, z: -2 }, 0);
             tl.to(icosahedron.rotation, { x: Math.PI * -1, y: Math.PI }, 0);
 
-            // Section 3 - FIX: Shifted the shapes apart on the X and Z axes to prevent overlap
             tl.to(torusKnot.position, { x: -1.5, y: -0.8, z: -2 }, 1); 
             tl.to(torusKnot.rotation, { x: Math.PI * 2, y: Math.PI * 4 }, 1);
             tl.to(torusKnot.scale, { x: 1.2, y: 1.2, z: 1.2 }, 1); 
