@@ -29,7 +29,7 @@
             font-family: 'Inter', sans-serif;
             overflow-x: hidden;
             overscroll-behavior: none; 
-            scroll-behavior: smooth; /* ADDED: Native CSS Smooth Scrolling */
+            scroll-behavior: smooth;
         }
 
         #bg-canvas {
@@ -117,7 +117,7 @@
 
         /* SECTION 4 & SPACE INVADERS LINK STYLES */
         #section-4 {
-            justify-content: center; /* Centers the link perfectly over the 3D object */
+            justify-content: center;
             padding-top: 0; 
         }
 
@@ -129,7 +129,6 @@
             text-transform: uppercase;
             letter-spacing: 2px;
             text-shadow: 0 0 20px #ff00a0, 0 0 40px #ff00a0;
-            /* Large padding makes the entire 3D object behind it clickable */
             padding: 15vh 10vw; 
             transition: all 0.3s ease;
             cursor: pointer;
@@ -143,10 +142,10 @@
         }
 
         .click-here {
-            display: block;        /* Forces it onto the line right below */
-            font-size: 0.4em;      /* Makes it 40% the size of "Space Invaders" */
-            letter-spacing: 4px;   /* Spaces out the letters a bit */
-            margin-top: 10px;      /* Adds a little gap between the words */
+            display: block;
+            font-size: 0.4em;
+            letter-spacing: 4px;
+            margin-top: 10px;
         }
 
         @keyframes bounce {
@@ -178,7 +177,6 @@
             <p>The text remains accessible and selectable, while the 3D graphics run at 60 FPS in the background.</p>
         </section>
 
-        <!-- NEW BOTTOM SECTION -->
         <section id="section-4">
             <a href="new.html" class="space-invaders-link">
                 Space Invaders
@@ -217,7 +215,7 @@
         cyanLight.position.set(-5, -5, 5);
         scene.add(cyanLight);
 
-        // --- SYMBOL CANVAS UPDATED TO DRAW 'T' ---
+        // --- SYMBOL CANVAS DRAWING 'T' ---
         const symbolCanvas = document.createElement('canvas');
         symbolCanvas.width = 256;
         symbolCanvas.height = 256;
@@ -228,16 +226,12 @@
         
         ctx.shadowBlur = 20;
         ctx.shadowColor = '#ffffff';
-        ctx.fillStyle = '#ffffff'; // Set text color to white for contrast and glow
-        // Using 'Inter' font to match the site, 900 weight (Boldest) at 150px
+        ctx.fillStyle = '#ffffff'; 
         ctx.font = '900 150px Inter, sans-serif'; 
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
-        // Render the letter 'T' centered at (128, 165)
         ctx.fillText('T', 128, 165); 
-        
-        // --- END UPDATED SYMBOL CANVAS ---
 
         const symbolTexture = new THREE.CanvasTexture(symbolCanvas);
 
@@ -273,15 +267,17 @@
         }
 
         const icosahedron = new THREE.Mesh(icoGeometry, neonPinkMaterial);
-        icosahedron.position.set(2, -2.5, -5);
+        // UPDATED: Initial position pulled slightly inward
+        icosahedron.position.set(1.5, -2.5, -5);
         scene.add(icosahedron);
 
-        if (window.innerWidth < 768) {
-            torusKnot.scale.set(0.6, 0.6, 0.6);
-            icosahedron.scale.set(0.6, 0.6, 0.6);
+        // UPDATED: Dynamic scaling based on viewport size
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) {
+            torusKnot.scale.set(0.5, 0.5, 0.5);
+            icosahedron.scale.set(0.5, 0.5, 0.5);
         }
 
-        // ADDED: Smooth scroll configurations for GSAP on mobile
         gsap.registerPlugin(ScrollTrigger);
         ScrollTrigger.config({ ignoreMobileResize: true });
         ScrollTrigger.normalizeScroll(true);
@@ -291,26 +287,31 @@
                 trigger: "#scroll-container",
                 start: "top top",
                 end: "bottom bottom",
-                scrub: 0.1, // REDUCED: 0.1 gives smooth 1:1 tracking without lag
+                scrub: 0.1, 
             }
         });
 
-        tl.to(torusKnot.position, { x: 1.5, y: -2, z: -1 }, 0);
+        // Transition: Section 1 -> Section 2
+        tl.to(torusKnot.position, { x: 1.2, y: -2, z: -1 }, 0);
         tl.to(torusKnot.rotation, { x: Math.PI, y: Math.PI * 2 }, 0);
-        tl.to(icosahedron.position, { x: -1.5, y: -2.5, z: -2 }, 0);
+        tl.to(icosahedron.position, { x: -1.2, y: -2.5, z: -2 }, 0);
         tl.to(icosahedron.rotation, { x: Math.PI * -1, y: Math.PI }, 0);
 
-        tl.to(torusKnot.position, { x: -1.5, y: -0.8, z: -2 }, 1); 
+        // Transition: Section 2 -> Section 3 (UPDATED: Kept safely within screen boundaries)
+        tl.to(torusKnot.position, { x: isMobile ? -0.7 : -1.0, y: -0.8, z: -1.5 }, 1); 
         tl.to(torusKnot.rotation, { x: Math.PI * 2, y: Math.PI * 4 }, 1);
-        tl.to(torusKnot.scale, { x: 1.2, y: 1.2, z: 1.2 }, 1); 
-        tl.to(icosahedron.position, { x: 1.8, y: -0.8, z: 1 }, 1); 
+        tl.to(torusKnot.scale, { x: isMobile ? 0.6 : 0.8, y: isMobile ? 0.6 : 0.8, z: isMobile ? 0.6 : 0.8 }, 1); 
+
+        tl.to(icosahedron.position, { x: isMobile ? 0.7 : 1.0, y: -0.8, z: -0.8 }, 1); 
         tl.to(icosahedron.rotation, { x: Math.PI * -2, y: Math.PI * 3 }, 1);
+        tl.to(icosahedron.scale, { x: isMobile ? 0.5 : 0.8, y: isMobile ? 0.5 : 0.8, z: isMobile ? 0.5 : 0.8 }, 1);
 
         // Transition: Section 3 -> Section 4
         tl.to(torusKnot.scale, { x: 0, y: 0, z: 0 }, 2); 
         tl.to(torusKnot.position, { y: 5 }, 2); 
         tl.to(icosahedron.position, { x: 0, y: 0, z: 1.5 }, 2); 
         tl.to(icosahedron.rotation, { x: Math.PI * -4, y: Math.PI * 5 }, 2);
+        tl.to(icosahedron.scale, { x: isMobile ? 0.6 : 1, y: isMobile ? 0.6 : 1, z: isMobile ? 0.6 : 1 }, 2);
 
         const clock = new THREE.Clock();
 
