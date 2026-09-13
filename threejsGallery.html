@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Unique Geometries Gallery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: #050508;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            padding: 2rem 1rem;
+        }
+        h1 {
+            text-align: center;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            font-weight: 900;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, #ff007f, #00ffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        p.subtitle {
+            text-align: center;
+            color: #888899;
+            margin-bottom: 3rem;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 2rem 0 1rem 0;
+            border-bottom: 2px solid #222233;
+            padding-bottom: 0.5rem;
+            color: #00ffff;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .card {
+            background: #0d0d14;
+            border: 1px solid #1a1a28;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .canvas-container {
+            width: 100%;
+            height: 260px;
+            background: #000000;
+        }
+        .info {
+            padding: 1rem;
+        }
+        .info h3 {
+            font-size: 1.1rem;
+            color: #ff007f;
+            margin-bottom: 0.3rem;
+        }
+        .info p {
+            font-size: 0.85rem;
+            color: #aaaabb;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Three.js Advanced Shapes Gallery</h1>
+    <p class="subtitle">9 Interactive Procedural and Mathematical 3D Demos</p>
+
+    <div class="grid">
+        <!-- CATEGORY 1 -->
+        <div class="card">
+            <div class="canvas-container" id="c1_1"></div>
+            <div class="info">
+                <h3>1.1 Klein Bottle</h3>
+                <p>A self-intersecting 4D topological surface with no internal or external boundary.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="canvas-container" id="c1_2"></div>
+            <div class="info">
+                <h3>1.2 Möbius Strip</h3>
+                <p>A non-orientable mathematical ribbon possessing only a single side and edge.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="canvas-container" id="c1_3"></div>
+            <div class="info">
+                <h3>1.3 Superquadric Ellipsoid</h3>
+                <p>A trigonometric shape morphing dynamically between a sphere, cube, and starburst.</p>
+            </div>
+        </div>
+
+        <!-- CATEGORY 2 -->
+        <div class="card">
+            <div class="canvas-container" id="c2_1"></div>
+            <div class="info">
+                <h3>2.1 Polyhedra Cluster</h3>
+                <p>Nested wireframe Dodecahedrons and Octahedrons forming crystalline lattices.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="canvas-container" id="c2_2"></div>
+            <div class="info">
+                <h3>2.2 Geodesic Buckyball</h3>
+                <p>Subdivided icosahedral mesh forming spherical carbon molecule geometry (C60).</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="canvas-container" id="c2_3"></div>
+            <div class="info">
+                <h3>2.3 Recursive Sierpinski Pyramid</h3>
+                <p>A 3D fractal constructed by recursively placing nested tetrahedrons.</p>
+            </div>
+        </div>
+
+        <!-- CATEGORY 3 -->
+        <div class="card">
+            <div class="canvas-container" id="c3_1"></div>
+            <div class="info">
+                <h3>3.1 Organic Noise Blob</h3>
+                <p>A sphere dynamically morphed in real-time via 3D Perlin noise equations.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="canvas-container" id="c3_2"></div>
+            <div class="info">
+                <h3>3.2 Audio-Reactive Spiked Sphere</h3>
+                <p>Extruded wireframe vertices expanding procedural frequency spikes along normals.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="canvas-container" id="c3_3"></div>
+            <div class="info">
+                <h3>3.3 Particle Swarm Core</h3>
+                <p>Thousands of individual particle points orbiting dynamically around a magnetic center.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Setup helper function to initialize standard scenes quickly
+        function createScene(containerId) {
+            const container = document.getElementById(containerId);
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+            camera.position.z = 5;
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            const pointLight = new THREE.PointLight(0x00ffff, 2, 50);
+            pointLight.position.set(5, 5, 5);
+            scene.add(ambientLight, pointLight);
+
+            return { scene, camera, renderer };
+        }
+
+        // --- SIMPLEX NOISE ALGORITHM FOR DEFORMABLE BLOBS ---
+        const SimplexNoise = function() {
+            var F3 = 1.0/3.0, G3 = 1.0/6.0;
+            var p = new Uint8Array(256);
+            for (var i=0; i<256; i++) p[i] = Math.floor(Math.random()*256);
+            var perm = new Uint8Array(512), permMod12 = new Uint8Array(512);
+            for (var i=0; i<512; i++) {
+                perm[i] = p[i & 255];
+                permMod12[i] = (perm[i] % 12);
+            }
+            return {
+                noise3D: function(xin, yin, zin) {
+                    var n0, n1, n2, n3;
+                    var s = (xin+yin+zin)*F3;
+                    var i = Math.floor(xin+s), j = Math.floor(yin+s), k = Math.floor(zin+s);
+                    var t = (i+j+k)*G3;
+                    var X0 = i-t, Y0 = j-t, Z0 = k-t;
+                    var x0 = xin-X0, y0 = yin-Y0, z0 = zin-Z0;
+                    var i1, j1, k1, i2, j2, k2;
+                    if(x0>=y0) {
+                        if(y0>=z0) { i1=1; j1=0; k1=0; i2=1; j2=1; k2=0; }
+                        else if(x0>=z0) { i1=1; j1=0; k1=0; i2=1; j2=0; k2=1; }
+                        else { i1=0; j1=0; k1=1; i2=1; j2=0; k2=1; }
+                    } else {
+                        if(y0<z0) { i1=0; j1=0; k1=1; i2=0; j2=1; k2=1; }
+                        else if(x0<z0) { i1=0; j1=1; k1=0; i2=0; j2=1; k2=1; }
+                        else { i1=0; j1=1; k1=0; i2=1; j2=1; k2=0; }
+                    }
+                    var x1 = x0 - i1 + G3, y1 = y0 - j1 + G3, z1 = z0 - k1 + G3;
+                    var x2 = x0 - i2 + 2.0*G3, y2 = y0 - j2 + 2.0*G3, z2 = z0 - k2 + 2.0*G3;
+                    var x3 = x0 - 1.0 + 3.0*G3, y3 = y0 - 1.0 + 3.0*G3, z3 = z0 - 1.0 + 3.0*G3;
+                    var ii = i & 255, jj = j & 255, kk = k & 255;
+                    var t0 = 0.6 - x0*x0-y0*y0-z0*z0; if(t0>0) n0 = Math.pow(t0, 4) * (x0+y0); else n0 = 0.0;
+                    var t1 = 0.6 - x1*x1-y1*y1-z1*z1; if(t1>0) n1 = Math.pow(t1, 4) * (x1+y1); else n1 = 0.0;
+                    var t2 = 0.6 - x2*x2-y2*y2-z2*z2; if(t2>0) n2 = Math.pow(t2, 4) * (x2+y2); else n2 = 0.0;
+                    var t3 = 0.6 - x3*x3-y3*y3-z3*z3; if(t3>0) n3 = Math.pow(t3, 4) * (x3+y3); else n3 = 0.0;
+                    return 32.0*(n0 + n1 + n2 + n3);
+                }
+            };
+        };
+        const simplex = SimplexNoise();
+
+        // Global animation update loop array
+        const animators = [];
+
+        // -------------------------------------------------------------
+        // 1.1 Klein Bottle
+        // -------------------------------------------------------------
+        {
+            const { scene, camera, renderer } = createScene('c1_1');
+            const geometry = new THREE.ParametricGeometry((u, v, target) => {
+                u *= Math.PI; v *= 2 * Math.PI;
+                let x, y, z;
+                if (u < Math.PI) {
+                    x = 3 * Math.cos(u) * (1 + Math.sin(u)) + (2 * (1 - Math.cos(u) / 2)) * Math.cos(u) * Math.cos(v);
+                    z = -8 * Math.sin(u) - (2 * (1 - Math.cos(u) / 2)) * Math.sin(u) * Math.cos(v);
+                } else {
+                    x = 3 * Math.cos(u) * (1 + Math.sin(u)) + (2 * (1 - Math.cos(u) / 2)) * Math.cos(v + Math.PI);
+                    z = -8 * Math.sin(u);
+                }
+                y = -2 * (1 - Math.cos(u) / 2) * Math.sin(v);
+                target.set(x * 0.2, y * 0.2, z * 0.2);
+            }, 30, 30);
+            
+            const mat = new THREE.MeshStandardMaterial({ color: 0xff007f, wireframe: true });
+            const mesh = new THREE.Mesh(geometry, mat);
+            scene.add(mesh);
+
+            animators.push((t) => {
+                mesh.rotation.x = t * 0.5;
+                mesh.rotation.y = t * 0.3;
+                renderer.render(scene, camera);
+            });
+        }
+
+        // -------------------------------------------------------------
+        // 1.2 Möbius Strip
+        // -------------------------------------------------------------
+        {
+            const { scene, camera, renderer } = createScene('c1_2');
+            const geometry = new THREE.ParametricGeometry((u, v, target) => {
+                u = u * 2 * Math.PI;
+                v = v * 0.8 - 0.4;
+                const x = Math.cos(u) * (1 + v/2 * Math.cos(u/2));
+                const y = Math.sin(u) * (1 + v/2 * Math.cos(u/2));
+                const z = v/2 * Math.sin(u/2);
+                target.set(x * 1.5, y * 1.5, z * 1.5);
+            }, 40, 20);
+
+            const mat = new THREE.MeshStandardMaterial({ color: 0x00ffff, wireframe: true, side: THREE.DoubleSide });
+            const mesh = new THREE.Mesh(geometry, mat);
+            scene.add(mesh);
+
+            animators.push((t) => {
+                mesh.rotation.x = t * 0.4;
+                mesh.rotation.z = t * 0.2;
+                renderer.render(scene, camera);
+            });
+        }
+
+        // -------------------------------------------------------------
+        // 1.3 Superquadric Ellipsoid
+        // -------------------------------------------------------------
+        {
+            const { scene, camera, renderer } = createScene('c1_3');
+            const geometry = new THREE.SphereGeometry(1.5, 32, 32);
+            const origPos = geometry.attributes.position.clone();
+            const mat = new THREE.MeshStandardMaterial({ color: 0xffea00, wireframe: true });
+            const mesh = new THREE.Mesh(geometry, mat);
+            scene.add(mesh);
+
+            animators.push((t) => {
+                const pos = geometry.attributes.position;
+                const e = Math.abs(Math.sin(t * 1.5)) * 2 + 0.2; // Morph factor
+                for (let i = 0; i < pos.count; i++) {
+                    let x = origPos.getX(i);
+                    let y = origPos.getY(i);
+                    let z = origPos.getZ(i);
+                    pos.setXYZ(
+                        i,
+                        Math.sign(x) * Math.pow(Math.abs(x), e),
+                        Math.sign(y) * Math.pow(Math.abs(y), e),
+                        Math.sign(z) * Math.pow(Math.abs(z), e)
+                    );
+                }
+                pos.needsUpdate = true;
+                mesh.rotation.y = t * 0.5;
+                renderer.render(scene, camera);
+            });
+        }
+
+        // -------------------------------------------------------------
+        // 2.1 Polyhedra Cluster
+        // -------------------------------------------------------------
+        {
+            const { scene, camera, renderer } = createScene('c2_1');
+            const group = new THREE.Group();
+
+            const ico = new THREE.Mesh(
+                new THREE.DodecahedronGeometry(1.4),
+                new THREE.MeshStandardMaterial({ color: 0xaa00ff, wireframe: true })
+            );
+            const oct = new THREE.Mesh(
+                new THREE.OctahedronGeometry(0.8),
+                new THREE.MeshStandardMaterial({ color: 0x00ff00, wireframe: false })
+            );
+            group.add(ico, oct);
+            scene.add(group);
+
+            animators.push((t) => {
+                ico.rotation.x = t * 0.3;
+                ico.rotation.y = t * 0.5;
+                oct.rotation.x = -t * 0.6;
+                oct.rotation.z = t * 0.4;
+                renderer.render(scene, camera);
+            });
+        }
+
+        // -------------------------------------------------------------
+        // 2.2 Geodesic Buckyball
+        // -------------------------------------------------------------
+        {
+            const { scene, camera, renderer } = createScene('c2_2');
+            const geometry = new THREE.IcosahedronGeometry(1.5, 2);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x0088ff, wireframe: true });
+            const mesh = new THREE.Mesh(geometry, mat);
+            scene.add(mesh);
+
+            animators.push((t) => {
+                mesh.rotation.x = t * 0.2;
+                mesh.rotation.y = t * 0.4;
+                renderer.render(scene, camera);
+            });
+        }
+
+        // -------------------------------------------------------------
+        // 2.3 Sierpinski Pyramid (Fractal)
+        // -------------------------------------------------------------
+        {
+            const { scene, camera, renderer } = createScene('c2_3');
+            const group = new THREE.Group();
+            const mat = new THREE.MeshStandardMaterial({ color: 0xff2a2a, wireframe: true });
+
+            function buildPyramid(x, y, z, size, depth) {
+                if (depth === 0) {
+                    const geom = new THREE.TetrahedronGeometry(size);
+                    const mesh = new THREE.Mesh(geom, mat);
+                    mesh.position.set(x, y, z);
+                    group.add(mesh);
+                    return;
+                }
+                const sub = size / 2;
+                buildPyramid(x, y + sub/2, z, sub, depth - 1);
+                buildPyramid(x - sub, y - sub/2, z + sub, sub, depth - 1);
+                buildPyramid(x + sub, y - sub/2, z + sub, sub, depth - 1);
+                buildPyramid(x, y - sub/2, z - sub, sub, depth - 1);
+            }
+            buildPyramid(0, 0, 0, 1.6, 3);
+            scene.add(group);
+
+            animators.push((t) => {
+                group.rotation.y = t * 0.4;
+                group.rotation.x = 0.2;
+                renderer.render(scene, camera);
+            });
+        }
+
+        // -------------------------------------------------------------
+        // 3.1 Procedural Organic Blob
+        // -------------------------------------------------------------
+        {
+            const { scene, camera, renderer } = createScene('c3_1');
+            const geometry = new THREE.SphereGeometry(1.2, 64, 64);
+            const origPos = geometry.attributes.position.clone();
+            const mat = new THREE.MeshStandardMaterial({ color: 0xff00ff, roughness: 0.1, metalness: 0.8 });
+            const mesh = new THREE.Mesh(geometry, mat);
+            scene.add(mesh);
+
+            animators.push((t) => {
+                const pos = geometry.attributes.position;
+                for (let i = 0; i < pos.count; i++) {
+                    const u = origPos.getX(i);
+                    const v = origPos.getY(i);
+                    const w = origPos.getZ(i);
+                    const noise = simplex.noise3D(u * 1.5 + t, v * 1.5 + t, w * 1.5);
+                    const dist = 1.2 + noise * 0.35;
+                    const vec = new THREE.Vector3(u, v, w).normalize().multiplyScalar(dist);
+                    pos.setXYZ(i, vec.x, vec.y, vec.z);
+                }
+                geometry.computeVertexNormals();
+                pos.needsUpdate = true;
+                mesh.rotation.y = t * 0.2;
+                renderer.render(scene, camera);
+            });
+        }
+
+        // -------------------------------------------------------------
+        // 3.2 Audio-Reactive Spiked Sphere
+        // -------------------------------------------------------------
+        {
+            const { scene, camera, renderer } = createScene('c3_2');
+            const geometry = new THREE.SphereGeometry(1.2, 32, 32);
+            const origPos = geometry.attributes.position.clone();
+            const mat = new THREE.MeshStandardMaterial({ color: 0x00ffff, wireframe: true });
+            const mesh = new THREE.Mesh(geometry, mat);
+            scene.add(mesh);
+
+            animators.push((t) => {
+                const pos = geometry.attributes.position;
+                const freq = Math.abs(Math.sin(t * 5)) * 0.5 + 0.1; // Simulated audio pulse
+                for (let i = 0; i < pos.count; i++) {
+                    const u = origPos.getX(i);
+                    const v = origPos.getY(i);
+                    const w = origPos.getZ(i);
+                    const spike = (i % 5 === 0) ? freq : 0;
+                    const vec = new THREE.Vector3(u, v, w).normalize().multiplyScalar(1.2 + spike);
+                    pos.setXYZ(i, vec.x, vec.y, vec.z);
+                }
+                pos.needsUpdate = true;
+                mesh.rotation.x = t * 0.3;
+                mesh.rotation.y = t * 0.5;
+                renderer.render(scene, camera);
+            });
+        }
+
+        // -------------------------------------------------------------
+        // 3.3 Particle Swarm Core
+        // -------------------------------------------------------------
+        {
+            const { scene, camera, renderer } = createScene('c3_3');
+            const count = 2000;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            const initialAngles = [];
+
+            for (let i = 0; i < count; i++) {
+                const r = 1.2 + Math.random() * 0.6;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.random() * Math.PI;
+                positions[i*3] = r * Math.sin(phi) * Math.cos(theta);
+                positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+                positions[i*3+2] = r * Math.cos(phi);
+                initialAngles.push({ r, theta, phi, speed: 0.5 + Math.random() });
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const mat = new THREE.PointsMaterial({ color: 0xffea00, size: 0.03 });
+            const points = new THREE.Points(geometry, mat);
+            scene.add(points);
+
+            animators.push((t) => {
+                const pos = geometry.attributes.position;
+                for (let i = 0; i < count; i++) {
+                    const p = initialAngles[i];
+                    p.theta += 0.01 * p.speed;
+                    pos.setXYZ(
+                        i,
+                        p.r * Math.sin(p.phi) * Math.cos(p.theta),
+                        p.r * Math.sin(p.phi) * Math.sin(p.theta),
+                        p.r * Math.cos(p.phi)
+                    );
+                }
+                pos.needsUpdate = true;
+                points.rotation.y = t * 0.1;
+                renderer.render(scene, camera);
+            });
+        }
+
+        // Global Loop
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+            animators.forEach(fn => fn(elapsedTime));
+        }
+        animate();
+
+        // Responsive Resizing
+        window.addEventListener('resize', () => {
+            document.querySelectorAll('.card').forEach(card => {
+                const container = card.querySelector('.canvas-container');
+                const canvas = container.querySelector('canvas');
+                if (canvas) {
+                    canvas.style.width = '100%';
+                    canvas.style.height = '100%';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
