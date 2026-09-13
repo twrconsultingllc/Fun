@@ -1,5 +1,5 @@
+```html
 <!DOCTYPE html>
-<!-- index.html -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -115,21 +115,21 @@
             color: #52525b;
         }
 
-        /* SECTION 4 & SPACE INVADERS LINK STYLES */
-        #section-4 {
+        /* SECTION 4, 5, 6 & LINK STYLES */
+        #section-4, #section-5, #section-6 {
             justify-content: center;
             padding-top: 0; 
         }
 
         .space-invaders-link {
-            font-size: clamp(2.5rem, 6vw, 6rem);
+            font-size: clamp(2.5rem, 5vw, 5rem);
             font-weight: 900;
             color: #ffffff;
             text-decoration: none;
             text-transform: uppercase;
             letter-spacing: 2px;
             text-shadow: 0 0 20px #ff00a0, 0 0 40px #ff00a0;
-            padding: 15vh 10vw; 
+            padding: 5vh 5vw; 
             transition: all 0.3s ease;
             cursor: pointer;
             z-index: 20;
@@ -183,6 +183,20 @@
                 <span class="click-here">Click Here</span>
             </a>
         </section>
+        
+        <section id="section-5">
+            <a href="3js.html" class="space-invaders-link">
+                3JS
+                <span class="click-here">Click Here</span>
+            </a>
+        </section>
+
+        <section id="section-6">
+            <a href="tricalc3.html" class="space-invaders-link">
+                Tri Calc 3
+                <span class="click-here">Click Here</span>
+            </a>
+        </section>
 
     </main>
 
@@ -215,26 +229,6 @@
         cyanLight.position.set(-5, -5, 5);
         scene.add(cyanLight);
 
-        // --- SYMBOL CANVAS DRAWING 'T' ---
-        const symbolCanvas = document.createElement('canvas');
-        symbolCanvas.width = 256;
-        symbolCanvas.height = 256;
-        const ctx = symbolCanvas.getContext('2d');
-        
-        ctx.fillStyle = '#ff00a0'; 
-        ctx.fillRect(0, 0, 256, 256);
-        
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = '#ffffff';
-        ctx.fillStyle = '#ffffff'; 
-        ctx.font = '900 150px Inter, sans-serif'; 
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        
-        ctx.fillText('T', 128, 165); 
-
-        const symbolTexture = new THREE.CanvasTexture(symbolCanvas);
-
         const neonCyanMaterial = new THREE.MeshStandardMaterial({
             color: 0x00aaff,
             emissive: 0x003366,
@@ -243,35 +237,71 @@
             wireframe: true
         });
 
-        const neonPinkMaterial = new THREE.MeshStandardMaterial({
-            color: 0xff00a0,
-            emissive: 0x440022,
-            roughness: 0.2,
-            metalness: 0.9,
-            map: symbolTexture,
-            wireframe: false 
-        });
+        // Exactly 20 faces on an Icosahedron (Letters + Standard Shapes)
+        const symbols = ['T', 'R', 'A', 'V', 'I', 'E', 'S', 'O', '★', '☾', '☀', '♦', '■', '▲', '●', '⬟', '⬢', '♥', '✦', '⊕'];
+        const materialsArray = [];
+
+        for (let i = 0; i < 20; i++) {
+            const symCanvas = document.createElement('canvas');
+            symCanvas.width = 256;
+            symCanvas.height = 256;
+            const ctx = symCanvas.getContext('2d');
+            
+            ctx.fillStyle = '#ff00a0'; 
+            ctx.fillRect(0, 0, 256, 256);
+            
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#ffffff';
+            ctx.fillStyle = '#ffffff'; 
+            ctx.font = '900 120px Inter, sans-serif'; 
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Draw the unique character on this canvas
+            ctx.fillText(symbols[i], 128, 140); 
+
+            const symbolTexture = new THREE.CanvasTexture(symCanvas);
+
+            const neonPinkMaterial = new THREE.MeshStandardMaterial({
+                color: 0xff00a0,
+                emissive: 0x440022,
+                roughness: 0.2,
+                metalness: 0.9,
+                map: symbolTexture,
+                wireframe: false 
+            });
+            
+            materialsArray.push(neonPinkMaterial);
+        }
 
         const torusGeometry = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);
         const torusKnot = new THREE.Mesh(torusGeometry, neonCyanMaterial);
         torusKnot.position.set(-2, -2, -2);
         scene.add(torusKnot);
 
-        const icoGeometry = new THREE.IcosahedronGeometry(1.2, 0);
+        let icoGeometry = new THREE.IcosahedronGeometry(1.2, 0);
+        
+        // Convert to non-indexed so every single face gets its own isolated vertices & mapping
+        if (icoGeometry.index) {
+            icoGeometry = icoGeometry.toNonIndexed();
+        }
         
         const uvAttribute = icoGeometry.attributes.uv;
         for (let i = 0; i < uvAttribute.count; i += 3) {
+            // Re-map the texture neatly onto the triangular bounds of the face
             uvAttribute.setXY(i, 0.5, 1.0);     
             uvAttribute.setXY(i + 1, 0.0, 0.0); 
             uvAttribute.setXY(i + 2, 1.0, 0.0); 
+            
+            // Assign the corresponding material index to this face (0 to 19)
+            icoGeometry.addGroup(i, 3, i / 3);
         }
 
-        const icosahedron = new THREE.Mesh(icoGeometry, neonPinkMaterial);
-        // UPDATED: Initial position pulled slightly inward
+        // Pass the multi-material array directly to the Mesh
+        const icosahedron = new THREE.Mesh(icoGeometry, materialsArray);
         icosahedron.position.set(1.5, -2.5, -5);
         scene.add(icosahedron);
 
-        // UPDATED: Dynamic scaling based on viewport size
         const isMobile = window.innerWidth < 768;
         if (isMobile) {
             torusKnot.scale.set(0.5, 0.5, 0.5);
@@ -297,7 +327,7 @@
         tl.to(icosahedron.position, { x: -1.2, y: -2.5, z: -2 }, 0);
         tl.to(icosahedron.rotation, { x: Math.PI * -1, y: Math.PI }, 0);
 
-        // Transition: Section 2 -> Section 3 (UPDATED: Kept safely within screen boundaries)
+        // Transition: Section 2 -> Section 3
         tl.to(torusKnot.position, { x: isMobile ? -0.7 : -1.0, y: -0.8, z: -1.5 }, 1); 
         tl.to(torusKnot.rotation, { x: Math.PI * 2, y: Math.PI * 4 }, 1);
         tl.to(torusKnot.scale, { x: isMobile ? 0.6 : 0.8, y: isMobile ? 0.6 : 0.8, z: isMobile ? 0.6 : 0.8 }, 1); 
@@ -306,12 +336,18 @@
         tl.to(icosahedron.rotation, { x: Math.PI * -2, y: Math.PI * 3 }, 1);
         tl.to(icosahedron.scale, { x: isMobile ? 0.5 : 0.8, y: isMobile ? 0.5 : 0.8, z: isMobile ? 0.5 : 0.8 }, 1);
 
-        // Transition: Section 3 -> Section 4
+        // Transition: Section 3 -> Section 4 (Space Invaders)
         tl.to(torusKnot.scale, { x: 0, y: 0, z: 0 }, 2); 
         tl.to(torusKnot.position, { y: 5 }, 2); 
         tl.to(icosahedron.position, { x: 0, y: 0, z: 1.5 }, 2); 
         tl.to(icosahedron.rotation, { x: Math.PI * -4, y: Math.PI * 5 }, 2);
         tl.to(icosahedron.scale, { x: isMobile ? 0.6 : 1, y: isMobile ? 0.6 : 1, z: isMobile ? 0.6 : 1 }, 2);
+
+        // Transition: Section 4 -> Section 5 (3JS Link)
+        tl.to(icosahedron.rotation, { x: Math.PI * -6, y: Math.PI * 7 }, 3);
+
+        // Transition: Section 5 -> Section 6 (Tri Calc 3 Link)
+        tl.to(icosahedron.rotation, { x: Math.PI * -8, y: Math.PI * 9 }, 4);
 
         const clock = new THREE.Clock();
 
@@ -342,3 +378,4 @@
     </script>
 </body>
 </html>
+```
