@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The First Veil</title>
+    
+    <!-- Load Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <!-- Load Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Share Tech Mono', monospace;
+            color: #ffffff;
+        }
+
+        #mercury-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .terminal-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            background: rgba(9, 9, 11, 0.85);
+            border: 1px solid #00ffff;
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.2), inset 0 0 15px rgba(0, 255, 255, 0.1);
+            padding: 2.5rem;
+            border-radius: 4px;
+            text-align: center;
+            width: 90%;
+            max-width: 600px;
+            backdrop-filter: blur(5px);
+        }
+
+        h1 {
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            margin-bottom: 1.5rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        p.riddle-text {
+            color: #a1a1aa;
+            line-height: 1.8;
+            margin-bottom: 1rem;
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+            text-shadow: 0 0 5px rgba(161, 161, 170, 0.3);
+        }
+
+        .highlight {
+            color: #ffffff;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+        }
+
+        .symbols {
+            color: #ffea00;
+            font-size: clamp(2rem, 5vw, 3rem);
+            letter-spacing: 1.5rem;
+            margin: 2rem 0;
+            text-shadow: 0 0 15px #ffea00, 0 0 30px #ff7a00;
+            /* Adjust offset for letter spacing so it stays perfectly centered */
+            padding-left: 1.5rem; 
+        }
+
+        p.warning-text {
+            color: #ff2a2a;
+            font-size: clamp(0.8rem, 1.5vw, 1rem);
+            text-shadow: 0 0 10px #ff2a2a, 0 0 20px #ff2a2a;
+            margin-bottom: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .return-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            text-decoration: none;
+            text-shadow: 0 0 10px #00ffff;
+            transition: all 0.3s ease;
+            background: transparent;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .return-btn:hover {
+            background: rgba(0, 255, 255, 0.15);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+            transform: scale(1.05);
+        }
+        
+        /* Scanline effect */
+        .terminal-container::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="mercury-canvas"></canvas>
+
+    <div class="terminal-container">
+        <h1>THE FIRST VEIL IS PIERCED.</h1>
+        <p class="riddle-text">The cipher is valid, but the path is not yet open.</p>
+        <p class="riddle-text">Return to the origin. Seek the <span class="highlight">twenty-sided monolith</span> spinning in the void.</p>
+        <p class="riddle-text">To reveal the architect's coordinates, you must strike the heavens in alignment.</p>
+        
+        <div class="symbols">☀☾★</div>
+        
+        <p class="warning-text">Only when the stone bleeds red will the true gateway reveal itself.</p>
+        
+        <a href="index.html" class="return-btn">RETURN TO ORIGIN</a>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mercury-canvas');
+        const scene = new THREE.Scene();
+        
+        const camera = new THREE.Persp
