@@ -181,159 +181,155 @@
 
     </main>
 
-    <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            
-            const canvas = document.getElementById('bg-canvas');
-            const scene = new THREE.Scene();
-            scene.background = new THREE.Color('#09090b');
+     <script>
+    window.addEventListener('DOMContentLoaded', () => {
+        
+        const canvas = document.getElementById('bg-canvas');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#09090b');
 
-            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 5;
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5;
 
-            const renderer = new THREE.WebGLRenderer({
-                canvas: canvas,
-                antialias: true,
-                alpha: false
-            });
+        const renderer = new THREE.WebGLRenderer({
+            canvas: canvas,
+            antialias: true,
+            alpha: false
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+        scene.add(ambientLight);
+
+        const pinkLight = new THREE.PointLight(0xff00ff, 2, 50);
+        pinkLight.position.set(5, 5, 5);
+        scene.add(pinkLight);
+
+        const cyanLight = new THREE.PointLight(0x00ffff, 2, 50);
+        cyanLight.position.set(-5, -5, 5);
+        scene.add(cyanLight);
+
+        // --- SYMBOL CANVAS UPDATED TO DRAW 'T' ---
+        const symbolCanvas = document.createElement('canvas');
+        symbolCanvas.width = 256;
+        symbolCanvas.height = 256;
+        const ctx = symbolCanvas.getContext('2d');
+        
+        ctx.fillStyle = '#ff00a0'; 
+        ctx.fillRect(0, 0, 256, 256);
+        
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#ffffff';
+        ctx.fillStyle = '#ffffff'; // Set text color to white for contrast and glow
+        // Using 'Inter' font to match the site, 900 weight (Boldest) at 150px
+        ctx.font = '900 150px Inter, sans-serif'; 
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Render the letter 'T' centered at (128, 128)
+        ctx.fillText('T', 128, 128); 
+        
+        // --- END UPDATED SYMBOL CANVAS ---
+
+        const symbolTexture = new THREE.CanvasTexture(symbolCanvas);
+
+        const neonCyanMaterial = new THREE.MeshStandardMaterial({
+            color: 0x00aaff,
+            emissive: 0x003366,
+            roughness: 0.1,
+            metalness: 0.8,
+            wireframe: true
+        });
+
+        const neonPinkMaterial = new THREE.MeshStandardMaterial({
+            color: 0xff00a0,
+            emissive: 0x440022,
+            roughness: 0.2,
+            metalness: 0.9,
+            map: symbolTexture,
+            wireframe: false 
+        });
+
+        const torusGeometry = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);
+        const torusKnot = new THREE.Mesh(torusGeometry, neonCyanMaterial);
+        torusKnot.position.set(-2, -2, -2);
+        scene.add(torusKnot);
+
+        const icoGeometry = new THREE.IcosahedronGeometry(1.2, 0);
+        
+        const uvAttribute = icoGeometry.attributes.uv;
+        for (let i = 0; i < uvAttribute.count; i += 3) {
+            uvAttribute.setXY(i, 0.5, 1.0);     
+            uvAttribute.setXY(i + 1, 0.0, 0.0); 
+            uvAttribute.setXY(i + 2, 1.0, 0.0); 
+        }
+
+        const icosahedron = new THREE.Mesh(icoGeometry, neonPinkMaterial);
+        icosahedron.position.set(2, -2.5, -5);
+        scene.add(icosahedron);
+
+        if (window.innerWidth < 768) {
+            torusKnot.scale.set(0.6, 0.6, 0.6);
+            icosahedron.scale.set(0.6, 0.6, 0.6);
+        }
+
+        gsap.registerPlugin(ScrollTrigger);
+
+        const tl = gsap.timeline({
+            scrollTrigger: {
+                trigger: "#scroll-container",
+                start: "top top",
+                end: "bottom bottom",
+                scrub: 1, 
+            }
+        });
+
+        tl.to(torusKnot.position, { x: 1.5, y: -2, z: -1 }, 0);
+        tl.to(torusKnot.rotation, { x: Math.PI, y: Math.PI * 2 }, 0);
+        tl.to(icosahedron.position, { x: -1.5, y: -2.5, z: -2 }, 0);
+        tl.to(icosahedron.rotation, { x: Math.PI * -1, y: Math.PI }, 0);
+
+        tl.to(torusKnot.position, { x: -1.5, y: -0.8, z: -2 }, 1); 
+        tl.to(torusKnot.rotation, { x: Math.PI * 2, y: Math.PI * 4 }, 1);
+        tl.to(torusKnot.scale, { x: 1.2, y: 1.2, z: 1.2 }, 1); 
+        tl.to(icosahedron.position, { x: 1.8, y: -0.8, z: 1 }, 1); 
+        tl.to(icosahedron.rotation, { x: Math.PI * -2, y: Math.PI * 3 }, 1);
+
+        // Transition: Section 3 -> Section 4 (Preserved from previous edit)
+        tl.to(torusKnot.scale, { x: 0, y: 0, z: 0 }, 2); 
+        tl.to(torusKnot.position, { y: 5 }, 2); 
+        tl.to(icosahedron.position, { x: 0, y: 0, z: 1.5 }, 2); 
+        tl.to(icosahedron.rotation, { x: Math.PI * -4, y: Math.PI * 5 }, 2);
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+
+            torusKnot.rotation.z = elapsedTime * 0.2;
+            icosahedron.rotation.x = elapsedTime * 0.3;
+            icosahedron.rotation.y = elapsedTime * 0.1;
+
+            torusKnot.position.y += Math.sin(elapsedTime * 2) * 0.002;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
-            scene.add(ambientLight);
-
-            const pinkLight = new THREE.PointLight(0xff00ff, 2, 50);
-            pinkLight.position.set(5, 5, 5);
-            scene.add(pinkLight);
-
-            const cyanLight = new THREE.PointLight(0x00ffff, 2, 50);
-            cyanLight.position.set(-5, -5, 5);
-            scene.add(cyanLight);
-
-            const symbolCanvas = document.createElement('canvas');
-            symbolCanvas.width = 256;
-            symbolCanvas.height = 256;
-            const ctx = symbolCanvas.getContext('2d');
-            
-            ctx.fillStyle = '#ff00a0'; 
-            ctx.fillRect(0, 0, 256, 256);
-            
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = '#ffffff';
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 15;
-            ctx.lineCap = 'round';
-            
-            ctx.beginPath();
-            ctx.arc(128, 128, 45, 0, Math.PI * 2);
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.moveTo(128, 40); ctx.lineTo(128, 216);
-            ctx.moveTo(40, 128); ctx.lineTo(216, 128);
-            ctx.stroke();
-            
-            const symbolTexture = new THREE.CanvasTexture(symbolCanvas);
-
-            const neonCyanMaterial = new THREE.MeshStandardMaterial({
-                color: 0x00aaff,
-                emissive: 0x003366,
-                roughness: 0.1,
-                metalness: 0.8,
-                wireframe: true
-            });
-
-            const neonPinkMaterial = new THREE.MeshStandardMaterial({
-                color: 0xff00a0,
-                emissive: 0x440022,
-                roughness: 0.2,
-                metalness: 0.9,
-                map: symbolTexture,
-                wireframe: false 
-            });
-
-            const torusGeometry = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);
-            const torusKnot = new THREE.Mesh(torusGeometry, neonCyanMaterial);
-            torusKnot.position.set(-2, -2, -2);
-            scene.add(torusKnot);
-
-            const icoGeometry = new THREE.IcosahedronGeometry(1.2, 0);
-            
-            const uvAttribute = icoGeometry.attributes.uv;
-            for (let i = 0; i < uvAttribute.count; i += 3) {
-                uvAttribute.setXY(i, 0.5, 1.0);     
-                uvAttribute.setXY(i + 1, 0.0, 0.0); 
-                uvAttribute.setXY(i + 2, 1.0, 0.0); 
-            }
-
-            const icosahedron = new THREE.Mesh(icoGeometry, neonPinkMaterial);
-            icosahedron.position.set(2, -2.5, -5);
-            scene.add(icosahedron);
-
-            if (window.innerWidth < 768) {
-                torusKnot.scale.set(0.6, 0.6, 0.6);
-                icosahedron.scale.set(0.6, 0.6, 0.6);
-            }
-
-            gsap.registerPlugin(ScrollTrigger);
-
-            const tl = gsap.timeline({
-                scrollTrigger: {
-                    trigger: "#scroll-container",
-                    start: "top top",
-                    end: "bottom bottom",
-                    scrub: 1, 
-                }
-            });
-
-            // Transition: Section 1 -> Section 2
-            tl.to(torusKnot.position, { x: 1.5, y: -2, z: -1 }, 0);
-            tl.to(torusKnot.rotation, { x: Math.PI, y: Math.PI * 2 }, 0);
-            tl.to(icosahedron.position, { x: -1.5, y: -2.5, z: -2 }, 0);
-            tl.to(icosahedron.rotation, { x: Math.PI * -1, y: Math.PI }, 0);
-
-            // Transition: Section 2 -> Section 3
-            tl.to(torusKnot.position, { x: -1.5, y: -0.8, z: -2 }, 1); 
-            tl.to(torusKnot.rotation, { x: Math.PI * 2, y: Math.PI * 4 }, 1);
-            tl.to(torusKnot.scale, { x: 1.2, y: 1.2, z: 1.2 }, 1); 
-            tl.to(icosahedron.position, { x: 1.8, y: -0.8, z: 1 }, 1); 
-            tl.to(icosahedron.rotation, { x: Math.PI * -2, y: Math.PI * 3 }, 1);
-
-            // Transition: Section 3 -> Section 4 (NEW)
-            // Shrink the infinity sign and move it completely away
-            tl.to(torusKnot.scale, { x: 0, y: 0, z: 0 }, 2); 
-            tl.to(torusKnot.position, { y: 5 }, 2); 
-            
-            // Move the red object dead center and pull it slightly forward
-            tl.to(icosahedron.position, { x: 0, y: 0, z: 1.5 }, 2); 
-            tl.to(icosahedron.rotation, { x: Math.PI * -4, y: Math.PI * 5 }, 2);
-
-            const clock = new THREE.Clock();
-
-            function animate() {
-                requestAnimationFrame(animate);
-                const elapsedTime = clock.getElapsedTime();
-
-                torusKnot.rotation.z = elapsedTime * 0.2;
-                icosahedron.rotation.x = elapsedTime * 0.3;
-                icosahedron.rotation.y = elapsedTime * 0.1;
-
-                torusKnot.position.y += Math.sin(elapsedTime * 2) * 0.002;
-
-                renderer.render(scene, camera);
-            }
-
-            animate();
-
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-                ScrollTrigger.refresh();
-            });
-
+            ScrollTrigger.refresh();
         });
-    </script>
+
+    });
+</script>
+
+        
 </body>
 </html>
