@@ -422,7 +422,9 @@
 
         const clock = new THREE.Clock();
 
-        /* --- CICADA 3301: PHASE 1 RAYCASTER (THE GATEWAY) --- */
+     
+
+               /* --- CICADA 3301: PHASE 1 RAYCASTER (THE GATEWAY) --- */
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         
@@ -461,35 +463,7 @@
                 // Keep sequence to the last 3 clicks
                 if (currentSequence.length > 3) {
                     currentSequence.shift();
-                }
-
-                // Check if sequence matches [Sun, Moon, Star]
-                if (JSON.stringify(currentSequence) === JSON.stringify(targetSequence)) {
-                    triggerPhaseOne();
-                }
-            }
-        });
-
-        function triggerPhaseOne() {
-            // 1. Alter the environment to signal success
-            pinkLight.color.setHex(0xff0000); // Turn lights blood red
-            cyanLight.color.setHex(0xff0000);
-            
-            // 2. The Cicada Drop in the Console
-            console.clear();
-            console.log("%c...SEQUENCE ACCEPTED...", "color: #00ff00; font-size: 20px; font-weight: bold;");
-            console.log("%cThe architect left his secrets in the stone.", "color: #555555; font-style: italic;");
-            
-            // Base64 encoded coordinates for Coral Castle + a hint for Ed Leedskalnin's book
-            // Decodes to: "25.5006 N, 80.4444 W. READ THE MAGNETIC CURRENT. FIND THE POLARIS HOLE."
-            const encryptedMessage = "MjUuNTAwNiBOLCA4MC40NDQ0IFcuIFJFQUQgVEhFIE1BR05FVElDIENVUlJFTlQuIEZJTkQgVEhFIFBPTEFSSVMgSE9MRS4=";
-            
-            console.log("%c" + encryptedMessage, "color: #ff00ff; font-weight: bold;");
-            console.log("%cUse the cipher to unlock the next door. Good luck.", "color: #00ff00;");
-            
-            // Reset sequence so it can't be spammed
-            currentSequence = [];
-        }
+                }   
 
 
         function animate() {
