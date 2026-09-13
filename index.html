@@ -113,7 +113,7 @@
     </style>
 </head>
 <body>
-    <button id="test-mode-toggle">TEST MODE: <span style="color: #00ff00;">ON</span></button>
+    <button id="test-mode-toggle" style="border-color: #ff2a2a; box-shadow: 0 0 15px rgba(255, 42, 42, 0.4);">TEST MODE: <span style="color: #ff2a2a;">OFF</span></button>
     <canvas id="bg-canvas"></canvas>
 
     <main id="scroll-container">
@@ -157,7 +157,7 @@
     window.addEventListener('DOMContentLoaded', () => {
         
         // --- TEST MODE LOGIC ---
-        let TEST_MODE = true; 
+        let TEST_MODE = false; 
         const testToggleBtn = document.getElementById('test-mode-toggle');
 
         // Simple click listener for UI.
