@@ -422,6 +422,76 @@
 
         const clock = new THREE.Clock();
 
+        /* --- CICADA 3301: PHASE 1 RAYCASTER (THE GATEWAY) --- */
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        // The symbols mapped to their face indexes (this requires knowing which face got which texture)
+        // To make it simple for the script, we will check the material index of the clicked face.
+        // In our array, index 8 is '★', 9 is '☾', 10 is '☀'.
+        
+        const targetSequence = [10, 9, 8]; // Sun, Moon, Star
+        let currentSequence = [];
+
+        window.addEventListener('click', (event) => {
+            // Calculate mouse position in normalized device coordinates (-1 to +1)
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Raycast from camera to mouse
+            raycaster.setFromCamera(mouse, camera);
+
+            // Calculate objects intersecting the picking ray
+            const intersects = raycaster.intersectObject(icosahedron);
+
+            if (intersects.length > 0) {
+                // Get the material index of the face that was clicked
+                const faceIndex = intersects[0].face.materialIndex;
+                
+                // Flash the icosahedron white briefly to confirm a click
+                const originalEmissive = materialsArray[faceIndex].emissive.getHex();
+                materialsArray[faceIndex].emissive.setHex(0xffffff);
+                setTimeout(() => {
+                    materialsArray[faceIndex].emissive.setHex(originalEmissive);
+                }, 200);
+
+                // Add to sequence logic
+                currentSequence.push(faceIndex);
+
+                // Keep sequence to the last 3 clicks
+                if (currentSequence.length > 3) {
+                    currentSequence.shift();
+                }
+
+                // Check if sequence matches [Sun, Moon, Star]
+                if (JSON.stringify(currentSequence) === JSON.stringify(targetSequence)) {
+                    triggerPhaseOne();
+                }
+            }
+        });
+
+        function triggerPhaseOne() {
+            // 1. Alter the environment to signal success
+            pinkLight.color.setHex(0xff0000); // Turn lights blood red
+            cyanLight.color.setHex(0xff0000);
+            
+            // 2. The Cicada Drop in the Console
+            console.clear();
+            console.log("%c...SEQUENCE ACCEPTED...", "color: #00ff00; font-size: 20px; font-weight: bold;");
+            console.log("%cThe architect left his secrets in the stone.", "color: #555555; font-style: italic;");
+            
+            // Base64 encoded coordinates for Coral Castle + a hint for Ed Leedskalnin's book
+            // Decodes to: "25.5006 N, 80.4444 W. READ THE MAGNETIC CURRENT. FIND THE POLARIS HOLE."
+            const encryptedMessage = "MjUuNTAwNiBOLCA4MC40NDQ0IFcuIFJFQUQgVEhFIE1BR05FVElDIENVUlJFTlQuIEZJTkQgVEhFIFBPTEFSSVMgSE9MRS4=";
+            
+            console.log("%c" + encryptedMessage, "color: #ff00ff; font-weight: bold;");
+            console.log("%cUse the cipher to unlock the next door. Good luck.", "color: #00ff00;");
+            
+            // Reset sequence so it can't be spammed
+            currentSequence = [];
+        }
+
+
         function animate() {
             requestAnimationFrame(animate);
             const elapsedTime = clock.getElapsedTime();
