@@ -29,6 +29,7 @@
             font-family: 'Inter', sans-serif;
             overflow-x: hidden;
             overscroll-behavior: none; 
+            scroll-behavior: smooth; /* ADDED: Native CSS Smooth Scrolling */
         }
 
         #bg-canvas {
@@ -141,6 +142,13 @@
             transform: scale(1.05);
         }
 
+        .click-here {
+            display: block;        /* Forces it onto the line right below */
+            font-size: 0.4em;      /* Makes it 40% the size of "Space Invaders" */
+            letter-spacing: 4px;   /* Spaces out the letters a bit */
+            margin-top: 10px;      /* Adds a little gap between the words */
+        }
+
         @keyframes bounce {
             0%, 100% { transform: translate(-50%, 0); }
             50% { transform: translate(-50%, 10px); }
@@ -170,7 +178,6 @@
             <p>The text remains accessible and selectable, while the 3D graphics run at 60 FPS in the background.</p>
         </section>
 
-
         <!-- NEW BOTTOM SECTION -->
         <section id="section-4">
             <a href="new.html" class="space-invaders-link">
@@ -181,7 +188,7 @@
 
     </main>
 
-     <script>
+    <script>
     window.addEventListener('DOMContentLoaded', () => {
         
         const canvas = document.getElementById('bg-canvas');
@@ -274,14 +281,17 @@
             icosahedron.scale.set(0.6, 0.6, 0.6);
         }
 
+        // ADDED: Smooth scroll configurations for GSAP on mobile
         gsap.registerPlugin(ScrollTrigger);
+        ScrollTrigger.config({ ignoreMobileResize: true });
+        ScrollTrigger.normalizeScroll(true);
 
         const tl = gsap.timeline({
             scrollTrigger: {
                 trigger: "#scroll-container",
                 start: "top top",
                 end: "bottom bottom",
-                scrub: 1, 
+                scrub: 0.1, // REDUCED: 0.1 gives smooth 1:1 tracking without lag
             }
         });
 
@@ -296,7 +306,7 @@
         tl.to(icosahedron.position, { x: 1.8, y: -0.8, z: 1 }, 1); 
         tl.to(icosahedron.rotation, { x: Math.PI * -2, y: Math.PI * 3 }, 1);
 
-        // Transition: Section 3 -> Section 4 (Preserved from previous edit)
+        // Transition: Section 3 -> Section 4
         tl.to(torusKnot.scale, { x: 0, y: 0, z: 0 }, 2); 
         tl.to(torusKnot.position, { y: 5 }, 2); 
         tl.to(icosahedron.position, { x: 0, y: 0, z: 1.5 }, 2); 
@@ -328,8 +338,6 @@
         });
 
     });
-</script>
-
-        
+    </script>
 </body>
 </html>
