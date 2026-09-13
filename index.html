@@ -93,6 +93,427 @@
         }
         #secret-input:focus { border-color: #00ffff; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); background: rgba(0, 255, 255, 0.05); }
 
+        #test-mode-toggle {
+            position: fixed; top: 15px; right: 15px; z-index: 9999;
+            background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px);
+            border: 1px solid #00ff00; color: #ffffff;
+            padding: 10px 15px; font-size: 0.8rem; font-weight: 700;
+            font-family: 'Inter', sans-serif; text-transform: uppercase;
+            border-radius: 8px; cursor: pointer; box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        @keyframes bounce { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 10px); } }
+    </style>
+</head>
+<body>
+    <button id="test-mode-toggle">TEST MODE: <span style="color: #00ff00;">ON</span></button>
+    <canvas id="bg-canvas"></canvas>
+
+    <main id="scroll-container">
+        <section id="section-1">
+            <h1>
+                <span class="neon-1">T</span><span class="neon-2">R</span><span class="neon-3">A</span><span class="neon-4">V</span><span class="neon-5">I</span><span class="neon-6">E</span><span class="neon-7">S</span><span class="neon-8">O</span>
+            </h1>
+            <p>This is a native HTML and Three.js implementation. No heavy frameworks, no virtual DOM. Just pure performance built for high-end mobile displays.</p>
+            <div class="scroll-indicator">Scroll Down</div>
+        </section>
+
+        <section id="section-2">
+            <h2>The <span class="text-pink">Bridge</span></h2>
+            <p>GSAP's ScrollTrigger tracks your swipe gestures and translates them directly into mathematical coordinates for the GPU in real-time.</p>
+        </section>
+
+        <section id="section-3">
+            <h1>Perfect <span class="text-cyan">Harmony</span></h1>
+            <p>The text remains accessible and selectable, while the 3D graphics run at 60 FPS in the background.</p>
+        </section>
+
+        <section id="section-4">
+            <a href="new.html" class="space-invaders-link">Space Invaders<span class="click-here">Click Here</span></a>
+        </section>
+        
+        <section id="section-5">
+            <a href="threejsGallery.html" class="space-invaders-link">3JS<span class="click-here">Click Here</span></a>
+        </section>
+
+        <section id="section-6">
+            <a href="tricalc.html" class="space-invaders-link">Tri Calc 3<span class="click-here">Click Here</span></a>
+        </section>
+
+        <section id="section-7">
+            <a href="secret.html" id="secret-link" class="space-invaders-link disabled-link">SECRET</a>
+            <input type="text" id="secret-input" placeholder="ENTER CODE" autocomplete="off" />
+        </section>
+    </main>
+
+    <script>
+    window.addEventListener('DOMContentLoaded', () => {
+        // --- DEV CONTROLS ---
+        let TEST_MODE = true; 
+        const testToggleBtn = document.getElementById('test-mode-toggle');
+
+        testToggleBtn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            e.stopPropagation(); // Stop the canvas from stealing the tap
+            
+            TEST_MODE = !TEST_MODE;
+            if (TEST_MODE) {
+                testToggleBtn.innerHTML = 'TEST MODE: <span style="color:#00ff00;">ON</span>';
+                testToggleBtn.style.borderColor = '#00ff00';
+                testToggleBtn.style.boxShadow = '0 0 15px rgba(0, 255, 0, 0.4)';
+            } else {
+                testToggleBtn.innerHTML = 'TEST MODE: <span style="color:#ff2a2a;">OFF</span>';
+                testToggleBtn.style.borderColor = '#ff2a2a';
+                testToggleBtn.style.boxShadow = '0 0 15px rgba(255, 42, 42, 0.4)';
+            }
+            currentSequence = []; // Reset puzzle sequence
+        });
+
+        // --- SECRET CODE LOGIC ---
+        const secretInput = document.getElementById('secret-input');
+        const secretLink = document.getElementById('secret-link');
+        const REQUIRED_CODE = "TRAVIESO";
+
+        secretLink.addEventListener('click', (e) => {
+            if (secretInput.value !== REQUIRED_CODE) {
+                e.preventDefault();
+                secretInput.style.borderColor = '#ff2a2a';
+                secretInput.style.animation = 'bounce 0.3s ease';
+                setTimeout(() => {
+                    secretInput.style.borderColor = '#3f3f46';
+                    secretInput.style.animation = '';
+                }, 500);
+            }
+        });
+
+        secretInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase();
+            if (e.target.value === REQUIRED_CODE) {
+                secretLink.classList.remove('disabled-link');
+                secretInput.style.borderColor = '#00ff00';
+                secretInput.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.5)';
+            } else {
+                secretLink.classList.add('disabled-link');
+                secretInput.style.borderColor = '';
+                secretInput.style.boxShadow = '';
+            }
+        });
+
+        // --- THREE JS SCENE LOGIC ---
+        const canvas = document.getElementById('bg-canvas');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#09090b');
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5;
+
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+        scene.add(ambientLight);
+
+        const pinkLight = new THREE.PointLight(0xff00ff, 2, 50);
+        pinkLight.position.set(5, 5, 5);
+        scene.add(pinkLight);
+
+        const cyanLight = new THREE.PointLight(0x00ffff, 2, 50);
+        cyanLight.position.set(-5, -5, 5);
+        scene.add(cyanLight);
+
+        const neonCyanMaterial = new THREE.MeshStandardMaterial({
+            color: 0x00aaff, emissive: 0x003366, roughness: 0.1, metalness: 0.8, wireframe: true
+        });
+
+        const symbols = ['T', 'R', 'A', 'V', 'I', 'E', 'S', 'O', '★', '☾', '☀', '♦', '■', '▲', '●', '⬟', '⬢', '♥', '✦', '⊕'];
+        const materialsArray = [];
+
+        for (let i = 0; i < 20; i++) {
+            const symCanvas = document.createElement('canvas');
+            symCanvas.width = 256; symCanvas.height = 256;
+            const ctx = symCanvas.getContext('2d');
+            
+            ctx.fillStyle = '#ff00a0'; ctx.fillRect(0, 0, 256, 256);
+            ctx.shadowBlur = 20; ctx.shadowColor = '#ffffff';
+            ctx.fillStyle = '#ffffff'; ctx.font = '900 120px Inter, sans-serif'; 
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(symbols[i], 128, 140); 
+
+            const symbolTexture = new THREE.CanvasTexture(symCanvas);
+            materialsArray.push(new THREE.MeshStandardMaterial({
+                color: 0xff00a0, emissive: 0x440022, roughness: 0.2, metalness: 0.9, map: symbolTexture, wireframe: false 
+            }));
+        }
+
+        const torusGeometry = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);
+        const torusKnot = new THREE.Mesh(torusGeometry, neonCyanMaterial);
+        torusKnot.position.set(-2, -2, -2);
+        scene.add(torusKnot);
+
+        let icoGeometry = new THREE.IcosahedronGeometry(1.2, 0);
+        if (icoGeometry.index) icoGeometry = icoGeometry.toNonIndexed();
+        
+        const uvAttribute = icoGeometry.attributes.uv;
+        for (let i = 0; i < uvAttribute.count; i += 3) {
+            uvAttribute.setXY(i, 0.5, 1.0);     
+            uvAttribute.setXY(i + 1, 0.0, 0.0); 
+            uvAttribute.setXY(i + 2, 1.0, 0.0); 
+            icoGeometry.addGroup(i, 3, i / 3);
+        }
+
+        const icosahedron = new THREE.Mesh(icoGeometry, materialsArray);
+        icosahedron.position.set(1.5, -2.5, -5);
+        scene.add(icosahedron);
+
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) {
+            torusKnot.scale.set(0.5, 0.5, 0.5);
+            icosahedron.scale.set(0.5, 0.5, 0.5);
+        }
+
+        gsap.registerPlugin(ScrollTrigger);
+        ScrollTrigger.config({ ignoreMobileResize: true });
+        // Keeping normalizeScroll off allows perfect native mobile scrolling behavior.
+
+        const tl = gsap.timeline({
+            scrollTrigger: {
+                trigger: "#scroll-container",
+                start: "top top",
+                end: "bottom bottom",
+                scrub: 0.1, 
+            }
+        });
+
+        tl.to(torusKnot.position, { x: 1.2, y: -2, z: -1 }, 0);
+        tl.to(torusKnot.rotation, { x: Math.PI, y: Math.PI * 2 }, 0);
+        tl.to(icosahedron.position, { x: -1.2, y: -2.5, z: -2 }, 0);
+        tl.to(icosahedron.rotation, { x: Math.PI * -1, y: Math.PI }, 0);
+        tl.to(torusKnot.position, { x: isMobile ? -0.7 : -1.0, y: -0.8, z: -1.5 }, 1); 
+        tl.to(torusKnot.rotation, { x: Math.PI * 2, y: Math.PI * 4 }, 1);
+        tl.to(torusKnot.scale, { x: isMobile ? 0.6 : 0.8, y: isMobile ? 0.6 : 0.8, z: isMobile ? 0.6 : 0.8 }, 1); 
+        tl.to(icosahedron.position, { x: isMobile ? 0.7 : 1.0, y: -0.8, z: -0.8 }, 1); 
+        tl.to(icosahedron.rotation, { x: Math.PI * -2, y: Math.PI * 3 }, 1);
+        tl.to(icosahedron.scale, { x: isMobile ? 0.5 : 0.8, y: isMobile ? 0.5 : 0.8, z: isMobile ? 0.5 : 0.8 }, 1);
+        tl.to(torusKnot.scale, { x: 0, y: 0, z: 0 }, 2); 
+        tl.to(torusKnot.position, { y: 5 }, 2); 
+        tl.to(icosahedron.position, { x: 0, y: 0, z: 1.5 }, 2); 
+        tl.to(icosahedron.rotation, { x: Math.PI * -4, y: Math.PI * 5 }, 2);
+        tl.to(icosahedron.scale, { x: isMobile ? 0.6 : 1, y: isMobile ? 0.6 : 1, z: isMobile ? 0.6 : 1 }, 2);
+        tl.to(icosahedron.rotation, { x: Math.PI * -6, y: Math.PI * 7 }, 3);
+        tl.to(icosahedron.rotation, { x: Math.PI * -8, y: Math.PI * 9 }, 4);
+        tl.to(icosahedron.rotation, { x: Math.PI * -10, y: Math.PI * 11 }, 5);
+
+        const clock = new THREE.Clock();
+
+        /* --- CICADA 3301: PHASE 1 RAYCASTER --- */
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        const targetSequence = [10, 9, 8]; // Sun, Moon, Star
+        let currentSequence = [];
+
+        // Variables for pausing rotation
+        let isPaused = false;
+        let icoRotationX = 0;
+        let icoRotationY = 0;
+
+        // Pointer event variables for intelligent tap detection
+        let startX = 0;
+        let startY = 0;
+
+        window.addEventListener('pointerdown', (e) => {
+            startX = e.clientX;
+            startY = e.clientY;
+        });
+
+        window.addEventListener('pointerup', (event) => {
+            // Calculate how far the user's finger moved
+            const diffX = event.clientX - startX;
+            const diffY = event.clientY - startY;
+            const distance = Math.hypot(diffX, diffY);
+
+            // If they moved more than 10 pixels, it was a scroll/swipe, so abort the click logic
+            if (distance > 10) return;
+
+            // 1. Ignore clicks on standard UI (links, inputs, buttons) or children of links
+            const targetTag = event.target.tagName.toUpperCase();
+            if (targetTag === 'A' || targetTag === 'INPUT' || targetTag === 'BUTTON' || event.target.closest('a') || event.target.closest('button')) {
+                return; 
+            }
+
+            // 2. Ignore click if we tapped the Dev Mode button explicitly
+            if (event.target.id === 'test-mode-btn') return;
+
+            // Execute raycaster logic since this is confirmed as a clean tap on the canvas/empty space
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(icosahedron);
+
+            if (intersects.length > 0) {
+                // Pause the rotation for 2000ms
+                isPaused = true;
+                setTimeout(() => {
+                    isPaused = false;
+                }, 2000);
+
+                const faceIndex = intersects[0].face.materialIndex;
+                
+                const originalEmissive = materialsArray[faceIndex].emissive.getHex();
+                materialsArray[faceIndex].emissive.setHex(0xffffff);
+                setTimeout(() => {
+                    materialsArray[faceIndex].emissive.setHex(originalEmissive);
+                }, 200);
+
+                if (TEST_MODE) {
+                    triggerPhaseOne();
+                } else {
+                    currentSequence.push(faceIndex);
+                    if (currentSequence.length > 3) currentSequence.shift();
+                    if (JSON.stringify(currentSequence) === JSON.stringify(targetSequence)) {
+                        triggerPhaseOne();
+                    }
+                }
+            }
+        });
+
+        function triggerPhaseOne() {
+            pinkLight.color.setHex(0xff0000);
+            cyanLight.color.setHex(0xff0000);
+            
+            const encryptedMessage = "MjUuNTAwNiBOLCA4MC40NDQ0IFcuIFJFQUQgVEhFIE1BR05FVElDIENVUlJFTlQuIEZJTkQgVEhFIFBPTEFSSVMgSE9MRS4=";
+
+            if (!document.getElementById('arg-overlay')) {
+                const overlay = document.createElement('div');
+                overlay.id = 'arg-overlay';
+                
+                overlay.style.position = 'fixed'; overlay.style.top = '50%'; overlay.style.left = '50%';
+                overlay.style.transform = 'translate(-50%, -50%)'; overlay.style.backgroundColor = 'rgba(9, 9, 11, 0.95)';
+                overlay.style.border = '1px solid #ff0000'; overlay.style.boxShadow = '0 0 30px rgba(255, 0, 0, 0.5)';
+                overlay.style.padding = '30px'; overlay.style.zIndex = '9999'; overlay.style.width = '90%';
+                overlay.style.maxWidth = '500px'; overlay.style.textAlign = 'center'; overlay.style.fontFamily = 'monospace';
+                overlay.style.borderRadius = '8px';
+                
+                overlay.innerHTML = `
+                    <h2 style="color: #ff0000; letter-spacing: 2px; margin-bottom: 10px; font-size: 1.5rem;">SEQUENCE ACCEPTED</h2>
+                    <p style="color: #a1a1aa; font-size: 0.9rem; margin-bottom: 20px; font-style: italic;">The architect left his secrets in the stone.</p>
+                    <div style="background: #000; padding: 15px; border: 1px dashed #333; word-break: break-all; color: #00ff00; user-select: all; cursor: text;">
+                        ${encryptedMessage}
+                    </div>
+                    <p style="color: #52525b; font-size: 0.7rem; margin-top: 15px;">DECODE TO PROCEED.</p>
+                    <button id="close-overlay" style="margin-top: 20px; background: transparent; border: 1px solid #ff0000; color: #ff0000; padding: 10px 20px; cursor: pointer; text-transform: uppercase; font-family: monospace;">Close Terminal</button>
+                `;
+                
+                document.body.appendChild(overlay);
+
+                // Add close functionality (Fixed for Android touch)
+                document.getElementById('close-overlay').addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    document.body.removeChild(overlay);
+                    // Return lights back to normal
+                    pinkLight.color.setHex(0xff00ff);
+                    cyanLight.color.setHex(0x00ffff);
+                    
+                    // Smoothly scroll back to the top of the page
+                    window.scrollTo({ top: 0, behavior: 'smooth' }); 
+                });
+            }
+            currentSequence = [];
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            const elapsedTime = clock.getElapsedTime();
+            
+            // Only increment rotation if not paused
+            if (!isPaused) {
+                icoRotationX += delta * 0.3;
+                icoRotationY += delta * 0.1;
+            }
+
+            torusKnot.rotation.z = elapsedTime * 0.2;
+            icosahedron.rotation.x = icoRotationX;
+            icosahedron.rotation.y = icoRotationY;
+            torusKnot.position.y += Math.sin(elapsedTime * 2) * 0.002;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            ScrollTrigger.refresh();
+        });
+    });
+    </script>
+</body>
+</html>
+```            z-index: 0;
+        }
+
+        main { position: relative; z-index: 10; }
+
+        section {
+            min-height: 100svh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            text-align: center;
+            padding-top: 10vh; 
+            padding-left: 2rem;
+            padding-right: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 { font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 900; letter-spacing: 0.05em; margin-bottom: 1rem; }
+
+        .neon-1 { color: #ff2a2a; text-shadow: 0 0 15px rgba(255, 42, 42, 0.8), 0 0 30px rgba(255, 42, 42, 0.5); }
+        .neon-2 { color: #ff7a00; text-shadow: 0 0 15px rgba(255, 122, 0, 0.8), 0 0 30px rgba(255, 122, 0, 0.5); }
+        .neon-3 { color: #ffea00; text-shadow: 0 0 15px rgba(255, 234, 0, 0.8), 0 0 30px rgba(255, 234, 0, 0.5); }
+        .neon-4 { color: #00ff00; text-shadow: 0 0 15px rgba(0, 255, 0, 0.8), 0 0 30px rgba(0, 255, 0, 0.5); }
+        .neon-5 { color: #00ffff; text-shadow: 0 0 15px rgba(0, 255, 255, 0.8), 0 0 30px rgba(0, 255, 255, 0.5); }
+        .neon-6 { color: #0088ff; text-shadow: 0 0 15px rgba(0, 136, 255, 0.8), 0 0 30px rgba(0, 136, 255, 0.5); }
+        .neon-7 { color: #aa00ff; text-shadow: 0 0 15px rgba(170, 0, 255, 0.8), 0 0 30px rgba(170, 0, 255, 0.5); }
+        .neon-8 { color: #ff00ff; text-shadow: 0 0 15px rgba(255, 0, 255, 0.8), 0 0 30px rgba(255, 0, 255, 0.5); }
+
+        h2 { font-size: clamp(2rem, 5vw, 4rem); font-weight: 900; margin-bottom: 1rem; }
+        p { font-size: clamp(1rem, 2.5vw, 1.3rem); font-weight: 300; line-height: 1.6; max-width: 600px; color: #a1a1aa; }
+        .text-cyan { color: #00ffff; text-shadow: 0 0 20px rgba(0, 255, 255, 0.4); }
+        .text-pink { color: #ff00ff; text-shadow: 0 0 20px rgba(255, 0, 255, 0.4); }
+
+        .scroll-indicator {
+            position: absolute; top: 40vh; left: 50%; transform: translateX(-50%); font-size: 0.8rem;
+            letter-spacing: 0.2em; text-transform: uppercase; animation: bounce 2s infinite ease-in-out; color: #52525b;
+        }
+
+        #section-4, #section-5, #section-6, #section-7 { justify-content: center; padding-top: 0; }
+        .space-invaders-link {
+            font-size: clamp(2.5rem, 5vw, 5rem); font-weight: 900; color: #ffffff; text-decoration: none;
+            text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 20px #ff00a0, 0 0 40px #ff00a0;
+            padding: 5vh 5vw; transition: all 0.3s ease; cursor: pointer; z-index: 20;
+        }
+        .space-invaders-link:hover { color: #ffea00; text-shadow: 0 0 30px #ffea00, 0 0 60px #ffea00, 0 0 90px #ff7a00; transform: scale(1.05); }
+        .click-here { display: block; font-size: 0.4em; letter-spacing: 4px; margin-top: 10px; }
+
+        .disabled-link { opacity: 0.3; cursor: not-allowed !important; text-shadow: none !important; }
+        .disabled-link:hover { color: #ffffff !important; transform: none !important; text-shadow: none !important; }
+
+        #secret-input {
+            margin-top: 1rem; background: rgba(255, 255, 255, 0.05); border: 2px solid #3f3f46; color: #ffffff;
+            padding: 15px 30px; font-size: 1.2rem; font-family: 'Inter', sans-serif; text-align: center;
+            border-radius: 8px; outline: none; letter-spacing: 4px; transition: all 0.3s ease; z-index: 20; text-transform: uppercase;
+        }
+        #secret-input:focus { border-color: #00ffff; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); background: rgba(0, 255, 255, 0.05); }
+
         #test-mode-btn {
             position: fixed; top: 15px; right: 15px; z-index: 9999;
             background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px);
