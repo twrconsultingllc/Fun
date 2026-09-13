@@ -77,8 +77,8 @@
         <div class="card">
             <div class="canvas-container" id="c1_1"></div>
             <div class="info">
-                <h3>1.1 Klein Bottle</h3>
-                <p>A self-intersecting 4D topological surface with no internal or external boundary.</p>
+                <h3>1.1 Torus Knot Loop</h3>
+                <p>A continuous mathematical knot geometry woven around an invisible torus surface.</p>
             </div>
         </div>
 
@@ -206,41 +206,10 @@
         const simplex = SimplexNoise();
         const animators = [];
 
-        // 1.1 Klein Bottle (Robust Figure-8 Math)
+        // 1.1 Torus Knot
         {
             const { scene, camera, renderer } = createScene('c1_1');
-            const uSegs = 32, vSegs = 32;
-            const positions = [], indices = [];
-
-            for (let i = 0; i <= uSegs; i++) {
-                const u = (i / uSegs) * Math.PI * 2;
-                for (let j = 0; j <= vSegs; j++) {
-                    const v = (j / vSegs) * Math.PI * 2;
-                    const r = 4 * (1 - Math.cos(u) / 2);
-                    let x, y, z;
-                    if (u < Math.PI) {
-                        x = 6 * Math.cos(u) * (1 + Math.sin(u)) + r * Math.cos(u) * Math.cos(v);
-                        y = 16 * Math.sin(u) + r * Math.sin(u) * Math.cos(v);
-                    } else {
-                        x = 6 * Math.cos(u) * (1 + Math.sin(u)) + r * Math.cos(v + Math.PI);
-                        y = 16 * Math.sin(u);
-                    }
-                    z = r * Math.sin(v);
-                    positions.push(x * 0.08, y * 0.08 - 0.5, z * 0.08);
-                }
-            }
-            for (let i = 0; i < uSegs; i++) {
-                for (let j = 0; j < vSegs; j++) {
-                    const a = i * (vSegs + 1) + j;
-                    const b = a + vSegs + 1;
-                    indices.push(a, b, a + 1);
-                    indices.push(b, b + 1, a + 1);
-                }
-            }
-            const geometry = new THREE.BufferGeometry();
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-            geometry.setIndex(indices);
-
+            const geometry = new THREE.TorusKnotGeometry(1, 0.35, 100, 16);
             const mat = new THREE.MeshBasicMaterial({ color: 0xff007f, wireframe: true });
             const mesh = new THREE.Mesh(geometry, mat);
             scene.add(mesh);
