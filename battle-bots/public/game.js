@@ -5,6 +5,7 @@ const logContent = document.getElementById('log-content');
 
 let logs = [];
 let gameInterval = null;
+let isFetching = false;
 
 // 1. Basic Three.js Setup
 const scene = new THREE.Scene();
@@ -13,7 +14,7 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight * 0.7);
 document.body.insertBefore(renderer.domElement, document.getElementById('log-window'));
 
-// 2. Create Placeholder Bots (Red vs Blue)
+// 2. Create Bots
 const geometry = new THREE.BoxGeometry(1, 2, 1);
 const materialA = new THREE.MeshBasicMaterial({ color: 0xff4444 });
 const botA = new THREE.Mesh(geometry, materialA);
@@ -75,18 +76,21 @@ async function loadAvailableModels() {
         addLog('RECV', { availableModels: data.models });
     } catch (e) {
         addLog('ERROR', e.message);
-        statusDiv.innerText = "Error loading model list.";
-        modelSelect.innerHTML = '<option value="">Error loading models</option>';
+        statusDiv.innerText = "Error loading models.";
     }
 }
 
 loadAvailableModels();
 
 // 5. Game Loop API Call
-async function fetchBotActions() {
+async function fetchBotActions(retryCount = 0) {
+    if (isFetching && retryCount === 0) return;
+    isFetching = true;
+
     const selectedModel = modelSelect.value;
     if (!selectedModel) {
         statusDiv.innerText = "Please select a model first!";
+        isFetching = false;
         return;
     }
 
@@ -98,7 +102,7 @@ async function fetchBotActions() {
         distance: Math.abs(botA.position.x - botB.position.x)
     };
 
-    addLog('SENT', { model: selectedModel, state: gameState });
+    if (retryCount === 0) addLog('SENT', { model: selectedModel, state: gameState });
 
     try {
         const response = await fetch('/api/get-actions', {
@@ -107,6 +111,14 @@ async function fetchBotActions() {
             body: JSON.stringify({ gameState, selectedModel })
         });
         
+        if (response.status === 429 || response.status === 503) {
+            const waitTime = Math.pow(2, retryCount + 1) * 2000;
+            addLog('ERROR', `Rate limited (429). Retrying in ${waitTime / 1000}s...`);
+            statusDiv.innerText = `Rate limited. Pausing turn...`;
+            setTimeout(() => fetchBotActions(retryCount + 1), waitTime);
+            return;
+        }
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || "Unknown Server Error");
@@ -116,16 +128,24 @@ async function fetchBotActions() {
         addLog('RECV', actions);
         statusDiv.innerText = `Bot A: ${actions.botA} | Bot B: ${actions.botB}`;
         
-        // Move bots
-        if(actions.botA === "MOVE_RIGHT") botA.position.x += 1.25;
-        if(actions.botA === "MOVE_LEFT") botA.position.x -= 1.25;
+        // Execute Movement (Move towards each other if MOVE command or ATTACK command is given)
+        if (actions.botA === "MOVE_RIGHT" || actions.botA === "ATTACK") {
+            if (botA.position.x < botB.position.x - 1) botA.position.x += 2.0;
+        } else if (actions.botA === "MOVE_LEFT") {
+            botA.position.x -= 2.0;
+        }
         
-        if(actions.botB === "MOVE_LEFT") botB.position.x -= 1.25;
-        if(actions.botB === "MOVE_RIGHT") botB.position.x += 1.25;
+        if (actions.botB === "MOVE_LEFT" || actions.botB === "ATTACK") {
+            if (botB.position.x > botA.position.x + 1) botB.position.x -= 2.0;
+        } else if (actions.botB === "MOVE_RIGHT") {
+            botB.position.x += 2.0;
+        }
         
     } catch(e) {
         addLog('ERROR', e.message);
         statusDiv.innerText = "Error during battle turn.";
+    } finally {
+        isFetching = false;
     }
 }
 
@@ -139,5 +159,5 @@ startBtn.addEventListener('click', () => {
 
     statusDiv.innerText = "Battle Started!";
     fetchBotActions();
-    gameInterval = setInterval(fetchBotActions, 4000);
+    gameInterval = setInterval(fetchBotActions, 7000);
 });
