@@ -19,7 +19,6 @@ export default async function handler(req, res) {
     const { gameState, promptA, promptB } = req.body;
     
     try {
-        // FIXED: Hardcoded to the active, supported 3.5 Flash model
         const model = genAI.getGenerativeModel({ 
             model: "gemini-3.5-flash",
             generationConfig: { responseMimeType: "application/json" }
@@ -58,6 +57,8 @@ export default async function handler(req, res) {
         return res.status(200).json(mappedActions);
     } catch (error) {
         console.error("Gemini API Error:", error);
-        return res.status(500).json({ error: error.message || "Unknown API Error" });
+        // Forward the 429 status code if Google is rate limiting us
+        const statusCode = (error.message && error.message.includes('429')) ? 429 : 500;
+        return res.status(statusCode).json({ error: error.message || "Unknown API Error" });
     }
 }
