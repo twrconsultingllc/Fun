@@ -20,7 +20,7 @@
         <canvas id="arenaCanvas" width="600" height="600"></canvas>
         <div id="arena-overlay">
             <h1 class="text-3xl font-bold text-white mb-2 tracking-widest drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">AI BATTLER</h1>
-            <p class="text-gray-400 text-xs px-6 mb-6">AI Tactical Engine locked to High-Speed Flash Model.<br>Configure strategies below, then initiate match.</p>
+            <p class="text-gray-400 text-xs px-6 mb-6">Configure AI strategies below, then initiate match.</p>
             <button id="btn-overlay-start" class="px-8 py-3 bg-white text-black font-bold rounded hover:bg-gray-200">INITIATE MATCH</button>
         </div>
     </div>
@@ -31,6 +31,15 @@
     </div>
 
     <div id="control-panel">
+        
+        <!-- NEW: AI Model Selector -->
+        <div class="mb-2">
+            <label class="text-xs text-gray-400 font-bold tracking-widest mb-1 block">AI TACTICAL ENGINE:</label>
+            <select id="model-select" class="w-full bg-[#111] text-white p-2 text-sm border border-[#333] rounded outline-none cursor-pointer">
+                <option value="">LOADING AI MODELS...</option>
+            </select>
+        </div>
+
         <button id="btn-start" class="btn-start">▶ START AI SIMULATION</button>
         
         <div class="flex flex-row gap-3">

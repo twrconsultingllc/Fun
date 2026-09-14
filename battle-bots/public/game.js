@@ -6,6 +6,7 @@ const virtualSize = 600;
 const overlay = document.getElementById('arena-overlay');
 const btnStart = document.getElementById('btn-start');
 const btnOverlayStart = document.getElementById('btn-overlay-start');
+const modelSelect = document.getElementById('model-select');
 const promptAInput = document.getElementById('prompt-a');
 const promptBInput = document.getElementById('prompt-b');
 const logContent = document.getElementById('log-content');
@@ -34,6 +35,38 @@ function addLog(type, data) {
     if (logs.length > 10) logs.pop();
     logContent.innerHTML = logs.join('');
 }
+
+// --- NEW: Load & Filter Models ---
+async function loadAvailableModels() {
+    try {
+        const response = await fetch('/api/get-actions');
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+
+        modelSelect.innerHTML = '';
+        
+        // Filter to capture the standard model (e.g. gemini-3.5-flash) and the lite/8b version
+        const targetModels = data.models.filter(m => 
+            m.includes('3.5-flash') || m.includes('lite') || m.includes('8b')
+        );
+        
+        // Fallback to all flash models if the filter above is too strict
+        const displayModels = targetModels.length > 0 ? targetModels : data.models.filter(m => m.includes('flash'));
+
+        displayModels.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.innerText = m.toUpperCase();
+            modelSelect.appendChild(opt);
+        });
+        
+        addLog('RECV', 'Models loaded and filtered successfully.');
+    } catch (e) {
+        addLog('ERROR', e.message);
+        modelSelect.innerHTML = '<option value="">ERROR LOADING MODELS</option>';
+    }
+}
+loadAvailableModels();
 
 // Audio System
 let audioCtx;
@@ -274,24 +307,27 @@ function abortMatch() {
     }
 }
 
-// --- AI TACTICAL PULSE (FIXED TIMING) ---
+// --- AI TACTICAL PULSE ---
 async function fetchTacticalTurn(retryCount = 0) {
     if ((isFetching && retryCount === 0) || state !== 'RUNNING' || botRed.dead || botBlue.dead) return;
     isFetching = true;
 
+    // Send the currently selected model
+    const selectedModel = modelSelect.value;
     const gameState = {
         botRed: { hp: botRed.hp, x: Math.round(botRed.x), y: Math.round(botRed.y) },
         botBlue: { hp: botBlue.hp, x: Math.round(botBlue.x), y: Math.round(botBlue.y) }
     };
 
-    if (retryCount === 0) addLog('SENT', { state: gameState });
+    if (retryCount === 0) addLog('SENT', { model: selectedModel, state: gameState });
 
     try {
         const response = await fetch('/api/get-actions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                gameState, 
+                gameState,
+                selectedModel, 
                 promptA: promptAInput.value, 
                 promptB: promptBInput.value
             })
@@ -320,7 +356,6 @@ async function fetchTacticalTurn(retryCount = 0) {
     } finally {
         if (retryCount === 0) isFetching = false;
         
-        // Wait exactly 6.5s AFTER the request finishes before asking again
         if (state === 'RUNNING' && retryCount === 0) {
             aiTimer = setTimeout(() => fetchTacticalTurn(0), 6500); 
         }
@@ -353,7 +388,6 @@ function startSimulation() {
     
     state = 'RUNNING';
     
-    // Kick off the AI loop
     fetchTacticalTurn(0);
 
     if (!lastTime) requestAnimationFrame(gameLoop);
