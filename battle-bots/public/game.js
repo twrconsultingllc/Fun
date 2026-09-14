@@ -11,7 +11,7 @@ const promptBInput = document.getElementById('prompt-b');
 const logContent = document.getElementById('log-content');
 
 let winsRed = 0, winsBlue = 0;
-let logs = [], aiInterval = null, isFetching = false;
+let logs = [], aiTimer = null, isFetching = false;
 let state = 'INIT'; // INIT, RUNNING, ENDED
 let lastTime = 0;
 let botRed, botBlue;
@@ -268,16 +268,15 @@ function generateArena(level) {
 function abortMatch() {
     if (state === 'RUNNING') {
         state = 'ENDED';
-        if(aiInterval) clearInterval(aiInterval);
+        if(aiTimer) clearTimeout(aiTimer);
         btnStart.innerHTML = "▶ MATCH ABORTED - RESTART";
         btnStart.style.background = "#ef4444";
     }
 }
 
-// --- AI TACTICAL PULSE (WITH ROBUST ERROR HANDLING & RETRY) ---
+// --- AI TACTICAL PULSE (FIXED TIMING) ---
 async function fetchTacticalTurn(retryCount = 0) {
-    if (isFetching && retryCount === 0) return;
-    if (state !== 'RUNNING' || botRed.dead || botBlue.dead) return;
+    if ((isFetching && retryCount === 0) || state !== 'RUNNING' || botRed.dead || botBlue.dead) return;
     isFetching = true;
 
     const gameState = {
@@ -298,22 +297,20 @@ async function fetchTacticalTurn(retryCount = 0) {
             })
         });
 
-        // Handle Google API Rate Limiting Safely
-        if (response.status === 429 || response.status === 503) {
+        if (response.status === 429) {
             const waitTime = Math.pow(2, retryCount + 1) * 2000;
-            addLog('ERROR', `Rate limited (429). Retrying in ${waitTime / 1000}s...`);
-            setTimeout(() => { isFetching = false; fetchTacticalTurn(retryCount + 1); }, waitTime);
-            return;
+            addLog('ERROR', `Rate limited. Retrying in ${waitTime / 1000}s...`);
+            aiTimer = setTimeout(() => fetchTacticalTurn(retryCount + 1), waitTime);
+            return; 
         }
 
-        // Properly read the JSON error message from the backend if it failed
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.error || `Server returned status: ${response.status}`);
         }
 
         const actions = await response.json();
-        addLog('RECV', { red: actions.botA?.skill, blue: actions.botB?.skill });
+        addLog('RECV', { red: actions.botA.skill, blue: actions.botB.skill });
 
         if (actions.botA) botRed.applyAISkill(actions.botA.skill, actions.botA.stats);
         if (actions.botB) botBlue.applyAISkill(actions.botB.skill, actions.botB.stats);
@@ -322,12 +319,17 @@ async function fetchTacticalTurn(retryCount = 0) {
         addLog('ERROR', e.message);
     } finally {
         if (retryCount === 0) isFetching = false;
+        
+        // Wait exactly 6.5s AFTER the request finishes before asking again
+        if (state === 'RUNNING' && retryCount === 0) {
+            aiTimer = setTimeout(() => fetchTacticalTurn(0), 6500); 
+        }
     }
 }
 
 function startSimulation() {
     initAudio();
-    if(aiInterval) clearInterval(aiInterval);
+    if(aiTimer) clearTimeout(aiTimer);
     
     const cfgRed = {
         hp: parseFloat(document.getElementById('cfg-r-hp').value),
@@ -351,8 +353,8 @@ function startSimulation() {
     
     state = 'RUNNING';
     
-    fetchTacticalTurn();
-    aiInterval = setInterval(fetchTacticalTurn, 6500);
+    // Kick off the AI loop
+    fetchTacticalTurn(0);
 
     if (!lastTime) requestAnimationFrame(gameLoop);
 }
@@ -385,7 +387,7 @@ function updateState(dt) {
                     if (bot.hp <= 0) {
                         bot.hp = 0; bot.dead = true; playSound('explode'); spawnParticles(bot.x, bot.y, bot.color, 50, true);
                         state = 'ENDED';
-                        if(aiInterval) clearInterval(aiInterval);
+                        if(aiTimer) clearTimeout(aiTimer);
                         if (bot.team === 'red') {
                             winsBlue++; document.getElementById('score-blue').innerText = `BLUE: ${winsBlue}`;
                             btnStart.innerHTML = "▶ BLUE WINS - RESTART"; btnStart.style.background = "linear-gradient(90deg, #111, #00e5ff)";
