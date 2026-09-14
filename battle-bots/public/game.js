@@ -6,7 +6,6 @@ const virtualSize = 600;
 const overlay = document.getElementById('arena-overlay');
 const btnStart = document.getElementById('btn-start');
 const btnOverlayStart = document.getElementById('btn-overlay-start');
-const modelSelect = document.getElementById('model-select');
 const promptAInput = document.getElementById('prompt-a');
 const promptBInput = document.getElementById('prompt-b');
 const logContent = document.getElementById('log-content');
@@ -35,24 +34,6 @@ function addLog(type, data) {
     if (logs.length > 10) logs.pop();
     logContent.innerHTML = logs.join('');
 }
-
-async function loadAvailableModels() {
-    try {
-        const response = await fetch('/api/get-actions');
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error);
-        modelSelect.innerHTML = '';
-        data.models.forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = m;
-            opt.innerText = m;
-            modelSelect.appendChild(opt);
-        });
-    } catch (e) {
-        addLog('ERROR', e.message);
-    }
-}
-loadAvailableModels();
 
 // Audio System
 let audioCtx;
@@ -102,10 +83,9 @@ class Bot {
         this.maxHp = config.hp;
         this.hp = this.maxHp;
         this.speed = this.baseSpeed;
-        this.fireDelay = 1.0 / 2.5; // Base fire rate
+        this.fireDelay = 1.0 / 2.5; 
         this.fireCooldown = 0;
         
-        // AI Controls these variables
         this.aggression = 50; 
         this.optimalDistance = 400 - (this.aggression * 3.6); 
         this.activeSkill = "NONE";
@@ -294,26 +274,26 @@ function abortMatch() {
     }
 }
 
-// --- AI TACTICAL PULSE ---
+// --- AI TACTICAL PULSE (LOCKED TO FLASH SPEED) ---
 async function fetchTacticalTurn() {
     if (isFetching || state !== 'RUNNING' || botRed.dead || botBlue.dead) return;
     isFetching = true;
 
-    const selectedModel = modelSelect.value;
     const gameState = {
         botRed: { hp: botRed.hp, x: Math.round(botRed.x), y: Math.round(botRed.y) },
         botBlue: { hp: botBlue.hp, x: Math.round(botBlue.x), y: Math.round(botBlue.y) }
     };
 
-    addLog('SENT', { model: selectedModel, state: gameState });
+    addLog('SENT', { state: gameState });
 
     try {
         const response = await fetch('/api/get-actions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                gameState, selectedModel,
-                promptA: promptAInput.value, promptB: promptBInput.value
+                gameState, 
+                promptA: promptAInput.value, 
+                promptB: promptBInput.value
             })
         });
 
@@ -357,9 +337,9 @@ function startSimulation() {
     
     state = 'RUNNING';
     
-    const isPro = modelSelect.value.toLowerCase().includes('pro');
+    // Hardcoded to 6.5s to take advantage of Flash's 15 RPM
     fetchTacticalTurn();
-    aiInterval = setInterval(fetchTacticalTurn, isPro ? 32000 : 6500);
+    aiInterval = setInterval(fetchTacticalTurn, 6500);
 
     if (!lastTime) requestAnimationFrame(gameLoop);
 }
