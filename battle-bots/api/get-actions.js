@@ -1,6 +1,5 @@
 ﻿import { GoogleGenerativeAI } from '@google/generative-ai';
 
-
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const SKILL_CATALOG = {
@@ -20,9 +19,9 @@ export default async function handler(req, res) {
     const { gameState, promptA, promptB } = req.body;
     
     try {
-        // Hardcoded to the fastest model with the highest limits
+        // FIXED: Hardcoded to the active, supported 3.5 Flash model
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash",
+            model: "gemini-3.5-flash",
             generationConfig: { responseMimeType: "application/json" }
         });
 
