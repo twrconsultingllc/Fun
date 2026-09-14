@@ -7,88 +7,166 @@ const logContent = document.getElementById('log-content');
 
 let logs = [], gameInterval = null, isFetching = false;
 
-// --- 1. THREE.JS 3D ARENA SETUP ---
+// --- 1. ARENA & SCENE SETUP (BOTS.HTML STYLE) ---
+const container = document.getElementById('canvas-container');
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x050505, 0.03);
+scene.fog = new THREE.FogExp2(0x020205, 0.02);
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / (window.innerHeight * 0.75), 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(55, container.clientWidth / container.clientHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight * 0.75);
-document.body.insertBefore(renderer.domElement, document.getElementById('log-window'));
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.shadowMap.enabled = true;
+container.appendChild(renderer.domElement);
 
-// Arena Floor Grid
-const gridHelper = new THREE.GridHelper(30, 30, 0xff0055, 0x222233);
-scene.add(gridHelper);
+// Glowing Neon Arena Grid
+const grid = new THREE.GridHelper(40, 40, 0x00ffcc, 0x081525);
+grid.position.y = -0.01;
+scene.add(grid);
+
+// Outer Arena Boundary Box
+const boundaryGeo = new THREE.BoxGeometry(40, 2, 40);
+const boundaryMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true, transparent: true, opacity: 0.15 });
+const boundary = new THREE.Mesh(boundaryGeo, boundaryMat);
+boundary.position.y = 1;
+scene.add(boundary);
 
 // Lighting
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-scene.add(ambientLight);
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-dirLight.position.set(10, 20, 10);
+dirLight.position.set(20, 40, 20);
+dirLight.castShadow = true;
 scene.add(dirLight);
 
-// Bot Constructor helper
-function createBot(color, startX, startZ) {
-    const group = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), new THREE.MeshStandardMaterial({ color }));
-    body.position.y = 0.6;
-    group.add(body);
-
-    // Health Bar
-    const hbGeo = new THREE.PlaneGeometry(1.5, 0.2);
-    const hbMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
-    const healthBar = new THREE.Mesh(hbGeo, hbMat);
-    healthBar.position.set(0, 1.8, 0);
-    group.add(healthBar);
-
-    group.position.set(startX, 0, startZ);
-    scene.add(group);
-
-    return { group, healthBar, health: 100, targetPos: new THREE.Vector3(startX, 0, startZ), shield: false };
-}
-
-const botA = createBot(0xff3344, -10, 0);
-const botB = createBot(0x3388ff, 10, 0);
-
-camera.position.set(0, 18, 20);
-camera.lookAt(0, 0, 0);
-
-// Lasers Storage
+// Projectiles Container
 let lasers = [];
 
-function fireLaser(fromBot, toBot) {
-    const material = new THREE.LineBasicMaterial({ color: fromBot === botA ? 0xff0044 : 0x0088ff });
-    const points = [fromBot.group.position.clone().add(new THREE.Vector3(0,0.6,0)), toBot.group.position.clone().add(new THREE.Vector3(0,0.6,0))];
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const line = new THREE.Line(geometry, material);
-    scene.add(line);
-    lasers.push({ line, createdAt: Date.now() });
+// Bot Factory
+function createArenaBot(colorHex, x, z) {
+    const group = new THREE.Group();
 
-    // Damage Calculation
-    const damage = toBot.shield ? 3 : 12;
-    toBot.health = Math.max(0, toBot.health - damage);
-    toBot.healthBar.scale.x = toBot.health / 100;
+    // Main Body
+    const bodyGeo = new THREE.BoxGeometry(1.6, 0.8, 1.8);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: colorHex, metalness: 0.8, roughness: 0.2 });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 0.4;
+    body.castShadow = true;
+    group.add(body);
+
+    // Turret Barrel
+    const barrelGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.0);
+    const barrelMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.9 });
+    const barrel = new THREE.Mesh(barrelGeo, barrelMat);
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.set(0, 0.7, 0.6);
+    group.add(barrel);
+
+    // Shield Dome
+    const shieldGeo = new THREE.SphereGeometry(1.6, 16, 16);
+    const shieldMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0 });
+    const shield = new THREE.Mesh(shieldGeo, shieldMat);
+    shield.position.y = 0.5;
+    group.add(shield);
+
+    // Health Bar HUD Element
+    const hbBg = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 0.25), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+    hbBg.position.set(0, 2.2, 0);
+    group.add(hbBg);
+
+    const hbFill = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.2), new THREE.MeshBasicMaterial({ color: colorHex }));
+    hbFill.position.set(0, 2.2, 0.01);
+    group.add(hbFill);
+
+    group.position.set(x, 0, z);
+    scene.add(group);
+
+    return {
+        group,
+        shield,
+        hbFill,
+        health: 100,
+        targetPos: new THREE.Vector3(x, 0, z),
+        moveSpeed: 0.14,
+        lastShot: 0,
+        colorHex
+    };
 }
 
-// --- 2. 60 FPS INTERPOLATED ENGINE LOOP ---
+const botA = createArenaBot(0xff3355, -12, 0);
+const botB = createArenaBot(0x3399ff, 12, 0);
+
+camera.position.set(0, 26, 28);
+camera.lookAt(0, 0, 0);
+
+// --- 2. 60 FPS MECHANICS & LASER PHYSICS ENGINE ---
+function fireLaserBeam(shooter, target) {
+    const geo = new THREE.CylinderGeometry(0.08, 0.08, 1.2);
+    const mat = new THREE.MeshBasicMaterial({ color: shooter.colorHex });
+    const laser = new THREE.Mesh(geo, mat);
+
+    const startPos = shooter.group.position.clone().add(new THREE.Vector3(0, 0.7, 0));
+    laser.position.copy(startPos);
+
+    const dir = target.group.position.clone().sub(startPos).normalize();
+    laser.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+
+    scene.add(laser);
+
+    lasers.push({
+        mesh: laser,
+        dir,
+        speed: 0.6,
+        target,
+        createdAt: Date.now()
+    });
+}
+
 function animate() {
     requestAnimationFrame(animate);
-
-    // Smooth movement interpolation
-    botA.group.position.lerp(botA.targetPos, 0.05);
-    botB.group.position.lerp(botB.targetPos, 0.05);
-
-    // Keep Health Bars facing Camera
-    botA.healthBar.lookAt(camera.position);
-    botB.healthBar.lookAt(camera.position);
-
-    // Clean up expired lasers
     const now = Date.now();
+
+    // Smooth movement towards target vectors
+    [botA, botB].forEach(bot => {
+        if (bot.health <= 0) return;
+
+        const dist = bot.group.position.distanceTo(bot.targetPos);
+        if (dist > 0.2) {
+            const moveDir = bot.targetPos.clone().sub(bot.group.position).normalize();
+            bot.group.position.add(moveDir.multiplyScalar(bot.moveSpeed));
+            bot.group.lookAt(bot.targetPos.x, bot.group.position.y, bot.targetPos.z);
+        }
+
+        // Keep within 40x40 arena walls
+        bot.group.position.x = Math.max(-18, Math.min(18, bot.group.position.x));
+        bot.group.position.z = Math.max(-18, Math.min(18, bot.group.position.z));
+
+        // Auto Shooting Mechanics
+        const enemy = bot === botA ? botB : botA;
+        if (enemy.health > 0 && now - bot.lastShot > 500) {
+            fireLaserBeam(bot, enemy);
+            bot.lastShot = now;
+        }
+
+        bot.hbFill.lookAt(camera.position);
+    });
+
+    // Laser Trajectory & Hit Detection
     lasers = lasers.filter(l => {
-        if (now - l.createdAt > 200) {
-            scene.remove(l.line);
+        l.mesh.position.add(l.dir.clone().multiplyScalar(l.speed));
+
+        if (l.mesh.position.distanceTo(l.target.group.position) < 1.2) {
+            const damage = l.target.shield.material.opacity > 0 ? 2 : 7;
+            l.target.health = Math.max(0, l.target.health - damage);
+            l.target.hbFill.scale.x = l.target.health / 100;
+
+            scene.remove(l.mesh);
             return false;
         }
+
+        if (now - l.createdAt > 2000) {
+            scene.remove(l.mesh);
+            return false;
+        }
+
         return true;
     });
 
@@ -96,11 +174,11 @@ function animate() {
 }
 animate();
 
-// --- 3. UI & LOGGING ---
+// --- 3. TELEMETRY LOGGING ---
 function addLog(type, data) {
     const timestamp = new Date().toLocaleTimeString();
     const colorClass = type === 'SENT' ? 'log-sent' : type === 'RECV' ? 'log-recv' : 'log-error';
-    const logString = `<div class="log-entry"><span style="color:#666">[${timestamp}]</span> <strong class="${colorClass}">${type}:</strong> ${typeof data === 'object' ? JSON.stringify(data) : data}</div>`;
+    const logString = `<div class="log-entry"><span style="color:#555">[${timestamp}]</span> <strong class="${colorClass}">${type}:</strong> ${typeof data === 'object' ? JSON.stringify(data) : data}</div>`;
     logs.unshift(logString);
     if (logs.length > 20) logs.pop();
     logContent.innerHTML = logs.join('');
@@ -119,24 +197,23 @@ async function loadAvailableModels() {
             opt.innerText = m;
             modelSelect.appendChild(opt);
         });
-        statusDiv.innerText = "Arena Ready. Click START BATTLE.";
+        statusDiv.innerText = "SYSTEMS ONLINE. READY FOR ENGAGEMENT.";
     } catch (e) {
         addLog('ERROR', e.message);
-        statusDiv.innerText = "Error loading models.";
+        statusDiv.innerText = "MODEL INITIALIZATION ERROR.";
     }
 }
 loadAvailableModels();
 
-// --- 4. TACTICAL API LOOP ---
+// --- 4. AI COMMAND PULSE ---
 async function fetchTacticalTurn() {
-    if (isFetching) return;
+    if (isFetching || botA.health <= 0 || botB.health <= 0) return;
     isFetching = true;
 
     const selectedModel = modelSelect.value;
     const gameState = {
-        botA: { health: botA.health, pos: { x: botA.group.position.x.toFixed(1), z: botA.group.position.z.toFixed(1) } },
-        botB: { health: botB.health, pos: { x: botB.group.position.x.toFixed(1), z: botB.group.position.z.toFixed(1) } },
-        distance: botA.group.position.distanceTo(botB.group.position).toFixed(1)
+        botA: { health: botA.health, x: botA.group.position.x.toFixed(1), z: botA.group.position.z.toFixed(1) },
+        botB: { health: botB.health, x: botB.group.position.x.toFixed(1), z: botB.group.position.z.toFixed(1) }
     };
 
     addLog('SENT', { model: selectedModel, state: gameState });
@@ -161,41 +238,50 @@ async function fetchTacticalTurn() {
         const actions = await response.json();
         addLog('RECV', actions);
 
-        // Execute Skill Directive - Bot A
         if (actions.botA) {
-            botA.shield = (actions.botA.skill === "DEFENSIVE_SHIELD");
             if (actions.botA.target) botA.targetPos.set(actions.botA.target.x, 0, actions.botA.target.z);
-            if (actions.botA.skill !== "DEFENSIVE_SHIELD") fireLaser(botA, botB);
+            botA.shield.material.opacity = actions.botA.skill === "DEFENSIVE_SHIELD" ? 0.6 : 0;
         }
 
-        // Execute Skill Directive - Bot B
         if (actions.botB) {
-            botB.shield = (actions.botB.skill === "DEFENSIVE_SHIELD");
             if (actions.botB.target) botB.targetPos.set(actions.botB.target.x, 0, actions.botB.target.z);
-            if (actions.botB.skill !== "DEFENSIVE_SHIELD") fireLaser(botB, botA);
+            botB.shield.material.opacity = actions.botB.skill === "DEFENSIVE_SHIELD" ? 0.6 : 0;
         }
 
-        statusDiv.innerText = `A: ${actions.botA?.skill || 'NONE'} | B: ${actions.botB?.skill || 'NONE'}`;
+        statusDiv.innerText = `A: ${actions.botA?.skill || 'ENGAGED'} | B: ${actions.botB?.skill || 'ENGAGED'}`;
 
     } catch (e) {
         addLog('ERROR', e.message);
-        statusDiv.innerText = "Battle Turn Error.";
+        statusDiv.innerText = "TELEMETRY LINK INTERRUPTED.";
     } finally {
         isFetching = false;
     }
 }
 
-// --- 5. START BUTTON ---
+// Window resize handler
+window.addEventListener('resize', () => {
+    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+});
+
+// --- 5. START BUTTON (DYNAMIC RATE-LIMIT AWARENESS) ---
 startBtn.addEventListener('click', () => {
     if (gameInterval) clearInterval(gameInterval);
 
-    // Reset Arena
+    // Reset Bot States
     botA.health = 100; botB.health = 100;
-    botA.healthBar.scale.x = 1; botB.healthBar.scale.x = 1;
-    botA.group.position.set(-10, 0, 0); botB.group.position.set(10, 0, 0);
-    botA.targetPos.set(-10, 0, 0); botB.targetPos.set(10, 0, 0);
+    botA.hbFill.scale.x = 1; botB.hbFill.scale.x = 1;
+    botA.group.position.set(-12, 0, 0); botB.group.position.set(12, 0, 0);
+    botA.targetPos.set(-12, 0, 0); botB.targetPos.set(12, 0, 0);
 
-    statusDiv.innerText = "Battle Engaged!";
+    // Determine safe pulsing speed based on chosen model tier
+    const selectedModel = modelSelect.value.toLowerCase();
+    const isPro = selectedModel.includes('pro');
+    const intervalTime = isPro ? 32000 : 6500; // 32s for Pro, 6.5s for Flash
+
+    statusDiv.innerText = `COMBAT ENGAGED. TACTICAL PULSE: ${isPro ? '32s' : '6.5s'}.`;
+    
     fetchTacticalTurn();
-    gameInterval = setInterval(fetchTacticalTurn, 6500); // Safe rate-limit interval
+    gameInterval = setInterval(fetchTacticalTurn, intervalTime);
 });

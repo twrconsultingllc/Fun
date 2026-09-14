@@ -2,14 +2,13 @@
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// MODULAR SKILL MATRIX (Easy to expand with new skills/abilities later)
 const SKILL_CATALOG = {
-    "SNIPE_STANCE": "Hold position, aim precisely, and fire a high-damage laser beam.",
-    "FLANK_LEFT": "Circle-strafe left around the opponent while maintaining fire.",
-    "FLANK_RIGHT": "Circle-strafe right around the opponent while maintaining fire.",
-    "CHARGE_BEAM": "Rush forward directly at the target while firing heavy laser bursts.",
-    "KITE_RETREAT": "Move backward away from the enemy while firing suppressive shots.",
-    "DEFENSIVE_SHIELD": "Halt movement, raise energy shields to mitigate 75% incoming damage."
+    "SNIPE_STANCE": "Hold distance, lock aim, and fire high-velocity long-range laser bolts.",
+    "FLANK_LEFT": "Circle-strafe left around the target while maintaining continuous laser fire.",
+    "FLANK_RIGHT": "Circle-strafe right around the target while maintaining continuous laser fire.",
+    "CHARGE_BEAM": "Aggressively close range directly toward target while firing rapid bursts.",
+    "KITE_RETREAT": "Back away from enemy while maintaining suppressive laser fire.",
+    "DEFENSIVE_SHIELD": "Deploy energy shield to reduce incoming damage by 75% while tactical maneuvering."
 };
 
 export default async function handler(req, res) {
@@ -31,7 +30,7 @@ export default async function handler(req, res) {
         }
     } else if (req.method === 'POST') {
         const { gameState, selectedModel, promptA, promptB } = req.body;
-        const modelName = selectedModel || "gemini-1.5-flash";
+        const modelName = selectedModel || "gemini-1.5-flash"; // Safest default
         
         try {
             const model = genAI.getGenerativeModel({ 
@@ -40,25 +39,24 @@ export default async function handler(req, res) {
             });
 
             const prompt = `
-            You are the tactical combat engine for a 3D Battle Bot Arena.
+            You are the tactical engine for a 3D Battle Arena.
             
-            AVAILABLE SKILLS / RULES OF ENGAGEMENT:
+            SKILLS AVAILABLE:
             ${JSON.stringify(SKILL_CATALOG, null, 2)}
 
-            STANDING PLAYER STRATEGIES:
-            - Red Bot A Custom Directives: "${promptA || 'Be an aggressive fighter.'}"
-            - Blue Bot B Custom Directives: "${promptB || 'Be a smart tactical defender.'}"
+            STANDING ORDERS:
+            - Red Bot A: "${promptA || 'Circle strafe target.'}"
+            - Blue Bot B: "${promptB || 'Snipe from distance.'}"
 
             CURRENT ARENA SNAPSHOT:
             ${JSON.stringify(gameState, null, 2)}
 
-            INSTRUCTIONS:
-            Evaluate the state against each bot's custom directives. Choose ONE skill from the CATALOG for each bot, and specify a target coordinate (x, z) between -15 and 15.
+            Select target coordinates inside arena bounds (x between -16 and 16, z between -16 and 16) and chosen skill.
 
             Respond strictly in JSON format:
             {
-              "botA": { "skill": "SKILL_NAME", "target": { "x": 0, "z": 0 }, "tacticalReasoning": "Short explanation" },
-              "botB": { "skill": "SKILL_NAME", "target": { "x": 0, "z": 0 }, "tacticalReasoning": "Short explanation" }
+              "botA": { "skill": "SKILL_NAME", "target": { "x": 0, "z": 0 } },
+              "botB": { "skill": "SKILL_NAME", "target": { "x": 0, "z": 0 } }
             }
             `;
 
