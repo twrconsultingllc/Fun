@@ -1,0 +1,855 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Neon Bot Auto-Battler</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #050508;
+            color: #e2e8f0;
+            font-family: 'Courier New', Courier, monospace;
+            overflow-x: hidden;
+            touch-action: pan-y; /* Allow vertical scrolling for controls, prevent zooming */
+        }
+
+        #app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Scoreboard */
+        #scoreboard {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background: linear-gradient(to bottom, #111, #050508);
+            border-bottom: 2px solid #222;
+            font-weight: bold;
+            font-size: 1.5rem;
+            z-index: 10;
+        }
+        .score-red { color: #ff0055; text-shadow: 0 0 10px rgba(255, 0, 85, 0.6); }
+        .score-blue { color: #00e5ff; text-shadow: 0 0 10px rgba(0, 229, 255, 0.6); }
+
+        /* Arena */
+        #arena-container {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            padding: 10px;
+            box-sizing: border-box;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            background-color: #0a0a10;
+            border: 2px solid #333;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(255,255,255,0.05);
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* Overlay */
+        #arena-overlay {
+            position: absolute;
+            inset: 10px;
+            background: rgba(5, 5, 8, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 8px;
+            z-index: 20;
+            text-align: center;
+        }
+
+        /* Control Panel */
+        #control-panel {
+            flex: 1;
+            padding: 15px;
+            padding-bottom: max(40px, env(safe-area-inset-bottom, 40px));
+            background: #0f0f16;
+            border-top: 2px solid #222;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .config-section {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid #333;
+        }
+        .config-header {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .header-red { color: #ff0055; text-shadow: 0 0 5px rgba(255,0,85,0.4); }
+        .header-blue { color: #00e5ff; text-shadow: 0 0 5px rgba(0,229,255,0.4); }
+        .header-arena { color: #f59e0b; text-shadow: 0 0 5px rgba(245,158,11,0.4); }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 8px;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-bottom: 4px;
+        }
+        
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 5px #fff;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #444;
+            border-radius: 2px;
+        }
+        input[type=range]:focus { outline: none; }
+        
+        /* Specific slider colors */
+        .slider-red::-webkit-slider-thumb { background: #ff0055; box-shadow: 0 0 8px #ff0055; }
+        .slider-blue::-webkit-slider-thumb { background: #00e5ff; box-shadow: 0 0 8px #00e5ff; }
+
+        .btn-start {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(90deg, #ff0055 0%, #00e5ff 100%);
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1);
+            transition: transform 0.1s;
+        }
+        .btn-start:active { transform: scale(0.98); }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div id="scoreboard">
+        <div class="score-red" id="score-red">RED: 0</div>
+        <div style="color: #555; font-size: 1rem;">VS</div>
+        <div class="score-blue" id="score-blue">BLUE: 0</div>
+    </div>
+
+    <div id="arena-container">
+        <canvas id="arenaCanvas" width="600" height="600"></canvas>
+        <div id="arena-overlay">
+            <h1 class="text-3xl font-bold text-white mb-2 tracking-widest drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">AUTO-BATTLER</h1>
+            <p class="text-gray-400 text-xs px-6 mb-6">Configure bot stats below, then initiate simulation.<br>Audio unlocks on Start.</p>
+            <button id="btn-overlay-start" class="px-8 py-3 bg-white text-black font-bold rounded hover:bg-gray-200">INITIATE MATCH</button>
+        </div>
+    </div>
+
+    <div id="control-panel">
+        <!-- Action Button -->
+        <button id="btn-start" class="btn-start">▶ START SIMULATION</button>
+
+        <div class="flex flex-row gap-3">
+            <!-- RED CONFIG -->
+            <div class="config-section flex-1">
+                <div class="config-header header-red">RED BOT</div>
+                
+                <div class="slider-group">
+                    <div class="slider-label"><span>Max HP</span><span id="val-r-hp">300</span></div>
+                    <input type="range" id="cfg-r-hp" class="slider-red" min="50" max="600" value="300" step="10">
+                </div>
+                
+                <div class="slider-group">
+                    <div class="slider-label"><span>Speed</span><span id="val-r-spd">90</span></div>
+                    <input type="range" id="cfg-r-spd" class="slider-red" min="30" max="250" value="90" step="5">
+                </div>
+                
+                <div class="slider-group">
+                    <div class="slider-label"><span>Fire Rate</span><span id="val-r-fr">2.5</span></div>
+                    <input type="range" id="cfg-r-fr" class="slider-red" min="0.5" max="6.0" value="2.5" step="0.1">
+                </div>
+                
+                <div class="slider-group">
+                    <div class="slider-label"><span>Aggression</span><span id="val-r-agg">90%</span></div>
+                    <input type="range" id="cfg-r-agg" class="slider-red" min="0" max="100" value="90" step="5">
+                </div>
+            </div>
+
+            <!-- BLUE CONFIG -->
+            <div class="config-section flex-1">
+                <div class="config-header header-blue">BLUE BOT</div>
+                
+                <div class="slider-group">
+                    <div class="slider-label"><span>Max HP</span><span id="val-b-hp">150</span></div>
+                    <input type="range" id="cfg-b-hp" class="slider-blue" min="50" max="600" value="150" step="10">
+                </div>
+                
+                <div class="slider-group">
+                    <div class="slider-label"><span>Speed</span><span id="val-b-spd">160</span></div>
+                    <input type="range" id="cfg-b-spd" class="slider-blue" min="30" max="250" value="160" step="5">
+                </div>
+                
+                <div class="slider-group">
+                    <div class="slider-label"><span>Fire Rate</span><span id="val-b-fr">1.5</span></div>
+                    <input type="range" id="cfg-b-fr" class="slider-blue" min="0.5" max="6.0" value="1.5" step="0.1">
+                </div>
+                
+                <div class="slider-group">
+                    <div class="slider-label"><span>Aggression</span><span id="val-b-agg">10%</span></div>
+                    <input type="range" id="cfg-b-agg" class="slider-blue" min="0" max="100" value="10" step="5">
+                </div>
+            </div>
+        </div>
+
+        <!-- ARENA CONFIG -->
+        <div class="config-section" style="padding: 10px 15px;">
+            <div class="config-header header-arena" style="font-size: 0.9rem; margin-bottom: 5px;">ARENA SETTINGS</div>
+            <div class="slider-group" style="margin-bottom: 0;">
+                <div class="slider-label"><span>Obstacle Density</span><span id="val-a-obs">4</span></div>
+                <input type="range" id="cfg-a-obs" min="0" max="15" value="4" step="1">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('arenaCanvas');
+    const ctx = canvas.getContext('2d');
+    const virtualSize = 600; // Internal fixed resolution
+
+    // UI Elements
+    const overlay = document.getElementById('arena-overlay');
+    const btnStart = document.getElementById('btn-start');
+    const btnOverlayStart = document.getElementById('btn-overlay-start');
+    
+    // Win tracking
+    let winsRed = 0;
+    let winsBlue = 0;
+
+    // Link UI sliders to labels
+    function bindSlider(id, labelId, suffix = '') {
+        const slider = document.getElementById(id);
+        const label = document.getElementById(labelId);
+        slider.addEventListener('input', () => {
+            label.innerText = slider.value + suffix;
+        });
+    }
+    
+    bindSlider('cfg-r-hp', 'val-r-hp');
+    bindSlider('cfg-r-spd', 'val-r-spd');
+    bindSlider('cfg-r-fr', 'val-r-fr');
+    bindSlider('cfg-r-agg', 'val-r-agg', '%');
+
+    bindSlider('cfg-b-hp', 'val-b-hp');
+    bindSlider('cfg-b-spd', 'val-b-spd');
+    bindSlider('cfg-b-fr', 'val-b-fr');
+    bindSlider('cfg-b-agg', 'val-b-agg', '%');
+
+    bindSlider('cfg-a-obs', 'val-a-obs');
+
+    // Audio System
+    let audioCtx;
+    function initAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playSound(type) {
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'shoot_red') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+            gain.gain.setValueAtTime(0.05, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+        } else if (type === 'shoot_blue') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+            gain.gain.setValueAtTime(0.03, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+        } else if (type === 'hit') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(150, now);
+            osc.frequency.exponentialRampToValueAtTime(50, now + 0.1);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+        } else if (type === 'explode') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(100, now);
+            osc.frequency.exponentialRampToValueAtTime(20, now + 0.5);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+            
+            // Add noise
+            const bufferSize = audioCtx.sampleRate * 0.5;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const noiseGain = audioCtx.createGain();
+            noiseGain.gain.setValueAtTime(0.2, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+            noise.connect(noiseGain);
+            noiseGain.connect(audioCtx.destination);
+            noise.start(now);
+            
+            osc.start(now);
+            osc.stop(now + 0.5);
+        }
+    }
+
+    class Bot {
+        constructor(x, y, color, team, config) {
+            this.x = x;
+            this.y = y;
+            this.radius = 16;
+            this.color = color;
+            this.team = team;
+            
+            this.maxHp = config.hp;
+            this.hp = this.maxHp;
+            this.speed = config.speed;
+            this.fireDelay = 1.0 / config.fireRate; // seconds per shot
+            this.fireCooldown = 0;
+            
+            // Aggression mapping: 100 = optimal distance 40px (point blank). 0 = optimal distance 400px (sniper).
+            this.aggression = config.aggression;
+            this.optimalDistance = 400 - (this.aggression * 3.6); 
+            
+            this.angle = team === 'red' ? 0 : Math.PI;
+            this.vx = 0;
+            this.vy = 0;
+            
+            this.strafeTimer = 0;
+            this.strafeDir = Math.random() > 0.5 ? 1 : -1;
+            
+            this.dead = false;
+        }
+
+        update(dt, enemy) {
+            if (this.dead || enemy.dead) return;
+
+            // 1. Calculate Vector to Enemy
+            let dx = enemy.x - this.x;
+            let dy = enemy.y - this.y;
+            let dist = Math.hypot(dx, dy);
+            
+            // Aim at enemy
+            this.angle = Math.atan2(dy, dx);
+
+            // 2. Movement Logic (Kite vs Rush)
+            let dirX = dx / dist;
+            let dirY = dy / dist;
+
+            let distError = dist - this.optimalDistance;
+            
+            // Forward/backward drive based on error
+            let driveWeight = Math.min(Math.abs(distError) / 100, 1.0) * Math.sign(distError);
+            
+            // Strafe behavior (change direction occasionally)
+            this.strafeTimer -= dt;
+            if(this.strafeTimer <= 0) {
+                this.strafeDir *= -1;
+                this.strafeTimer = Math.random() * 2 + 1;
+            }
+            
+            // Perpendicular vector for strafing
+            let perpX = -dirY;
+            let perpY = dirX;
+
+            // Mix drive and strafe. Highly aggressive bots strafe less. Highly defensive bots strafe more to dodge.
+            let strafeWeight = 1.0 - (this.aggression / 100) * 0.5;
+
+            let targetVx = (dirX * driveWeight + perpX * this.strafeDir * strafeWeight);
+            let targetVy = (dirY * driveWeight + perpY * this.strafeDir * strafeWeight);
+            
+            // Normalize and apply speed
+            let mag = Math.hypot(targetVx, targetVy);
+            if (mag > 0) {
+                targetVx = (targetVx / mag) * this.speed;
+                targetVy = (targetVy / mag) * this.speed;
+            }
+
+            // Smooth acceleration
+            this.vx += (targetVx - this.vx) * 5 * dt;
+            this.vy += (targetVy - this.vy) * 5 * dt;
+
+            // 3. Apply movement and basic wall collision
+            this.x += this.vx * dt;
+            this.y += this.vy * dt;
+            
+            // Keep in bounds
+            let pad = this.radius + 5;
+            if (this.x < pad) { this.x = pad; this.vx *= -1; this.strafeDir *= -1; }
+            if (this.x > virtualSize - pad) { this.x = virtualSize - pad; this.vx *= -1; this.strafeDir *= -1; }
+            if (this.y < pad) { this.y = pad; this.vy *= -1; this.strafeDir *= -1; }
+            if (this.y > virtualSize - pad) { this.y = virtualSize - pad; this.vy *= -1; this.strafeDir *= -1; }
+
+            // Obstacle collision avoidance (Simple bounce/slide)
+            for (let obs of obstacles) {
+                // Find closest point on rect to circle
+                let testX = this.x;
+                let testY = this.y;
+                
+                if (this.x < obs.x) testX = obs.x;
+                else if (this.x > obs.x + obs.w) testX = obs.x + obs.w;
+                if (this.y < obs.y) testY = obs.y;
+                else if (this.y > obs.y + obs.h) testY = obs.y + obs.h;
+                
+                let distX = this.x - testX;
+                let distY = this.y - testY;
+                let distance = Math.hypot(distX, distY);
+                
+                if (distance <= this.radius) {
+                    // Overlapping, push out
+                    let overlap = this.radius - distance;
+                    // Prevent div by 0
+                    if (distance === 0) { distX = 1; distY = 0; distance = 1; }
+                    this.x += (distX / distance) * overlap;
+                    this.y += (distY / distance) * overlap;
+                    // Reverse strafe if hitting wall
+                    this.strafeDir *= -1;
+                    this.strafeTimer = Math.random() * 2;
+                }
+            }
+
+            // 4. Shooting Logic
+            this.fireCooldown -= dt;
+            if (this.fireCooldown <= 0) {
+                // Simple Line of Sight Check against obstacles
+                let canSee = true;
+                for (let obs of obstacles) {
+                    if (lineIntersectsRect(this.x, this.y, enemy.x, enemy.y, obs)) {
+                        canSee = false;
+                        break;
+                    }
+                }
+
+                // Shoot if line of sight is clear, OR occasionally blindly shoot if highly aggressive
+                if (canSee || (this.aggression > 80 && Math.random() > 0.5)) {
+                    // Add slight inaccuracy based on distance and inversely to aggression
+                    let inaccuracy = (1.0 - (this.aggression / 100)) * 0.15;
+                    let fireAngle = this.angle + (Math.random() * inaccuracy * 2 - inaccuracy);
+                    
+                    bullets.push(new Bullet(this.x + Math.cos(fireAngle)*20, this.y + Math.sin(fireAngle)*20, fireAngle, this.color, this.team));
+                    playSound(this.team === 'red' ? 'shoot_red' : 'shoot_blue');
+                    this.fireCooldown = this.fireDelay;
+                }
+            }
+        }
+
+        draw(ctx) {
+            if (this.dead) return;
+
+            // Draw Body Glow
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = this.color;
+            ctx.fillStyle = this.color;
+            
+            // Draw Tank Base (Square with rounded corners conceptually, drawn as circle for hit-box matching)
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Inner core
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#222';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius - 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw Turret
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            ctx.fillStyle = this.color;
+            ctx.fillRect(0, -4, 25, 8); // Barrel
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(20, -2, 5, 4); // Barrel tip
+            ctx.restore();
+
+            // Draw Health Bar
+            let hpPct = Math.max(0, this.hp / this.maxHp);
+            ctx.fillStyle = '#333';
+            ctx.fillRect(this.x - 20, this.y - 30, 40, 6);
+            ctx.fillStyle = hpPct > 0.5 ? '#0f0' : (hpPct > 0.2 ? '#fa0' : '#f00');
+            ctx.fillRect(this.x - 20, this.y - 30, 40 * hpPct, 6);
+        }
+    }
+
+    class Bullet {
+        constructor(x, y, angle, color, team) {
+            this.x = x;
+            this.y = y;
+            this.speed = 400;
+            this.vx = Math.cos(angle) * this.speed;
+            this.vy = Math.sin(angle) * this.speed;
+            this.color = color;
+            this.team = team;
+            this.dead = false;
+            this.damage = 15;
+            this.length = 12;
+        }
+
+        update(dt) {
+            this.x += this.vx * dt;
+            this.y += this.vy * dt;
+            
+            // Bounds check
+            if (this.x < 0 || this.x > virtualSize || this.y < 0 || this.y > virtualSize) {
+                this.dead = true;
+            }
+        }
+
+        draw(ctx) {
+            ctx.strokeStyle = '#fff';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = this.color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            // Draw a trailing line
+            ctx.lineTo(this.x - (this.vx/this.speed)*this.length, this.y - (this.vy/this.speed)*this.length);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+    }
+
+    class Particle {
+        constructor(x, y, color, isExplosion=false) {
+            this.x = x;
+            this.y = y;
+            let angle = Math.random() * Math.PI * 2;
+            let speed = Math.random() * (isExplosion ? 250 : 80) + 20;
+            this.vx = Math.cos(angle) * speed;
+            this.vy = Math.sin(angle) * speed;
+            this.color = color;
+            this.life = 1.0;
+            this.decay = Math.random() * 1.5 + 0.5;
+            this.size = Math.random() * 4 + 2;
+        }
+        update(dt) {
+            this.x += this.vx * dt;
+            this.y += this.vy * dt;
+            this.vx *= 0.95; // friction
+            this.vy *= 0.95;
+            this.life -= this.decay * dt;
+        }
+        draw(ctx) {
+            ctx.globalAlpha = Math.max(0, this.life);
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x, this.y, this.size, this.size);
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    // Helper: Line intersects rectangle
+    function lineIntersectsRect(x1, y1, x2, y2, rect) {
+        let minX = rect.x, maxX = rect.x + rect.w;
+        let minY = rect.y, maxY = rect.y + rect.h;
+        
+        // Quick AABB rejection
+        if (Math.min(x1, x2) > maxX || Math.max(x1, x2) < minX || 
+            Math.min(y1, y2) > maxY || Math.max(y1, y2) < minY) {
+            return false;
+        }
+
+        // Check intersection with diagonals to be robust enough for this sim
+        let u1 = ((minX - x1) * (y2 - y1) - (minY - y1) * (x2 - x1)) / 
+                 ((maxX - minX) * (y2 - y1) - (maxY - minY) * (x2 - x1));
+        
+        // This is a simplified approximate LoS. 
+        // A full robust check tests intersection of line segment against 4 segments of rect.
+        // For performance and brevity, we test 10 points along the line segment.
+        let steps = 10;
+        for(let i=0; i<=steps; i++) {
+            let t = i/steps;
+            let tx = x1 + (x2-x1)*t;
+            let ty = y1 + (y2-y1)*t;
+            if(tx >= minX && tx <= maxX && ty >= minY && ty <= maxY) return true;
+        }
+        return false;
+    }
+
+    let state = 'INIT'; // INIT, RUNNING, ENDED
+    let lastTime = 0;
+    
+    let botRed, botBlue;
+    let bullets = [];
+    let particles = [];
+    let obstacles = [];
+
+    function spawnParticles(x, y, color, amount, isExplosion) {
+        for(let i=0; i<amount; i++) particles.push(new Particle(x, y, color, isExplosion));
+    }
+
+    function generateArena(obsCount) {
+        obstacles = [];
+        // Center avoid zone
+        let padding = 100; 
+        
+        for (let i = 0; i < obsCount; i++) {
+            let w = Math.random() * 80 + 40;
+            let h = Math.random() * 80 + 40;
+            
+            // Try to find a valid spot
+            let valid = false;
+            let attempts = 0;
+            let ox, oy;
+            
+            while (!valid && attempts < 50) {
+                ox = Math.random() * (virtualSize - w - 40) + 20;
+                oy = Math.random() * (virtualSize - h - 40) + 20;
+                
+                // Don't spawn on top of bots starting pos (Left Middle and Right Middle)
+                let distToRed = Math.hypot(ox+w/2 - 50, oy+h/2 - virtualSize/2);
+                let distToBlue = Math.hypot(ox+w/2 - (virtualSize-50), oy+h/2 - virtualSize/2);
+                
+                if (distToRed > 100 && distToBlue > 100) {
+                    valid = true;
+                    // Check overlap with other obstacles
+                    for(let obs of obstacles) {
+                        if (ox < obs.x+obs.w+20 && ox+w > obs.x-20 && oy < obs.y+obs.h+20 && oy+h > obs.y-20) {
+                            valid = false;
+                        }
+                    }
+                }
+                attempts++;
+            }
+            if (valid) {
+                obstacles.push({x: ox, y: oy, w: w, h: h});
+                // Make a symmetric obstacle for balance
+                if (i + 1 < obsCount) {
+                    obstacles.push({
+                        x: virtualSize - ox - w,
+                        y: virtualSize - oy - h,
+                        w: w, h: h
+                    });
+                    i++; // Skip next loop since we added two
+                }
+            }
+        }
+    }
+
+    function startSimulation() {
+        initAudio();
+        
+        const cfgRed = {
+            hp: parseFloat(document.getElementById('cfg-r-hp').value),
+            speed: parseFloat(document.getElementById('cfg-r-spd').value),
+            fireRate: parseFloat(document.getElementById('cfg-r-fr').value),
+            aggression: parseFloat(document.getElementById('cfg-r-agg').value)
+        };
+        const cfgBlue = {
+            hp: parseFloat(document.getElementById('cfg-b-hp').value),
+            speed: parseFloat(document.getElementById('cfg-b-spd').value),
+            fireRate: parseFloat(document.getElementById('cfg-b-fr').value),
+            aggression: parseFloat(document.getElementById('cfg-b-agg').value)
+        };
+        const obsCount = parseInt(document.getElementById('cfg-a-obs').value);
+
+        botRed = new Bot(50, virtualSize/2, '#ff0055', 'red', cfgRed);
+        botBlue = new Bot(virtualSize-50, virtualSize/2, '#00e5ff', 'blue', cfgBlue);
+        
+        bullets = [];
+        particles = [];
+        generateArena(obsCount);
+
+        overlay.classList.add('hidden');
+        document.getElementById('btn-start').innerHTML = "■ SIMULATION RUNNING...";
+        document.getElementById('btn-start').style.background = "#444";
+        
+        state = 'RUNNING';
+        if (!lastTime) requestAnimationFrame(gameLoop);
+    }
+
+    btnOverlayStart.addEventListener('click', startSimulation);
+    btnStart.addEventListener('click', () => {
+        if (state === 'INIT' || state === 'ENDED') startSimulation();
+    });
+
+    function updateState(dt) {
+        if (state !== 'RUNNING') return;
+
+        // Update Bots
+        botRed.update(dt, botBlue);
+        botBlue.update(dt, botRed);
+
+        // Update Bullets & Collisions
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            let b = bullets[i];
+            b.update(dt);
+            
+            if (b.dead) { bullets.splice(i, 1); continue; }
+
+            // Bullet vs Obstacle
+            let hitWall = false;
+            for(let obs of obstacles) {
+                if (b.x >= obs.x && b.x <= obs.x + obs.w && b.y >= obs.y && b.y <= obs.y + obs.h) {
+                    hitWall = true;
+                    break;
+                }
+            }
+            if (hitWall) {
+                spawnParticles(b.x, b.y, '#fff', 5, false);
+                bullets.splice(i, 1);
+                continue;
+            }
+
+            // Bullet vs Bots
+            const checkHit = (bot) => {
+                if (!bot.dead && b.team !== bot.team) {
+                    let dist = Math.hypot(b.x - bot.x, b.y - bot.y);
+                    if (dist < bot.radius + 4) {
+                        bot.hp -= b.damage;
+                        playSound('hit');
+                        spawnParticles(b.x, b.y, b.color, 10, false);
+                        b.dead = true;
+                        
+                        if (bot.hp <= 0) {
+                            bot.hp = 0;
+                            bot.dead = true;
+                            playSound('explode');
+                            spawnParticles(bot.x, bot.y, bot.color, 50, true);
+                            
+                            // Handle End Game
+                            state = 'ENDED';
+                            if (bot.team === 'red') {
+                                winsBlue++;
+                                document.getElementById('score-blue').innerText = `BLUE: ${winsBlue}`;
+                                document.getElementById('btn-start').innerHTML = "▶ BLUE WINS - RESTART";
+                                document.getElementById('btn-start').style.background = "linear-gradient(90deg, #111, #00e5ff)";
+                            } else {
+                                winsRed++;
+                                document.getElementById('score-red').innerText = `RED: ${winsRed}`;
+                                document.getElementById('btn-start').innerHTML = "▶ RED WINS - RESTART";
+                                document.getElementById('btn-start').style.background = "linear-gradient(90deg, #ff0055, #111)";
+                            }
+                        }
+                    }
+                }
+            };
+            
+            checkHit(botRed);
+            if(b.dead) { bullets.splice(i, 1); continue; }
+            checkHit(botBlue);
+            if(b.dead) { bullets.splice(i, 1); continue; }
+        }
+
+        // Update Particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+            particles[i].update(dt);
+            if (particles[i].life <= 0) particles.splice(i, 1);
+        }
+    }
+
+    function draw() {
+        // Clear background with faint trail
+        ctx.fillStyle = 'rgba(10, 10, 16, 0.5)';
+        ctx.fillRect(0, 0, virtualSize, virtualSize);
+
+        // Draw grid
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for(let x=0; x<virtualSize; x+=40) { ctx.moveTo(x, 0); ctx.lineTo(x, virtualSize); }
+        for(let y=0; y<virtualSize; y+=40) { ctx.moveTo(0, y); ctx.lineTo(virtualSize, y); }
+        ctx.stroke();
+
+        // Draw Obstacles
+        ctx.fillStyle = '#111827';
+        ctx.strokeStyle = '#374151';
+        ctx.lineWidth = 2;
+        for (let obs of obstacles) {
+            ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+            ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+            // Neon edge highlight
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.strokeRect(obs.x+2, obs.y+2, obs.w-4, obs.h-4);
+        }
+
+        // Draw entities if playing/ended
+        if (state === 'RUNNING' || state === 'ENDED') {
+            botRed.draw(ctx);
+            botBlue.draw(ctx);
+            for(let b of bullets) b.draw(ctx);
+            for(let p of particles) p.draw(ctx);
+        }
+    }
+
+    function gameLoop(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        let dt = (timestamp - lastTime) / 1000;
+        if (dt > 0.1) dt = 0.1; // Cap delta
+        lastTime = timestamp;
+
+        updateState(dt);
+        draw();
+
+        requestAnimationFrame(gameLoop);
+    }
+    
+    // Initial Draw
+    ctx.fillStyle = '#0a0a10';
+    ctx.fillRect(0, 0, virtualSize, virtualSize);
+
+</script>
+</body>
+</html>
+```
