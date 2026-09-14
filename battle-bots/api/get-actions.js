@@ -4,7 +4,6 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export default async function handler(req, res) {
     if (req.method === 'GET') {
-        // GET Request: Fetch available models directly from Google's API endpoint
         try {
             const apiKey = process.env.GEMINI_API_KEY;
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
@@ -14,7 +13,6 @@ export default async function handler(req, res) {
                 return res.status(response.status).json({ error: data.error?.message || "Failed to fetch models" });
             }
 
-            // Filter for models that support generating text/JSON content
             const availableModels = (data.models || [])
                 .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
                 .map(m => m.name.replace("models/", ""));
@@ -25,10 +23,8 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: error.message || "Failed to list models" });
         }
     } else if (req.method === 'POST') {
-        // POST Request: Generate actions with the user's selected model
         const { gameState, selectedModel } = req.body;
-        
-        const modelName = selectedModel || "gemini-1.5-flash"; // Fallback default
+        const modelName = selectedModel || "gemini-1.5-flash";
         
         try {
             const model = genAI.getGenerativeModel({ 
@@ -36,16 +32,19 @@ export default async function handler(req, res) {
                 generationConfig: { responseMimeType: "application/json" }
             });
 
+            // STRICT FORCED MOVEMENT PROMPT
             const prompt = `
-            You are the game engine controlling two battle bots, Bot A (Red) and Bot B (Blue). 
-            Current Game State: ${JSON.stringify(gameState)}
-            
-            Rules: 
-            - Bots want to close the distance to attack, or retreat if health is low.
-            - Valid actions are: "ATTACK", "DEFEND", "MOVE_LEFT", or "MOVE_RIGHT".
-            
+            You are the game engine controlling two aggressive battle bots in a 1D arena:
+            - Bot A (Red) is at position X = ${gameState.botA.positionX}
+            - Bot B (Blue) is at position X = ${gameState.botB.positionX}
+            - Current distance between them: ${gameState.distance} units.
+
+            CRITICAL DIRECTIVES:
+            1. If distance > 2, both bots MUST aggressively close the gap. Bot A MUST choose "MOVE_RIGHT" and Bot B MUST choose "MOVE_LEFT".
+            2. If distance <= 2, bots MUST choose "ATTACK" or "DEFEND".
+
             Respond with a strict JSON object mapping each bot to its action.
-            Example: {"botA": "MOVE_RIGHT", "botB": "DEFEND"}
+            Example format: {"botA": "MOVE_RIGHT", "botB": "MOVE_LEFT"}
             `;
 
             const result = await model.generateContent(prompt);
