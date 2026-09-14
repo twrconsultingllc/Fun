@@ -10,9 +10,9 @@ export default async function handler(req, res) {
 
     const { gameState } = req.body;
     
-    // Instantiate the active model
+    // Updated to the current standard Gemini Flash model string
     const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
+        model: "gemini-2.5-flash",
         generationConfig: { responseMimeType: "application/json" }
     });
 
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
         res.status(200).json(botActions);
     } catch (error) {
         console.error("Gemini API Error:", error);
-        // Send the exact error message back to the frontend log
+        // Send exact error message back to the frontend log
         res.status(500).json({ error: error.message || "Unknown API Error" });
     }
 }
