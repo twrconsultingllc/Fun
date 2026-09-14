@@ -7,9 +7,18 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="ui">Waiting for first turn...</div>
+    <!-- Top UI Bar with Model Selector and Start Button -->
+    <div id="ui">
+        <div id="status">Select a model and click Start Battle</div>
+        <div id="controls">
+            <select id="model-select">
+                <option value="">Loading available models...</option>
+            </select>
+            <button id="start-btn">START BATTLE</button>
+        </div>
+    </div>
     
-    <!-- New Log Window -->
+    <!-- Live Log Window -->
     <div id="log-window">
         <div id="log-header">Live API Logs (Last 20)</div>
         <div id="log-content"></div>
