@@ -2,47 +2,86 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D AI Battle Arena</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Neon Bot Auto-Battler with AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="canvas-container"></div>
 
-    <!-- HUD Overlay styled like bots.html -->
-    <div id="hud">
-        <div class="hud-panel title-panel">
-            <h1>AI ARENA BATTLE BOTS</h1>
-            <div id="status">INITIALIZING SYSTEMS...</div>
-        </div>
-
-        <div class="hud-panel config-panel">
-            <div class="bot-config red-theme">
-                <h3>RED BOT A STRATEGY</h3>
-                <input type="text" id="prompt-a" value="Circle strafe around target, maintain medium distance, aggressive laser bursts.">
-            </div>
-
-            <div class="bot-config blue-theme">
-                <h3>BLUE BOT B STRATEGY</h3>
-                <input type="text" id="prompt-b" value="Kite backwards, snipe from corners, use defensive shield when health is low.">
-            </div>
-
-            <div class="control-row">
-                <select id="model-select">
-                    <option value="">LOADING AI MODELS...</option>
-                </select>
-                <button id="start-btn">ENGAGE BATTLE</button>
-            </div>
-        </div>
+<div id="app-container">
+    <div id="scoreboard">
+        <div class="score-red" id="score-red">RED: 0</div>
+        <div style="color: #555; font-size: 1rem;">VS</div>
+        <div class="score-blue" id="score-blue">BLUE: 0</div>
     </div>
 
-    <!-- Live Telemetry Stream -->
+    <div id="arena-container">
+        <canvas id="arenaCanvas" width="600" height="600"></canvas>
+        <div id="arena-overlay">
+            <h1 class="text-3xl font-bold text-white mb-2 tracking-widest drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">AI BATTLER</h1>
+            <p class="text-gray-400 text-xs px-6 mb-6">Select an AI model to command the bots in real-time.</p>
+            <select id="model-select" class="mb-4 bg-gray-900 text-white p-2 rounded border border-gray-700 w-3/4">
+                <option value="">LOADING AI MODELS...</option>
+            </select>
+            <button id="btn-overlay-start" class="px-8 py-3 bg-white text-black font-bold rounded hover:bg-gray-200">INITIATE MATCH</button>
+        </div>
+    </div>
+    
+    <!-- AI Telemetry Window inserted below the arena -->
     <div id="log-window">
-        <div id="log-header">LIVE TELEMETRY LOGS</div>
+        <div id="log-header">LIVE AI TELEMETRY LOGS</div>
         <div id="log-content"></div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="game.js"></script>
+    <div id="control-panel">
+        <button id="btn-start" class="btn-start">▶ START AI SIMULATION</button>
+        
+        <div class="flex flex-row gap-3">
+            <div class="config-section flex-1">
+                <div class="config-header header-red">RED BOT</div>
+                <div class="slider-group">
+                    <label class="slider-label" style="color: #ff0055;">AI Strategy Prompt:</label>
+                    <input type="text" id="prompt-a" value="Aggressive close-range charger" class="w-full bg-[#111] text-white p-1 text-xs border border-[#333] rounded">
+                </div>
+                <!-- Base Stats configured via UI sliders, modified in real-time by AI -->
+                <div class="slider-group mt-2">
+                    <div class="slider-label"><span>Base HP</span><span id="val-r-hp">300</span></div>
+                    <input type="range" id="cfg-r-hp" class="slider-red" min="50" max="600" value="300" step="10">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label"><span>Base Speed</span><span id="val-r-spd">90</span></div>
+                    <input type="range" id="cfg-r-spd" class="slider-red" min="30" max="250" value="90" step="5">
+                </div>
+            </div>
+
+            <div class="config-section flex-1">
+                <div class="config-header header-blue">BLUE BOT</div>
+                <div class="slider-group">
+                    <label class="slider-label" style="color: #00e5ff;">AI Strategy Prompt:</label>
+                    <input type="text" id="prompt-b" value="Sniper playstyle, keep distance" class="w-full bg-[#111] text-white p-1 text-xs border border-[#333] rounded">
+                </div>
+                <div class="slider-group mt-2">
+                    <div class="slider-label"><span>Base HP</span><span id="val-b-hp">150</span></div>
+                    <input type="range" id="cfg-b-hp" class="slider-blue" min="50" max="600" value="150" step="10">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label"><span>Base Speed</span><span id="val-b-spd">160</span></div>
+                    <input type="range" id="cfg-b-spd" class="slider-blue" min="30" max="250" value="160" step="5">
+                </div>
+            </div>
+        </div>
+
+        <div class="config-section" style="padding: 10px 15px;">
+            <div class="config-header header-arena" style="font-size: 0.9rem; margin-bottom: 5px;">ARENA LAYOUT</div>
+            <div class="slider-group" style="margin-bottom: 0;">
+                <div class="slider-label"><span>Layout Type</span><span id="val-a-obs">1</span></div>
+                <input type="range" id="cfg-a-obs" min="0" max="3" value="1" step="1">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="game.js"></script>
 </body>
 </html>
