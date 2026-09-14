@@ -11,15 +11,16 @@ document.body.appendChild(renderer.domElement);
 const geometry = new THREE.BoxGeometry(1, 2, 1);
 const materialA = new THREE.MeshBasicMaterial({ color: 0xff4444 });
 const botA = new THREE.Mesh(geometry, materialA);
-botA.position.x = -4;
+botA.position.x = -10; // Start at the left edge
 scene.add(botA);
 
 const materialB = new THREE.MeshBasicMaterial({ color: 0x4444ff });
 const botB = new THREE.Mesh(geometry, materialB);
-botB.position.x = 4;
+botB.position.x = 10; // Start at the right edge
 scene.add(botB);
 
-camera.position.z = 8;
+// Backed the camera up so we can see the wider edges
+camera.position.z = 12; 
 camera.position.y = 2;
 camera.lookAt(0, 0, 0);
 
@@ -50,12 +51,12 @@ async function fetchBotActions() {
         const actions = await response.json();
         ui.innerText = `Bot A: ${actions.botA}\nBot B: ${actions.botB}`;
         
-        // Simple visual reaction to LLM choices
-        if(actions.botA === "MOVE_RIGHT") botA.position.x += 0.5;
-        if(actions.botA === "MOVE_LEFT") botA.position.x -= 0.5;
+        // Larger visual reaction to hit the middle in ~30 seconds (1.25 units per 4s turn)
+        if(actions.botA === "MOVE_RIGHT") botA.position.x += 1.25;
+        if(actions.botA === "MOVE_LEFT") botA.position.x -= 1.25;
         
-        if(actions.botB === "MOVE_LEFT") botB.position.x -= 0.5;
-        if(actions.botB === "MOVE_RIGHT") botB.position.x += 0.5;
+        if(actions.botB === "MOVE_LEFT") botB.position.x -= 1.25;
+        if(actions.botB === "MOVE_RIGHT") botB.position.x += 1.25;
         
     } catch(e) {
         ui.innerText = "Error reaching AI backend.";
@@ -63,8 +64,8 @@ async function fetchBotActions() {
     }
 }
 
-// Trigger the first turn after 2 seconds, then every 6 seconds
+// Trigger the first turn after 2 seconds, then every 4 seconds
 setTimeout(() => {
     fetchBotActions();
-    setInterval(fetchBotActions, 6000);
+    setInterval(fetchBotActions, 4000);
 }, 2000);
