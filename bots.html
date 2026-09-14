@@ -190,6 +190,11 @@
     <div id="control-panel">
         <!-- Action Button -->
         <button id="btn-start" class="btn-start">▶ START SIMULATION</button>
+        
+        <div class="flex gap-2">
+            <button id="btn-reset" class="flex-1 p-2 bg-[#1a1a24] text-gray-400 text-xs font-bold rounded border border-[#333] hover:bg-[#2a2a35] transition-colors">RESET DEFAULTS</button>
+            <button id="btn-even" class="flex-1 p-2 bg-[#1a1a24] text-gray-400 text-xs font-bold rounded border border-[#333] hover:bg-[#2a2a35] transition-colors">MAKE EVEN</button>
+        </div>
 
         <div class="flex flex-row gap-3">
             <!-- RED CONFIG -->
@@ -247,8 +252,8 @@
         <div class="config-section" style="padding: 10px 15px;">
             <div class="config-header header-arena" style="font-size: 0.9rem; margin-bottom: 5px;">ARENA SETTINGS</div>
             <div class="slider-group" style="margin-bottom: 0;">
-                <div class="slider-label"><span>Obstacle Density</span><span id="val-a-obs">4</span></div>
-                <input type="range" id="cfg-a-obs" min="0" max="15" value="4" step="1">
+                <div class="slider-label"><span>Layout Type</span><span id="val-a-obs">1</span></div>
+                <input type="range" id="cfg-a-obs" min="0" max="3" value="1" step="1">
             </div>
         </div>
     </div>
@@ -288,6 +293,52 @@
     bindSlider('cfg-b-agg', 'val-b-agg', '%');
 
     bindSlider('cfg-a-obs', 'val-a-obs');
+    
+    const btnReset = document.getElementById('btn-reset');
+    const btnEven = document.getElementById('btn-even');
+
+    function setSlider(id, labelId, value, suffix = '') {
+        const slider = document.getElementById(id);
+        const label = document.getElementById(labelId);
+        slider.value = value;
+        label.innerText = value + suffix;
+    }
+
+    function abortMatch() {
+        if (state === 'RUNNING') {
+            state = 'ENDED';
+            document.getElementById('btn-start').innerHTML = "▶ MATCH ABORTED - RESTART";
+            document.getElementById('btn-start').style.background = "#ef4444"; // Red for aborted
+        }
+    }
+
+    btnReset.addEventListener('click', () => {
+        abortMatch();
+        setSlider('cfg-r-hp', 'val-r-hp', 300);
+        setSlider('cfg-r-spd', 'val-r-spd', 90);
+        setSlider('cfg-r-fr', 'val-r-fr', 2.5);
+        setSlider('cfg-r-agg', 'val-r-agg', 90, '%');
+        
+        setSlider('cfg-b-hp', 'val-b-hp', 150);
+        setSlider('cfg-b-spd', 'val-b-spd', 160);
+        setSlider('cfg-b-fr', 'val-b-fr', 1.5);
+        setSlider('cfg-b-agg', 'val-b-agg', 10, '%');
+        
+        setSlider('cfg-a-obs', 'val-a-obs', 1);
+    });
+
+    btnEven.addEventListener('click', () => {
+        abortMatch();
+        setSlider('cfg-r-hp', 'val-r-hp', 225);
+        setSlider('cfg-r-spd', 'val-r-spd', 125);
+        setSlider('cfg-r-fr', 'val-r-fr', 2.0);
+        setSlider('cfg-r-agg', 'val-r-agg', 50, '%');
+        
+        setSlider('cfg-b-hp', 'val-b-hp', 225);
+        setSlider('cfg-b-spd', 'val-b-spd', 125);
+        setSlider('cfg-b-fr', 'val-b-fr', 2.0);
+        setSlider('cfg-b-agg', 'val-b-agg', 50, '%');
+    });
 
     // Audio System
     let audioCtx;
@@ -461,11 +512,25 @@
                     let overlap = this.radius - distance;
                     // Prevent div by 0
                     if (distance === 0) { distX = 1; distY = 0; distance = 1; }
-                    this.x += (distX / distance) * overlap;
-                    this.y += (distY / distance) * overlap;
-                    // Reverse strafe if hitting wall
-                    this.strafeDir *= -1;
-                    this.strafeTimer = Math.random() * 2;
+                    
+                    let nx = distX / distance;
+                    let ny = distY / distance;
+                    
+                    this.x += nx * overlap;
+                    this.y += ny * overlap;
+                    
+                    // Slide along the wall by canceling inward velocity
+                    let dot = this.vx * nx + this.vy * ny;
+                    if (dot < 0) {
+                        this.vx -= dot * nx;
+                        this.vy -= dot * ny;
+                    }
+
+                    // Reverse strafe if hitting wall, but with a cooldown to prevent jitter
+                    if (this.strafeTimer <= 0) {
+                        this.strafeDir *= -1;
+                        this.strafeTimer = 0.5;
+                    }
                 }
             }
 
@@ -639,52 +704,38 @@
         for(let i=0; i<amount; i++) particles.push(new Particle(x, y, color, isExplosion));
     }
 
-    function generateArena(obsCount) {
+    function generateArena(level) {
         obstacles = [];
-        // Center avoid zone
-        let padding = 100; 
         
-        for (let i = 0; i < obsCount; i++) {
-            let w = Math.random() * 80 + 40;
-            let h = Math.random() * 80 + 40;
-            
-            // Try to find a valid spot
-            let valid = false;
-            let attempts = 0;
-            let ox, oy;
-            
-            while (!valid && attempts < 50) {
-                ox = Math.random() * (virtualSize - w - 40) + 20;
-                oy = Math.random() * (virtualSize - h - 40) + 20;
-                
-                // Don't spawn on top of bots starting pos (Left Middle and Right Middle)
-                let distToRed = Math.hypot(ox+w/2 - 50, oy+h/2 - virtualSize/2);
-                let distToBlue = Math.hypot(ox+w/2 - (virtualSize-50), oy+h/2 - virtualSize/2);
-                
-                if (distToRed > 100 && distToBlue > 100) {
-                    valid = true;
-                    // Check overlap with other obstacles
-                    for(let obs of obstacles) {
-                        if (ox < obs.x+obs.w+20 && ox+w > obs.x-20 && oy < obs.y+obs.h+20 && oy+h > obs.y-20) {
-                            valid = false;
-                        }
-                    }
-                }
-                attempts++;
-            }
-            if (valid) {
-                obstacles.push({x: ox, y: oy, w: w, h: h});
-                // Make a symmetric obstacle for balance
-                if (i + 1 < obsCount) {
-                    obstacles.push({
-                        x: virtualSize - ox - w,
-                        y: virtualSize - oy - h,
-                        w: w, h: h
-                    });
-                    i++; // Skip next loop since we added two
-                }
-            }
+        if (level === 1) {
+            // Level 1: 4 small corner pillars
+            const size = 60;
+            const inset = 90;
+            obstacles.push({x: inset, y: inset, w: size, h: size});
+            obstacles.push({x: virtualSize - inset - size, y: inset, w: size, h: size});
+            obstacles.push({x: inset, y: virtualSize - inset - size, w: size, h: size});
+            obstacles.push({x: virtualSize - inset - size, y: virtualSize - inset - size, w: size, h: size});
+        } 
+        else if (level === 2) {
+            // Level 2: 2 horizontal defensive walls
+            const w = 240;
+            const h = 40;
+            const cx = virtualSize / 2 - w / 2;
+            obstacles.push({x: cx, y: 150, w: w, h: h});
+            obstacles.push({x: cx, y: virtualSize - 150 - h, w: w, h: h});
+        } 
+        else if (level === 3) {
+            // Level 3: 4 spaced out blocks (Cross pattern, open center)
+            const w = 120;
+            const h = 40;
+            // Top / Bottom
+            obstacles.push({x: virtualSize/2 - w/2, y: 100, w: w, h: h});
+            obstacles.push({x: virtualSize/2 - w/2, y: virtualSize - 100 - h, w: w, h: h});
+            // Left / Right (Vertical orientation)
+            obstacles.push({x: 100, y: virtualSize/2 - w/2, w: h, h: w});
+            obstacles.push({x: virtualSize - 100 - h, y: virtualSize/2 - w/2, w: h, h: w});
         }
+        // Level 0 leaves obstacles array empty (Open Arena)
     }
 
     function startSimulation() {
@@ -712,8 +763,8 @@
         generateArena(obsCount);
 
         overlay.classList.add('hidden');
-        document.getElementById('btn-start').innerHTML = "■ SIMULATION RUNNING...";
-        document.getElementById('btn-start').style.background = "#444";
+        document.getElementById('btn-start').innerHTML = "■ ABORT MATCH";
+        document.getElementById('btn-start').style.background = "#ef4444";
         
         state = 'RUNNING';
         if (!lastTime) requestAnimationFrame(gameLoop);
@@ -721,7 +772,11 @@
 
     btnOverlayStart.addEventListener('click', startSimulation);
     btnStart.addEventListener('click', () => {
-        if (state === 'INIT' || state === 'ENDED') startSimulation();
+        if (state === 'INIT' || state === 'ENDED') {
+            startSimulation();
+        } else if (state === 'RUNNING') {
+            abortMatch();
+        }
     });
 
     function updateState(dt) {
