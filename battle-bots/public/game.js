@@ -33,7 +33,7 @@ function animate() {
 }
 animate();
 
-// 4. NEW LOGGING FUNCTION
+// 4. LOGGING FUNCTION
 function addLog(type, data) {
     const timestamp = new Date().toLocaleTimeString();
     const colorClass = type === 'SENT' ? 'log-sent' : type === 'RECV' ? 'log-recv' : 'log-error';
@@ -42,7 +42,7 @@ function addLog(type, data) {
         <div class="log-entry">
             <span style="color: #666">[${timestamp}]</span> 
             <strong class="${colorClass}">${type}:</strong> 
-            ${JSON.stringify(data)}
+            ${typeof data === 'object' ? JSON.stringify(data) : data}
         </div>
     `;
     
@@ -72,7 +72,8 @@ async function fetchBotActions() {
         });
         
         if (!response.ok) {
-            throw new Error(`Server returned status: ${response.status}`);
+            const errorData = await response.json();
+            throw new Error(`Google API Error: ${errorData.error}`);
         }
 
         const actions = await response.json();
