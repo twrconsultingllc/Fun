@@ -274,9 +274,10 @@ function abortMatch() {
     }
 }
 
-// --- AI TACTICAL PULSE (LOCKED TO FLASH SPEED) ---
-async function fetchTacticalTurn() {
-    if (isFetching || state !== 'RUNNING' || botRed.dead || botBlue.dead) return;
+// --- AI TACTICAL PULSE (WITH ROBUST ERROR HANDLING & RETRY) ---
+async function fetchTacticalTurn(retryCount = 0) {
+    if (isFetching && retryCount === 0) return;
+    if (state !== 'RUNNING' || botRed.dead || botBlue.dead) return;
     isFetching = true;
 
     const gameState = {
@@ -284,7 +285,7 @@ async function fetchTacticalTurn() {
         botBlue: { hp: botBlue.hp, x: Math.round(botBlue.x), y: Math.round(botBlue.y) }
     };
 
-    addLog('SENT', { state: gameState });
+    if (retryCount === 0) addLog('SENT', { state: gameState });
 
     try {
         const response = await fetch('/api/get-actions', {
@@ -297,9 +298,22 @@ async function fetchTacticalTurn() {
             })
         });
 
-        if (!response.ok) throw new Error("Server Error");
+        // Handle Google API Rate Limiting Safely
+        if (response.status === 429 || response.status === 503) {
+            const waitTime = Math.pow(2, retryCount + 1) * 2000;
+            addLog('ERROR', `Rate limited (429). Retrying in ${waitTime / 1000}s...`);
+            setTimeout(() => { isFetching = false; fetchTacticalTurn(retryCount + 1); }, waitTime);
+            return;
+        }
+
+        // Properly read the JSON error message from the backend if it failed
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Server returned status: ${response.status}`);
+        }
+
         const actions = await response.json();
-        addLog('RECV', { red: actions.botA.skill, blue: actions.botB.skill });
+        addLog('RECV', { red: actions.botA?.skill, blue: actions.botB?.skill });
 
         if (actions.botA) botRed.applyAISkill(actions.botA.skill, actions.botA.stats);
         if (actions.botB) botBlue.applyAISkill(actions.botB.skill, actions.botB.stats);
@@ -307,7 +321,7 @@ async function fetchTacticalTurn() {
     } catch (e) {
         addLog('ERROR', e.message);
     } finally {
-        isFetching = false;
+        if (retryCount === 0) isFetching = false;
     }
 }
 
@@ -337,7 +351,6 @@ function startSimulation() {
     
     state = 'RUNNING';
     
-    // Hardcoded to 6.5s to take advantage of Flash's 15 RPM
     fetchTacticalTurn();
     aiInterval = setInterval(fetchTacticalTurn, 6500);
 
