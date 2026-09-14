@@ -3,12 +3,12 @@
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const SKILL_CATALOG = {
-    "SNIPE_STANCE": "Hold distance, lock aim, and fire high-velocity long-range laser bolts.",
-    "FLANK_LEFT": "Circle-strafe left around the target while maintaining continuous laser fire.",
-    "FLANK_RIGHT": "Circle-strafe right around the target while maintaining continuous laser fire.",
-    "CHARGE_BEAM": "Aggressively close range directly toward target while firing rapid bursts.",
-    "KITE_RETREAT": "Back away from enemy while maintaining suppressive laser fire.",
-    "DEFENSIVE_SHIELD": "Deploy energy shield to reduce incoming damage by 75% while tactical maneuvering."
+    "SNIPE_STANCE": { action: "Snipe", aggression: 10, speedModifier: 0.8 },
+    "FLANK_LEFT": { action: "Flank Left", aggression: 60, speedModifier: 1.2 },
+    "FLANK_RIGHT": { action: "Flank Right", aggression: 60, speedModifier: 1.2 },
+    "CHARGE_BEAM": { action: "Aggressive Charge", aggression: 100, speedModifier: 1.5 },
+    "KITE_RETREAT": { action: "Retreat", aggression: 0, speedModifier: 1.0 },
+    "DEFENSIVE_SHIELD": { action: "Defend", aggression: 30, speedModifier: 0.5 }
 };
 
 export default async function handler(req, res) {
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
         }
     } else if (req.method === 'POST') {
         const { gameState, selectedModel, promptA, promptB } = req.body;
-        const modelName = selectedModel || "gemini-1.5-flash"; // Safest default
+        const modelName = selectedModel || "gemini-1.5-pro";
         
         try {
             const model = genAI.getGenerativeModel({ 
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
             });
 
             const prompt = `
-            You are the tactical engine for a 3D Battle Arena.
+            You are the tactical engine for a 2D Battle Arena.
             
             SKILLS AVAILABLE:
             ${JSON.stringify(SKILL_CATALOG, null, 2)}
@@ -48,21 +48,28 @@ export default async function handler(req, res) {
             - Red Bot A: "${promptA || 'Circle strafe target.'}"
             - Blue Bot B: "${promptB || 'Snipe from distance.'}"
 
-            CURRENT ARENA SNAPSHOT:
+            CURRENT ARENA SNAPSHOT (Arena is 600x600):
             ${JSON.stringify(gameState, null, 2)}
 
-            Select target coordinates inside arena bounds (x between -16 and 16, z between -16 and 16) and chosen skill.
+            Select chosen skill.
 
             Respond strictly in JSON format:
             {
-              "botA": { "skill": "SKILL_NAME", "target": { "x": 0, "z": 0 } },
-              "botB": { "skill": "SKILL_NAME", "target": { "x": 0, "z": 0 } }
+              "botA": { "skill": "SKILL_NAME" },
+              "botB": { "skill": "SKILL_NAME" }
             }
             `;
 
             const result = await model.generateContent(prompt);
             const botActions = JSON.parse(result.response.text());
-            return res.status(200).json(botActions);
+            
+            // Map skills back to stats that the 2D engine understands
+            const mappedActions = {
+                botA: { ...botActions.botA, stats: SKILL_CATALOG[botActions.botA?.skill] || SKILL_CATALOG["SNIPE_STANCE"] },
+                botB: { ...botActions.botB, stats: SKILL_CATALOG[botActions.botB?.skill] || SKILL_CATALOG["SNIPE_STANCE"] }
+            };
+
+            return res.status(200).json(mappedActions);
         } catch (error) {
             console.error("Gemini API Error:", error);
             return res.status(500).json({ error: error.message || "Unknown API Error" });
