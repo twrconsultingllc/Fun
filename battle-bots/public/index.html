@@ -3,35 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D LLM Battle Bots Arena</title>
+    <title>3D AI Battle Arena</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="ui">
-        <div id="status">Configure Bot Directives & Select Model</div>
-        
-        <!-- Player Strategy Inputs (Option 3) -->
-        <div id="strategy-inputs">
-            <div class="input-group red">
-                <label>Red Bot A Strategy:</label>
-                <input type="text" id="prompt-a" value="Aggressive close-range charger, use CHARGE_BEAM">
-            </div>
-            <div class="input-group blue">
-                <label>Blue Bot B Strategy:</label>
-                <input type="text" id="prompt-b" value="Sniper playstyle, keep distance with KITE_RETREAT and SNIPE_STANCE">
-            </div>
+    <div id="canvas-container"></div>
+
+    <!-- HUD Overlay styled like bots.html -->
+    <div id="hud">
+        <div class="hud-panel title-panel">
+            <h1>AI ARENA BATTLE BOTS</h1>
+            <div id="status">INITIALIZING SYSTEMS...</div>
         </div>
 
-        <div id="controls">
-            <select id="model-select">
-                <option value="">Loading models...</option>
-            </select>
-            <button id="start-btn">START BATTLE</button>
+        <div class="hud-panel config-panel">
+            <div class="bot-config red-theme">
+                <h3>RED BOT A STRATEGY</h3>
+                <input type="text" id="prompt-a" value="Circle strafe around target, maintain medium distance, aggressive laser bursts.">
+            </div>
+
+            <div class="bot-config blue-theme">
+                <h3>BLUE BOT B STRATEGY</h3>
+                <input type="text" id="prompt-b" value="Kite backwards, snipe from corners, use defensive shield when health is low.">
+            </div>
+
+            <div class="control-row">
+                <select id="model-select">
+                    <option value="">LOADING AI MODELS...</option>
+                </select>
+                <button id="start-btn">ENGAGE BATTLE</button>
+            </div>
         </div>
     </div>
-    
+
+    <!-- Live Telemetry Stream -->
     <div id="log-window">
-        <div id="log-header">Tactical API Logs & Battle Stream</div>
+        <div id="log-header">LIVE TELEMETRY LOGS</div>
         <div id="log-content"></div>
     </div>
 
