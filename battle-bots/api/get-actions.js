@@ -2,6 +2,16 @@
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// MODULAR SKILL MATRIX (Easy to expand with new skills/abilities later)
+const SKILL_CATALOG = {
+    "SNIPE_STANCE": "Hold position, aim precisely, and fire a high-damage laser beam.",
+    "FLANK_LEFT": "Circle-strafe left around the opponent while maintaining fire.",
+    "FLANK_RIGHT": "Circle-strafe right around the opponent while maintaining fire.",
+    "CHARGE_BEAM": "Rush forward directly at the target while firing heavy laser bursts.",
+    "KITE_RETREAT": "Move backward away from the enemy while firing suppressive shots.",
+    "DEFENSIVE_SHIELD": "Halt movement, raise energy shields to mitigate 75% incoming damage."
+};
+
 export default async function handler(req, res) {
     if (req.method === 'GET') {
         try {
@@ -9,21 +19,18 @@ export default async function handler(req, res) {
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
             const data = await response.json();
 
-            if (!response.ok) {
-                return res.status(response.status).json({ error: data.error?.message || "Failed to fetch models" });
-            }
+            if (!response.ok) return res.status(response.status).json({ error: data.error?.message || "Failed to fetch models" });
 
             const availableModels = (data.models || [])
                 .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
                 .map(m => m.name.replace("models/", ""));
 
-            return res.status(200).json({ models: availableModels });
+            return res.status(200).json({ models: availableModels, skills: Object.keys(SKILL_CATALOG) });
         } catch (error) {
-            console.error("Fetch Models Error:", error);
             return res.status(500).json({ error: error.message || "Failed to list models" });
         }
     } else if (req.method === 'POST') {
-        const { gameState, selectedModel } = req.body;
+        const { gameState, selectedModel, promptA, promptB } = req.body;
         const modelName = selectedModel || "gemini-1.5-flash";
         
         try {
@@ -32,19 +39,27 @@ export default async function handler(req, res) {
                 generationConfig: { responseMimeType: "application/json" }
             });
 
-            // STRICT FORCED MOVEMENT PROMPT
             const prompt = `
-            You are the game engine controlling two aggressive battle bots in a 1D arena:
-            - Bot A (Red) is at position X = ${gameState.botA.positionX}
-            - Bot B (Blue) is at position X = ${gameState.botB.positionX}
-            - Current distance between them: ${gameState.distance} units.
+            You are the tactical combat engine for a 3D Battle Bot Arena.
+            
+            AVAILABLE SKILLS / RULES OF ENGAGEMENT:
+            ${JSON.stringify(SKILL_CATALOG, null, 2)}
 
-            CRITICAL DIRECTIVES:
-            1. If distance > 2, both bots MUST aggressively close the gap. Bot A MUST choose "MOVE_RIGHT" and Bot B MUST choose "MOVE_LEFT".
-            2. If distance <= 2, bots MUST choose "ATTACK" or "DEFEND".
+            STANDING PLAYER STRATEGIES:
+            - Red Bot A Custom Directives: "${promptA || 'Be an aggressive fighter.'}"
+            - Blue Bot B Custom Directives: "${promptB || 'Be a smart tactical defender.'}"
 
-            Respond with a strict JSON object mapping each bot to its action.
-            Example format: {"botA": "MOVE_RIGHT", "botB": "MOVE_LEFT"}
+            CURRENT ARENA SNAPSHOT:
+            ${JSON.stringify(gameState, null, 2)}
+
+            INSTRUCTIONS:
+            Evaluate the state against each bot's custom directives. Choose ONE skill from the CATALOG for each bot, and specify a target coordinate (x, z) between -15 and 15.
+
+            Respond strictly in JSON format:
+            {
+              "botA": { "skill": "SKILL_NAME", "target": { "x": 0, "z": 0 }, "tacticalReasoning": "Short explanation" },
+              "botB": { "skill": "SKILL_NAME", "target": { "x": 0, "z": 0 }, "tacticalReasoning": "Short explanation" }
+            }
             `;
 
             const result = await model.generateContent(prompt);

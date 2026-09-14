@@ -3,22 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LLM Battle Bots</title>
+    <title>3D LLM Battle Bots Arena</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="ui">
-        <div id="status">Select a model and click Start Battle</div>
+        <div id="status">Configure Bot Directives & Select Model</div>
+        
+        <!-- Player Strategy Inputs (Option 3) -->
+        <div id="strategy-inputs">
+            <div class="input-group red">
+                <label>Red Bot A Strategy:</label>
+                <input type="text" id="prompt-a" value="Aggressive close-range charger, use CHARGE_BEAM">
+            </div>
+            <div class="input-group blue">
+                <label>Blue Bot B Strategy:</label>
+                <input type="text" id="prompt-b" value="Sniper playstyle, keep distance with KITE_RETREAT and SNIPE_STANCE">
+            </div>
+        </div>
+
         <div id="controls">
             <select id="model-select">
-                <option value="">Loading available models...</option>
+                <option value="">Loading models...</option>
             </select>
             <button id="start-btn">START BATTLE</button>
         </div>
     </div>
     
     <div id="log-window">
-        <div id="log-header">Live API Logs (Last 20)</div>
+        <div id="log-header">Tactical API Logs & Battle Stream</div>
         <div id="log-content"></div>
     </div>
 
