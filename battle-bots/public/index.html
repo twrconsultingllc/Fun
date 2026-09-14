@@ -20,15 +20,11 @@
         <canvas id="arenaCanvas" width="600" height="600"></canvas>
         <div id="arena-overlay">
             <h1 class="text-3xl font-bold text-white mb-2 tracking-widest drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">AI BATTLER</h1>
-            <p class="text-gray-400 text-xs px-6 mb-6">Select an AI model to command the bots in real-time.</p>
-            <select id="model-select" class="mb-4 bg-gray-900 text-white p-2 rounded border border-gray-700 w-3/4">
-                <option value="">LOADING AI MODELS...</option>
-            </select>
+            <p class="text-gray-400 text-xs px-6 mb-6">AI Tactical Engine locked to High-Speed Flash Model.<br>Configure strategies below, then initiate match.</p>
             <button id="btn-overlay-start" class="px-8 py-3 bg-white text-black font-bold rounded hover:bg-gray-200">INITIATE MATCH</button>
         </div>
     </div>
     
-    <!-- AI Telemetry Window inserted below the arena -->
     <div id="log-window">
         <div id="log-header">LIVE AI TELEMETRY LOGS</div>
         <div id="log-content"></div>
@@ -44,7 +40,6 @@
                     <label class="slider-label" style="color: #ff0055;">AI Strategy Prompt:</label>
                     <input type="text" id="prompt-a" value="Aggressive close-range charger" class="w-full bg-[#111] text-white p-1 text-xs border border-[#333] rounded">
                 </div>
-                <!-- Base Stats configured via UI sliders, modified in real-time by AI -->
                 <div class="slider-group mt-2">
                     <div class="slider-label"><span>Base HP</span><span id="val-r-hp">300</span></div>
                     <input type="range" id="cfg-r-hp" class="slider-red" min="50" max="600" value="300" step="10">
