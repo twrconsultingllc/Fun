@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -32,7 +32,7 @@
 
     <div id="control-panel">
         
-        <!-- NEW: AI Model Selector -->
+        <!-- AI Model Selector -->
         <div class="mb-2">
             <label class="text-xs text-gray-400 font-bold tracking-widest mb-1 block">AI TACTICAL ENGINE:</label>
             <select id="model-select" class="w-full bg-[#111] text-white p-2 text-sm border border-[#333] rounded outline-none cursor-pointer">
@@ -50,12 +50,14 @@
                     <input type="text" id="prompt-a" value="Aggressive close-range charger" class="w-full bg-[#111] text-white p-1 text-xs border border-[#333] rounded">
                 </div>
                 <div class="slider-group mt-2">
-                    <div class="slider-label"><span>Base HP</span><span id="val-r-hp">300</span></div>
-                    <input type="range" id="cfg-r-hp" class="slider-red" min="50" max="600" value="300" step="10">
+                    <div class="slider-label"><span>Base HP</span><span id="val-r-hp">225</span></div>
+                    <!-- Balanced Default -->
+                    <input type="range" id="cfg-r-hp" class="slider-red" min="50" max="600" value="225" step="10">
                 </div>
                 <div class="slider-group">
-                    <div class="slider-label"><span>Base Speed</span><span id="val-r-spd">90</span></div>
-                    <input type="range" id="cfg-r-spd" class="slider-red" min="30" max="250" value="90" step="5">
+                    <div class="slider-label"><span>Base Speed</span><span id="val-r-spd">125</span></div>
+                    <!-- Balanced Default -->
+                    <input type="range" id="cfg-r-spd" class="slider-red" min="30" max="250" value="125" step="5">
                 </div>
             </div>
 
@@ -66,12 +68,14 @@
                     <input type="text" id="prompt-b" value="Sniper playstyle, keep distance" class="w-full bg-[#111] text-white p-1 text-xs border border-[#333] rounded">
                 </div>
                 <div class="slider-group mt-2">
-                    <div class="slider-label"><span>Base HP</span><span id="val-b-hp">150</span></div>
-                    <input type="range" id="cfg-b-hp" class="slider-blue" min="50" max="600" value="150" step="10">
+                    <div class="slider-label"><span>Base HP</span><span id="val-b-hp">225</span></div>
+                    <!-- Balanced Default -->
+                    <input type="range" id="cfg-b-hp" class="slider-blue" min="50" max="600" value="225" step="10">
                 </div>
                 <div class="slider-group">
-                    <div class="slider-label"><span>Base Speed</span><span id="val-b-spd">160</span></div>
-                    <input type="range" id="cfg-b-spd" class="slider-blue" min="30" max="250" value="160" step="5">
+                    <div class="slider-label"><span>Base Speed</span><span id="val-b-spd">125</span></div>
+                    <!-- Balanced Default -->
+                    <input type="range" id="cfg-b-spd" class="slider-blue" min="30" max="250" value="125" step="5">
                 </div>
             </div>
         </div>
