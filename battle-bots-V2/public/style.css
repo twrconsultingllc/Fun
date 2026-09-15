@@ -1,4 +1,4 @@
-﻿body, html {
+body, html {
     margin: 0;
     padding: 0;
     width: 100%;
@@ -29,8 +29,9 @@
     font-size: 1.5rem;
     z-index: 10;
 }
-.score-red { color: #ff0055; text-shadow: 0 0 10px rgba(255, 0, 85, 0.6); }
-.score-blue { color: #00e5ff; text-shadow: 0 0 10px rgba(0, 229, 255, 0.6); }
+.score-chip { white-space: nowrap; }
+.score-vs { color: #555; font-size: 1rem; }
+#scoreboard { gap: 8px; flex-wrap: wrap; font-size: 1.25rem; }
 
 #arena-container {
     width: 100%;
@@ -153,6 +154,18 @@ input[type=range]::-webkit-slider-runnable-track {
 input[type=range]:focus { outline: none; }
 .slider-red::-webkit-slider-thumb { background: #ff0055; box-shadow: 0 0 8px #ff0055; }
 .slider-blue::-webkit-slider-thumb { background: #00e5ff; box-shadow: 0 0 8px #00e5ff; }
+.slider-green::-webkit-slider-thumb { background: #39ff6a; box-shadow: 0 0 8px #39ff6a; }
+.slider-yellow::-webkit-slider-thumb { background: #ffd23f; box-shadow: 0 0 8px #ffd23f; }
+
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+.team-grid-quad { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.team-panel { min-width: 0; }
+.team-panel .config-header { font-size: 0.95rem; margin-bottom: 8px; letter-spacing: 1px; }
+.team-panel select, .team-panel input[type=text] { min-width: 0; }
 
 .btn-start {
     width: 100%;

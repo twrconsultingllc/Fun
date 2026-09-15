@@ -14,7 +14,8 @@ export const world = {
 export const match = {
     phase: 'INIT',   // INIT | RUNNING | ENDED
     mode: '1v1',
-    wins: { red: 0, blue: 0 }
+    teams: ['red', 'blue'],
+    wins: {}
 };
 
 export function resetWorld() {

@@ -1,6 +1,6 @@
 import { world, virtualSize } from './state.js';
 import { hasLineOfSight } from './arena.js';
-import { playSound } from './audio.js';
+import { playShot } from './audio.js';
 
 export class Bot {
     constructor(x, y, opts) {
@@ -29,6 +29,14 @@ export class Bot {
         this.strafeDir = Math.random() > 0.5 ? 1 : -1;
         this.dead = false;
         this.target = null;
+
+        // Telemetry: damageTaken resets each AI tick (it is reported to the model);
+        // the cumulative counters feed the stats panel.
+        this.damageTaken = 0;
+        this.damageDealtTotal = 0;
+        this.damageTakenTotal = 0;
+        this.shotsFired = 0;
+        this.shotsHit = 0;
     }
 
     applyAISkill(skillName, stats) {
@@ -119,7 +127,8 @@ export class Bot {
                     this.y + Math.sin(fireAngle) * 20,
                     fireAngle, this.color, this.team, this.id
                 ));
-                playSound(this.team === 'red' ? 'shoot_red' : 'shoot_blue');
+                playShot(this.team);
+                this.shotsFired++;
                 this.fireCooldown = this.fireDelay;
             }
         }
