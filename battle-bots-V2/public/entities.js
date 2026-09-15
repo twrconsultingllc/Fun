@@ -1,4 +1,4 @@
-import { world, virtualSize } from './state.js';
+import { clock, thinking, world, virtualSize } from './state.js';
 import { hasLineOfSight } from './arena.js';
 import { playShot } from './audio.js';
 import { SKILL_CATALOG, WEAPONS, PICKUPS, DEFAULT_WEAPON } from './skills.js';
@@ -52,11 +52,18 @@ export class Bot {
         this.damageTakenTotal = 0;
         this.shotsFired = 0;
         this.shotsHit = 0;
+        this.skillCounts = {};
+
+        this.muzzleFlash = 0;   // seconds remaining on the barrel flash
+        this.skillFlash = 0;    // ring pulse when new orders land
     }
 
     applyAISkill(skillName, skill) {
         const def = skill && skill.effect ? skill : SKILL_CATALOG[skillName];
         if (!def) return;
+
+        if (skillName !== this.activeSkill) this.skillFlash = 0.5;
+        this.skillCounts[skillName] = (this.skillCounts[skillName] || 0) + 1;
 
         this.activeSkill = skillName;
         this.skill = def;
@@ -110,6 +117,8 @@ export class Bot {
 
     tickTimers(dt) {
         if (this.skillTimer > 0) this.skillTimer = Math.max(0, this.skillTimer - dt);
+        if (this.muzzleFlash > 0) this.muzzleFlash = Math.max(0, this.muzzleFlash - dt);
+        if (this.skillFlash > 0) this.skillFlash = Math.max(0, this.skillFlash - dt);
         if (this.dashTimer > 0) this.dashTimer = Math.max(0, this.dashTimer - dt);
         if (this.damageBuffTimer > 0) {
             this.damageBuffTimer -= dt;
@@ -247,6 +256,7 @@ export class Bot {
             ));
         }
         playShot(this.team);
+        this.muzzleFlash = 0.07;
         this.shotsFired++;
         this.fireCooldown = this.fireDelay();
     }
@@ -259,12 +269,37 @@ export class Bot {
               pierce: true, homing: 0, length: 30, width: 5 }
         ));
         playShot(this.team);
+        this.muzzleFlash = 0.14;
         this.shotsFired++;
         this.fireCooldown = this.fireDelay();
     }
 
     draw(ctx) {
         if (this.dead) return;
+        this.drawBody(ctx);
+        this.drawStatus(ctx);
+        this.drawHud(ctx);
+    }
+
+    drawBody(ctx) {
+        // Muzzle flash sits under the chassis so the barrel stays readable.
+        if (this.muzzleFlash > 0) {
+            const a = this.muzzleFlash / 0.07;
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            ctx.globalAlpha = Math.min(1, a) * 0.85;
+            ctx.fillStyle = '#fff';
+            ctx.shadowBlur = 18; ctx.shadowColor = this.color;
+            ctx.beginPath();
+            ctx.moveTo(24, 0);
+            ctx.lineTo(24 + 16 * a, -6 * a);
+            ctx.lineTo(24 + 16 * a, 6 * a);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+        }
 
         ctx.shadowBlur = 15; ctx.shadowColor = this.color; ctx.fillStyle = this.color;
         ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
@@ -275,8 +310,21 @@ export class Bot {
         ctx.fillStyle = this.color; ctx.fillRect(0, -4, 25, 8);
         ctx.fillStyle = '#fff'; ctx.fillRect(20, -2, 5, 4);
         ctx.restore();
+    }
 
-        // Shield arc, sized by how much of the pool is left.
+    drawStatus(ctx) {
+        // New orders land with an expanding ring.
+        if (this.skillFlash > 0) {
+            const t = 1 - this.skillFlash / 0.5;
+            ctx.strokeStyle = this.color;
+            ctx.globalAlpha = (1 - t) * 0.8;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius + t * 26, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+
         if (this.shieldHp > 0) {
             const pct = Math.max(0.15, this.shieldHp / (this.shieldMax || this.shieldHp));
             ctx.strokeStyle = '#c084fc';
@@ -288,7 +336,6 @@ export class Bot {
             ctx.shadowBlur = 0;
         }
 
-        // Charge tell: a ring that tightens as the beam winds up.
         if (this.chargePending && this.skill) {
             const t = 1 - Math.max(0, this.chargeTimer) / this.skill.chargeTime;
             ctx.strokeStyle = '#fff';
@@ -300,7 +347,6 @@ export class Bot {
             ctx.globalAlpha = 1;
         }
 
-        // Rooted snipers get crosshair ticks so the stance reads at a glance.
         if (this.effect === 'root') {
             ctx.strokeStyle = this.color; ctx.globalAlpha = 0.7; ctx.lineWidth = 1;
             ctx.beginPath();
@@ -316,10 +362,40 @@ export class Bot {
         ctx.fillStyle = hpPct > 0.5 ? '#0f0' : (hpPct > 0.2 ? '#fa0' : '#f00');
         ctx.fillRect(this.x - 20, this.y - 30, 40 * hpPct, 6);
 
-        // Buff pips.
         let pip = 0;
         if (this.damageBuffTimer > 0) { ctx.fillStyle = PICKUPS.damage.color; ctx.fillRect(this.x - 20 + pip * 7, this.y - 38, 5, 5); pip++; }
         if (this.speedBuffTimer > 0)  { ctx.fillStyle = PICKUPS.speed.color;  ctx.fillRect(this.x - 20 + pip * 7, this.y - 38, 5, 5); pip++; }
+    }
+
+    // Skill and the model's own reasoning, right above the bot.
+    drawHud(ctx) {
+        ctx.textAlign = 'center';
+
+        if (thinking[this.team]) {
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            for (let i = 0; i < 3; i++) {
+                const a = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(clock.t * 6 - i * 0.7));
+                ctx.globalAlpha = a;
+                ctx.fillRect(this.x - 8 + i * 7, this.y - 46, 4, 4);
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        if (this.activeSkill && this.activeSkill !== 'NONE') {
+            const label = (this.skill && this.skill.action) || this.activeSkill;
+            ctx.font = 'bold 10px monospace';
+            ctx.fillStyle = this.color;
+            ctx.fillText(label.toUpperCase(), this.x, this.y - 54);
+
+            if (this.reasoning) {
+                const txt = this.reasoning.length > 32 ? `${this.reasoning.slice(0, 31)}…` : this.reasoning;
+                ctx.font = '9px monospace';
+                ctx.fillStyle = 'rgba(226,232,240,0.7)';
+                ctx.fillText(txt, this.x, this.y - 66);
+            }
+        }
+
+        ctx.textAlign = 'start';
     }
 }
 
@@ -366,11 +442,22 @@ export class Bullet {
     }
 
     draw(ctx) {
+        const ux = this.vx / this.speed, uy = this.vy / this.speed;
+
+        ctx.strokeStyle = this.color;
+        ctx.globalAlpha = 0.3;
+        ctx.lineWidth = Math.max(1, this.width - 1);
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(this.x - ux * this.length * 3, this.y - uy * this.length * 3);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
         ctx.strokeStyle = '#fff'; ctx.shadowBlur = 10; ctx.shadowColor = this.color;
         ctx.lineWidth = this.width;
         ctx.beginPath();
         ctx.moveTo(this.x, this.y);
-        ctx.lineTo(this.x - (this.vx / this.speed) * this.length, this.y - (this.vy / this.speed) * this.length);
+        ctx.lineTo(this.x - ux * this.length, this.y - uy * this.length);
         ctx.stroke();
         ctx.shadowBlur = 0;
     }

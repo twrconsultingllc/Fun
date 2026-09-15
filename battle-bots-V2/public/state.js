@@ -9,14 +9,23 @@ export const world = {
     bullets: [],
     particles: [],
     obstacles: [],
-    pickups: []
+    pickups: [],
+    rings: []          // expanding shockwaves
 };
+
+// Wall clock for canvas animations, advanced by the engine each frame.
+export const clock = { t: 0 };
+
+// Which teams have a model call in flight right now, for the thinking indicator.
+export const thinking = {};
 
 export const match = {
     phase: 'INIT',   // INIT | RUNNING | ENDED
     mode: '1v1',
     teams: ['red', 'blue'],
-    wins: {}
+    wins: {},
+    startedAt: 0,
+    elapsed: 0
 };
 
 export function resetWorld() {
@@ -25,4 +34,5 @@ export function resetWorld() {
     world.particles = [];
     world.obstacles = [];
     world.pickups = [];
+    world.rings = [];
 }

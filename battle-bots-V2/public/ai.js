@@ -1,7 +1,7 @@
 // Tactical pulse. Each team gets its own model call, fired in parallel, with its
 // own rate-limit backoff so one throttled team never stalls the others.
 
-import { world, match, virtualSize } from './state.js';
+import { world, match, thinking, virtualSize } from './state.js';
 import { hasLineOfSight } from './arena.js';
 import { addLog, getTickMs, getTeamConfig, setAvailableModels, PREFERRED_MODEL } from './ui.js';
 import { getEvents, historyForPrompt, pushEvent } from './memory.js';
@@ -13,13 +13,17 @@ let teamState = {};   // team -> { inFlight, retryCount, nextAllowedAt }
 export function stopAiLoop() {
     if (timer) { clearTimeout(timer); timer = null; }
     teamState = {};
+    for (const t of Object.keys(thinking)) thinking[t] = false;
 }
 
 export function startAiLoop(teams) {
     stopAiLoop();
     tickCount = 0;
     teamState = {};
-    for (const t of teams) teamState[t] = { inFlight: false, retryCount: 0, nextAllowedAt: 0 };
+    for (const t of teams) {
+        teamState[t] = { inFlight: false, retryCount: 0, nextAllowedAt: 0 };
+        thinking[t] = false;
+    }
     tick();
 }
 
@@ -117,6 +121,7 @@ async function requestTeamOrders(team, gameState) {
 
     const cfg = getTeamConfig(team);
     st.inFlight = true;
+    thinking[team] = true;
 
     try {
         const response = await fetch('/api/get-actions', {
@@ -156,6 +161,7 @@ async function requestTeamOrders(team, gameState) {
         addLog('ERROR', `${team.toUpperCase()}: ${e.message}`);
     } finally {
         st.inFlight = false;
+        thinking[team] = false;
     }
 }
 

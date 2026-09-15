@@ -2,7 +2,8 @@
 // Team panels and the scoreboard are rendered from the active mode's roster,
 // which is what lets 1v1, 2v2 and a four-way free-for-all share one UI.
 
-import { match } from './state.js';
+import { match, world } from './state.js';
+import { loadHistory } from './memory.js';
 import { TEAMS, MODES } from './teams.js';
 import { WEAPONS, DEFAULT_WEAPON } from './skills.js';
 
@@ -196,4 +197,84 @@ function populateModelSelects() {
             teamConfig[team].model = sel.value;
         }
     }
+}
+
+
+// --- stats & history -----------------------------------------------------
+
+function formatClock(seconds) {
+    const m = Math.floor(seconds / 60);
+    const sec = Math.floor(seconds % 60);
+    return `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+function topSkill(bot) {
+    const entries = Object.entries(bot.skillCounts || {});
+    if (!entries.length) return '—';
+    const [name, n] = entries.sort((a, b) => b[1] - a[1])[0];
+    return `${name.replace(/_/g, ' ').toLowerCase()} ×${n}`;
+}
+
+export function renderStats() {
+    const body = document.getElementById('stats-body');
+    if (!body) return;
+
+    if (!world.bots.length) {
+        body.innerHTML = '<div class="panel-empty">No match run yet.</div>';
+        return;
+    }
+
+    const rows = world.bots.map(b => {
+        const acc = b.shotsFired ? Math.round((b.shotsHit / b.shotsFired) * 100) : 0;
+        const color = TEAMS[b.team].color;
+        return `<tr${b.dead ? ' class="stat-dead"' : ''}>
+            <td style="color:${color}">${b.id}</td>
+            <td>${Math.max(0, Math.round(b.hp))}</td>
+            <td>${Math.round(b.damageDealtTotal)}</td>
+            <td>${Math.round(b.damageTakenTotal)}</td>
+            <td>${acc}%</td>
+            <td class="stat-skill">${escapeHtml(topSkill(b))}</td>
+        </tr>`;
+    }).join('');
+
+    body.innerHTML = `
+        <div class="stat-timer">MATCH TIME ${formatClock(match.elapsed)}</div>
+        <div class="table-scroll">
+            <table class="stat-table">
+                <thead><tr><th>BOT</th><th>HP</th><th>OUT</th><th>IN</th><th>ACC</th><th>TOP SKILL</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>`;
+}
+
+export function renderHistory() {
+    const body = document.getElementById('history-body');
+    if (!body) return;
+
+    const history = loadHistory();
+    if (!history.length) {
+        body.innerHTML = '<div class="panel-empty">No completed matches yet.</div>';
+        return;
+    }
+
+    const rows = history.map(h => {
+        const color = h.winner ? TEAMS[h.winner]?.color || '#aaa' : '#888';
+        const label = h.winner ? TEAMS[h.winner]?.label || h.winner : 'DRAW';
+        const model = h.winner ? (h.models?.[h.winner] || '—') : '—';
+        const strategy = h.winner ? (h.prompts?.[h.winner] || '—') : '—';
+        return `<tr>
+            <td style="color:${color}">${escapeHtml(label)}</td>
+            <td>${escapeHtml(h.mode || '')}</td>
+            <td class="stat-skill">${escapeHtml(model)}</td>
+            <td class="stat-skill">${escapeHtml(strategy)}</td>
+        </tr>`;
+    }).join('');
+
+    body.innerHTML = `
+        <div class="table-scroll">
+            <table class="stat-table">
+                <thead><tr><th>WON</th><th>MODE</th><th>MODEL</th><th>STRATEGY</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>`;
 }

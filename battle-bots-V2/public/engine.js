@@ -1,10 +1,10 @@
-import { world, match, virtualSize } from './state.js';
+import { clock, world, match, virtualSize } from './state.js';
 import { Pickup, spawnParticles } from './entities.js';
 import { isClearOfCover } from './arena.js';
 import { PICKUPS } from './skills.js';
 import { playSound } from './audio.js';
 import { stopAiLoop } from './ai.js';
-import { setMatchButton, updateScoreboard, getTeamConfig, addLog } from './ui.js';
+import { setMatchButton, updateScoreboard, getTeamConfig, addLog, renderHistory, renderStats } from './ui.js';
 import { pushGlobalEvent, recordRoundOutcome } from './memory.js';
 import { TEAMS } from './teams.js';
 
@@ -17,9 +17,21 @@ let loopStarted = false;
 const PICKUP_INTERVAL = 11;   // seconds between spawns
 const PICKUP_FIRST = 6;
 let pickupTimer = PICKUP_FIRST;
+let shake = 0;
 
 export function resetRuntime() {
     pickupTimer = PICKUP_FIRST;
+    shake = 0;
+    clock.t = 0;
+}
+
+// Camera kick, used on kills and cover collapses.
+export function addShake(amount) {
+    shake = Math.min(shake + amount, 20);
+}
+
+function spawnRing(x, y, color, maxR = 90) {
+    world.rings.push({ x, y, color, r: 6, maxR, life: 0.55, maxLife: 0.55 });
 }
 
 function spawnPickup() {
@@ -42,7 +54,9 @@ function damageObstacle(obs, amount) {
     if (obs.hp > 0) return;
     const i = world.obstacles.indexOf(obs);
     if (i >= 0) world.obstacles.splice(i, 1);
-    spawnParticles(obs.x + obs.w / 2, obs.y + obs.h / 2, '#6b7280', 22, true);
+    spawnParticles(obs.x + obs.w / 2, obs.y + obs.h / 2, '#6b7280', 26, true);
+    spawnRing(obs.x + obs.w / 2, obs.y + obs.h / 2, '#9ca3af', 70);
+    addShake(7);
 }
 
 function livingTeams() {
@@ -53,7 +67,9 @@ function killBot(bot) {
     bot.hp = 0;
     bot.dead = true;
     playSound('explode');
-    spawnParticles(bot.x, bot.y, bot.color, 50, true);
+    spawnParticles(bot.x, bot.y, bot.color, 60, true);
+    spawnRing(bot.x, bot.y, bot.color, 120);
+    addShake(16);
 
     // Every surviving team is told who died — it is the single most useful thing
     // for the model to know going into the next tick.
@@ -78,6 +94,8 @@ export function endMatch(winnerTeam) {
         models[team] = getTeamConfig(team).model;
     }
     recordRoundOutcome({ ts: Date.now(), mode: match.mode, winner: winnerTeam, prompts, models });
+    renderStats();
+    renderHistory();
 
     if (!winnerTeam) {
         setMatchButton('▶ DRAW - RESTART', '#444');
@@ -100,6 +118,7 @@ export function abortMatch() {
 
 export function updateState(dt) {
     if (match.phase !== 'RUNNING') return;
+    match.elapsed += dt;
 
     for (const bot of world.bots) bot.update(dt, world.bots);
 
@@ -167,9 +186,24 @@ export function updateState(dt) {
         world.particles[i].update(dt);
         if (world.particles[i].life <= 0) world.particles.splice(i, 1);
     }
+
+    for (let i = world.rings.length - 1; i >= 0; i--) {
+        const ring = world.rings[i];
+        ring.life -= dt;
+        ring.r += (ring.maxR - ring.r) * 6 * dt;
+        if (ring.life <= 0) world.rings.splice(i, 1);
+    }
 }
 
-function draw() {
+function draw(dt) {
+    clock.t += dt;
+    if (shake > 0) shake = Math.max(0, shake - dt * 45);
+
+    ctx.save();
+    if (shake > 0) {
+        ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+    }
+
     ctx.fillStyle = 'rgba(10, 10, 16, 0.5)';
     ctx.fillRect(0, 0, virtualSize, virtualSize);
 
@@ -206,7 +240,19 @@ function draw() {
         for (const bot of world.bots) bot.draw(ctx);
         for (const b of world.bullets) b.draw(ctx);
         for (const p of world.particles) p.draw(ctx);
+
+        for (const ring of world.rings) {
+            ctx.strokeStyle = ring.color;
+            ctx.globalAlpha = Math.max(0, ring.life / ring.maxLife) * 0.7;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(ring.x, ring.y, ring.r, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
     }
+
+    ctx.restore();
 }
 
 function gameLoop(timestamp) {
@@ -215,7 +261,7 @@ function gameLoop(timestamp) {
     if (dt > 0.1) dt = 0.1;
     lastTime = timestamp;
     updateState(dt);
-    draw();
+    draw(dt);
     requestAnimationFrame(gameLoop);
 }
 
