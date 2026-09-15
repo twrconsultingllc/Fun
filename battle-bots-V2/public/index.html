@@ -40,6 +40,16 @@
             </select>
         </div>
 
+        <!-- Match Mode -->
+        <div class="mb-2">
+            <label class="text-xs text-gray-400 font-bold tracking-widest mb-1 block">MATCH MODE:</label>
+            <select id="mode-select" class="w-full bg-[#111] text-white p-2 text-sm border border-[#333] rounded outline-none cursor-pointer">
+                <option value="1v1">1 V 1</option>
+                <option value="2v2">2 V 2 &mdash; TEAM BATTLE</option>
+            </select>
+            <p class="text-[10px] text-gray-500 mt-1">In 2v2 both bots on a team share that team's prompt and stats.</p>
+        </div>
+
         <button id="btn-start" class="btn-start">▶ START AI SIMULATION</button>
         
         <div class="flex flex-row gap-3">
@@ -90,6 +100,6 @@
     </div>
 </div>
 
-<script src="game.js"></script>
+<script type="module" src="main.js"></script>
 </body>
 </html>
