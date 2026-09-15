@@ -183,3 +183,64 @@ input[type=range]:focus { outline: none; }
 }
 .btn-start:active { transform: scale(0.98); }
 .hidden { display: none !important; }
+
+/* --- stats & history tables --------------------------------------------- */
+
+.panel-empty { color: #666; font-size: 0.75rem; text-align: center; padding: 6px 0; }
+.stat-timer { color: #f59e0b; font-size: 0.7rem; letter-spacing: 1px; margin-bottom: 6px; text-align: center; }
+
+/* Tables are the one thing allowed to scroll sideways on a narrow screen. */
+.table-scroll { overflow-x: auto; }
+
+.stat-table { width: 100%; border-collapse: collapse; font-size: 0.68rem; }
+.stat-table th {
+    text-align: left;
+    color: #64748b;
+    font-weight: normal;
+    letter-spacing: 1px;
+    border-bottom: 1px solid #222;
+    padding: 3px 6px 3px 0;
+    white-space: nowrap;
+}
+.stat-table td {
+    padding: 3px 6px 3px 0;
+    border-bottom: 1px dashed #161622;
+    color: #cbd5e1;
+    white-space: nowrap;
+}
+.stat-table tr.stat-dead td { opacity: 0.4; text-decoration: line-through; }
+.stat-skill {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #94a3b8 !important;
+}
+
+/* --- wide screens -------------------------------------------------------- */
+/* The narrow column above is the phone layout; on a monitor the arena sits
+   beside the controls instead of stacking a phone UI down the middle. */
+
+@media (min-width: 1024px) {
+    #app-container {
+        max-width: 1200px;
+        display: grid;
+        grid-template-columns: minmax(0, 620px) minmax(0, 1fr);
+        grid-template-areas:
+            "score score"
+            "arena controls"
+            "log   controls";
+        align-content: start;
+        column-gap: 18px;
+        padding: 0 16px 24px;
+        box-sizing: border-box;
+    }
+
+    #scoreboard      { grid-area: score; }
+    #arena-container { grid-area: arena; }
+    #log-window      { grid-area: log; height: 200px; margin: 0; width: 100%; }
+    #control-panel   { grid-area: controls; border-top: none; padding-top: 0; }
+
+    .team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stat-skill { max-width: 200px; }
+}

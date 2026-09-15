@@ -8,7 +8,7 @@ import { abortMatch, paintIdleArena, resetRuntime, startRenderLoop } from './eng
 import { resetMatchMemory } from './memory.js';
 import {
     activeTeams, bindGlobalSliders, dom, getArenaLevel, getMode, getTeamConfig,
-    hideOverlay, renderTeamPanels, setMatchButton, updateScoreboard
+    hideOverlay, renderHistory, renderStats, renderTeamPanels, setMatchButton, updateScoreboard
 } from './ui.js';
 
 function buildRoster(mode) {
@@ -40,6 +40,9 @@ function startSimulation() {
     match.teams = teams;
     for (const t of teams) match.wins[t] ??= 0;
 
+    match.elapsed = 0;
+    match.startedAt = Date.now();
+
     resetWorld();
     resetRuntime();
     world.bots = buildRoster(mode);
@@ -65,6 +68,11 @@ bindGlobalSliders();
 applyMode();
 paintIdleArena();
 loadAvailableModels();
+renderStats();
+renderHistory();
+
+// Cheap enough to refresh a few times a second; far cheaper than per-frame DOM.
+setInterval(() => { if (match.phase === 'RUNNING') renderStats(); }, 400);
 
 dom.modeSelect.addEventListener('change', applyMode);
 dom.btnOverlay.addEventListener('click', startSimulation);
