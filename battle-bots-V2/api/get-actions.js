@@ -12,6 +12,7 @@ const SKILL_CATALOG = {
 };
 
 const DEFAULT_SKILL = "SNIPE_STANCE";
+const PREFERRED_MODEL = "gemini-3.5-flash-lite";
 
 async function listModels(apiKey) {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
@@ -31,7 +32,10 @@ async function listModels(apiKey) {
 async function resolveModel(requested, apiKey) {
     if (requested) return requested;
     const models = await listModels(apiKey);
-    return models.find(m => m.includes('flash')) || models[0];
+    return models.find(m => m === PREFERRED_MODEL)
+        || models.find(m => m.includes('flash-lite'))
+        || models.find(m => m.includes('flash'))
+        || models[0];
 }
 
 function buildPrompt({ teamId, prompt, gameState, memory, botIds }) {

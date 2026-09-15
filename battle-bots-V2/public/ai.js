@@ -3,7 +3,7 @@
 
 import { world, match, virtualSize } from './state.js';
 import { hasLineOfSight } from './arena.js';
-import { addLog, getTickMs, getTeamConfig, setAvailableModels } from './ui.js';
+import { addLog, getTickMs, getTeamConfig, setAvailableModels, PREFERRED_MODEL } from './ui.js';
 import { getEvents, historyForPrompt, pushEvent } from './memory.js';
 
 let timer = null;
@@ -28,8 +28,12 @@ export async function loadAvailableModels() {
         const response = await fetch('/api/get-actions');
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
-        setAvailableModels(data.models || []);
-        addLog('RECV', `${(data.models || []).length} models available.`);
+        const models = data.models || [];
+        setAvailableModels(models);
+        addLog('RECV', `${models.length} models available.`);
+        if (models.length && !models.includes(PREFERRED_MODEL)) {
+            addLog('ERROR', `Default ${PREFERRED_MODEL} not in catalog — using closest match.`);
+        }
     } catch (e) {
         addLog('ERROR', `Model list: ${e.message}`);
         setAvailableModels([]);

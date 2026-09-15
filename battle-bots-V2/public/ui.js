@@ -30,6 +30,19 @@ for (const id of Object.keys(TEAMS)) {
     teamConfig[id] = { prompt: DEFAULT_PROMPTS[id], hp: 225, speed: 125, model: '' };
 }
 
+// Preferred default for every team. Resolved against the live catalog at
+// runtime, so a rename upstream degrades to a sensible sibling rather than
+// breaking every call.
+export const PREFERRED_MODEL = 'gemini-3.5-flash-lite';
+
+export function pickDefaultModel(models) {
+    if (!models.length) return '';
+    return models.find(m => m === PREFERRED_MODEL)
+        || models.find(m => m.includes('flash-lite'))
+        || models.find(m => m.includes('flash'))
+        || models[0];
+}
+
 let availableModels = [];
 let logs = [];
 
@@ -142,13 +155,12 @@ export function renderTeamPanels() {
 export function setAvailableModels(models) {
     availableModels = models;
 
-    // Give each team a different default model where the catalog allows it —
-    // the point of V2 is pitting models against each other.
-    activeTeams().forEach((team, i) => {
-        if (!teamConfig[team].model && models.length) {
-            teamConfig[team].model = models[Math.min(i, models.length - 1)];
-        }
-    });
+    // Every team starts on the same default; changing one team's dropdown is
+    // what turns a match into a model-vs-model comparison.
+    const fallback = pickDefaultModel(models);
+    for (const team of Object.keys(teamConfig)) {
+        if (!teamConfig[team].model && fallback) teamConfig[team].model = fallback;
+    }
 
     populateModelSelects();
 }
