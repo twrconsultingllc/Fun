@@ -18,24 +18,36 @@ export function hasLineOfSight(x1, y1, x2, y2) {
     return true;
 }
 
+// Cover is destructible now, so every block carries hit points.
+const COVER_HP = 120;
+const rect = (x, y, w, h) => ({ x, y, w, h, hp: COVER_HP, maxHp: COVER_HP });
+
 export function generateArena(level) {
     const obstacles = [];
     if (level === 1) {
         const size = 60, inset = 90;
-        obstacles.push({ x: inset, y: inset, w: size, h: size });
-        obstacles.push({ x: virtualSize - inset - size, y: inset, w: size, h: size });
-        obstacles.push({ x: inset, y: virtualSize - inset - size, w: size, h: size });
-        obstacles.push({ x: virtualSize - inset - size, y: virtualSize - inset - size, w: size, h: size });
+        obstacles.push(rect(inset, inset, size, size));
+        obstacles.push(rect(virtualSize - inset - size, inset, size, size));
+        obstacles.push(rect(inset, virtualSize - inset - size, size, size));
+        obstacles.push(rect(virtualSize - inset - size, virtualSize - inset - size, size, size));
     } else if (level === 2) {
         const w = 240, h = 40, cx = virtualSize / 2 - w / 2;
-        obstacles.push({ x: cx, y: 150, w: w, h: h });
-        obstacles.push({ x: cx, y: virtualSize - 150 - h, w: w, h: h });
+        obstacles.push(rect(cx, 150, w, h));
+        obstacles.push(rect(cx, virtualSize - 150 - h, w, h));
     } else if (level === 3) {
         const w = 120, h = 40;
-        obstacles.push({ x: virtualSize / 2 - w / 2, y: 100, w: w, h: h });
-        obstacles.push({ x: virtualSize / 2 - w / 2, y: virtualSize - 100 - h, w: w, h: h });
-        obstacles.push({ x: 100, y: virtualSize / 2 - w / 2, w: h, h: w });
-        obstacles.push({ x: virtualSize - 100 - h, y: virtualSize / 2 - w / 2, w: h, h: w });
+        obstacles.push(rect(virtualSize / 2 - w / 2, 100, w, h));
+        obstacles.push(rect(virtualSize / 2 - w / 2, virtualSize - 100 - h, w, h));
+        obstacles.push(rect(100, virtualSize / 2 - w / 2, h, w));
+        obstacles.push(rect(virtualSize - 100 - h, virtualSize / 2 - w / 2, h, w));
     }
     world.obstacles = obstacles;
+}
+
+
+export function isClearOfCover(x, y, pad = 18) {
+    for (const obs of world.obstacles) {
+        if (x > obs.x - pad && x < obs.x + obs.w + pad && y > obs.y - pad && y < obs.y + obs.h + pad) return false;
+    }
+    return true;
 }

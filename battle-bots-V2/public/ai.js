@@ -49,6 +49,8 @@ function botView(bot) {
         x: Math.round(bot.x),
         y: Math.round(bot.y),
         activeSkill: bot.activeSkill,
+        shieldHp: Math.round(bot.shieldHp),
+        weapon: bot.weaponId,
         dead: bot.dead
     };
 }
@@ -62,16 +64,25 @@ function buildGameState(team) {
     return {
         mode: match.mode,
         tick: tickCount,
-        arena: { width: virtualSize, height: virtualSize, obstacles: world.obstacles },
+        arena: {
+            width: virtualSize,
+            height: virtualSize,
+            // Cover is destructible, so hp matters when deciding what to hide behind.
+            cover: world.obstacles.map(o => ({ x: o.x, y: o.y, w: o.w, h: o.h, hp: Math.round(o.hp) })),
+            pickups: world.pickups.map(p => ({ type: p.type, x: Math.round(p.x), y: Math.round(p.y) }))
+        },
         you: {
             team,
             bots: mine.map(b => ({
                 ...botView(b),
                 vx: Math.round(b.vx),
                 vy: Math.round(b.vy),
-                speed: Math.round(b.speed),
+                speed: Math.round(b.currentSpeed()),
                 fireCooldownSeconds: Math.max(0, +b.fireCooldown.toFixed(2)),
                 damageTakenSinceLastTick: Math.round(b.damageTaken),
+                activeSkillSecondsLeft: +b.skillTimer.toFixed(1),
+                damageBoosted: b.damageBuffTimer > 0,
+                speedBoosted: b.speedBuffTimer > 0,
                 enemies: livingOthers.map(e => ({
                     id: e.id,
                     team: e.team,

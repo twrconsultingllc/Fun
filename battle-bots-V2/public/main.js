@@ -4,7 +4,7 @@ import { Bot } from './entities.js';
 import { generateArena } from './arena.js';
 import { initAudio } from './audio.js';
 import { loadAvailableModels, startAiLoop, stopAiLoop } from './ai.js';
-import { abortMatch, paintIdleArena, startRenderLoop } from './engine.js';
+import { abortMatch, paintIdleArena, resetRuntime, startRenderLoop } from './engine.js';
 import { resetMatchMemory } from './memory.js';
 import {
     activeTeams, bindGlobalSliders, dom, getArenaLevel, getMode, getTeamConfig,
@@ -22,7 +22,8 @@ function buildRoster(mode) {
                 team: teamId,
                 color: TEAMS[teamId].color,
                 hp: cfg.hp,
-                speed: cfg.speed
+                speed: cfg.speed,
+                weapon: cfg.weapon
             }));
         });
     }
@@ -40,6 +41,7 @@ function startSimulation() {
     for (const t of teams) match.wins[t] ??= 0;
 
     resetWorld();
+    resetRuntime();
     world.bots = buildRoster(mode);
     generateArena(getArenaLevel());
     resetMatchMemory(teams);

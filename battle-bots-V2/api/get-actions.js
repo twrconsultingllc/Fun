@@ -1,17 +1,10 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+// Shared with the browser so the options offered and the behaviour implemented
+// cannot drift apart.
+import { SKILL_CATALOG, DEFAULT_SKILL, catalogForPrompt } from '../public/skills.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-const SKILL_CATALOG = {
-    "SNIPE_STANCE":     { action: "Snipe",             aggression: 10,  speedModifier: 0.8 },
-    "FLANK_LEFT":       { action: "Flank Left",        aggression: 60,  speedModifier: 1.2 },
-    "FLANK_RIGHT":      { action: "Flank Right",       aggression: 60,  speedModifier: 1.2 },
-    "CHARGE_BEAM":      { action: "Aggressive Charge", aggression: 100, speedModifier: 1.5 },
-    "KITE_RETREAT":     { action: "Retreat",           aggression: 0,   speedModifier: 1.0 },
-    "DEFENSIVE_SHIELD": { action: "Defend",            aggression: 30,  speedModifier: 0.5 }
-};
-
-const DEFAULT_SKILL = "SNIPE_STANCE";
 const PREFERRED_MODEL = "gemini-3.5-flash-lite";
 
 async function listModels(apiKey) {
@@ -50,9 +43,11 @@ STANDING ORDERS FROM YOUR COMMANDER:
 "${prompt || 'Fight to win.'}"
 
 SKILLS AVAILABLE (pick exactly one per bot):
-${JSON.stringify(SKILL_CATALOG, null, 2)}
+${JSON.stringify(catalogForPrompt(), null, 2)}
 
-ARENA SNAPSHOT (600x600; obstacles block both movement and line of sight):
+ARENA SNAPSHOT (600x600). Cover blocks movement, line of sight and every shot,
+but it is destructible and its hp is shown. Pickups grant health, shields, or a
+temporary damage or speed boost to the first bot that reaches them:
 ${JSON.stringify(gameState, null, 2)}
 
 WHAT HAPPENED RECENTLY THIS MATCH:
