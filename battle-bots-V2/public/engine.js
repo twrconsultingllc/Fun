@@ -2,7 +2,8 @@ import { world, match, virtualSize } from './state.js';
 import { spawnParticles } from './entities.js';
 import { playSound } from './audio.js';
 import { stopAiLoop } from './ai.js';
-import { setMatchButton, updateScoreboard } from './ui.js';
+import { setMatchButton, updateScoreboard, getTeamConfig, addLog } from './ui.js';
+import { pushGlobalEvent, recordRoundOutcome } from './memory.js';
 import { TEAMS } from './teams.js';
 
 const canvas = document.getElementById('arenaCanvas');
@@ -21,6 +22,11 @@ function killBot(bot) {
     playSound('explode');
     spawnParticles(bot.x, bot.y, bot.color, 50, true);
 
+    // Every surviving team is told who died — it is the single most useful thing
+    // for the model to know going into the next tick.
+    pushGlobalEvent(`${bot.id} (${bot.team}) was destroyed`);
+    addLog('RECV', `${bot.id} destroyed`);
+
     // A match now ends when only one team still has bots standing, not on first death.
     const remaining = livingTeams();
     if (remaining.length <= 1) endMatch(remaining[0] || null);
@@ -30,6 +36,14 @@ export function endMatch(winnerTeam) {
     match.phase = 'ENDED';
     stopAiLoop();
 
+    // Persist the outcome so future matches can be told how this one went.
+    const prompts = {}, models = {};
+    for (const team of match.teams) {
+        prompts[team] = getTeamConfig(team).prompt;
+        models[team] = getTeamConfig(team).model;
+    }
+    recordRoundOutcome({ ts: Date.now(), mode: match.mode, winner: winnerTeam, prompts, models });
+
     if (!winnerTeam) {
         setMatchButton('▶ DRAW - RESTART', '#444');
         return;
@@ -38,11 +52,8 @@ export function endMatch(winnerTeam) {
     match.wins[winnerTeam] = (match.wins[winnerTeam] || 0) + 1;
     updateScoreboard();
 
-    const label = TEAMS[winnerTeam].label;
-    const background = winnerTeam === 'red'
-        ? 'linear-gradient(90deg, #ff0055, #111)'
-        : 'linear-gradient(90deg, #111, #00e5ff)';
-    setMatchButton(`▶ ${label} WINS - RESTART`, background);
+    const { label, color } = TEAMS[winnerTeam];
+    setMatchButton(`▶ ${label} WINS - RESTART`, `linear-gradient(90deg, ${color}, #111)`);
 }
 
 export function abortMatch() {

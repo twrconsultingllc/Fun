@@ -10,91 +10,50 @@
 <body>
 
 <div id="app-container">
-    <div id="scoreboard">
-        <div class="score-red" id="score-red">RED: 0</div>
-        <div style="color: #555; font-size: 1rem;">VS</div>
-        <div class="score-blue" id="score-blue">BLUE: 0</div>
-    </div>
+    <!-- Rendered from the active mode's roster by ui.js -->
+    <div id="scoreboard"></div>
 
     <div id="arena-container">
         <canvas id="arenaCanvas" width="600" height="600"></canvas>
         <div id="arena-overlay">
             <h1 class="text-3xl font-bold text-white mb-2 tracking-widest drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">AI BATTLER</h1>
-            <p class="text-gray-400 text-xs px-6 mb-6">Configure AI strategies below, then initiate match.</p>
+            <p class="text-gray-400 text-xs px-6 mb-6">Pick a model and strategy per team, then initiate match.</p>
             <button id="btn-overlay-start" class="px-8 py-3 bg-white text-black font-bold rounded hover:bg-gray-200">INITIATE MATCH</button>
         </div>
     </div>
-    
+
     <div id="log-window">
         <div id="log-header">LIVE AI TELEMETRY LOGS</div>
         <div id="log-content"></div>
     </div>
 
     <div id="control-panel">
-        
-        <!-- AI Model Selector -->
-        <div class="mb-2">
-            <label class="text-xs text-gray-400 font-bold tracking-widest mb-1 block">AI TACTICAL ENGINE:</label>
-            <select id="model-select" class="w-full bg-[#111] text-white p-2 text-sm border border-[#333] rounded outline-none cursor-pointer">
-                <option value="">LOADING AI MODELS...</option>
-            </select>
-        </div>
 
-        <!-- Match Mode -->
         <div class="mb-2">
             <label class="text-xs text-gray-400 font-bold tracking-widest mb-1 block">MATCH MODE:</label>
             <select id="mode-select" class="w-full bg-[#111] text-white p-2 text-sm border border-[#333] rounded outline-none cursor-pointer">
                 <option value="1v1">1 V 1</option>
                 <option value="2v2">2 V 2 &mdash; TEAM BATTLE</option>
+                <option value="ffa">FREE-FOR-ALL &mdash; 4 BOTS</option>
             </select>
-            <p class="text-[10px] text-gray-500 mt-1">In 2v2 both bots on a team share that team's prompt and stats.</p>
+            <p class="text-[10px] text-gray-500 mt-1">In 2v2 both bots on a team share that team's prompt, model and stats.</p>
         </div>
 
-        <button id="btn-start" class="btn-start">▶ START AI SIMULATION</button>
-        
-        <div class="flex flex-row gap-3">
-            <div class="config-section flex-1">
-                <div class="config-header header-red">RED BOT</div>
-                <div class="slider-group">
-                    <label class="slider-label" style="color: #ff0055;">AI Strategy Prompt:</label>
-                    <input type="text" id="prompt-a" value="Aggressive close-range charger" class="w-full bg-[#111] text-white p-1 text-xs border border-[#333] rounded">
-                </div>
-                <div class="slider-group mt-2">
-                    <div class="slider-label"><span>Base HP</span><span id="val-r-hp">225</span></div>
-                    <!-- Balanced Default -->
-                    <input type="range" id="cfg-r-hp" class="slider-red" min="50" max="600" value="225" step="10">
-                </div>
-                <div class="slider-group">
-                    <div class="slider-label"><span>Base Speed</span><span id="val-r-spd">125</span></div>
-                    <!-- Balanced Default -->
-                    <input type="range" id="cfg-r-spd" class="slider-red" min="30" max="250" value="125" step="5">
-                </div>
-            </div>
+        <button id="btn-start" class="btn-start">&#9654; START AI SIMULATION</button>
 
-            <div class="config-section flex-1">
-                <div class="config-header header-blue">BLUE BOT</div>
-                <div class="slider-group">
-                    <label class="slider-label" style="color: #00e5ff;">AI Strategy Prompt:</label>
-                    <input type="text" id="prompt-b" value="Sniper playstyle, keep distance" class="w-full bg-[#111] text-white p-1 text-xs border border-[#333] rounded">
-                </div>
-                <div class="slider-group mt-2">
-                    <div class="slider-label"><span>Base HP</span><span id="val-b-hp">225</span></div>
-                    <!-- Balanced Default -->
-                    <input type="range" id="cfg-b-hp" class="slider-blue" min="50" max="600" value="225" step="10">
-                </div>
-                <div class="slider-group">
-                    <div class="slider-label"><span>Base Speed</span><span id="val-b-spd">125</span></div>
-                    <!-- Balanced Default -->
-                    <input type="range" id="cfg-b-spd" class="slider-blue" min="30" max="250" value="125" step="5">
-                </div>
-            </div>
-        </div>
+        <!-- Team panels are rendered per mode by ui.js -->
+        <div id="team-configs" class="team-grid"></div>
 
         <div class="config-section" style="padding: 10px 15px;">
-            <div class="config-header header-arena" style="font-size: 0.9rem; margin-bottom: 5px;">ARENA LAYOUT</div>
-            <div class="slider-group" style="margin-bottom: 0;">
+            <div class="config-header header-arena" style="font-size: 0.9rem; margin-bottom: 5px;">ARENA &amp; CADENCE</div>
+            <div class="slider-group">
                 <div class="slider-label"><span>Layout Type</span><span id="val-a-obs">1</span></div>
                 <input type="range" id="cfg-a-obs" min="0" max="3" value="1" step="1">
+            </div>
+            <div class="slider-group" style="margin-bottom: 0;">
+                <div class="slider-label"><span>AI Tick Interval</span><span id="val-tick">6s</span></div>
+                <input type="range" id="cfg-tick" min="3" max="15" value="6" step="1">
+                <p class="text-[10px] text-gray-500 mt-1">One model call per team per tick. Raise this if you hit rate limits.</p>
             </div>
         </div>
     </div>

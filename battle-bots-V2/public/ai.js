@@ -1,16 +1,26 @@
-// Tactical pulse: asks the model which skill each team should run, applies the result.
+// Tactical pulse. Each team gets its own model call, fired in parallel, with its
+// own rate-limit backoff so one throttled team never stalls the others.
 
-import { world, match } from './state.js';
-import { addLog, dom, getSelectedModel, readPrompt } from './ui.js';
+import { world, match, virtualSize } from './state.js';
+import { hasLineOfSight } from './arena.js';
+import { addLog, getTickMs, getTeamConfig, setAvailableModels } from './ui.js';
+import { getEvents, historyForPrompt, pushEvent } from './memory.js';
 
-const TICK_MS = 6500;
-
-let aiTimer = null;
-let isFetching = false;
+let timer = null;
+let tickCount = 0;
+let teamState = {};   // team -> { inFlight, retryCount, nextAllowedAt }
 
 export function stopAiLoop() {
-    if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; }
-    isFetching = false;
+    if (timer) { clearTimeout(timer); timer = null; }
+    teamState = {};
+}
+
+export function startAiLoop(teams) {
+    stopAiLoop();
+    tickCount = 0;
+    teamState = {};
+    for (const t of teams) teamState[t] = { inFlight: false, retryCount: 0, nextAllowedAt: 0 };
+    tick();
 }
 
 export async function loadAvailableModels() {
@@ -18,101 +28,140 @@ export async function loadAvailableModels() {
         const response = await fetch('/api/get-actions');
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
-
-        dom.modelSelect.innerHTML = '';
-
-        const targetModels = data.models.filter(m =>
-            m.includes('3.5-flash') || m.includes('lite') || m.includes('8b')
-        );
-        const displayModels = targetModels.length > 0 ? targetModels : data.models.filter(m => m.includes('flash'));
-
-        displayModels.forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = m;
-            opt.innerText = m.toUpperCase();
-            dom.modelSelect.appendChild(opt);
-        });
-
-        addLog('RECV', 'Models loaded and filtered successfully.');
+        setAvailableModels(data.models || []);
+        addLog('RECV', `${(data.models || []).length} models available.`);
     } catch (e) {
-        addLog('ERROR', e.message);
-        dom.modelSelect.innerHTML = '<option value="">ERROR LOADING MODELS</option>';
+        addLog('ERROR', `Model list: ${e.message}`);
+        setAvailableModels([]);
     }
 }
 
-// The roster is variable now, so send every living bot grouped by team.
-function buildGameState() {
-    const teams = {};
+function botView(bot) {
+    return {
+        id: bot.id,
+        team: bot.team,
+        hp: Math.round(bot.hp),
+        maxHp: bot.maxHp,
+        x: Math.round(bot.x),
+        y: Math.round(bot.y),
+        activeSkill: bot.activeSkill,
+        dead: bot.dead
+    };
+}
+
+// Everything the model is allowed to see, from one team's point of view.
+function buildGameState(team) {
+    const mine = world.bots.filter(b => b.team === team && !b.dead);
+    const others = world.bots.filter(b => b.team !== team);
+    const livingOthers = others.filter(b => !b.dead);
+
+    return {
+        mode: match.mode,
+        tick: tickCount,
+        arena: { width: virtualSize, height: virtualSize, obstacles: world.obstacles },
+        you: {
+            team,
+            bots: mine.map(b => ({
+                ...botView(b),
+                vx: Math.round(b.vx),
+                vy: Math.round(b.vy),
+                speed: Math.round(b.speed),
+                fireCooldownSeconds: Math.max(0, +b.fireCooldown.toFixed(2)),
+                damageTakenSinceLastTick: Math.round(b.damageTaken),
+                enemies: livingOthers.map(e => ({
+                    id: e.id,
+                    team: e.team,
+                    hp: Math.round(e.hp),
+                    distance: Math.round(Math.hypot(e.x - b.x, e.y - b.y)),
+                    lineOfSight: hasLineOfSight(b.x, b.y, e.x, e.y)
+                }))
+            }))
+        },
+        opponents: livingOthers.map(botView)
+    };
+}
+
+function applyOrders(team, orders) {
+    const summary = [];
     for (const bot of world.bots) {
-        (teams[bot.team] ||= []).push({
-            id: bot.id,
-            hp: Math.round(bot.hp),
-            maxHp: bot.maxHp,
-            x: Math.round(bot.x),
-            y: Math.round(bot.y),
-            dead: bot.dead
-        });
+        if (bot.team !== team || bot.dead) continue;
+        const order = orders[bot.id];
+        if (!order || !order.stats) continue;
+        bot.applyAISkill(order.skill, order.stats);
+        bot.reasoning = order.reasoning || '';
+        bot.taunt = order.taunt || '';
+        summary.push(`${bot.id} ${Math.round(bot.hp)}hp took ${Math.round(bot.damageTaken)} dmg -> ${order.skill}`);
     }
-    return { mode: match.mode, teams };
+    if (summary.length) pushEvent(team, `T${tickCount}: ${summary.join('; ')}`);
 }
 
-// Phase 1 keeps the existing botA/botB contract: orders are issued per team, so
-// every bot on a team runs its team's skill.
-function applyOrders(actions) {
-    for (const bot of world.bots) {
-        const order = bot.team === 'red' ? actions.botA : actions.botB;
-        if (order && order.stats) bot.applyAISkill(order.skill, order.stats);
-    }
-}
+async function requestTeamOrders(team, gameState) {
+    const st = teamState[team];
+    if (!st || st.inFlight || Date.now() < st.nextAllowedAt) return;
+    if (gameState.you.bots.length === 0) return;
 
-function livingBotsExist() {
-    return world.bots.some(b => !b.dead);
-}
-
-export async function fetchTacticalTurn(retryCount = 0) {
-    if ((isFetching && retryCount === 0) || match.phase !== 'RUNNING' || !livingBotsExist()) return;
-    isFetching = true;
-
-    const selectedModel = getSelectedModel();
-    const gameState = buildGameState();
-
-    if (retryCount === 0) addLog('SENT', { model: selectedModel, state: gameState });
+    const cfg = getTeamConfig(team);
+    st.inFlight = true;
 
     try {
         const response = await fetch('/api/get-actions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                teamId: team,
+                model: cfg.model,
+                prompt: cfg.prompt,
                 gameState,
-                selectedModel,
-                promptA: readPrompt('red'),
-                promptB: readPrompt('blue')
+                memory: { events: getEvents(team), history: historyForPrompt(team) }
             })
         });
 
         if (response.status === 429) {
-            const waitTime = Math.pow(2, retryCount + 1) * 2000;
-            addLog('ERROR', `Rate limited. Retrying in ${waitTime / 1000}s...`);
-            aiTimer = setTimeout(() => fetchTacticalTurn(retryCount + 1), waitTime);
+            st.retryCount++;
+            const waitMs = Math.min(Math.pow(2, st.retryCount) * 2000, 60000);
+            st.nextAllowedAt = Date.now() + waitMs;
+            addLog('ERROR', `${team.toUpperCase()} rate limited — backing off ${Math.round(waitMs / 1000)}s`);
             return;
         }
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `Server returned status: ${response.status}`);
+            throw new Error(errorData.error || `status ${response.status}`);
         }
 
-        const actions = await response.json();
-        addLog('RECV', { red: actions.botA?.skill, blue: actions.botB?.skill });
-        applyOrders(actions);
+        const data = await response.json();
+        st.retryCount = 0;
+        st.nextAllowedAt = 0;
+        applyOrders(team, data.orders || {});
 
+        for (const [id, order] of Object.entries(data.orders || {})) {
+            addLog('RECV', `${id}: ${order.skill}${order.reasoning ? ` — ${order.reasoning}` : ''}`);
+        }
     } catch (e) {
-        addLog('ERROR', e.message);
+        addLog('ERROR', `${team.toUpperCase()}: ${e.message}`);
     } finally {
-        if (retryCount === 0) isFetching = false;
-
-        if (match.phase === 'RUNNING' && retryCount === 0) {
-            aiTimer = setTimeout(() => fetchTacticalTurn(0), TICK_MS);
-        }
+        st.inFlight = false;
     }
+}
+
+function teamsWithLivingBots() {
+    return [...new Set(world.bots.filter(b => !b.dead).map(b => b.team))];
+}
+
+async function tick() {
+    if (match.phase !== 'RUNNING') return;
+    tickCount++;
+
+    const teams = teamsWithLivingBots();
+
+    // Snapshot every team's view before any await, so all teams reason about the
+    // same instant, then clear the per-tick damage counters.
+    const payloads = teams.map(team => ({ team, gameState: buildGameState(team) }));
+    for (const bot of world.bots) bot.damageTaken = 0;
+
+    addLog('SENT', `tick ${tickCount}: ${teams.map(t => `${t}=${getTeamConfig(t).model || 'auto'}`).join(', ')}`);
+
+    await Promise.allSettled(payloads.map(p => requestTeamOrders(p.team, p.gameState)));
+
+    if (match.phase === 'RUNNING') timer = setTimeout(tick, getTickMs());
 }
