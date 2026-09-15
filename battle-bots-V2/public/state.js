@@ -8,7 +8,8 @@ export const world = {
     bots: [],
     bullets: [],
     particles: [],
-    obstacles: []
+    obstacles: [],
+    pickups: []
 };
 
 export const match = {
@@ -23,4 +24,5 @@ export function resetWorld() {
     world.bullets = [];
     world.particles = [];
     world.obstacles = [];
+    world.pickups = [];
 }

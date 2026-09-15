@@ -4,6 +4,7 @@
 
 import { match } from './state.js';
 import { TEAMS, MODES } from './teams.js';
+import { WEAPONS, DEFAULT_WEAPON } from './skills.js';
 
 const els = {
     overlay:     document.getElementById('arena-overlay'),
@@ -27,7 +28,7 @@ const DEFAULT_PROMPTS = {
 // Survives panel re-renders when the mode changes.
 const teamConfig = {};
 for (const id of Object.keys(TEAMS)) {
-    teamConfig[id] = { prompt: DEFAULT_PROMPTS[id], hp: 225, speed: 125, model: '' };
+    teamConfig[id] = { prompt: DEFAULT_PROMPTS[id], hp: 225, speed: 125, model: '', weapon: DEFAULT_WEAPON };
 }
 
 // Preferred default for every team. Resolved against the live catalog at
@@ -115,6 +116,14 @@ function panelHtml(team) {
         </div>
 
         <div class="slider-group">
+            <label class="slider-label">Weapon</label>
+            <select id="cfg-${team}-weapon" class="${input} cursor-pointer">
+                ${Object.entries(WEAPONS).map(([k, w]) =>
+                    `<option value="${k}"${k === c.weapon ? ' selected' : ''}>${w.label} — ${w.damage}dmg x${w.fireRate}/s</option>`).join('')}
+            </select>
+        </div>
+
+        <div class="slider-group">
             <div class="slider-label"><span>Base HP</span><span id="val-${team}-hp">${c.hp}</span></div>
             <input type="range" id="cfg-${team}-hp" class="slider-${team}" min="50" max="600" value="${c.hp}" step="10">
         </div>
@@ -136,6 +145,7 @@ export function renderTeamPanels() {
         const hpEl     = document.getElementById(`cfg-${team}-hp`);
         const spdEl    = document.getElementById(`cfg-${team}-spd`);
         const modelEl  = document.getElementById(`cfg-${team}-model`);
+        const weaponEl = document.getElementById(`cfg-${team}-weapon`);
 
         promptEl.addEventListener('input', () => teamConfig[team].prompt = promptEl.value);
         hpEl.addEventListener('input', () => {
@@ -147,6 +157,7 @@ export function renderTeamPanels() {
             document.getElementById(`val-${team}-spd`).innerText = spdEl.value;
         });
         modelEl.addEventListener('change', () => teamConfig[team].model = modelEl.value);
+        weaponEl.addEventListener('change', () => teamConfig[team].weapon = weaponEl.value);
     }
 
     populateModelSelects();
