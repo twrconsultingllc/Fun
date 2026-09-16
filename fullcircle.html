@@ -46,6 +46,8 @@
     #gl-canvas {
         position: fixed;
         inset: 0;
+        opacity: 0;
+        transition: opacity .9s ease;
         width: 100%;
         height: 100%;
         display: block;
@@ -53,6 +55,7 @@
         cursor: grab;
         z-index: 1;
     }
+    #gl-canvas.live { opacity: 1; }
     #gl-canvas:active { cursor: grabbing; }
 
     /* Vignette, above the canvas but transparent to clicks. */
@@ -232,44 +235,6 @@
     }
     .readout b { color: var(--text-dim); font-weight: 500; }
 
-    /* ---------- loader ---------- */
-
-    .loader {
-        position: fixed;
-        inset: 0;
-        z-index: 9;
-        display: grid;
-        place-content: center;
-        justify-items: center;
-        gap: 18px;
-        background: var(--page);
-        transition: opacity .7s ease, visibility .7s;
-    }
-    .loader.done { opacity: 0; visibility: hidden; }
-    .loader-ring {
-        width: 46px; height: 46px;
-        border-radius: 50%;
-        border: 2px solid var(--hairline-strong);
-        border-top-color: var(--fc-blue);
-        border-right-color: var(--fc-green);
-        animation: spin 1s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loader p { color: var(--text-faint); }
-
-    .fail {
-        position: fixed;
-        inset: 0;
-        z-index: 10;
-        display: none;
-        place-content: center;
-        text-align: center;
-        padding: 30px;
-        background: var(--page);
-    }
-    .fail.show { display: grid; }
-    .fail h2 { font-size: 1.1rem; margin-bottom: 10px; }
-    .fail p { color: var(--text-dim); max-width: 46ch; }
 
     @media (max-width: 560px) {
         .hud-tag { font-size: 9px; letter-spacing: .08em; }
@@ -277,24 +242,137 @@
         .readout { display: none; }
     }
 
+    /* ---------- static mark ----------
+       Rendered from the first paint with no WebGL, no modules and no CDN.
+       The 3D scene fades this out only once it is genuinely running, so the
+       page can never sit on a spinner. */
+    .static-mark {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        display: grid;
+        place-items: center;
+        transition: opacity .9s ease;
+    }
+    .static-mark.retired { opacity: 0; pointer-events: none; }
+
+    .static-mark .mark-wrap {
+        position: relative;
+        width: min(84vh, 93vw);
+        aspect-ratio: 1;
+        animation: markFloat 9s ease-in-out infinite;
+    }
+    .static-mark svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+        filter:
+            drop-shadow(0 0 70px rgba(25, 118, 210, .55))
+            drop-shadow(0 0 140px rgba(124, 179, 66, .3))
+            drop-shadow(0 26px 60px rgba(0, 0, 0, .85));
+    }
+    /* A highlight sweeping around the disc, clipped to the circle. */
+    .static-mark .sheen {
+        position: absolute;
+        inset: 1%;
+        border-radius: 50%;
+        background: conic-gradient(from 0deg,
+            transparent 0 14%,
+            rgba(255,255,255,.62) 23%,
+            rgba(255,255,255,.08) 30%,
+            transparent 38% 64%,
+            rgba(255,255,255,.34) 72%,
+            transparent 80% 100%);
+        mix-blend-mode: screen;
+        opacity: .55;
+        animation: sheenSpin 7s linear infinite;
+        pointer-events: none;
+    }
+    @keyframes sheenSpin { to { transform: rotate(360deg); } }
+    @keyframes markFloat {
+        0%, 100% { transform: translateY(-1.1%) scale(1); }
+        50%      { transform: translateY(1.1%) scale(1.012); }
+    }
+
+    /* A non-blocking status chip, so a failure is readable instead of silent. */
+    .diag {
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+        z-index: 8;
+        max-width: min(92vw, 620px);
+        padding: 8px 13px;
+        border: 1px solid var(--hairline);
+        border-radius: 10px;
+        background: rgba(10, 12, 20, .9);
+        color: var(--text-dim);
+        font-family: 'IBM Plex Mono', ui-monospace, monospace;
+        font-size: 10.5px;
+        line-height: 1.5;
+        text-align: center;
+        word-break: break-word;
+        display: none;
+    }
+    .diag.show { display: block; }
+
     @media (max-height: 760px) {
         .wordmark-line { font-size: clamp(1.6rem, 5.6vw, 2.9rem); }
         .wordmark-sub { font-size: 10px; margin-top: 8px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
-        .loader-ring { animation: none; }
+        .static-mark .sheen,
+        .static-mark .mark-wrap { animation: none; }
     }
 </style>
 </head>
 <body>
 
+<div class="static-mark" id="staticMark">
+    <div class="mark-wrap">
+        <svg viewBox="0 0 100 100" role="img" aria-label="Full Circle Triathlon Coaching logo">
+            <defs>
+                <linearGradient id="blueGrad" x1="18%" y1="4%" x2="82%" y2="96%">
+                    <stop offset="0%"  stop-color="#5cb4ff"/>
+                    <stop offset="38%" stop-color="#1976D2"/>
+                    <stop offset="100%" stop-color="#0b3c85"/>
+                </linearGradient>
+                <linearGradient id="greenGrad" x1="22%" y1="0%" x2="78%" y2="100%">
+                    <stop offset="0%"  stop-color="#c6f088"/>
+                    <stop offset="40%" stop-color="#7CB342"/>
+                    <stop offset="100%" stop-color="#3f6b18"/>
+                </linearGradient>
+                <radialGradient id="glossGrad" cx="34%" cy="24%" r="46%">
+                    <stop offset="0%"  stop-color="#ffffff" stop-opacity=".55"/>
+                    <stop offset="60%" stop-color="#ffffff" stop-opacity=".07"/>
+                    <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+                </radialGradient>
+                <linearGradient id="rimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%"  stop-color="#ffffff" stop-opacity=".85"/>
+                    <stop offset="45%" stop-color="#ffffff" stop-opacity=".12"/>
+                    <stop offset="100%" stop-color="#ffffff" stop-opacity=".6"/>
+                </linearGradient>
+            </defs>
+
+            <circle cx="50" cy="50" r="48" fill="url(#blueGrad)"/>
+            <path d="M 50 2 A 48 48 0 0 1 50 98 A 24 24 0 0 1 50 50 A 24 24 0 0 0 50 2 Z" fill="url(#greenGrad)"/>
+            <circle cx="50" cy="26" r="7.5" fill="url(#blueGrad)"/>
+            <circle cx="50" cy="74" r="7.5" fill="url(#greenGrad)"/>
+            <circle cx="50" cy="50" r="48" fill="url(#glossGrad)"/>
+            <circle cx="50" cy="50" r="46.8" fill="none" stroke="url(#rimGrad)" stroke-width="1.6"/>
+        </svg>
+        <div class="sheen"></div>
+    </div>
+</div>
+
 <canvas id="gl-canvas"></canvas>
 <div class="vignette"></div>
+<div class="diag" id="diag"></div>
 
 <div class="hud">
     <a class="backlink mono" href="index.html">&larr; Index</a>
-    <div class="hud-tag mono">Full Circle <b>/ the mark</b> &nbsp;·&nbsp; <b id="buildTag">BUILD 3</b></div>
+    <div class="hud-tag mono">Full Circle <b>/ the mark</b> &nbsp;·&nbsp; <b id="buildTag">BUILD 4</b></div>
 </div>
 
 <div class="stage-foot">
@@ -322,17 +400,48 @@
     </div>
 </div>
 
-<div class="loader" id="loader">
-    <div class="loader-ring"></div>
-    <p class="mono">Forging the mark</p>
-</div>
+<script>
+/* Deliberately a classic script, not a module. If the module below fails to
+   load - no import-map support, a blocked CDN, a parse error - this still runs
+   and reports it on screen, because a tablet has no console to check. */
+(function () {
+    var diag = function (text) {
+        var el = document.getElementById('diag');
+        if (!el) return;
+        el.textContent = text;
+        el.classList.add('show');
+    };
+    window.__fcDiag = diag;
+    window.__fcReady = false;
 
-<div class="fail" id="fail">
-    <div>
-        <h2>WebGL unavailable</h2>
-        <p>This page needs WebGL to render the logo. Try a different browser, or enable hardware acceleration.</p>
-    </div>
-</div>
+    window.addEventListener('error', function (e) {
+        if (window.__fcReady) return;
+        var src = e && e.target && (e.target.src || e.target.href);
+        diag(src ? ('Could not load ' + String(src).split('/').pop() + ' - the 3D layer is off, showing the flat mark.')
+                 : ('3D layer off: ' + ((e && e.message) || 'script error') + ' - showing the flat mark.'));
+    }, true);
+
+    window.addEventListener('unhandledrejection', function (e) {
+        if (window.__fcReady) return;
+        diag('3D layer off: ' + ((e.reason && (e.reason.message || e.reason)) || 'load failed') + ' - showing the flat mark.');
+    });
+
+    if (!HTMLScriptElement.supports || !HTMLScriptElement.supports('importmap')) {
+        diag('This browser does not support import maps, so the 3D layer is off. The flat mark is shown instead.');
+    }
+
+    // If the scene has not come up in eight seconds, say so rather than
+    // leaving the page looking like it is still thinking.
+    setTimeout(function () {
+        if (!window.__fcReady) {
+            var el = document.getElementById('diag');
+            if (el && !el.classList.contains('show')) {
+                diag('3D layer did not start (slow or blocked CDN). Showing the flat mark.');
+            }
+        }
+    }, 8000);
+})();
+</script>
 
 <script type="importmap">
 {
@@ -416,11 +525,21 @@ let shineScale = 0.7;
 let flash = 0;
 let spinImpulse = 0;
 
+// Coarse pointers are phones and tablets; give their GPUs some headroom.
+const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+function pixelRatioCap() {
+    return Math.min(window.devicePixelRatio || 1, coarsePointer ? 1.5 : 2);
+}
+
 const clock = new THREE.Clock();
 const pointer = new THREE.Vector2();
 const parallax = new THREE.Vector2();
 
-init();
+try {
+    init();
+} catch (err) {
+    if (window.__fcDiag) window.__fcDiag('3D layer off: ' + (err && err.message ? err.message : err));
+}
 
 function init() {
     const canvas = document.getElementById('gl-canvas');
@@ -428,12 +547,11 @@ function init() {
     try {
         renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
     } catch (err) {
-        document.getElementById('fail').classList.add('show');
-        document.getElementById('loader').classList.add('done');
+        if (window.__fcDiag) window.__fcDiag('WebGL is unavailable in this browser, so the flat mark is shown instead.');
         return;
     }
 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(pixelRatioCap());
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.42;
@@ -467,7 +585,11 @@ function init() {
     frameCamera();
     onResize();
 
-    requestAnimationFrame(() => document.getElementById('loader').classList.add('done'));
+    // Only now, with a scene that actually renders, hand over from the flat mark.
+    renderer.render(scene, camera);
+    window.__fcReady = true;
+    canvas.classList.add('live');
+    document.getElementById('staticMark').classList.add('retired');
     renderer.setAnimationLoop(animate);
 }
 
@@ -798,7 +920,7 @@ function onResize() {
     const w = window.innerWidth, h = window.innerHeight;
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(pixelRatioCap());
     renderer.setSize(w, h);
     composer.setSize(w, h);   // resizes every pass, bloom included
     frameCamera();
