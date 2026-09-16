@@ -1,0 +1,3022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="Full Circle Race Day — a Miami triathlon quiz game. Answer the race-day checklist right and your athlete swims, rides and runs their way to the top of the podium.">
+<meta name="theme-color" content="#04121f">
+<title>Full Circle Race Day — Miami</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%231976D2'/%3E%3Cpath d='M 50 2 A 48 48 0 0 1 50 98 A 24 24 0 0 1 50 50 A 24 24 0 0 0 50 2 Z' fill='%237CB342'/%3E%3Ccircle cx='50' cy='26' r='7.5' fill='%231976D2'/%3E%3Ccircle cx='50' cy='74' r='7.5' fill='%237CB342'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --fc-blue: #1976D2;
+    --fc-blue-dark: #0D47A1;
+    --fc-blue-lite: #64b5f6;
+    --fc-green: #7CB342;
+    --fc-green-dark: #558B2F;
+    --fc-green-lite: #aed581;
+    --miami-pink: #ff5db1;
+    --miami-cyan: #2de2e6;
+    --miami-sun: #ffb648;
+    --bg: #04121f;
+    --panel: rgba(6, 20, 34, 0.90);
+    --panel-hi: rgba(11, 33, 54, 0.95);
+    --edge: rgba(125, 200, 255, 0.18);
+    --edge-hot: rgba(125, 200, 255, 0.45);
+    --ink: #eef5ff;
+    --ink-dim: #9db4cc;
+    --ink-faint: #5f7590;
+    --good: #7CB342;
+    --bad: #ef5350;
+}
+
+html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+}
+
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
+
+.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+/* ---------- boot / fatal ---------- */
+#boot {
+    position: fixed; inset: 0; z-index: 90;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; background: var(--bg); text-align: center; padding: 24px;
+}
+#boot.gone { display: none; }
+#boot-msg { color: var(--ink-dim); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
+#boot .spin {
+    width: 46px; height: 46px; border-radius: 50%;
+    border: 3px solid rgba(125,200,255,.15); border-top-color: var(--fc-blue);
+    animation: spin 900ms linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#nowebgl {
+    position: fixed; left: 50%; top: 10px; transform: translateX(-50%);
+    z-index: 70; display: none; max-width: min(520px, 92vw);
+    background: rgba(90, 40, 10, .92); border: 1px solid rgba(255,182,72,.45);
+    color: #ffe7c2; padding: 8px 14px; border-radius: 10px; font-size: 12.5px; text-align: center;
+}
+#nowebgl.show { display: block; }
+
+/* ---------- brand mark ---------- */
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand svg { width: 38px; height: 38px; flex: 0 0 auto; filter: drop-shadow(0 2px 6px rgba(0,0,0,.5)); }
+.brand .word { display: flex; align-items: baseline; font-weight: 900; letter-spacing: -.02em; font-size: 21px; line-height: 1; }
+.brand .word .dot {
+    width: 11px; height: 11px; margin: 0 5px; border-radius: 50%;
+    background: linear-gradient(45deg, var(--fc-green), var(--fc-blue));
+    display: inline-block;
+}
+.brand .word span { color: #fff; }
+.brand .tag {
+    font-size: 9px; font-weight: 800; letter-spacing: .26em;
+    color: var(--fc-green-lite); text-transform: uppercase; margin-top: 3px;
+}
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
+#hud > * { pointer-events: auto; }
+
+#hud-top {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 12px; padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;
+    background: linear-gradient(180deg, rgba(4,12,22,.86), rgba(4,12,22,0));
+}
+
+#stage-banner { text-align: center; flex: 1 1 auto; min-width: 0; padding-top: 2px; }
+#stage-name {
+    font-size: clamp(18px, 4.4vw, 30px); font-weight: 900; letter-spacing: .16em;
+    line-height: 1; text-transform: uppercase; text-shadow: 0 2px 14px rgba(0,0,0,.6);
+}
+#stage-detail {
+    font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--ink-dim); margin-top: 5px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+}
+
+#readout { text-align: right; flex: 0 0 auto; }
+#clock { font-size: clamp(17px, 3.6vw, 24px); font-weight: 700; letter-spacing: .04em; }
+#place-row { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 5px; }
+#place {
+    font-size: 11px; font-weight: 800; letter-spacing: .1em; padding: 3px 9px; border-radius: 999px;
+    background: rgba(25,118,210,.22); border: 1px solid rgba(100,181,246,.4); color: #bfe0ff;
+    transition: background .3s, color .3s, border-color .3s;
+}
+#place.lead { background: rgba(255,182,72,.22); border-color: rgba(255,182,72,.55); color: #ffd79a; }
+#score { font-size: 11px; color: var(--ink-dim); letter-spacing: .08em; }
+
+/* ---------- progress rail ---------- */
+#rail {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    top: calc(72px + env(safe-area-inset-top, 0px));
+    width: min(680px, 94vw); display: flex; gap: 5px;
+}
+.seg { flex: 1 1 0; }
+.seg .bar {
+    height: 7px; border-radius: 4px; background: rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.08); overflow: hidden;
+}
+.seg .fill { height: 100%; width: 0%; border-radius: 3px; transition: width .55s cubic-bezier(.4,0,.2,1); }
+.seg .lbl {
+    margin-top: 5px; font-size: 9px; font-weight: 800; letter-spacing: .16em;
+    text-align: center; color: var(--ink-faint); text-transform: uppercase;
+    transition: color .3s;
+}
+.seg.on .lbl { color: #fff; }
+.seg.done .lbl { color: var(--fc-green-lite); }
+.seg.t .bar { height: 7px; }
+.seg.t { flex: 0 0 46px; }
+
+/* ---------- quiz card ---------- */
+#quiz {
+    position: absolute; left: 50%; transform: translateX(-50%) translateY(14px);
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    width: min(760px, 95vw);
+    background: var(--panel); backdrop-filter: blur(14px);
+    border: 1px solid var(--edge); border-radius: 16px;
+    box-shadow: 0 24px 60px -18px rgba(0,0,0,.85), 0 0 0 1px rgba(0,0,0,.35);
+    padding: 15px 16px 16px;
+    opacity: 0; visibility: hidden;
+    transition: opacity .32s ease, transform .32s cubic-bezier(.2,.9,.3,1), visibility .32s;
+}
+#quiz.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+
+#q-head {
+    display: flex; align-items: center; gap: 9px; margin-bottom: 9px;
+    font-size: 10px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--ink-faint);
+}
+#q-chip {
+    padding: 3px 9px; border-radius: 999px; color: #04121f;
+    background: var(--fc-green); letter-spacing: .14em;
+}
+#q-count { margin-left: auto; letter-spacing: .14em; }
+#q-text {
+    font-size: clamp(14.5px, 2.5vw, 18px); font-weight: 600; line-height: 1.42; margin-bottom: 12px;
+}
+
+#q-opts { display: grid; gap: 8px; grid-template-columns: 1fr; }
+@media (min-width: 720px) { #q-opts { grid-template-columns: 1fr 1fr; } }
+
+.opt {
+    display: flex; align-items: flex-start; gap: 10px; width: 100%; text-align: left;
+    background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.12);
+    color: var(--ink); border-radius: 11px; padding: 11px 12px;
+    font: inherit; font-size: 13.5px; line-height: 1.38; cursor: pointer;
+    transition: background .16s, border-color .16s, transform .12s;
+}
+.opt:hover:not(:disabled) { background: rgba(25,118,210,.20); border-color: var(--edge-hot); }
+.opt:active:not(:disabled) { transform: scale(.985); }
+.opt:disabled { cursor: default; }
+.opt .key {
+    flex: 0 0 auto; width: 21px; height: 21px; border-radius: 6px;
+    background: rgba(255,255,255,.10); display: grid; place-items: center;
+    font-size: 11px; font-weight: 800; margin-top: 1px;
+}
+.opt.right { background: rgba(124,179,66,.26); border-color: rgba(124,179,66,.75); }
+.opt.right .key { background: var(--fc-green); color: #08130a; }
+.opt.wrong { background: rgba(239,83,80,.20); border-color: rgba(239,83,80,.7); }
+.opt.wrong .key { background: var(--bad); color: #2a0806; }
+.opt.faded { opacity: .45; }
+
+#q-why {
+    margin-top: 11px; padding: 10px 12px; border-radius: 10px; font-size: 12.8px; line-height: 1.5;
+    border-left: 3px solid var(--fc-blue); background: rgba(25,118,210,.13); color: #d8e9fb;
+    display: none;
+}
+#q-why.show { display: block; }
+#q-why.good { border-left-color: var(--fc-green); background: rgba(124,179,66,.13); }
+#q-why.bad { border-left-color: var(--bad); background: rgba(239,83,80,.12); }
+#q-why b { color: #fff; }
+
+/* ---------- toast / verdict ---------- */
+#verdict {
+    position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%) scale(.85);
+    font-size: clamp(28px, 8vw, 62px); font-weight: 900; letter-spacing: .06em;
+    text-transform: uppercase; opacity: 0; pointer-events: none; text-align: center;
+    text-shadow: 0 6px 30px rgba(0,0,0,.8);
+}
+#verdict.pop { animation: pop 1.25s cubic-bezier(.2,.9,.3,1) forwards; }
+@keyframes pop {
+    0% { opacity: 0; transform: translate(-50%,-50%) scale(.7); }
+    18% { opacity: 1; transform: translate(-50%,-50%) scale(1.06); }
+    70% { opacity: 1; transform: translate(-50%,-56%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%,-70%) scale(1); }
+}
+#verdict .sub { display: block; font-size: 14px; font-weight: 700; letter-spacing: .22em; margin-top: 6px; color: var(--ink-dim); }
+
+/* ---------- camera pill ---------- */
+#cam-pill {
+    position: absolute; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    display: flex; gap: 6px; background: var(--panel); border: 1px solid var(--edge);
+    border-radius: 999px; padding: 5px; backdrop-filter: blur(10px); opacity: 0; visibility: hidden;
+    transition: opacity .3s, visibility .3s;
+}
+#cam-pill.show { opacity: 1; visibility: visible; }
+#cam-pill button {
+    font: inherit; font-size: 10.5px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase;
+    background: transparent; border: 0; color: var(--ink-dim); padding: 6px 12px;
+    border-radius: 999px; cursor: pointer; transition: background .2s, color .2s;
+}
+#cam-pill button.on { background: var(--fc-blue); color: #fff; }
+@media (max-width: 719px) { #cam-pill { bottom: auto; top: calc(108px + env(safe-area-inset-top,0px)); right: 10px; } }
+
+/* ---------- overlays (start / finish) ---------- */
+.overlay {
+    position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+    padding: 20px; background: radial-gradient(ellipse at 50% 35%, rgba(6,26,48,.80), rgba(2,8,15,.94));
+    backdrop-filter: blur(5px); opacity: 0; visibility: hidden; transition: opacity .45s, visibility .45s;
+}
+.overlay.show { opacity: 1; visibility: visible; }
+.card {
+    width: min(620px, 100%); max-height: calc(100vh - 40px); overflow-y: auto;
+    background: var(--panel-hi); border: 1px solid var(--edge); border-radius: 20px;
+    padding: 26px 24px; text-align: center;
+    box-shadow: 0 40px 90px -30px #000, inset 0 1px 0 rgba(255,255,255,.07);
+}
+.card h1 {
+    font-size: clamp(26px, 6.4vw, 44px); font-weight: 900; letter-spacing: -.01em; line-height: 1.05;
+    margin: 16px 0 6px;
+}
+.card h1 .grad {
+    background: linear-gradient(95deg, var(--fc-blue-lite), var(--fc-green-lite) 55%, var(--miami-sun));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.card .kicker {
+    font-size: 11px; font-weight: 800; letter-spacing: .3em; text-transform: uppercase; color: var(--miami-pink);
+}
+.card p { color: var(--ink-dim); font-size: 14px; line-height: 1.6; margin: 10px auto 0; max-width: 46ch; }
+.card .brand { justify-content: center; }
+
+.legs {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin: 18px 0 4px;
+}
+.legs span {
+    font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+    padding: 6px 11px; border-radius: 999px; background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.12); color: var(--ink-dim);
+}
+
+.btn {
+    display: inline-block; font: inherit; font-weight: 800; font-size: 14px; letter-spacing: .12em;
+    text-transform: uppercase; padding: 14px 30px; margin-top: 20px; border: 0; border-radius: 999px;
+    background: linear-gradient(95deg, var(--fc-blue), var(--fc-green)); color: #fff; cursor: pointer;
+    box-shadow: 0 12px 30px -10px rgba(25,118,210,.8); transition: transform .14s, box-shadow .2s, filter .2s;
+}
+.btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+.btn:active { transform: translateY(0); }
+.btn.ghost {
+    background: transparent; border: 1px solid var(--edge-hot); color: var(--ink-dim);
+    box-shadow: none; padding: 12px 22px; font-size: 12px;
+}
+.btn.ghost:hover { color: #fff; }
+
+.hint { margin-top: 14px; font-size: 11px; color: var(--ink-faint); letter-spacing: .06em; }
+.hint kbd {
+    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.16); border-radius: 5px;
+    padding: 1px 6px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--ink-dim);
+}
+
+/* finish */
+#medal { font-size: 62px; line-height: 1; margin-bottom: 2px; }
+#finish-place {
+    font-size: clamp(30px, 7vw, 50px); font-weight: 900; letter-spacing: .02em;
+    background: linear-gradient(95deg, #ffd977, #ffb648 50%, #ff8a3d);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+#finish-sub { font-size: 12px; letter-spacing: .24em; text-transform: uppercase; color: var(--ink-dim); margin-top: 4px; }
+
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 20px 0 6px; }
+.stat { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 11px 6px; }
+.stat .v { font-size: 19px; font-weight: 800; }
+.stat .k { font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-faint); margin-top: 3px; }
+
+.splits { margin-top: 16px; text-align: left; }
+.splits h3 {
+    font-size: 10px; letter-spacing: .24em; text-transform: uppercase; color: var(--ink-faint);
+    margin-bottom: 8px; font-weight: 800;
+}
+.split-row {
+    display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 9px;
+    background: rgba(255,255,255,.035); margin-bottom: 5px; font-size: 12.5px;
+}
+.split-row .nm { font-weight: 800; letter-spacing: .1em; width: 54px; flex: 0 0 auto; }
+.split-row .sc { color: var(--ink-dim); flex: 1 1 auto; }
+.split-row .tm { font-weight: 700; }
+
+#missed { margin-top: 16px; text-align: left; }
+#missed .item {
+    font-size: 12.4px; line-height: 1.5; color: var(--ink-dim);
+    padding: 9px 11px; border-radius: 9px; background: rgba(239,83,80,.10);
+    border-left: 3px solid rgba(239,83,80,.55); margin-bottom: 6px;
+}
+#missed .item b { color: #fff; display: block; margin-bottom: 2px; font-size: 12px; }
+
+.foot {
+    margin-top: 22px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.08);
+    font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--ink-faint);
+}
+
+@media (max-width: 719px) {
+    #stage-detail { display: none; }
+    .brand .tag { display: none; }
+    .brand svg { width: 30px; height: 30px; }
+    .brand .word { font-size: 16px; }
+    #q-opts { gap: 7px; }
+    .opt { padding: 10px 11px; font-size: 13px; }
+    .card { padding: 20px 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<div id="boot"><div class="spin"></div><div id="boot-msg">Racking the bikes…</div></div>
+<div id="nowebgl">3D is unavailable on this device, so the race is running as a quiz only. Everything else still works.</div>
+
+<div id="hud">
+    <div id="hud-top">
+        <div class="brand">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle cx="50" cy="50" r="48" fill="#1976D2"/>
+                <path d="M 50 2 A 48 48 0 0 1 50 98 A 24 24 0 0 1 50 50 A 24 24 0 0 0 50 2 Z" fill="#7CB342"/>
+                <circle cx="50" cy="26" r="7.5" fill="#1976D2"/>
+                <circle cx="50" cy="74" r="7.5" fill="#7CB342"/>
+            </svg>
+            <div>
+                <div class="word"><span>FULL</span><i class="dot"></i><span>CIRCLE</span></div>
+                <div class="tag">Triathlon • Coaching</div>
+            </div>
+        </div>
+
+        <div id="stage-banner">
+            <div id="stage-name">Swim</div>
+            <div id="stage-detail">1.5 km — Biscayne Bay</div>
+        </div>
+
+        <div id="readout">
+            <div id="clock" class="mono">0:00:00</div>
+            <div id="place-row">
+                <div id="score">0/0</div>
+                <div id="place">P9</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="rail"></div>
+
+    <div id="verdict"></div>
+
+    <div id="cam-pill">
+        <button type="button" id="cam-close" class="on">Close</button>
+        <button type="button" id="cam-wide">Wide</button>
+    </div>
+
+    <div id="quiz">
+        <div id="q-head">
+            <span id="q-chip">Swim</span>
+            <span id="q-label">Race-day checklist</span>
+            <span id="q-count">1 / 4</span>
+        </div>
+        <div id="q-text"></div>
+        <div id="q-opts"></div>
+        <div id="q-why"></div>
+    </div>
+</div>
+
+<div class="overlay show" id="start-screen">
+    <div class="card">
+        <div class="brand">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle cx="50" cy="50" r="48" fill="#1976D2"/>
+                <path d="M 50 2 A 48 48 0 0 1 50 98 A 24 24 0 0 1 50 50 A 24 24 0 0 0 50 2 Z" fill="#7CB342"/>
+                <circle cx="50" cy="26" r="7.5" fill="#1976D2"/>
+                <circle cx="50" cy="74" r="7.5" fill="#7CB342"/>
+            </svg>
+            <div>
+                <div class="word"><span>FULL</span><i class="dot"></i><span>CIRCLE</span></div>
+                <div class="tag">Triathlon • Coaching</div>
+            </div>
+        </div>
+
+        <div class="kicker" style="margin-top:18px">Miami · Race Morning</div>
+        <h1>Race Day<br><span class="grad">Checklist Challenge</span></h1>
+        <p>Twenty questions stand between you and the top step. Every answer is something
+        that actually decides your race — the gear, the rules, the transitions, the fuel.
+        Get it right and your athlete surges. Get it wrong and the field comes back.</p>
+
+        <div class="legs">
+            <span>1.5 km Swim</span><span>T1</span><span>40 km Bike</span><span>T2</span><span>10 km Run</span>
+        </div>
+
+        <button type="button" class="btn" id="start-btn">Start the Race</button>
+        <div class="hint">Answer with <kbd>1</kbd>–<kbd>4</kbd> · switch camera with <kbd>C</kbd></div>
+
+        <div class="foot">Full Circle Triathlon Coaching</div>
+    </div>
+</div>
+
+<div class="overlay" id="finish-screen">
+    <div class="card">
+        <div id="medal">🥇</div>
+        <div id="finish-place">1st Place</div>
+        <div id="finish-sub">Miami International Triathlon</div>
+
+        <div class="stats">
+            <div class="stat"><div class="v mono" id="stat-time">2:22:20</div><div class="k">Finish</div></div>
+            <div class="stat"><div class="v" id="stat-score">20/20</div><div class="k">Correct</div></div>
+            <div class="stat"><div class="v" id="stat-gap">+0:00</div><div class="k">Gap to 2nd</div></div>
+        </div>
+
+        <div class="splits"><h3>Splits</h3><div id="split-list"></div></div>
+        <div id="missed"></div>
+
+        <button type="button" class="btn" id="again-btn">Race Again</button>
+        <div><button type="button" class="btn ghost" id="podium-btn" style="margin-top:10px">Back to the podium</button></div>
+
+        <div class="foot">Full Circle Triathlon Coaching</div>
+    </div>
+</div>
+
+<script>
+/* =========================================================================
+   FULL CIRCLE RACE DAY — MIAMI
+   A triathlon race-day checklist quiz wrapped around a three.js race.
+
+   Everything below the PURE MATH markers is deliberately DOM-free: the
+   question bank, the race state machine, the split maths and the two-link
+   inverse kinematics that drive the pedal stroke. tests/ pulls that block
+   straight out of this file and runs it with no browser at all.
+   ========================================================================= */
+
+/* ===== PURE MATH START ===== */
+
+/* The five legs of the race. `base` is the leg time in seconds for an athlete
+   who answers nothing; every correct answer takes `bonus` off it and every
+   wrong answer adds `penalty`. Four questions a leg, twenty in the race.
+
+   base total        = 10080s (2:48:00)
+   perfect race      =  8540s (2:22:20)
+   fastest rival     =  9100s (2:31:40)
+   so the race is winnable with up to four mistakes, and lost at five. */
+var STAGES = [
+    { id: 'swim', name: 'Swim',   detail: '1.5 km — Biscayne Bay',            base: 1980, bonus: 90,  penalty: 60, questions: 4, color: '#1e9bd7' },
+    { id: 't1',   name: 'T1',     detail: 'Transition — swim to bike',        base: 240,  bonus: 20,  penalty: 15, questions: 4, color: '#ffb648' },
+    { id: 'bike', name: 'Bike',   detail: '40 km — Rickenbacker Causeway',    base: 4560, bonus: 150, penalty: 100, questions: 4, color: '#7CB342' },
+    { id: 't2',   name: 'T2',     detail: 'Transition — bike to run',         base: 180,  bonus: 15,  penalty: 10, questions: 4, color: '#ffb648' },
+    { id: 'run',  name: 'Run',    detail: '10 km — Ocean Drive',              base: 3120, bonus: 110, penalty: 80, questions: 4, color: '#ff5db1' }
+];
+
+/* The checklist itself. Each leg has more questions than a race uses, so no
+   two races ask quite the same thing. `a` indexes the correct option as
+   authored; pickQuestions shuffles the options and moves the index with them. */
+var BANK = {
+    swim: [
+        {
+            q: 'Race morning, body marked, wetsuit in hand. Where does the timing chip go?',
+            opts: [
+                'Around your ankle, and under the wetsuit leg so the strap cannot be stripped off with it',
+                'On your wrist like a watch, where you can see the splits',
+                'Zip-tied to the bike frame with your bib number',
+                'Pinned to the race number on your race belt'
+            ],
+            a: 0,
+            why: 'Ankle, under the neoprene. A chip worn over the wetsuit leg is the classic way to peel your own timing off in T1 — and an unrecorded split can mean a DNF on a race you actually finished.'
+        },
+        {
+            q: 'What goes on your neck, wrists and ankles before the wetsuit?',
+            opts: [
+                'Non-petroleum anti-chafe balm — Body Glide or TriSlide',
+                'Petroleum jelly, as thick as you can get it',
+                'Nothing — anything slippery is a rules violation',
+                'Sunscreen only, because the wetsuit covers the rest'
+            ],
+            a: 0,
+            why: 'Non-petroleum every time. Petroleum jelly degrades neoprene, and most rental and race-series wetsuits are handed back with a no-petroleum clause. A raw neck at 1.5 km is entirely avoidable.'
+        },
+        {
+            q: 'The bay reads 79°F on race morning. Under USA Triathlon rules, what does that mean for your wetsuit?',
+            opts: [
+                'You may wear it, but you give up your place and any award',
+                'Wetsuits are banned outright above 78°F — leave it in the car',
+                'No restriction at all until 84°F',
+                'Only sleeveless wetsuits are allowed at that temperature'
+            ],
+            a: 0,
+            why: 'USAT allows wetsuits up to 78.0°F. From 78.1°F to 83.9°F you may still swim in one, but you are no longer eligible to place or win an award. Above 84°F it is banned. Miami means checking the water temp call, every time.'
+        },
+        {
+            q: 'Goggles and swim cap — what is the order on the start line?',
+            opts: [
+                'Goggles on first, official cap pulled over the straps',
+                'Cap first, goggles over the top so they are easy to clear',
+                'Either way; nobody has ever lost goggles in a swim start',
+                'Goggles around your neck until the gun, then up'
+            ],
+            a: 0,
+            why: 'Straps under the cap. A heel in the first hundred metres pops goggles off a bare strap; under the cap they stay with your head. The same reason a spare pair lives in your T1 bag.'
+        },
+        {
+            q: 'It is a beach start into chop and low sun. How do you hold your line?',
+            opts: [
+                'Sight every six to eight strokes on a tall fixed landmark past the buoy',
+                'Follow the feet in front of you and trust the pack',
+                'Swim head-up the whole way so you never lose the buoy',
+                'Aim straight at the sun and correct at each turn'
+            ],
+            a: 0,
+            why: 'Buoys move and packs go off-course. A building, a crane, a lifeguard tower — something big, fixed and beyond the buoy — is what you sight on. Head-up swimming the whole leg drops your hips and burns the legs you need for the bike.'
+        },
+        {
+            q: 'What should already be sitting in T1 before you ever get in the water?',
+            opts: [
+                'Helmet upside down on the bars, straps open, sunglasses and race belt inside it',
+                'Everything zipped in your kit bag so it stays clean and dry',
+                'Nothing — you carry your bike gear down to the swim start',
+                'Your gear laid across the neighbouring bike so you can see it'
+            ],
+            a: 0,
+            why: 'Helmet open and upside down is the universal transition setup: it is the one thing that must go on first, and everything you need goes inside it. Kit bags stay closed, and spreading into someone else’s space is worth a penalty.'
+        },
+        {
+            q: 'The swim start is self-seeded by predicted time. Where do you line up?',
+            opts: [
+                'In the pen matching your honest 1.5 km time, to the side if you dislike contact',
+                'At the very front — you can always be swum over',
+                'At the very back, no matter how fast you are',
+                'Wherever the shortest queue is, seeding is only a suggestion'
+            ],
+            a: 0,
+            why: 'Honest seeding is the whole point of a rolling start. Too far forward and you get swum over; too far back and you spend the leg overtaking. Edge of your correct pen is the calm water.'
+        }
+    ],
+
+    t1: [
+        {
+            q: 'You are out of the water and running up the beach. What happens before you reach the bike?',
+            opts: [
+                'Goggles and cap off into one hand, wetsuit stripped to the waist on the run in',
+                'Nothing — you do it all standing at the rack',
+                'Sit down at the rack and take the wetsuit off from the top',
+                'Leave the wetsuit on for the bike, it is faster than fighting it'
+            ],
+            a: 0,
+            why: 'Every second you are moving is a second you are not standing still. Cap and goggles come off on the run, the wetsuit comes down to the waist, and you arrive at the rack with only the legs left to do.'
+        },
+        {
+            q: 'When exactly must your helmet be buckled?',
+            opts: [
+                'Before you touch the bike to unrack it, and it stays buckled until it is racked again',
+                'Any time before you cross the mount line',
+                'Once you are rolling and safely up to speed',
+                'Only on the road section — transition does not count'
+            ],
+            a: 0,
+            why: 'Chin strap fastened before the bike leaves the rack, unfastened only after it is back on the rack. It is the most commonly enforced rule in the sport, and in most race series an unbuckled strap is a disqualification, not a time penalty.'
+        },
+        {
+            q: 'Which of these will get you a penalty in transition?',
+            opts: [
+                'Headphones in, even just one side',
+                'A full bottle already on the bike',
+                'Sunglasses that you put on while running',
+                'Elastic laces in your run shoes'
+            ],
+            a: 0,
+            why: 'Headphones and any audio device are banned across the whole course, transition included, on safety grounds. Bottles, shades and elastic laces are all standard kit.'
+        },
+        {
+            q: 'Four hundred bikes on identical racks. How do you find yours at a dead sprint?',
+            opts: [
+                'Count rack rows from a fixed landmark on the way in and walk the route beforehand',
+                'Tie a balloon to your handlebars',
+                'Drape a bright towel over the rack so it stands out',
+                'Look for the empty space — everyone else will have gone'
+            ],
+            a: 0,
+            why: 'Markers get banned or removed, and on the bike leg the racks fill and empty unpredictably. Walking swim-exit to bike and bike-in to run-out before the start, counting rows off something that cannot move, is what actually works.'
+        },
+        {
+            q: 'Where are you allowed to get on the bike?',
+            opts: [
+                'Past the mount line, at the exit of transition, with both feet on the ground before it',
+                'As soon as you have your helmet on, wherever your bike is racked',
+                'Anywhere in transition as long as you are not blocking a lane',
+                'Immediately after the rack, but only if you are walking it'
+            ],
+            a: 0,
+            why: 'Riding inside transition is a penalty everywhere. You run the bike from the rack to the mount line and get on past it — which is exactly why you practise the mount before race day rather than on it.'
+        },
+        {
+            q: 'What is the fastest way to handle bike shoes in T1?',
+            opts: [
+                'Leave them clipped in, held level by elastics, and slide your feet in once you are rolling',
+                'Carry them out and put them on standing at the mount line',
+                'Wear them under the wetsuit so they are already on',
+                'Run the whole transition in them from the swim exit'
+            ],
+            a: 0,
+            why: 'Shoes stay on the pedals, elastic bands hold them horizontal and snap on the first stroke. It is a practised skill, though — if you have not done it in training, shoes on at the rack is slower and far safer.'
+        },
+        {
+            q: 'Your race belt is in the helmet. Where does the number face on the bike?',
+            opts: [
+                'To your back — then you spin it to the front for the run',
+                'To the front the whole race',
+                'To the back the whole race',
+                'It only needs to be visible at the finish line'
+            ],
+            a: 0,
+            why: 'Back on the bike, front on the run. That is how the officials on motorbikes and the finish-line camera read you, and a belt spins in one motion while you are moving.'
+        }
+    ],
+
+    bike: [
+        {
+            q: 'IRONMAN rules, non-drafting race. What is the draft zone and how long do you have to pass?',
+            opts: [
+                'Twelve metres behind the lead bike, and twenty-five seconds to complete the pass',
+                'Two metres, and you may sit there indefinitely',
+                'There is no draft zone once you are on an open road',
+                'Fifty metres, and you may never overtake on the left'
+            ],
+            a: 0,
+            why: 'At IRONMAN-branded races the zone is 12 m long and you get 25 seconds to get through it; USA Triathlon age-group racing uses 10 m and 15 seconds. Either way, entering the zone and staying there is a stand-down penalty.'
+        },
+        {
+            q: 'You flat at 25 km with no support vehicle in sight. What saves your race?',
+            opts: [
+                'The spare tube, CO2 or pump, levers and multi-tool you carried from the start',
+                'Waiting for another athlete to lend you a tube',
+                'Riding the flat to the next aid station',
+                'Calling the number on your race sheet for a replacement wheel'
+            ],
+            a: 0,
+            why: 'Triathlon is a self-supported sport: outside assistance is a penalty and taking equipment from another athlete can disqualify you both. Spare tube, inflation, levers, multi-tool — and having actually changed one before.'
+        },
+        {
+            q: 'Forty kilometres in Miami heat. What does the hour look like on the bike?',
+            opts: [
+                'Roughly 60–90 g of carbohydrate and 500–750 ml of fluid with electrolytes, started in the first twenty minutes',
+                'Water only — you fuel on the run instead',
+                'As much as you can stomach in the last ten minutes before T2',
+                'One gel at the halfway point and nothing else'
+            ],
+            a: 0,
+            why: 'The bike is where you can actually eat, so it is where the run gets fuelled. Sixty to ninety grams an hour, mixed carbohydrate sources, fluid and sodium to match the sweat rate — and it starts early, because a stomach behind never catches up.'
+        },
+        {
+            q: 'Finished gel wrapper in your hand at 30 km. What do you do with it?',
+            opts: [
+                'Hold it until the marked litter zone at an aid station',
+                'Drop it at the roadside — the sweep crew collects everything',
+                'Tuck it under your leg band and hope it stays',
+                'Throw it clear of the road so no one rides over it'
+            ],
+            a: 0,
+            why: 'Littering outside the marked zones is a penalty at every level, and in a place like Key Biscayne it goes straight into the water. Trash zones are painted and announced; anything you open, you carry.'
+        },
+        {
+            q: 'What should have been done to the bike the day before, at check-in?',
+            opts: [
+                'Tyres at race pressure, bottles fitted, gearing left in an easy sprocket for the mount',
+                'Left in the hardest gear so you get up to speed fastest',
+                'Bottles filled the morning of, so nothing sits overnight',
+                'Chain freshly oiled with a heavy wet lube'
+            ],
+            a: 0,
+            why: 'You mount at a standstill with your heart rate at the ceiling, so the bike is racked in an easy gear. Pressure and bottles get checked at check-in and topped in the morning — discovering a soft tyre at the mount line is discovering it too late.'
+        },
+        {
+            q: 'The causeway is exposed, 32°C and windy. What is the sun plan?',
+            opts: [
+                'Sunscreen applied before the swim and topped up in T1 and T2, plus sunglasses',
+                'Apply it once, thickly, at the start line only',
+                'Skip it — the bike is over in an hour',
+                'Rely on the aid-station volunteers to spray you as you pass'
+            ],
+            a: 0,
+            why: 'Miami sun plus salt water plus three hours is a burn that costs you the run. Sport sunscreen before the wetsuit, a fast reapply in transition, and shades that keep the road grit and glare out of your eyes.'
+        },
+        {
+            q: 'Where does your race number have to be visible on the bike leg?',
+            opts: [
+                'On the bike itself, with the frame number the organisers gave you at check-in',
+                'Nowhere — the timing chip does all the work',
+                'Taped to your helmet, front and back',
+                'Written on your arm in body marking only'
+            ],
+            a: 0,
+            why: 'Frame and helmet stickers go on at check-in and stay on: they are how officials identify you for draft calls and how your bike is released to you and nobody else at the end of the day.'
+        }
+    ],
+
+    t2: [
+        {
+            q: 'Coming into T2 at speed. Where do you get off the bike?',
+            opts: [
+                'Before the dismount line, then run the bike to your rack',
+                'At your rack, then walk back to the line',
+                'Anywhere once you are inside transition',
+                'After the line, as long as you are slowing down'
+            ],
+            a: 0,
+            why: 'Both feet down before the line, every time. The line is marshalled and it is the single most penalised spot in T2 — and pedalling through a crowded transition is how people get hurt.'
+        },
+        {
+            q: 'When does the helmet come off?',
+            opts: [
+                'Only once the bike is racked — never before',
+                'As soon as you cross the dismount line',
+                'While you are running the bike in, to save a second',
+                'Whenever you like, the rule only covers the bike leg'
+            ],
+            a: 0,
+            why: 'The strap stays fastened from before you unrack until after you re-rack. Unbuckling while still running the bike is the easiest disqualification in the sport, and it happens in T2 far more than in T1.'
+        },
+        {
+            q: 'What makes the run shoes fast in T2?',
+            opts: [
+                'Elastic laces, already loosened, with the tongue pulled open and talc inside',
+                'Standard laces tied in a double knot the night before',
+                'Whatever you wore to the race site, they are broken in',
+                'A half size down so they do not slip on wet feet'
+            ],
+            a: 0,
+            why: 'Elastic laces turn shoes into slip-ons, and wet, sandy feet do not cooperate with knots. Talc helps them slide, and going sockless is a training decision, not a race-day experiment.'
+        },
+        {
+            q: 'Three things go with you out of T2 onto a hot 10 km. Which set?',
+            opts: [
+                'Visor or cap, race number spun to the front, and a gel',
+                'Bike shoes, helmet and bottle',
+                'Nothing — the aid stations have everything',
+                'A phone for photos and the finish-line video'
+            ],
+            a: 0,
+            why: 'Something for your head, your number where the officials can read it, and one gel for the back half. The aid stations have fluid; they do not have your number or your shade.'
+        },
+        {
+            q: 'Legs are dead off the bike. What is the plan for the first kilometre?',
+            opts: [
+                'Short, quick turnover at a deliberately controlled pace until the legs come back',
+                'Sprint it while the adrenaline lasts and settle later',
+                'Walk the first kilometre to let the legs recover',
+                'Run whatever the group around you is running'
+            ],
+            a: 0,
+            why: 'Brick legs lie. Coming off the bike the first kilometre always feels slow and always reads fast, so you hold cadence and let pace come to you. Burning it in the first kilometre is the most reliable way to walk the sixth.'
+        },
+        {
+            q: 'Which way does the bike go back on the rack?',
+            opts: [
+                'Racked as the organisers directed, in your own numbered space, nose or saddle as marked',
+                'Anywhere in the row, the space is first come first served',
+                'Laid on its side so it cannot fall into a neighbour',
+                'Handed to a volunteer at transition entry'
+            ],
+            a: 0,
+            why: 'Your slot is your slot, in the orientation marked. Racking into someone else’s space or dumping the bike in the aisle is a penalty, and it turns their transition into a scavenger hunt.'
+        },
+        {
+            q: 'You feel wrecked coming into T2. What is the one thing not to do?',
+            opts: [
+                'Sit down',
+                'Take a mouthful of water',
+                'Put on a cap',
+                'Spin your race belt around'
+            ],
+            a: 0,
+            why: 'Sitting down in T2 is where races quietly end. Everything can be done standing and moving; once you are on the ground, getting up costs far more than the thirty seconds it seemed to save.'
+        }
+    ],
+
+    run: [
+        {
+            q: 'It is 33°C on Ocean Drive. What do you actually do at each aid station?',
+            opts: [
+                'Drink early and often, and put ice in the cap and down the tri suit',
+                'Pour every cup over your head and drink at the finish',
+                'Skip the early stations while you still feel fine',
+                'Take only sports drink and never water'
+            ],
+            a: 0,
+            why: 'In real heat, cooling matters as much as drinking. Ice at the neck, in the cap and in the suit drops core temperature; thirst arrives far too late to be your trigger, so you drink on schedule from the first station.'
+        },
+        {
+            q: 'How do you take a gel on the run?',
+            opts: [
+                'With water, not with sports drink',
+                'With sports drink, for the extra carbohydrate',
+                'On its own, as fast as possible',
+                'With cola, to get the caffeine in at once'
+            ],
+            a: 0,
+            why: 'A gel is already a concentrated sugar load. Washing it down with more concentrate is how you end up with it sitting in your stomach for three kilometres. Water dilutes it to something you can absorb while running.'
+        },
+        {
+            q: 'A calf starts to cramp at 7 km. What is the honest response?',
+            opts: [
+                'Ease the pace, take on fluid with sodium, and walk the aid station if you need to',
+                'Push harder and run through it',
+                'Stop completely and stretch until it releases fully',
+                'Take another gel — cramp is a carbohydrate problem'
+            ],
+            a: 0,
+            why: 'Late-race cramp is usually fatigue plus fluid and sodium loss, and a hard stretch on a cramping calf on tired legs risks a tear. Back off, salt and fluid in, walk thirty seconds through the aid station and reassess.'
+        },
+        {
+            q: 'On the run leg, your number must be…',
+            opts: [
+                'Clearly visible on your front',
+                'Visible on your back, as on the bike',
+                'Anywhere, as long as it is on your body',
+                'Tucked away so it does not flap'
+            ],
+            a: 0,
+            why: 'Front on the run. It is a spin of the belt as you leave T2, and it is what the course officials and the finish photographers read. A belt you have to re-pin mid-race is a belt you did not test.'
+        },
+        {
+            q: 'Two hundred metres from the line and a rival is on your shoulder. What is legal?',
+            opts: [
+                'Racing them to the tape — the run is where you may pass freely',
+                'Blocking the chute so they cannot come past',
+                'Grabbing a water bottle from a spectator for the sprint',
+                'Cutting the last corner if the marshals have moved on'
+            ],
+            a: 0,
+            why: 'Passing is unrestricted on the run; obstructing, taking outside assistance and shortcutting the course are not. Everything you need is on the course — you finish it the way it was measured.'
+        },
+        {
+            q: 'You cross the line in first. What happens to the timing chip?',
+            opts: [
+                'A volunteer takes it in the finish chute — you leave it on until then',
+                'You pull it off as you cross and hand it to anyone',
+                'You keep it as a souvenir of the race',
+                'You leave it in transition with the bike'
+            ],
+            a: 0,
+            why: 'The chip is race equipment and it is collected in the chute; every one has to come back for the timing to reconcile. Take it off early and your finish may never register.'
+        },
+        {
+            q: 'What did you deliberately not do on race day?',
+            opts: [
+                'Try new shoes, new nutrition or new kit for the first time',
+                'Eat the breakfast you have eaten before every long session',
+                'Warm up with the swim you always do',
+                'Follow the pacing you practised in training'
+            ],
+            a: 0,
+            why: 'Nothing new on race day — not the gel the expo handed you, not the shoes that arrived on Thursday, not the tri suit you have never sweated in. Race day executes what training already proved.'
+        }
+    ]
+};
+
+/* Deterministic RNG so a seed reproduces a race exactly — which is what lets
+   the test suite assert against a known question order. */
+function makeRng(seed) {
+    var s = seed >>> 0;
+    return function () {
+        s = (s + 0x6D2B79F5) >>> 0;
+        var t = s;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+function shuffled(list, rng) {
+    var out = list.slice();
+    for (var i = out.length - 1; i > 0; i--) {
+        var j = Math.floor(rng() * (i + 1));
+        var tmp = out[i]; out[i] = out[j]; out[j] = tmp;
+    }
+    return out;
+}
+
+/* Draw this race's questions, shuffling both the pool and each set of options
+   so the answer is never in the same place twice. */
+function pickQuestions(seed) {
+    var rng = makeRng(seed);
+    var picked = {};
+    for (var s = 0; s < STAGES.length; s++) {
+        var stage = STAGES[s];
+        var pool = shuffled(BANK[stage.id], rng).slice(0, stage.questions);
+        picked[stage.id] = pool.map(function (item) {
+            var pairs = item.opts.map(function (text, i) { return { text: text, right: i === item.a }; });
+            var mixed = shuffled(pairs, rng);
+            var answer = 0;
+            for (var k = 0; k < mixed.length; k++) if (mixed[k].right) answer = k;
+            return {
+                q: item.q,
+                opts: mixed.map(function (p) { return p.text; }),
+                a: answer,
+                why: item.why
+            };
+        });
+    }
+    return picked;
+}
+
+/* Time for one leg given how it went. */
+function stageTime(stage, correct, wrong) {
+    return stage.base - stage.bonus * correct + stage.penalty * wrong;
+}
+
+/* The same formula part-way through a leg: the base scales with how much of
+   the leg you have covered, so the clock is monotonic and lands exactly on
+   stageTime at the last question. */
+function partialStageTime(stage, correct, wrong, answered) {
+    var frac = answered / stage.questions;
+    return stage.base * frac - stage.bonus * correct + stage.penalty * wrong;
+}
+
+/* The field. `profile` weights a rival's legs — above 1 is slow for them,
+   below 1 is strong — and is normalised against `total`, so a swim specialist
+   leads early and still finishes on the total listed here. */
+var RIVALS = [
+    { bib: 7,   name: 'Bib 7',   total: 9100,  profile: [0.86, 1.00, 1.05, 1.00, 1.02], color: '#ff5db1' },
+    { bib: 23,  name: 'Bib 23',  total: 9400,  profile: [1.10, 0.95, 0.92, 0.95, 1.05], color: '#2de2e6' },
+    { bib: 41,  name: 'Bib 41',  total: 9750,  profile: [1.00, 1.00, 1.00, 1.00, 1.00], color: '#ffb648' },
+    { bib: 58,  name: 'Bib 58',  total: 10100, profile: [0.92, 1.05, 1.08, 1.05, 0.96], color: '#c792ea' },
+    { bib: 66,  name: 'Bib 66',  total: 10450, profile: [1.08, 1.00, 0.94, 1.00, 1.03], color: '#79f2a0' },
+    { bib: 74,  name: 'Bib 74',  total: 10900, profile: [1.00, 1.10, 1.02, 1.10, 0.95], color: '#ff8a5c' },
+    { bib: 89,  name: 'Bib 89',  total: 11400, profile: [1.05, 1.00, 0.97, 1.00, 1.04], color: '#8ab4ff' },
+    { bib: 102, name: 'Bib 102', total: 12000, profile: [0.95, 1.05, 1.06, 1.05, 0.97], color: '#e0e6f0' }
+];
+
+/* Rival leg times, normalised so the legs always add back up to `total`. */
+function rivalStageTimes(rival) {
+    var raw = [], sum = 0, i;
+    for (i = 0; i < STAGES.length; i++) {
+        var v = STAGES[i].base * rival.profile[i];
+        raw.push(v); sum += v;
+    }
+    var out = [];
+    for (i = 0; i < raw.length; i++) out.push(raw[i] * rival.total / sum);
+    return out;
+}
+
+/* Where a rival's clock stands at the same point on the course. */
+function rivalElapsed(rival, stageIndex, frac) {
+    var times = rivalStageTimes(rival), total = 0;
+    for (var i = 0; i < stageIndex; i++) total += times[i];
+    return total + times[Math.min(stageIndex, times.length - 1)] * frac;
+}
+
+function createRace(seed) {
+    var legs = [];
+    for (var i = 0; i < STAGES.length; i++) legs.push({ correct: 0, wrong: 0, time: null });
+    return {
+        seed: seed,
+        questions: pickQuestions(seed),
+        stageIndex: 0,
+        qIndex: 0,
+        legs: legs,
+        missed: [],
+        finished: false
+    };
+}
+
+function currentStage(race) { return STAGES[Math.min(race.stageIndex, STAGES.length - 1)]; }
+
+function currentQuestion(race) {
+    if (race.finished) return null;
+    var stage = currentStage(race);
+    return race.questions[stage.id][race.qIndex] || null;
+}
+
+/* Elapsed race time as it stands right now. */
+function raceElapsed(race) {
+    var total = 0, i;
+    for (i = 0; i < race.stageIndex && i < STAGES.length; i++) {
+        total += race.legs[i].time !== null ? race.legs[i].time : STAGES[i].base;
+    }
+    if (race.stageIndex < STAGES.length) {
+        var leg = race.legs[race.stageIndex];
+        total += partialStageTime(STAGES[race.stageIndex], leg.correct, leg.wrong, race.qIndex);
+    }
+    return total;
+}
+
+/* How far through the whole course you are, 0 to 1, weighted by leg length. */
+function courseFraction(race) {
+    var done = 0, all = 0, i;
+    for (i = 0; i < STAGES.length; i++) all += STAGES[i].base;
+    for (i = 0; i < race.stageIndex && i < STAGES.length; i++) done += STAGES[i].base;
+    if (race.stageIndex < STAGES.length) {
+        done += STAGES[race.stageIndex].base * (race.qIndex / STAGES[race.stageIndex].questions);
+    }
+    return all ? done / all : 1;
+}
+
+/* Live position: how many rivals are ahead of you at this point on the course.
+   Counting at the same course point rather than the same wall-clock second is
+   what makes the ranking mean anything mid-race. */
+function positionNow(race) {
+    var stageIndex = Math.min(race.stageIndex, STAGES.length - 1);
+    var frac = race.finished ? 1 : race.qIndex / STAGES[stageIndex].questions;
+    var mine = raceElapsed(race);
+    var ahead = 0;
+    for (var i = 0; i < RIVALS.length; i++) {
+        var theirs = race.finished ? RIVALS[i].total : rivalElapsed(RIVALS[i], stageIndex, frac);
+        if (theirs < mine) ahead++;
+    }
+    return ahead + 1;
+}
+
+/* Answer the question in front of you. Returns what happened; the caller
+   drives the animation from it. */
+function answerQuestion(race, choice) {
+    if (race.finished) return null;
+    var stage = currentStage(race);
+    var question = currentQuestion(race);
+    if (!question) return null;
+
+    var correct = choice === question.a;
+    var leg = race.legs[race.stageIndex];
+    if (correct) leg.correct++; else {
+        leg.wrong++;
+        race.missed.push({ stage: stage.name, q: question.q, answer: question.opts[question.a], why: question.why });
+    }
+
+    race.qIndex++;
+    var stageDone = race.qIndex >= stage.questions;
+    if (stageDone) {
+        leg.time = stageTime(stage, leg.correct, leg.wrong);
+        race.stageIndex++;
+        race.qIndex = 0;
+        if (race.stageIndex >= STAGES.length) {
+            race.finished = true;
+            race.stageIndex = STAGES.length - 1;
+            race.qIndex = STAGES[race.stageIndex].questions;
+        }
+    }
+
+    return {
+        correct: correct,
+        question: question,
+        stage: stage,
+        stageDone: stageDone,
+        finished: race.finished,
+        delta: correct ? -stage.bonus : stage.penalty
+    };
+}
+
+function totalTime(race) {
+    var total = 0;
+    for (var i = 0; i < race.legs.length; i++) {
+        total += race.legs[i].time !== null ? race.legs[i].time : STAGES[i].base;
+    }
+    return total;
+}
+
+function scoreOf(race) {
+    var right = 0, asked = 0;
+    for (var i = 0; i < race.legs.length; i++) {
+        right += race.legs[i].correct;
+        asked += race.legs[i].correct + race.legs[i].wrong;
+    }
+    return { right: right, asked: asked, of: 20 };
+}
+
+/* Final placing, and the gap to whoever finished next to you. */
+function finalResult(race) {
+    var mine = totalTime(race);
+    var ahead = 0, i;
+    for (i = 0; i < RIVALS.length; i++) if (RIVALS[i].total < mine) ahead++;
+    var place = ahead + 1;
+    var gap;
+    if (place === 1) {
+        var best = Infinity;
+        for (i = 0; i < RIVALS.length; i++) if (RIVALS[i].total < best) best = RIVALS[i].total;
+        gap = best - mine;
+    } else {
+        var front = -Infinity;
+        for (i = 0; i < RIVALS.length; i++) if (RIVALS[i].total < mine && RIVALS[i].total > front) front = RIVALS[i].total;
+        gap = front - mine;
+    }
+    return { time: mine, place: place, gap: gap, score: scoreOf(race) };
+}
+
+function formatClock(seconds) {
+    var s = Math.max(0, Math.round(seconds));
+    var h = Math.floor(s / 3600);
+    var m = Math.floor((s % 3600) / 60);
+    var sec = s % 60;
+    return h + ':' + (m < 10 ? '0' : '') + m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+function formatGap(seconds) {
+    var sign = seconds < 0 ? '-' : '+';
+    var s = Math.abs(Math.round(seconds));
+    var m = Math.floor(s / 60);
+    var sec = s % 60;
+    return sign + m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+function ordinal(n) {
+    var suffix = 'th';
+    if (n % 10 === 1 && n % 100 !== 11) suffix = 'st';
+    else if (n % 10 === 2 && n % 100 !== 12) suffix = 'nd';
+    else if (n % 10 === 3 && n % 100 !== 13) suffix = 'rd';
+    return n + suffix;
+}
+
+/* --- small maths the animation leans on --- */
+
+function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+/* Frame-rate independent easing toward a target. */
+function approach(current, target, rate, dt) {
+    return lerp(current, target, 1 - Math.exp(-rate * dt));
+}
+
+/* Two-link inverse kinematics in a plane — the hip and the pedal are known,
+   so this solves where the knee has to be. It is what makes the pedal stroke
+   track the crank instead of just waving the legs about.
+   Returns joint angles measured from +x, with `bend` choosing which way the
+   knee (or elbow) folds. */
+function ik2(hipX, hipY, footX, footY, thigh, shin, bend) {
+    var dx = footX - hipX, dy = footY - hipY;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    var min = Math.abs(thigh - shin) + 1e-4;
+    var max = thigh + shin - 1e-4;
+    dist = clamp(dist, min, max);
+
+    var base = Math.atan2(dy, dx);
+    var cosA = clamp((thigh * thigh + dist * dist - shin * shin) / (2 * thigh * dist), -1, 1);
+    var cosK = clamp((thigh * thigh + shin * shin - dist * dist) / (2 * thigh * shin), -1, 1);
+    var a = Math.acos(cosA);
+    var k = Math.acos(cosK);
+    var sign = bend < 0 ? -1 : 1;
+
+    var upper = base + sign * a;
+    var lower = upper - sign * (Math.PI - k);
+    return { upper: upper, lower: lower, reach: dist };
+}
+
+/* ===== PURE MATH END ===== */
+
+/* =========================================================================
+   THE WORLD
+   The athlete always travels along +X; scenery recycles behind them, so the
+   course is endless without ever building more than a couple of hundred
+   metres of it. Legs differ by which groups are visible and how the rig is
+   posed, not by rebuilding the scene.
+   ========================================================================= */
+
+var HAS_3D = false;
+var renderer = null, scene = null, camera = null;
+var world = {};
+var MOBILE = (typeof window !== 'undefined') &&
+    (window.innerWidth < 760 || /Android|iPhone|iPad|iPod/i.test((navigator && navigator.userAgent) || ''));
+
+function webglAvailable() {
+    try {
+        var c = document.createElement('canvas');
+        return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
+    } catch (e) { return false; }
+}
+
+/* --- shared geometry & materials, built once and reused everywhere --- */
+var GEO = {}, MAT = {};
+
+function initAssets() {
+    GEO.sphere = new THREE.SphereGeometry(1, 12, 9);
+    GEO.box = new THREE.BoxGeometry(1, 1, 1);
+    GEO.cyl = new THREE.CylinderGeometry(1, 1, 1, 10);
+    GEO.cone = new THREE.ConeGeometry(1, 1, 10);
+    GEO.torus = new THREE.TorusGeometry(1, 0.05, 6, 20);
+    GEO.plane = new THREE.PlaneGeometry(1, 1);
+    GEO.dome = new THREE.SphereGeometry(1, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.55);
+
+    MAT.deck = new THREE.MeshStandardMaterial({ color: 0x3b4356, roughness: 0.95, metalness: 0.02 });
+    MAT.deckEdge = new THREE.MeshStandardMaterial({ color: 0xdfe6ef, roughness: 0.8 });
+    MAT.dash = new THREE.MeshBasicMaterial({ color: 0xffe9a8 });
+    MAT.rail = new THREE.MeshStandardMaterial({ color: 0xc9d6e4, roughness: 0.5, metalness: 0.35 });
+    MAT.pillar = new THREE.MeshStandardMaterial({ color: 0x8a94a6, roughness: 0.9 });
+    MAT.trunk = new THREE.MeshStandardMaterial({ color: 0x7a6047, roughness: 1 });
+    MAT.frond = new THREE.MeshStandardMaterial({ color: 0x3f9b4f, roughness: 0.85, side: THREE.DoubleSide });
+    MAT.buoy = new THREE.MeshStandardMaterial({ color: 0xff8a1e, emissive: 0x662a00, roughness: 0.6 });
+    MAT.cone = new THREE.MeshStandardMaterial({ color: 0xff6a2a, roughness: 0.8 });
+    MAT.rack = new THREE.MeshStandardMaterial({ color: 0x9fb0c4, roughness: 0.6, metalness: 0.3 });
+    MAT.fcBlue = new THREE.MeshStandardMaterial({ color: 0x1976D2, roughness: 0.55, metalness: 0.1 });
+    MAT.fcGreen = new THREE.MeshStandardMaterial({ color: 0x7CB342, roughness: 0.55, metalness: 0.1 });
+    MAT.white = new THREE.MeshStandardMaterial({ color: 0xf2f6fb, roughness: 0.7 });
+    MAT.dark = new THREE.MeshStandardMaterial({ color: 0x1d2433, roughness: 0.8 });
+    MAT.gold = new THREE.MeshPhongMaterial({ color: 0xffc73d, specular: 0xfff0b0, shininess: 90, emissive: 0x3a2600 });
+    MAT.silver = new THREE.MeshPhongMaterial({ color: 0xb4c2d2, specular: 0xffffff, shininess: 90, emissive: 0x1c2733 });
+    MAT.bronze = new THREE.MeshPhongMaterial({ color: 0xd4884a, specular: 0xffd9b0, shininess: 70, emissive: 0x301605 });
+}
+
+/* Small helpers so the build code below reads like what it draws. */
+function mesh(geo, mat, sx, sy, sz, px, py, pz) {
+    var m = new THREE.Mesh(geo, mat);
+    m.scale.set(sx, sy, sz);
+    m.position.set(px || 0, py || 0, pz || 0);
+    return m;
+}
+function boxMesh(mat, w, h, d, x, y, z) { return mesh(GEO.box, mat, w, h, d, x, y, z); }
+function cylMesh(mat, r, h, x, y, z) { return mesh(GEO.cyl, mat, r, h, r, x, y, z); }
+function ballMesh(mat, r, x, y, z) { return mesh(GEO.sphere, mat, r, r, r, x, y, z); }
+
+/* --- sky ------------------------------------------------------------------
+   An equirectangular canvas wrapped on the inside of a big sphere: the dusk
+   gradient, and the sun painted straight into it just above the horizon.
+   The sun was a sprite first, which is the obvious way to do it and the wrong
+   one — an additive sprite that far out renders as a dark disc, and when it
+   did light up it blew out the whole bay. Painted into the dome it is always
+   behind everything, always on the horizon, and costs nothing. */
+function makeSky() {
+    var W = 1024, H = 512;
+    var c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    var ctx = c.getContext('2d');
+
+    var g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0.00, '#07142f');
+    g.addColorStop(0.22, '#241a5e');
+    g.addColorStop(0.38, '#5b2a83');
+    g.addColorStop(0.46, '#a83a83');
+    g.addColorStop(0.50, '#e2566f');
+    g.addColorStop(0.53, '#ff8a52');
+    g.addColorStop(0.58, '#ffc07a');
+    g.addColorStop(1.00, '#2a2340');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    /* the sun, sitting on the horizon line at v = 0.5 */
+    var sx = W * 0.63, sy = H * 0.455;
+    var halo = ctx.createRadialGradient(sx, sy, 0, sx, sy, 190);
+    halo.addColorStop(0.00, 'rgba(255,241,205,0.95)');
+    halo.addColorStop(0.10, 'rgba(255,214,140,0.72)');
+    halo.addColorStop(0.32, 'rgba(255,142,92,0.30)');
+    halo.addColorStop(1.00, 'rgba(255,110,90,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(sx, sy, 190, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff4d2';
+    ctx.beginPath(); ctx.arc(sx, sy, 26, 0, Math.PI * 2); ctx.fill();
+
+    /* a few horizon clouds, flattened so they read as distance */
+    ctx.globalAlpha = 0.16;
+    ctx.fillStyle = '#ffd9c2';
+    for (var i = 0; i < 26; i++) {
+        var cx = (i * 97 + (i % 5) * 31) % W;
+        var cy = H * (0.30 + ((i * 37) % 100) / 100 * 0.15);
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 40 + (i % 6) * 22, 4 + (i % 3) * 2.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    var tex = new THREE.CanvasTexture(c);
+    tex.minFilter = THREE.LinearFilter;
+
+    var sky = new THREE.Mesh(
+        new THREE.SphereGeometry(900, 40, 26),
+        new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, depthWrite: false, fog: false })
+    );
+    sky.renderOrder = -10;
+    return sky;
+}
+
+/* --- ocean ---------------------------------------------------------------
+   Two planes, because one cannot be both. The far plane covers to the horizon
+   with almost no geometry; the near plane is finely divided and carries the
+   chop, with the swell tapered to nothing at its rim so the two meet without
+   a visible seam. */
+function makeOcean(size, seg, animated, color) {
+    var geo = new THREE.PlaneGeometry(size, size, seg, seg);
+    geo.rotateX(-Math.PI / 2);
+    /* A tight highlight, not a broad one: with flat facets a high shininess
+       reads as glitter on the chop, while a low one washes half the bay out. */
+    var m = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({
+        color: color, flatShading: true, shininess: 115, specular: 0x1d5570
+    }));
+    if (animated) {
+        m.userData.base = geo.attributes.position.array.slice();
+        m.userData.radius = size / 2;
+    }
+    return m;
+}
+
+/* The plane is parented to the athlete, so the swell is evaluated in world
+   space — otherwise the water would slide along with them and look frozen. */
+function waveOcean(m, t, xOffset) {
+    var pos = m.geometry.attributes.position;
+    var arr = pos.array, base = m.userData.base;
+    var ox = xOffset || 0, r = m.userData.radius;
+    for (var i = 0; i < arr.length; i += 3) {
+        var bx = base[i], bz = base[i + 2];
+        var x = bx + ox, z = bz;
+        var d = Math.max(Math.abs(bx), Math.abs(bz)) / r;
+        var taper = d < 0.5 ? 1 : Math.max(0, 1 - (d - 0.5) / 0.5);
+        arr[i + 1] = (Math.sin(x * 0.42 + t * 1.6) * 0.14 +
+                      Math.sin(z * 0.55 - t * 1.25) * 0.11 +
+                      Math.sin((x + z) * 0.22 + t * 2.2) * 0.09 +
+                      Math.sin(x * 0.11 + t * 0.7) * 0.13) * taper;
+    }
+    pos.needsUpdate = true;
+    m.geometry.computeVertexNormals();
+}
+
+/* --- the causeway: deck, kerbs, rails and the pillars holding it up --- */
+function makeDeck() {
+    var g = new THREE.Group();
+    var LEN = 320, W = 15, Y = 1.5;
+
+    g.add(boxMesh(MAT.deck, LEN, 0.5, W, 0, Y - 0.25, 0));
+    g.add(boxMesh(MAT.deckEdge, LEN, 0.22, 0.5, 0, Y + 0.05, -W / 2 + 0.25));
+    g.add(boxMesh(MAT.deckEdge, LEN, 0.22, 0.5, 0, Y + 0.05, W / 2 - 0.25));
+
+    /* Rails and pillars go in as recycled props so the deck reads as long. */
+    var railGeo = GEO.box;
+    for (var i = 0; i < 40; i++) {
+        var x = -LEN / 2 + i * (LEN / 40);
+        var post = mesh(railGeo, MAT.rail, 0.12, 0.85, 0.12, x, Y + 0.45, -W / 2 + 0.25);
+        g.add(post);
+        var post2 = mesh(railGeo, MAT.rail, 0.12, 0.85, 0.12, x, Y + 0.45, W / 2 - 0.25);
+        g.add(post2);
+    }
+    g.add(boxMesh(MAT.rail, LEN, 0.08, 0.1, 0, Y + 0.85, -W / 2 + 0.25));
+    g.add(boxMesh(MAT.rail, LEN, 0.08, 0.1, 0, Y + 0.85, W / 2 - 0.25));
+
+    for (var p = 0; p < 16; p++) {
+        var px = -LEN / 2 + p * (LEN / 16) + 5;
+        g.add(cylMesh(MAT.pillar, 0.7, 3.2, px, -0.4, -4.5));
+        g.add(cylMesh(MAT.pillar, 0.7, 3.2, px, -0.4, 4.5));
+    }
+
+    g.userData.deckY = Y;
+    g.userData.span = LEN;
+    return g;
+}
+
+/* Lane dashes, recycled individually so the road always looks like it moves. */
+function makeDashes() {
+    var g = new THREE.Group();
+    g.userData.items = [];
+    for (var i = 0; i < 44; i++) {
+        var d = boxMesh(MAT.dash, 2.4, 0.04, 0.16, i * 7 - 140, 1.53, 0);
+        d.userData.span = 44 * 7;
+        g.add(d);
+        g.userData.items.push(d);
+    }
+    return g;
+}
+
+/* --- palms: trunk plus a crown of bent fronds --- */
+function makePalm(h) {
+    var g = new THREE.Group();
+    var trunk = cylMesh(MAT.trunk, 0.13, h, 0, h / 2, 0);
+    trunk.rotation.z = 0.06;
+    g.add(trunk);
+    for (var i = 0; i < 7; i++) {
+        var frond = mesh(GEO.cone, MAT.frond, 0.34, 2.0, 0.08, 0, h + 0.3, 0);
+        frond.rotation.z = Math.PI / 2 - 0.35;
+        frond.rotation.y = (i / 7) * Math.PI * 2;
+        frond.position.x = Math.cos((i / 7) * Math.PI * 2) * 0.85;
+        frond.position.z = Math.sin((i / 7) * Math.PI * 2) * 0.85;
+        frond.position.y = h + 0.05;
+        g.add(frond);
+    }
+    g.add(ballMesh(MAT.trunk, 0.18, 0, h + 0.1, 0));
+    return g;
+}
+
+function makePalmRow() {
+    var g = new THREE.Group();
+    g.userData.items = [];
+    var count = MOBILE ? 14 : 24;
+    var span = count * 14;
+    for (var i = 0; i < count; i++) {
+        var side = i % 2 === 0 ? -1 : 1;
+        var p = makePalm(3.6 + (i % 4) * 0.55);
+        p.position.set(i * 14 - span / 2, 1.5, side * (8.4 + (i % 3) * 0.5));
+        p.userData.span = span;
+        g.add(p);
+        g.userData.items.push(p);
+    }
+    return g;
+}
+
+/* --- Miami: an art-deco strip close to the road and towers on the horizon --- */
+var DECO_COLORS = [0xffd9e8, 0xbdf3f3, 0xffe9b0, 0xd7c4f5, 0xffffff, 0xc9ecff];
+var NEON_COLORS = [0xff5db1, 0x2de2e6, 0xffb648, 0xa06bff];
+
+function makeDecoBlock(rng, zSide) {
+    var g = new THREE.Group();
+    var w = 7 + rng() * 5, h = 5 + rng() * 5, d = 6 + rng() * 3;
+    var body = new THREE.MeshStandardMaterial({
+        color: DECO_COLORS[Math.floor(rng() * DECO_COLORS.length)], roughness: 0.85
+    });
+    g.add(boxMesh(body, w, h, d, 0, h / 2, 0));
+
+    /* stepped deco crown */
+    g.add(boxMesh(body, w * 0.55, 1.1, d * 0.8, 0, h + 0.55, 0));
+    g.add(boxMesh(body, w * 0.22, 1.0, d * 0.5, 0, h + 1.6, 0));
+
+    /* neon banding along the facade, which is what makes it read as Miami */
+    var neon = new THREE.MeshBasicMaterial({ color: NEON_COLORS[Math.floor(rng() * NEON_COLORS.length)] });
+    for (var b = 0; b < 3; b++) {
+        g.add(boxMesh(neon, w * 0.98, 0.14, 0.16, 0, 1.4 + b * 1.5, (d / 2 + 0.05) * -zSide));
+    }
+    /* lit windows */
+    var winMat = new THREE.MeshBasicMaterial({ color: 0xfff3cf });
+    var rows = Math.floor(h / 1.6);
+    for (var r = 0; r < rows; r++) {
+        for (var c = 0; c < 3; c++) {
+            if (rng() < 0.35) continue;
+            g.add(boxMesh(winMat, 0.9, 0.7, 0.1, (c - 1) * (w / 3.4), 1.2 + r * 1.6, (d / 2 + 0.06) * -zSide));
+        }
+    }
+    return g;
+}
+
+function makeSkyline() {
+    var g = new THREE.Group();
+    g.userData.items = [];
+    var rng = makeRng(20260916);
+    var count = MOBILE ? 12 : 20;
+    var span = count * 17;
+
+    for (var i = 0; i < count; i++) {
+        var side = i % 2 === 0 ? -1 : 1;
+        var b = makeDecoBlock(rng, side);
+        b.position.set(i * 17 - span / 2, 1.5, side * (30 + rng() * 8));
+        b.userData.span = span;
+        g.add(b);
+        g.userData.items.push(b);
+    }
+
+    /* Downtown on the horizon — far enough back that it never recycles visibly. */
+    var towers = new THREE.Group();
+    for (var t = 0; t < 46; t++) {
+        var th = 18 + rng() * 52;
+        var col = new THREE.MeshStandardMaterial({
+            color: new THREE.Color().setHSL(0.55 + rng() * 0.16, 0.45, 0.30 + rng() * 0.2),
+            roughness: 0.9
+        });
+        var tw = boxMesh(col, 7 + rng() * 7, th, 7 + rng() * 7, (t - 23) * 18 + rng() * 9, th / 2, -150 - rng() * 70);
+        towers.add(tw);
+    }
+    towers.userData.horizon = true;
+    g.add(towers);
+    g.userData.towers = towers;
+    return g;
+}
+
+/* --- swim course: turn buoys and a lane of sighting markers --- */
+function makeBuoys() {
+    var g = new THREE.Group();
+    g.userData.items = [];
+    var count = 14, span = count * 18;
+    for (var i = 0; i < count; i++) {
+        var b = new THREE.Group();
+        var body = mesh(GEO.cone, MAT.buoy, 0.62, 1.5, 0.62, 0, 0.75, 0);
+        b.add(body);
+        b.add(ballMesh(MAT.buoy, 0.24, 0, 1.6, 0));
+        b.position.set(i * 18 - span / 2, 0, (i % 2 === 0 ? -1 : 1) * 9);
+        b.userData.span = span;
+        b.userData.bob = i * 0.7;
+        g.add(b);
+        g.userData.items.push(b);
+    }
+    return g;
+}
+
+/* --- transition: racks of bikes you run through in T1 and T2 --- */
+function makeTransition() {
+    var g = new THREE.Group();
+    g.userData.items = [];
+    var count = 8, span = count * 26;
+
+    for (var i = 0; i < count; i++) {
+        var unit = new THREE.Group();
+        /* blue transition matting */
+        unit.add(boxMesh(new THREE.MeshStandardMaterial({ color: 0x14406b, roughness: 1 }), 22, 0.06, 11, 0, 1.79, 0));
+        for (var side = -1; side <= 1; side += 2) {
+            var rack = new THREE.Group();
+            rack.add(boxMesh(MAT.rack, 18, 0.1, 0.1, 0, 1.15, 0));
+            for (var p = 0; p < 7; p++) {
+                rack.add(cylMesh(MAT.rack, 0.07, 1.15, -9 + p * 3, 0.57, 0));
+            }
+            rack.position.set(0, 1.5, side * 4.2);
+            unit.add(rack);
+            /* a few parked bikes hanging by the saddle */
+            for (var bk = 0; bk < 6; bk++) {
+                var parked = makeBike(new THREE.MeshStandardMaterial({
+                    color: new THREE.Color().setHSL((bk * 0.17 + i * 0.1) % 1, 0.55, 0.55), roughness: 0.5
+                }));
+                parked.scale.setScalar(0.92);
+                parked.rotation.y = Math.PI / 2;
+                parked.position.set(-8.2 + bk * 3, 1.55, side * 4.2 + side * 0.6);
+                unit.add(parked);
+            }
+        }
+        unit.position.set(i * 26 - span / 2, 0, 0);
+        unit.userData.span = span;
+        g.add(unit);
+        g.userData.items.push(unit);
+    }
+    return g;
+}
+
+/* --- a road bike, thin-tubed so it matches the stick athlete --- */
+function makeBike(frameMat) {
+    var g = new THREE.Group();
+    var f = frameMat || MAT.fcBlue;
+    var tyre = new THREE.MeshStandardMaterial({ color: 0x15181f, roughness: 0.9 });
+
+    function wheel(x) {
+        var w = new THREE.Group();
+        var t = mesh(GEO.torus, tyre, 0.34, 0.34, 0.34, 0, 0, 0);
+        w.add(t);
+        for (var s = 0; s < 6; s++) {
+            var spoke = cylMesh(MAT.rail, 0.012, 0.66, 0, 0, 0);
+            spoke.rotation.z = (s / 6) * Math.PI;
+            w.add(spoke);
+        }
+        w.add(cylMesh(MAT.rail, 0.05, 0.09, 0, 0, 0));
+        w.children[w.children.length - 1].rotation.x = Math.PI / 2;
+        w.position.set(x, 0.34, 0);
+        return w;
+    }
+
+    var rear = wheel(-0.52), front = wheel(0.52);
+    g.add(rear); g.add(front);
+    g.userData.wheels = [rear, front];
+
+    function tube(x1, y1, x2, y2, r) {
+        var dx = x2 - x1, dy = y2 - y1;
+        var len = Math.sqrt(dx * dx + dy * dy);
+        var t = cylMesh(f, r || 0.028, len, (x1 + x2) / 2, (y1 + y2) / 2, 0);
+        t.rotation.z = Math.atan2(dy, dx) - Math.PI / 2;
+        return t;
+    }
+
+    var BB = [-0.06, 0.32];
+    var SEAT = [-0.42, 0.95];
+    var HEAD = [0.42, 0.90];
+    g.add(tube(BB[0], BB[1], SEAT[0], SEAT[1]));          /* seat tube */
+    g.add(tube(BB[0], BB[1], HEAD[0], HEAD[1]));          /* down tube */
+    g.add(tube(SEAT[0], SEAT[1], HEAD[0], HEAD[1]));      /* top tube */
+    g.add(tube(SEAT[0], SEAT[1], -0.52, 0.34, 0.022));    /* seat stay */
+    g.add(tube(BB[0], BB[1], -0.52, 0.34, 0.024));        /* chain stay */
+    g.add(tube(HEAD[0], HEAD[1], 0.52, 0.34, 0.024));     /* fork */
+
+    g.add(boxMesh(MAT.dark, 0.26, 0.05, 0.1, -0.44, 1.0, 0));      /* saddle */
+    var bar = cylMesh(MAT.dark, 0.022, 0.38, 0.44, 0.92, 0);
+    bar.rotation.x = Math.PI / 2;
+    g.add(bar);
+    g.add(boxMesh(MAT.dark, 0.2, 0.03, 0.03, 0.52, 0.92, 0.17));
+    g.add(boxMesh(MAT.dark, 0.2, 0.03, 0.03, 0.52, 0.92, -0.17));
+    g.add(cylMesh(MAT.fcGreen, 0.035, 0.2, -0.22, 0.62, 0));        /* bottle */
+
+    /* crank: one group spinning about the bottom bracket, pedals on the ends */
+    var crank = new THREE.Group();
+    crank.position.set(BB[0], BB[1], 0);
+    var armA = cylMesh(MAT.rail, 0.018, 0.17, 0, 0.085, 0.075);
+    var armB = cylMesh(MAT.rail, 0.018, 0.17, 0, -0.085, -0.075);
+    crank.add(armA); crank.add(armB);
+    /* Pedals hang off the crank but are counter-rotated each frame so they
+       stay level, the way a real pedal does. */
+    var pedA = boxMesh(MAT.dark, 0.1, 0.03, 0.14, 0, 0.17, 0.09);
+    var pedB = boxMesh(MAT.dark, 0.1, 0.03, 0.14, 0, -0.17, -0.09);
+    crank.add(pedA); crank.add(pedB);
+    crank.userData.pedals = [pedA, pedB];
+    crank.add(mesh(GEO.cyl, MAT.rail, 0.11, 0.02, 0.11, 0, 0, 0.04));
+    crank.children[crank.children.length - 1].rotation.x = Math.PI / 2;
+    g.add(crank);
+
+    g.userData.crank = crank;
+    g.userData.bb = BB;
+    g.userData.seat = SEAT;
+    g.userData.bar = [0.44, 0.92];
+    return g;
+}
+
+/* =========================================================================
+   THE ATHLETE
+   A stick figure on purpose: two dots for joints and a line between them,
+   no body shape at all, so the racer on screen is simply an athlete.
+   Everything hangs off pivot groups, so a pose is a set of joint angles.
+   ========================================================================= */
+
+var HIP_Y = 0.92, TORSO = 0.58, THIGH = 0.45, SHIN = 0.46,
+    UPPER = 0.34, FORE = 0.33, HEAD_R = 0.135;
+
+/* A bone hangs straight down from its pivot, so rotation.z of 0 is "down"
+   and a positive angle swings the far end forward, toward +x. */
+function bone(parent, len, rad, mat) {
+    var g = new THREE.Group();
+    g.add(ballMesh(mat, rad * 1.45, 0, 0, 0));
+    g.add(cylMesh(mat, rad, len, 0, -len / 2, 0));
+    var tip = new THREE.Group();
+    tip.position.y = -len;
+    g.add(tip);
+    parent.add(g);
+    g.userData.tip = tip;
+    g.userData.len = len;
+    return g;
+}
+
+/* Bones point down at rotation 0, so an absolute heading measured from +x
+   needs a quarter turn added. `parentLean` undoes a rotated parent. */
+function aimBone(b, angleFromX, parentLean) {
+    b.rotation.z = angleFromX + Math.PI / 2 + (parentLean || 0);
+}
+
+function buildFigure(opt) {
+    opt = opt || {};
+    var suitMat = new THREE.MeshStandardMaterial({
+        color: opt.suit !== undefined ? opt.suit : 0x1976D2, roughness: 0.5, metalness: 0.05
+    });
+    var limbMat = new THREE.MeshStandardMaterial({
+        color: opt.limb !== undefined ? opt.limb : 0xdfe7f0, roughness: 0.65
+    });
+    var accMat = new THREE.MeshStandardMaterial({
+        color: opt.accent !== undefined ? opt.accent : 0x7CB342, roughness: 0.45
+    });
+
+    var f = { mats: { suit: suitMat, limb: limbMat, accent: accMat } };
+
+    f.root = new THREE.Group();
+    f.orient = new THREE.Group(); f.root.add(f.orient);
+    f.roll = new THREE.Group(); f.orient.add(f.roll);
+    f.core = new THREE.Group(); f.core.position.y = HIP_Y; f.roll.add(f.core);
+
+    /* pelvis and legs sit outside the torso, so a forward lean never
+       drags the legs with it */
+    f.pelvis = new THREE.Group(); f.core.add(f.pelvis);
+    f.pelvis.add(cylMesh(suitMat, 0.075, 0.26, 0, 0, 0));
+    f.pelvis.children[0].rotation.x = Math.PI / 2;
+
+    f.legs = [];
+    for (var s = 0; s < 2; s++) {
+        var side = s === 0 ? -1 : 1;
+        var hip = new THREE.Group();
+        hip.position.set(0, 0, side * 0.12);
+        f.pelvis.add(hip);
+        var thigh = bone(hip, THIGH, 0.048, limbMat);
+        var shin = bone(thigh.userData.tip, SHIN, 0.042, limbMat);
+        var foot = boxMesh(accMat, 0.22, 0.07, 0.1, 0.06, -0.035, 0);
+        shin.userData.tip.add(foot);
+        f.legs.push({ hip: hip, thigh: thigh, shin: shin, foot: foot, side: side });
+    }
+
+    /* torso, and everything the lean carries with it */
+    f.torso = new THREE.Group(); f.core.add(f.torso);
+    var spine = cylMesh(suitMat, 0.072, TORSO, 0, TORSO / 2, 0);
+    f.torso.add(spine);
+    f.torso.add(boxMesh(accMat, 0.02, 0.2, 0.19, 0.085, TORSO * 0.55, 0));   /* suit stripe */
+    f.torso.add(cylMesh(suitMat, 0.07, 0.4, 0, TORSO, 0));
+    f.torso.children[f.torso.children.length - 1].rotation.x = Math.PI / 2;  /* shoulder bar */
+
+    f.neck = new THREE.Group();
+    f.neck.position.y = TORSO + 0.08;
+    f.torso.add(f.neck);
+    f.neck.add(cylMesh(limbMat, 0.04, 0.12, 0, 0.02, 0));
+    f.head = new THREE.Group();
+    f.head.position.y = 0.09 + HEAD_R;
+    f.neck.add(f.head);
+    f.head.add(ballMesh(limbMat, HEAD_R, 0, 0, 0));
+
+    /* head kit, one piece visible per leg of the race */
+    f.cap = new THREE.Group();
+    f.cap.add(mesh(GEO.dome, accMat, HEAD_R * 1.09, HEAD_R * 1.12, HEAD_R * 1.09, 0, -0.012, 0));
+    f.head.add(f.cap);
+
+    f.goggles = new THREE.Group();
+    var lens = new THREE.MeshStandardMaterial({ color: 0x0f1b2a, roughness: 0.2, metalness: 0.5 });
+    f.goggles.add(mesh(GEO.sphere, lens, 0.05, 0.045, 0.045, HEAD_R * 0.82, 0.02, 0.07));
+    f.goggles.add(mesh(GEO.sphere, lens, 0.05, 0.045, 0.045, HEAD_R * 0.82, 0.02, -0.07));
+    f.head.add(f.goggles);
+
+    f.helmet = new THREE.Group();
+    f.helmet.add(mesh(GEO.dome, suitMat, HEAD_R * 1.22, HEAD_R * 1.25, HEAD_R * 1.22, 0, -0.01, 0));
+    f.helmet.add(boxMesh(accMat, 0.04, 0.03, 0.16, 0.02, HEAD_R * 0.95, 0));
+    f.helmet.add(mesh(GEO.cone, suitMat, 0.1, 0.26, 0.1, -0.16, 0.02, 0));
+    f.helmet.children[2].rotation.z = Math.PI / 2;                          /* aero tail */
+    f.head.add(f.helmet);
+
+    f.visor = new THREE.Group();
+    f.visor.add(mesh(GEO.dome, accMat, HEAD_R * 1.08, HEAD_R * 0.5, HEAD_R * 1.08, 0, 0.035, 0));
+    f.visor.add(boxMesh(accMat, 0.15, 0.02, 0.22, 0.15, 0.045, 0));
+    f.head.add(f.visor);
+
+    /* arms */
+    f.arms = [];
+    for (var a = 0; a < 2; a++) {
+        var aside = a === 0 ? -1 : 1;
+        var shoulder = new THREE.Group();
+        shoulder.position.set(0, TORSO, aside * 0.2);
+        f.torso.add(shoulder);
+        var upper = bone(shoulder, UPPER, 0.042, limbMat);
+        var fore = bone(upper.userData.tip, FORE, 0.036, limbMat);
+        var hand = ballMesh(limbMat, 0.055, 0, -0.02, 0);
+        fore.userData.tip.add(hand);
+        f.arms.push({ shoulder: shoulder, upper: upper, fore: fore, hand: hand, side: aside });
+    }
+
+    /* race number on the back, which is where it belongs on the bike */
+    f.bib = boxMesh(new THREE.MeshStandardMaterial({ color: 0xf5f7fa, roughness: 0.9 }),
+        0.02, 0.22, 0.2, -0.09, TORSO * 0.5, 0);
+    f.torso.add(f.bib);
+
+    f.bike = makeBike(suitMat);
+    f.bike.visible = false;
+    f.root.add(f.bike);
+
+    return f;
+}
+
+/* Which piece of head kit is on, per leg. */
+function setKit(f, kit) {
+    f.cap.visible = kit === 'swim';
+    f.goggles.visible = kit === 'swim';
+    f.helmet.visible = kit === 'bike';
+    f.visor.visible = kit === 'run';
+    /* number to the back on the bike, spun to the front for the run — the
+       same thing the T2 question asks about */
+    f.bib.visible = kit !== 'swim';
+    f.bib.position.x = kit === 'run' ? 0.075 : -0.075;
+}
+
+/* --- poses ------------------------------------------------------------ */
+
+function resetPose(f) {
+    f.orient.rotation.set(0, 0, 0);
+    f.roll.rotation.set(0, 0, 0);
+    f.core.position.set(0, HIP_Y, 0);
+    f.torso.rotation.z = 0;
+    f.neck.rotation.z = 0;
+    for (var i = 0; i < 2; i++) {
+        f.arms[i].shoulder.rotation.set(0, 0, 0);
+        f.legs[i].hip.rotation.set(0, 0, 0);
+    }
+}
+
+/* Running: opposite arm to leg, elbows held at a right angle, a little
+   forward lean and a bob on every foot strike. */
+function poseRun(f, p, effort) {
+    resetPose(f);
+    setKit(f, 'run');
+    f.bike.visible = false;
+    var e = effort === undefined ? 1 : effort;
+
+    f.torso.rotation.z = -0.13 - 0.05 * e;
+    f.neck.rotation.z = 0.10;
+    f.core.position.y = HIP_Y + Math.abs(Math.sin(p)) * 0.075 * e;
+
+    for (var i = 0; i < 2; i++) {
+        var phase = p + (i === 0 ? 0 : Math.PI);
+        var leg = f.legs[i];
+        leg.thigh.rotation.z = Math.sin(phase) * (0.75 * e + 0.15);
+        leg.shin.rotation.z = -Math.max(0, Math.sin(phase - 1.0)) * (1.7 * e) - 0.12;
+        leg.foot.rotation.z = 0.25 + Math.sin(phase + 0.6) * 0.3;
+
+        var arm = f.arms[i];
+        arm.upper.rotation.z = -Math.sin(phase) * (0.62 * e) + 0.18;
+        arm.fore.rotation.z = -1.35 - Math.sin(phase + 0.9) * 0.34 * e;
+        arm.shoulder.rotation.y = arm.side * 0.12;
+    }
+}
+
+/* Freestyle: the whole body pitches a quarter turn so it lies along the
+   direction of travel, then the shoulder just keeps rotating — slowly under
+   the water for the pull, quickly over the top for the recovery. */
+function poseSwim(f, p) {
+    resetPose(f);
+    setKit(f, 'swim');
+    f.bike.visible = false;
+
+    f.orient.rotation.z = -Math.PI / 2;
+    f.core.position.set(0, 0, 0);
+    f.roll.rotation.y = Math.sin(p) * 0.40;
+    f.neck.rotation.z = -0.25 + Math.sin(p) * 0.18;
+    f.torso.rotation.z = 0.06;
+
+    for (var i = 0; i < 2; i++) {
+        var s = ((p / (Math.PI * 2)) + (i === 0 ? 0 : 0.5)) % 1;
+        if (s < 0) s += 1;
+        var arm = f.arms[i];
+
+        var ang, bend, out;
+        if (s < 0.55) {
+            var u = s / 0.55;                       /* catch through to the finish */
+            ang = Math.PI * (1 - u);
+            bend = Math.sin(u * Math.PI) * 1.15;    /* high elbow, straight at the hip */
+            out = 0.12;
+        } else {
+            var v = (s - 0.55) / 0.45;              /* recovery, over the top */
+            ang = -Math.PI * v;
+            bend = 1.25 - Math.abs(v - 0.5) * 0.9;
+            out = Math.sin(v * Math.PI) * 0.62;
+        }
+        arm.upper.rotation.z = ang;
+        arm.fore.rotation.z = -bend;
+        arm.shoulder.rotation.y = arm.side * out;
+
+        /* six-beat flutter, driven from the hip with a loose knee */
+        var leg = f.legs[i];
+        var lp = p * 3 + (i === 0 ? 0 : Math.PI);
+        leg.thigh.rotation.z = Math.sin(lp) * 0.30;
+        leg.shin.rotation.z = -0.16 + Math.sin(lp - 0.8) * 0.28;
+        leg.foot.rotation.z = 0.4;
+    }
+}
+
+/* Riding: the crank angle is the ground truth and the legs are solved back
+   from it, so the feet actually stay on the pedals. */
+function poseBike(f, p) {
+    resetPose(f);
+    setKit(f, 'bike');
+    f.bike.visible = true;
+    f.bike.position.set(0, 0, 0);
+    f.bike.rotation.set(0, 0, 0);
+
+    var bb = f.bike.userData.bb, bar = f.bike.userData.bar;
+    var crankR = 0.17;
+    var lean = 0.95;
+
+    /* Saddle height is not a taste decision here: the hip has to stay inside
+       THIGH + SHIN of the pedal at every crank angle, or the solver clamps and
+       the foot lifts off at the bottom of the stroke. From (-0.40, 0.95) the
+       furthest the pedal ever gets is 0.886 against a leg that reaches 0.910. */
+    f.core.position.set(-0.40, 0.95, 0);
+    f.torso.rotation.z = -lean;
+    f.neck.rotation.z = lean * 0.82;
+
+    f.bike.userData.crank.rotation.z = -p;
+    var peds = f.bike.userData.crank.userData.pedals;
+    for (var k = 0; k < peds.length; k++) peds[k].rotation.z = p;
+
+    for (var i = 0; i < 2; i++) {
+        var phase = -p + (i === 0 ? 0 : Math.PI);
+        var footX = bb[0] + Math.cos(phase + Math.PI / 2) * crankR;
+        var footY = bb[1] + Math.sin(phase + Math.PI / 2) * crankR;
+        var sol = ik2(f.core.position.x, f.core.position.y, footX, footY, THIGH, SHIN, 1);
+        var leg = f.legs[i];
+        aimBone(leg.thigh, sol.upper, 0);
+        leg.shin.rotation.z = sol.lower - sol.upper;
+        leg.foot.rotation.z = -sol.lower - Math.PI / 2;
+    }
+
+    /* hands solved onto the bars from wherever the lean put the shoulders */
+    var shX = f.core.position.x + Math.sin(lean) * TORSO;
+    var shY = f.core.position.y + Math.cos(lean) * TORSO;
+    var armSol = ik2(shX, shY, bar[0], bar[1], UPPER, FORE, -1);
+    for (var a = 0; a < 2; a++) {
+        aimBone(f.arms[a].upper, armSol.upper, lean);
+        f.arms[a].fore.rotation.z = armSol.lower - armSol.upper;
+        f.arms[a].shoulder.rotation.y = f.arms[a].side * 0.16;
+    }
+
+    var wheels = f.bike.userData.wheels;
+    for (var w = 0; w < wheels.length; w++) wheels[w].rotation.z = -p * 2.6;
+}
+
+/* Transitions: running with the bike alongside, one hand on the saddle. */
+function poseTransition(f, p, kit) {
+    poseRun(f, p, 0.85);
+    setKit(f, kit || 'bike');
+    f.bike.visible = true;
+    f.bike.position.set(0.25, 0, 0.62);
+    f.bike.rotation.set(0, 0, -0.07);
+    f.bike.scale.setScalar(1);
+    var wheels = f.bike.userData.wheels;
+    for (var w = 0; w < wheels.length; w++) wheels[w].rotation.z = -p * 2.2;
+    /* the near arm reaches down to the saddle instead of swinging */
+    var arm = f.arms[1];
+    arm.upper.rotation.z = 0.55;
+    arm.fore.rotation.z = -0.35;
+    arm.shoulder.rotation.y = 0.85;
+}
+
+/* On the box: both arms up, a slow celebratory sway. */
+function posePodium(f, p) {
+    resetPose(f);
+    setKit(f, 'run');
+    f.bike.visible = false;
+    f.torso.rotation.z = Math.sin(p * 0.7) * 0.07;
+    f.core.position.y = HIP_Y + Math.abs(Math.sin(p * 1.6)) * 0.05;
+    for (var i = 0; i < 2; i++) {
+        var arm = f.arms[i];
+        arm.upper.rotation.z = Math.PI * 0.88 + Math.sin(p * 1.5 + i) * 0.13;
+        arm.fore.rotation.z = 0.28 + Math.sin(p * 1.5 + i) * 0.18;
+        arm.shoulder.rotation.y = arm.side * 0.55;
+        var leg = f.legs[i];
+        leg.thigh.rotation.z = 0;
+        leg.shin.rotation.z = -0.05;
+        leg.foot.rotation.z = 0.1;
+    }
+}
+
+/* =========================================================================
+   SCENE ASSEMBLY, RIVALS, CAMERA, AND THE CEREMONY
+   ========================================================================= */
+
+/* Canvas-painted banner so the finish arch and the podium carry the brand. */
+function makeBannerTexture(main, sub) {
+    var c = document.createElement('canvas');
+    c.width = 1024; c.height = 256;
+    var ctx = c.getContext('2d');
+    var g = ctx.createLinearGradient(0, 0, 1024, 0);
+    g.addColorStop(0, '#0D47A1'); g.addColorStop(0.55, '#1976D2'); g.addColorStop(1, '#7CB342');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 1024, 256);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    ctx.fillRect(0, 200, 1024, 10);
+
+    /* the Full Circle mark */
+    ctx.save();
+    ctx.translate(96, 128);
+    ctx.beginPath(); ctx.arc(0, 0, 58, 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 0, 52, 0, Math.PI * 2); ctx.fillStyle = '#1976D2'; ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, 0, 52, -Math.PI / 2, Math.PI / 2);
+    ctx.arc(0, 26, 26, Math.PI / 2, -Math.PI / 2, true);
+    ctx.arc(0, -26, 26, Math.PI / 2, -Math.PI / 2);
+    ctx.closePath(); ctx.fillStyle = '#7CB342'; ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -26, 8, 0, Math.PI * 2); ctx.fillStyle = '#1976D2'; ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 26, 8, 0, Math.PI * 2); ctx.fillStyle = '#7CB342'; ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.textBaseline = 'middle';
+    ctx.font = '900 96px Inter, Arial, sans-serif';
+    ctx.fillText(main, 186, 108);
+    ctx.font = '800 34px Inter, Arial, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.78)';
+    ctx.letterSpacing = '8px';
+    ctx.fillText(sub, 190, 176);
+
+    var tex = new THREE.CanvasTexture(c);
+    tex.anisotropy = 4;
+    return tex;
+}
+
+function makeArch(main, sub) {
+    var g = new THREE.Group();
+    g.add(cylMesh(MAT.rail, 0.22, 6.4, 0, 3.2, -6));
+    g.add(cylMesh(MAT.rail, 0.22, 6.4, 0, 3.2, 6));
+    var banner = mesh(GEO.box, new THREE.MeshBasicMaterial({ map: makeBannerTexture(main, sub) }),
+        0.25, 1.9, 12.4, 0, 5.9, 0);
+    g.add(banner);
+    g.add(boxMesh(MAT.white, 0.6, 0.05, 12, 0, 0.03, 0));
+    return g;
+}
+
+/* A spectator: a head, a body, and the good sense to jump up and down. */
+function makeSpectator(rng) {
+    var g = new THREE.Group();
+    var col = new THREE.MeshStandardMaterial({
+        color: new THREE.Color().setHSL(rng(), 0.6, 0.55 + rng() * 0.2), roughness: 0.8
+    });
+    g.add(cylMesh(col, 0.15, 0.72, 0, 0.36, 0));
+    g.add(ballMesh(new THREE.MeshStandardMaterial({ color: 0xe8d6c4, roughness: 0.9 }), 0.13, 0, 0.85, 0));
+    g.userData.phase = rng() * Math.PI * 2;
+    g.userData.speed = 2 + rng() * 2.5;
+    return g;
+}
+
+function makeCrowd(count) {
+    var g = new THREE.Group();
+    g.userData.items = [];
+    var rng = makeRng(77712);
+    for (var i = 0; i < count; i++) {
+        var s = makeSpectator(rng);
+        var row = i % 3;
+        var side = i % 2 === 0 ? -1 : 1;
+        s.position.set((Math.floor(i / 2) - count / 4) * 1.25 + rng() * 0.6, 0,
+            side * (5.3 + row * 0.62));
+        g.add(s);
+        g.userData.items.push(s);
+    }
+    return g;
+}
+
+/* --- particles: one pool does fireworks, confetti and swim spray --- */
+function makeParticles(max, size) {
+    var pos = new Float32Array(max * 3);
+    var col = new Float32Array(max * 3);
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+
+    var c = document.createElement('canvas');
+    c.width = c.height = 64;
+    var ctx = c.getContext('2d');
+    var rg = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    rg.addColorStop(0, 'rgba(255,255,255,1)');
+    rg.addColorStop(0.4, 'rgba(255,255,255,0.55)');
+    rg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = rg; ctx.fillRect(0, 0, 64, 64);
+
+    var points = new THREE.Points(geo, new THREE.PointsMaterial({
+        size: size || 0.42, map: new THREE.CanvasTexture(c), vertexColors: true,
+        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true
+    }));
+    points.frustumCulled = false;
+
+    var parts = [];
+    for (var i = 0; i < max; i++) parts.push({ life: 0, max: 1, vx: 0, vy: 0, vz: 0, r: 0, g: 0, b: 0, drag: 0.985, grav: -9.8 });
+
+    return {
+        points: points, geo: geo, pos: pos, col: col, parts: parts, max: max, cursor: 0,
+
+        spawn: function (x, y, z, vx, vy, vz, r, g, b, life, grav, drag) {
+            var i = this.cursor;
+            this.cursor = (this.cursor + 1) % this.max;
+            var p = this.parts[i];
+            p.life = life; p.max = life;
+            p.vx = vx; p.vy = vy; p.vz = vz;
+            p.r = r; p.g = g; p.b = b;
+            p.grav = grav === undefined ? -9.8 : grav;
+            p.drag = drag === undefined ? 0.985 : drag;
+            this.pos[i * 3] = x; this.pos[i * 3 + 1] = y; this.pos[i * 3 + 2] = z;
+            this.col[i * 3] = r; this.col[i * 3 + 1] = g; this.col[i * 3 + 2] = b;
+        },
+
+        /* Dead particles are pushed to black rather than removed — additive
+           blending makes a black point invisible, which is cheaper than
+           rebuilding the buffer every frame. */
+        update: function (dt) {
+            var pos = this.pos, col = this.col;
+            for (var i = 0; i < this.max; i++) {
+                var p = this.parts[i];
+                if (p.life <= 0) continue;
+                p.life -= dt;
+                var f = Math.pow(p.drag, dt * 60);
+                p.vx *= f; p.vz *= f;
+                p.vy = p.vy * f + p.grav * dt;
+                pos[i * 3] += p.vx * dt;
+                pos[i * 3 + 1] += p.vy * dt;
+                pos[i * 3 + 2] += p.vz * dt;
+                var fade = p.life <= 0 ? 0 : Math.min(1, (p.life / p.max) * 1.6);
+                fade *= fade;
+                col[i * 3] = p.r * fade;
+                col[i * 3 + 1] = p.g * fade;
+                col[i * 3 + 2] = p.b * fade;
+            }
+            this.geo.attributes.position.needsUpdate = true;
+            this.geo.attributes.color.needsUpdate = true;
+        },
+
+        clear: function () {
+            for (var i = 0; i < this.max; i++) {
+                this.parts[i].life = 0;
+                this.col[i * 3] = this.col[i * 3 + 1] = this.col[i * 3 + 2] = 0;
+            }
+            this.geo.attributes.color.needsUpdate = true;
+        }
+    };
+}
+
+var FIREWORK_COLORS = [
+    [1.0, 0.36, 0.69], [0.18, 0.89, 0.90], [1.0, 0.71, 0.28],
+    [0.49, 0.70, 0.26], [0.40, 0.64, 1.0], [1.0, 0.95, 0.72]
+];
+
+function burst(sys, x, y, z, power, tint) {
+    var col = tint || FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+    var n = MOBILE ? 46 : 84;
+    for (var i = 0; i < n; i++) {
+        /* an even shell, so it opens as a sphere rather than a blob */
+        var u = Math.random() * 2 - 1;
+        var th = Math.random() * Math.PI * 2;
+        var r = Math.sqrt(1 - u * u);
+        var sp = power * (0.75 + Math.random() * 0.45);
+        sys.spawn(x, y, z,
+            Math.cos(th) * r * sp, u * sp, Math.sin(th) * r * sp,
+            col[0], col[1], col[2],
+            1.1 + Math.random() * 1.0, -3.6, 0.965);
+    }
+}
+
+function confetti(sys, x, y, z) {
+    for (var i = 0; i < (MOBILE ? 10 : 18); i++) {
+        var c = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+        sys.spawn(x + (Math.random() - 0.5) * 16, y + Math.random() * 3, z + (Math.random() - 0.5) * 14,
+            (Math.random() - 0.5) * 1.6, -0.4 - Math.random(), (Math.random() - 0.5) * 1.6,
+            c[0], c[1], c[2], 3.5 + Math.random() * 2, -1.1, 0.995);
+    }
+}
+
+/* --- the podium, only ever seen at the end --- */
+function makePodium() {
+    var g = new THREE.Group();
+    var deck = new THREE.MeshStandardMaterial({ color: 0x122b46, roughness: 0.9 });
+    g.add(boxMesh(deck, 9, 0.2, 7, 0, 0.1, 0));
+
+    var steps = [
+        { h: 1.5, z: 0, mat: MAT.gold, label: 1 },
+        { h: 1.05, z: -2.5, mat: MAT.silver, label: 2 },
+        { h: 0.72, z: 2.5, mat: MAT.bronze, label: 3 }
+    ];
+    g.userData.steps = [];
+    for (var i = 0; i < steps.length; i++) {
+        var s = steps[i];
+        var box = boxMesh(MAT.white, 2.1, s.h, 2.1, 0, s.h / 2 + 0.2, s.z);
+        g.add(box);
+        g.add(boxMesh(s.mat, 2.16, 0.12, 2.16, 0, s.h + 0.26, s.z));
+        g.userData.steps.push({ y: s.h + 0.32, z: s.z });
+    }
+    g.add(makeArch('FULL CIRCLE', 'MIAMI TRIATHLON'));
+    return g;
+}
+
+/* =========================================================================
+   BUILD
+   ========================================================================= */
+
+/* All but two lanes sit on the far side of the athlete. The chase camera
+   rides at about z = +3, so a rival in a near positive lane would swim
+   straight through the lens; the two positive lanes are there for the wide
+   shot, where the camera is far enough back to see both sides. */
+var RIVAL_LANES = [-2.4, -4.3, -6.3, -1.5, -8.3, 5.2, -5.3, 7.0];
+
+function buildWorld(canvas) {
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: !MOBILE, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MOBILE ? 1.5 : 2));
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
+    renderer.setClearColor(0x04121f, 1);
+
+    scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0xe08a76, 90, 620);
+
+    camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 2200);
+    camera.position.set(-6, 4, 9);
+    camState.off = new THREE.Vector3(-8, 5, 12);
+    camState.aim = new THREE.Vector3(0, 1, 0);
+    camState.pos = new THREE.Vector3(-8, 5, 12);
+    camState.look = new THREE.Vector3(0, 1, 0);
+
+    initAssets();
+
+    scene.add(new THREE.HemisphereLight(0xffeedd, 0x14607f, 0.95));
+    var key = new THREE.DirectionalLight(0xffd7a0, 1.15);
+    key.position.set(-120, 60, -90);
+    scene.add(key);
+    var fill = new THREE.DirectionalLight(0xdcefff, 0.55);
+    fill.position.set(60, 40, 80);
+    scene.add(fill);
+    world.key = key;
+
+    world.sky = makeSky(); scene.add(world.sky);
+
+    world.oceanFar = makeOcean(2400, 12, false, 0x0c7395);
+    world.oceanFar.position.y = -0.18;
+    scene.add(world.oceanFar);
+    world.ocean = makeOcean(210, MOBILE ? 56 : 92, true, 0x0c7395);
+    scene.add(world.ocean);
+
+    world.deck = makeDeck(); scene.add(world.deck);
+    world.dashes = makeDashes(); scene.add(world.dashes);
+    world.palms = makePalmRow(); scene.add(world.palms);
+    world.skyline = makeSkyline(); scene.add(world.skyline);
+    world.buoys = makeBuoys(); scene.add(world.buoys);
+    world.transition = makeTransition(); scene.add(world.transition);
+
+    world.hero = buildFigure({ suit: 0x1976D2, accent: 0x7CB342, limb: 0xe9f0f8 });
+    scene.add(world.hero.root);
+
+    world.rivals = [];
+    var count = MOBILE ? 5 : RIVALS.length;
+    for (var i = 0; i < count; i++) {
+        var fig = buildFigure({
+            suit: new THREE.Color(RIVALS[i].color).getHex(),
+            accent: 0x22303f,
+            limb: 0xcdd7e2
+        });
+        fig.root.position.z = RIVAL_LANES[i % RIVAL_LANES.length];
+        fig.bib.visible = false;
+        scene.add(fig.root);
+        world.rivals.push({ fig: fig, data: RIVALS[i], lane: RIVAL_LANES[i % RIVAL_LANES.length], phase: i * 0.8 });
+    }
+
+    world.spray = makeParticles(MOBILE ? 420 : 900, 0.14); scene.add(world.spray.points);
+    world.fx = makeParticles(MOBILE ? 900 : 2400, 0.72); scene.add(world.fx.points);
+
+    world.podium = makePodium();
+    world.podium.visible = false;
+    scene.add(world.podium);
+
+    world.crowd = makeCrowd(MOBILE ? 26 : 56);
+    world.crowd.visible = false;
+    scene.add(world.crowd);
+
+    world.finishArch = makeArch('FINISH', 'FULL CIRCLE TRIATHLON');
+    world.finishArch.visible = false;
+    scene.add(world.finishArch);
+
+    HAS_3D = true;
+}
+
+/* Scenery recycles by jumping whole spans forward once it falls behind. */
+function recycle(obj, x, behind) {
+    var span = obj.userData.span;
+    if (!span) return;
+    var d = obj.position.x - x;
+    if (d < -behind) obj.position.x += Math.ceil((-behind - d) / span) * span;
+    else if (d > span - behind) obj.position.x -= Math.ceil((d - (span - behind)) / span) * span;
+}
+
+function recycleGroup(g, x, behind) {
+    var items = g.userData.items;
+    if (!items) return;
+    for (var i = 0; i < items.length; i++) recycle(items[i], x, behind);
+}
+
+/* Shoreline the deco strip stands on, so the swim has a beach to sight off. */
+function makeShore() {
+    var g = new THREE.Group();
+    var sand = new THREE.MeshLambertMaterial({ color: 0xf2dcae });
+    var path = new THREE.MeshLambertMaterial({ color: 0xfcf0d4 });
+    var foam = new THREE.MeshLambertMaterial({ color: 0xd6f0f7 });
+    for (var side = -1; side <= 1; side += 2) {
+        g.add(boxMesh(sand, 3000, 1.5, 36, 0, 0.75, side * 42));
+        g.add(boxMesh(path, 3000, 0.06, 2.4, 0, 1.52, side * 27));
+        g.add(boxMesh(foam, 3000, 0.05, 1.8, 0, 0.07, side * 23.4));   /* surf line */
+    }
+    return g;
+}
+
+/* =========================================================================
+   THE GAME
+   ========================================================================= */
+
+var STAGE_SPEED = { swim: 1.45, t1: 3.2, bike: 11.5, t2: 3.2, run: 4.2 };
+var STAGE_CADENCE = { swim: 1.0, t1: 1.45, bike: 1.5, t2: 1.45, run: 1.5 };
+var SWIM_Y = 0.13, DECK_Y = 1.5;
+
+var game = {
+    race: null,
+    phase: 'idle',          /* idle | question | react | stagecut | tofinish | ceremony */
+    t: 0,
+    heroX: 0,
+    surge: 0,
+    slump: 0,
+    phaseTimer: 0,
+    strokePhase: 0,
+    camMode: 'close',
+    camAuto: true,
+    shownClock: 0,
+    shownPlace: 9,
+    result: null,
+    locked: false
+};
+
+var el = {};
+function cacheEls() {
+    var ids = ['boot', 'boot-msg', 'nowebgl', 'stage-name', 'stage-detail', 'clock', 'place', 'score',
+        'rail', 'quiz', 'q-chip', 'q-label', 'q-count', 'q-text', 'q-opts', 'q-why', 'verdict',
+        'cam-pill', 'cam-close', 'cam-wide', 'start-screen', 'start-btn', 'finish-screen',
+        'again-btn', 'podium-btn', 'medal', 'finish-place', 'stat-time', 'stat-score', 'stat-gap',
+        'split-list', 'missed'];
+    for (var i = 0; i < ids.length; i++) el[ids[i]] = document.getElementById(ids[i]);
+}
+
+/* --- HUD ---------------------------------------------------------------- */
+
+function buildRail() {
+    var html = '';
+    for (var i = 0; i < STAGES.length; i++) {
+        var s = STAGES[i];
+        var thin = (s.id === 't1' || s.id === 't2') ? ' t' : '';
+        html += '<div class="seg' + thin + '" data-stage="' + s.id + '">' +
+            '<div class="bar"><div class="fill" style="background:' + s.color + '"></div></div>' +
+            '<div class="lbl">' + s.name + '</div></div>';
+    }
+    el.rail.innerHTML = html;
+}
+
+function updateRail() {
+    var race = game.race;
+    var segs = el.rail.querySelectorAll('.seg');
+    for (var i = 0; i < segs.length; i++) {
+        var fill = segs[i].querySelector('.fill');
+        var pct = 0;
+        if (i < race.stageIndex || (race.finished && i <= race.stageIndex)) pct = 100;
+        else if (i === race.stageIndex) pct = (race.qIndex / STAGES[i].questions) * 100;
+        fill.style.width = pct + '%';
+        segs[i].className = 'seg' + ((STAGES[i].id === 't1' || STAGES[i].id === 't2') ? ' t' : '') +
+            (pct >= 100 ? ' done' : (i === race.stageIndex ? ' on' : ''));
+    }
+}
+
+function updateHud() {
+    var race = game.race;
+    var stage = currentStage(race);
+    el['stage-name'].textContent = stage.name;
+    el['stage-name'].style.color = stage.color;
+    el['stage-detail'].textContent = stage.detail;
+
+    var sc = scoreOf(race);
+    el.score.textContent = sc.right + '/' + sc.of;
+
+    var place = positionNow(race);
+    el.place.textContent = 'P' + place;
+    el.place.className = place === 1 ? 'lead' : '';
+    updateRail();
+}
+
+/* The clock and the position chip ease toward their real values, so an
+   answer reads as time gained rather than a number jumping. */
+function updateHudSmooth(dt) {
+    if (!game.race) return;
+    var target = raceElapsed(game.race);
+    game.shownClock = approach(game.shownClock, target, 4.5, dt);
+    el.clock.textContent = formatClock(game.shownClock);
+}
+
+function flashVerdict(correct, delta) {
+    var v = el.verdict;
+    v.innerHTML = (correct ? 'Nailed it' : 'Costly') +
+        '<span class="sub">' + (correct ? '−' : '+') + Math.abs(delta) + ' seconds</span>';
+    v.style.color = correct ? '#9ccc65' : '#ef9a9a';
+    v.classList.remove('pop');
+    void v.offsetWidth;
+    v.classList.add('pop');
+}
+
+/* --- questions ---------------------------------------------------------- */
+
+function showQuestion() {
+    var race = game.race;
+    var stage = currentStage(race);
+    var q = currentQuestion(race);
+    if (!q) return;
+
+    game.locked = false;
+    game.phase = 'question';
+    if (game.camAuto) setCamera('close');
+
+    el['q-chip'].textContent = stage.name;
+    el['q-chip'].style.background = stage.color;
+    el['q-label'].textContent = stage.id === 't1' || stage.id === 't2' ? 'Transition drill' : 'Race-day checklist';
+    el['q-count'].textContent = (race.qIndex + 1) + ' / ' + stage.questions;
+    el['q-text'].textContent = q.q;
+
+    el['q-opts'].innerHTML = '';
+    for (var i = 0; i < q.opts.length; i++) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'opt';
+        b.dataset.index = String(i);
+        b.innerHTML = '<span class="key">' + (i + 1) + '</span><span>' + q.opts[i] + '</span>';
+        b.addEventListener('click', onOptionClick);
+        el['q-opts'].appendChild(b);
+    }
+
+    el['q-why'].className = '';
+    el['q-why'].textContent = '';
+    el.quiz.classList.add('show');
+    updateHud();
+}
+
+function onOptionClick(e) {
+    var btn = e.currentTarget;
+    submitAnswer(parseInt(btn.dataset.index, 10));
+}
+
+function submitAnswer(choice) {
+    if (game.locked || game.phase !== 'question' || !game.race) return;
+    var q = currentQuestion(game.race);
+    if (!q || choice < 0 || choice >= q.opts.length) return;
+
+    game.locked = true;
+    var res = answerQuestion(game.race, choice);
+    if (!res) return;
+
+    var buttons = el['q-opts'].querySelectorAll('.opt');
+    for (var i = 0; i < buttons.length; i++) {
+        buttons[i].disabled = true;
+        var idx = parseInt(buttons[i].dataset.index, 10);
+        if (idx === q.a) buttons[i].classList.add('right');
+        else if (idx === choice) buttons[i].classList.add('wrong');
+        else buttons[i].classList.add('faded');
+    }
+
+    el['q-why'].className = 'show ' + (res.correct ? 'good' : 'bad');
+    el['q-why'].innerHTML = '<b>' + (res.correct ? 'Correct.' : 'Not quite — ' + q.opts[q.a]) + '</b>' + q.why;
+
+    flashVerdict(res.correct, res.delta);
+    if (res.correct) { game.surge = 1; game.slump = 0; } else { game.slump = 1; game.surge = 0; }
+
+    if (game.camAuto) setCamera('wide');
+    updateHud();
+
+    game.phase = 'react';
+    game.phaseTimer = res.correct ? 3.0 : 4.2;
+    game.pending = res;
+}
+
+/* What happens once the explanation has been on screen long enough. */
+function afterReaction() {
+    var res = game.pending;
+    game.pending = null;
+    el.quiz.classList.remove('show');
+
+    if (res && res.finished) {
+        game.phase = 'tofinish';
+        game.phaseTimer = 4.0;
+        if (HAS_3D) {
+            world.finishArch.visible = true;
+            world.finishArch.position.set(game.heroX + 58, DECK_Y, 0);
+        }
+        setCamera('wide', true);
+        return;
+    }
+
+    if (res && res.stageDone) {
+        game.phase = 'stagecut';
+        game.phaseTimer = 2.6;
+        applyStageVisuals();
+        updateHud();
+        return;
+    }
+
+    game.phase = 'gap';
+    game.phaseTimer = 0.22;
+}
+
+/* Every delay in the race runs through one countdown, so the flow is a small
+   state machine rather than a scatter of timers — and so the tests can step
+   it forward without waiting in real time. */
+function firePhaseTimer() {
+    game.phaseTimer = 0;
+    if (game.phase === 'react') afterReaction();
+    else if (game.phase === 'stagecut' || game.phase === 'gap') showQuestion();
+    else if (game.phase === 'tofinish') enterCeremony();
+}
+
+/* --- stage visuals ------------------------------------------------------ */
+
+function visualStage() {
+    if (!game.race) return 'swim';
+    if (game.phase === 'ceremony') return 'podium';
+    return currentStage(game.race).id;
+}
+
+function applyStageVisuals() {
+    if (!HAS_3D) return;
+    var id = visualStage();
+    var swimming = id === 'swim';
+    var transition = id === 't1' || id === 't2';
+
+    world.deck.visible = !swimming;
+    world.dashes.visible = !swimming && !transition;
+    world.palms.visible = !swimming;
+    world.buoys.visible = swimming;
+    world.transition.visible = transition;
+
+    var y = swimming ? SWIM_Y : DECK_Y;
+    world.hero.root.position.y = y;
+    for (var i = 0; i < world.rivals.length; i++) world.rivals[i].fig.root.position.y = y;
+}
+
+/* --- rivals ------------------------------------------------------------- */
+
+/* Rivals are placed by the time gap at this point on the course, so passing
+   somebody on screen is the same event as passing them on the results sheet. */
+function rivalOffset(r, index) {
+    var race = game.race;
+    var si = Math.min(race.stageIndex, STAGES.length - 1);
+    var frac = race.finished ? 1 : race.qIndex / STAGES[si].questions;
+    var gap = raceElapsed(race) - rivalElapsed(r.data, si, frac);
+    var spread = (index - world.rivals.length / 2) * 2.7;
+    /* tanh keeps the ordering exact while compressing the extremes. Without it
+       a strong race empties the road: forty minutes of advantage is a hundred
+       metres of tarmac and nobody left to see. The position chip carries the
+       real gap; this carries the race. */
+    return 9 * Math.tanh(gap * 0.018) + spread;
+}
+
+/* --- camera ------------------------------------------------------------- */
+
+var CAM = {
+    close: {
+        swim: { off: [2.9, 0.82, 2.5], look: [0.55, 0.32, 0], fov: 42 },
+        t1:   { off: [3.6, 1.7, 3.8], look: [0.1, 1.15, 0.2], fov: 44 },
+        bike: { off: [3.3, 1.25, 3.4], look: [0.1, 1.0, 0], fov: 42 },
+        t2:   { off: [3.6, 1.7, 3.8], look: [0.1, 1.15, 0.2], fov: 44 },
+        run:  { off: [3.1, 1.45, 3.1], look: [0, 1.15, 0], fov: 42 }
+    },
+    wide: {
+        swim: { off: [-13, 7.5, 13], look: [7, 0, 0], fov: 55 },
+        t1:   { off: [-12, 8, 15], look: [7, 1.4, 0], fov: 56 },
+        bike: { off: [-15, 8.5, 16], look: [9, 1.4, 0], fov: 56 },
+        t2:   { off: [-12, 8, 15], look: [7, 1.4, 0], fov: 56 },
+        run:  { off: [-12, 7, 14], look: [8, 1.4, 0], fov: 56 }
+    }
+};
+
+/* Built in buildWorld, not here: this file has to be able to load and run the
+   quiz on a device with no WebGL at all, so nothing touches THREE until the
+   renderer is known to work.
+
+   `off` and `aim` are offsets from the athlete rather than world positions.
+   Smoothing a world position looks fine at swim pace and falls apart at 11 m/s
+   on the bike, where the camera trails several metres behind and pushes the
+   athlete out of frame. Smoothing the offset means changing shot is smooth
+   and following is exact. `pos`/`look` are the absolute pair the ceremony
+   orbit uses, seeded from wherever the chase camera left off. */
+var camState = { off: null, aim: null, pos: null, look: null, fov: 42 };
+
+function setCamera(mode, force) {
+    game.camMode = mode;
+    if (force) game.camAuto = true;
+    el['cam-close'].className = mode === 'close' ? 'on' : '';
+    el['cam-wide'].className = mode === 'wide' ? 'on' : '';
+}
+
+var _v1 = null, _v2 = null;
+
+function updateCamera(dt) {
+    var id = visualStage();
+    if (!_v1) { _v1 = new THREE.Vector3(); _v2 = new THREE.Vector3(); }
+
+    if (game.phase === 'ceremony') {
+        var c = world.podium.position;
+        var a = game.t * 0.24;
+        _v1.set(c.x + Math.cos(a) * 11.5, c.y + 4.2 + Math.sin(game.t * 0.5) * 0.8, c.z + Math.sin(a) * 11.5);
+        camState.pos.lerp(_v1, 1 - Math.exp(-1.6 * dt));
+        _v2.set(c.x, c.y + 2.2, c.z);
+        camState.look.lerp(_v2, 1 - Math.exp(-2.5 * dt));
+        camState.fov = approach(camState.fov, 52, 2, dt);
+        camera.position.copy(camState.pos);
+        camera.lookAt(camState.look);
+    } else {
+        var set = CAM[game.camMode][id] || CAM[game.camMode].run;
+        var base = world.hero.root.position;
+        _v1.set(set.off[0], set.off[1], set.off[2]);
+        _v2.set(set.look[0], set.look[1], set.look[2]);
+        if (game.phase === 'tofinish') { _v1.y += 2; _v2.x += 10; }
+        var rate = game.camMode === 'close' ? 3.2 : 2.2;
+        camState.off.lerp(_v1, 1 - Math.exp(-rate * dt));
+        camState.aim.lerp(_v2, 1 - Math.exp(-(rate + 1.5) * dt));
+        camState.fov = approach(camState.fov, set.fov, 3, dt);
+
+        camera.position.set(base.x + camState.off.x, base.y + camState.off.y, base.z + camState.off.z);
+        camera.lookAt(base.x + camState.aim.x, base.y + camState.aim.y, base.z + camState.aim.z);
+        /* keep the ceremony orbit from snapping when it takes over */
+        camState.pos.copy(camera.position);
+        camState.look.set(base.x + camState.aim.x, base.y + camState.aim.y, base.z + camState.aim.z);
+    }
+
+    if (Math.abs(camera.fov - camState.fov) > 0.01) {
+        camera.fov = camState.fov;
+        camera.updateProjectionMatrix();
+    }
+}
+
+/* --- the frame ---------------------------------------------------------- */
+
+function updateWorld(dt) {
+    var id = visualStage();
+    var ceremony = game.phase === 'ceremony';
+
+    var speed = STAGE_SPEED[id] || 4;
+    var mult = 1 + game.surge * 0.9 - game.slump * 0.34;
+    if (ceremony) mult = 0;
+
+    game.heroX += speed * mult * dt;
+    game.surge = Math.max(0, game.surge - dt * 0.5);
+    game.slump = Math.max(0, game.slump - dt * 0.45);
+    game.strokePhase += Math.PI * 2 * (STAGE_CADENCE[id] || 1.4) * Math.max(0.2, mult) * dt;
+
+    var hero = world.hero;
+    if (!ceremony) {
+        hero.root.position.x = game.heroX;
+        hero.root.position.z = 0;
+        if (id === 'swim') poseSwim(hero, game.strokePhase);
+        else if (id === 'bike') poseBike(hero, game.strokePhase);
+        else if (id === 't1' || id === 't2') poseTransition(hero, game.strokePhase, 'bike');
+        else poseRun(hero, game.strokePhase, 1 + game.surge * 0.35);
+
+        /* spray off the hands in the water, and a wake behind the hips */
+        if (id === 'swim' && Math.random() < 0.55) {
+            var hx = game.heroX + 0.9 + Math.random() * 0.8;
+            world.spray.spawn(hx, 0.1, (Math.random() - 0.5) * 0.7,
+                1.2 + Math.random(), 1.6 + Math.random() * 1.6, (Math.random() - 0.5) * 1.2,
+                0.75, 0.93, 1.0, 0.7, -6.5, 0.94);
+        }
+    }
+
+    /* rivals: same discipline, their own rhythm, placed by the time gap */
+    for (var i = 0; i < world.rivals.length; i++) {
+        var r = world.rivals[i];
+        var fig = r.fig;
+        if (ceremony) continue;
+        var want = game.heroX + rivalOffset(r, i);
+        fig.root.position.x = approach(fig.root.position.x || want, want, 1.4, dt);
+        /* open water is wide; the causeway is fifteen metres of tarmac */
+        fig.root.position.z = r.lane * (id === 'swim' ? 1.15 : 0.72);
+        var ph = game.strokePhase * (0.93 + (i % 5) * 0.03) + r.phase;
+        if (id === 'swim') poseSwim(fig, ph);
+        else if (id === 'bike') poseBike(fig, ph);
+        else if (id === 't1' || id === 't2') poseTransition(fig, ph, 'bike');
+        else poseRun(fig, ph, 0.95);
+    }
+
+    /* scenery */
+    var x = game.heroX;
+    recycle(world.deck, x, 150);
+    recycleGroup(world.dashes, x, 120);
+    recycleGroup(world.palms, x, 90);
+    recycleGroup(world.skyline, x, 110);
+    recycleGroup(world.buoys, x, 60);
+    recycleGroup(world.transition, x, 70);
+    if (world.skyline.userData.towers) world.skyline.userData.towers.position.x = x;
+
+    world.ocean.position.x = x;
+    world.oceanFar.position.x = x;
+    if (!MOBILE || (game.frame = (game.frame || 0) + 1) % 2 === 0) waveOcean(world.ocean, game.t, x);
+
+    world.sky.position.set(camera.position.x, 0, camera.position.z);
+
+    /* buoys ride the swell */
+    if (world.buoys.visible) {
+        var items = world.buoys.userData.items;
+        for (var b = 0; b < items.length; b++) {
+            items[b].position.y = Math.sin(game.t * 1.2 + items[b].userData.bob) * 0.13;
+            items[b].rotation.z = Math.sin(game.t * 0.9 + items[b].userData.bob) * 0.09;
+        }
+    }
+
+    if (world.crowd.visible) {
+        var sp = world.crowd.userData.items;
+        for (var c = 0; c < sp.length; c++) {
+            sp[c].position.y = Math.abs(Math.sin(game.t * sp[c].userData.speed + sp[c].userData.phase)) * 0.22;
+        }
+    }
+
+    if (ceremony) runCeremonyFx(dt);
+
+    world.spray.update(dt);
+    world.fx.update(dt);
+    updateCamera(dt);
+}
+
+/* --- the ceremony -------------------------------------------------------- */
+
+var MEDALS = ['🥇', '🥈', '🥉'];
+
+function enterCeremony() {
+    game.phase = 'ceremony';
+    game.result = finalResult(game.race);
+    game.fxTimer = 0;
+    game.confettiTimer = 0;
+    game.ceremonyClock = 0;
+
+    if (HAS_3D) {
+        var px = game.heroX + 16;
+        world.finishArch.visible = false;
+        world.podium.visible = true;
+        world.podium.position.set(px, DECK_Y, 0);
+        world.crowd.visible = true;
+        world.crowd.position.set(px - 1, DECK_Y, 0);
+        world.deck.visible = true;
+        world.dashes.visible = false;
+        world.transition.visible = false;
+        world.palms.visible = true;
+        world.buoys.visible = false;
+
+        /* Build the actual top three out of the finishing times. */
+        var board = [{ hero: true, time: game.result.time }];
+        for (var i = 0; i < world.rivals.length; i++) {
+            board.push({ hero: false, rival: world.rivals[i], time: world.rivals[i].data.total });
+        }
+        board.sort(function (a, b) { return a.time - b.time; });
+
+        var steps = world.podium.userData.steps;
+        var used = [];
+        for (var s = 0; s < Math.min(3, board.length); s++) {
+            var who = board[s];
+            var fig = who.hero ? world.hero : who.rival.fig;
+            fig.root.position.set(px, DECK_Y + steps[s].y, steps[s].z);
+            fig.root.visible = true;
+            used.push(fig);
+        }
+        /* everyone else watches from beside the box */
+        for (var k = 0; k < world.rivals.length; k++) {
+            var f = world.rivals[k].fig;
+            if (used.indexOf(f) !== -1) continue;
+            f.root.visible = false;
+        }
+        if (used.indexOf(world.hero) === -1) {
+            world.hero.root.position.set(px - 3.5, DECK_Y, 3.6);
+            world.hero.root.visible = true;
+        }
+    }
+
+    setTimeout(showFinishScreen, 5200);
+}
+
+function runCeremonyFx(dt) {
+    game.ceremonyClock += dt;
+    var px = world.podium.position.x;
+
+    posePodium(world.hero, game.t);
+    for (var i = 0; i < world.rivals.length; i++) {
+        if (world.rivals[i].fig.root.visible) posePodium(world.rivals[i].fig, game.t + i);
+    }
+
+    game.fxTimer -= dt;
+    if (game.fxTimer <= 0) {
+        game.fxTimer = 0.32 + Math.random() * 0.35;
+        burst(world.fx,
+            px + (Math.random() - 0.5) * 34,
+            9 + Math.random() * 11,
+            (Math.random() - 0.5) * 30,
+            5.5 + Math.random() * 4.5);
+    }
+
+    game.confettiTimer -= dt;
+    if (game.confettiTimer <= 0) {
+        game.confettiTimer = 0.22;
+        confetti(world.fx, px, 12, 0);
+    }
+}
+
+/* --- screens ------------------------------------------------------------- */
+
+function showFinishScreen() {
+    var res = game.result || finalResult(game.race);
+    var place = res.place;
+
+    el.medal.textContent = place <= 3 ? MEDALS[place - 1] : '🏅';
+    el['finish-place'].textContent = ordinal(place) + ' Place';
+    el['stat-time'].textContent = formatClock(res.time);
+    el['stat-score'].textContent = res.score.right + '/' + res.score.of;
+    el['stat-gap'].textContent = formatGap(res.gap);
+    document.getElementById('finish-sub').textContent =
+        place === 1 ? 'Miami · you won the race' : 'Miami · ' + ordinal(place) + ' on the day';
+
+    var html = '';
+    for (var i = 0; i < STAGES.length; i++) {
+        var leg = game.race.legs[i];
+        var t = leg.time !== null ? leg.time : STAGES[i].base;
+        html += '<div class="split-row"><span class="nm" style="color:' + STAGES[i].color + '">' +
+            STAGES[i].name + '</span><span class="sc">' + leg.correct + ' of ' +
+            STAGES[i].questions + ' right</span><span class="tm mono">' + formatClock(t) + '</span></div>';
+    }
+    el['split-list'].innerHTML = html;
+
+    var missed = game.race.missed;
+    if (missed.length) {
+        var m = '<h3 style="font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#5f7590;margin:16px 0 8px;font-weight:800">Back to the checklist</h3>';
+        for (var j = 0; j < missed.length; j++) {
+            m += '<div class="item"><b>' + missed[j].stage + ' — ' + missed[j].answer + '</b>' + missed[j].why + '</div>';
+        }
+        el.missed.innerHTML = m;
+    } else {
+        el.missed.innerHTML = '<div class="item" style="background:rgba(124,179,66,.12);border-left-color:rgba(124,179,66,.6)">' +
+            '<b>A clean sheet.</b>Twenty out of twenty on the race-day checklist. ' +
+            'That is the race won before the gun even goes off.</div>';
+    }
+
+    el['finish-screen'].classList.add('show');
+}
+
+function startRace(seed) {
+    game.race = createRace(seed === undefined ? (Date.now() & 0x7fffffff) : seed);
+    game.phase = 'question';
+    game.heroX = 0;
+    game.surge = 0;
+    game.slump = 0;
+    game.strokePhase = 0;
+    game.shownClock = 0;
+    game.result = null;
+    game.pending = null;
+    game.locked = false;
+    game.camAuto = true;
+
+    el['start-screen'].classList.remove('show');
+    el['finish-screen'].classList.remove('show');
+    el['cam-pill'].classList.add('show');
+
+    if (HAS_3D) {
+        world.podium.visible = false;
+        world.crowd.visible = false;
+        world.finishArch.visible = false;
+        world.hero.root.visible = true;
+        world.hero.bike.scale.setScalar(1);
+        for (var i = 0; i < world.rivals.length; i++) {
+            world.rivals[i].fig.root.visible = true;
+            world.rivals[i].fig.root.position.x = 0;
+        }
+        world.fx.clear();
+        world.spray.clear();
+        camState.off.set(-8, 5, 12);
+        camState.aim.set(0, 1, 0);
+    }
+
+    setCamera('close');
+    applyStageVisuals();
+    updateHud();
+    game.phase = 'gap';
+    game.phaseTimer = 0.7;
+}
+
+/* --- input --------------------------------------------------------------- */
+
+function onKey(e) {
+    var k = e.key;
+    if (k === 'c' || k === 'C') {
+        game.camAuto = false;
+        setCamera(game.camMode === 'close' ? 'wide' : 'close');
+        return;
+    }
+    if (k >= '1' && k <= '4') {
+        if (game.phase === 'question') { e.preventDefault(); submitAnswer(parseInt(k, 10) - 1); }
+        return;
+    }
+    if (k === 'Enter' || k === ' ') {
+        if (el['start-screen'].classList.contains('show')) { e.preventDefault(); startRace(); }
+        else if (el['finish-screen'].classList.contains('show')) { e.preventDefault(); startRace(); }
+    }
+}
+
+function onResize() {
+    if (!HAS_3D) return;
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
+}
+
+/* --- boot ---------------------------------------------------------------- */
+
+var lastFrame = 0;
+
+function tick(now) {
+    requestAnimationFrame(tick);
+    var dt = Math.min(0.05, (now - lastFrame) / 1000 || 0.016);
+    lastFrame = now;
+    game.t += dt;
+
+    if (game.phaseTimer > 0) {
+        game.phaseTimer -= dt;
+        if (game.phaseTimer <= 0) firePhaseTimer();
+    }
+
+    if (HAS_3D && game.race) {
+        updateWorld(dt);
+        renderer.render(scene, camera);
+    }
+    updateHudSmooth(dt);
+}
+
+function boot() {
+    cacheEls();
+    buildRail();
+
+    if (typeof THREE !== 'undefined' && webglAvailable()) {
+        try {
+            buildWorld(document.getElementById('scene'));
+            scene.add(makeShore());
+        } catch (err) {
+            HAS_3D = false;
+            if (window.console) console.warn('3D unavailable:', err && err.message);
+        }
+    }
+
+    if (!HAS_3D) {
+        el.nowebgl.classList.add('show');
+        el['cam-pill'].style.display = 'none';
+    }
+
+    el.boot.classList.add('gone');
+    el['start-btn'].addEventListener('click', function () { startRace(); });
+    el['again-btn'].addEventListener('click', function () { startRace(); });
+    el['podium-btn'].addEventListener('click', function () {
+        el['finish-screen'].classList.remove('show');
+        showResultsTab();
+    });
+    el['cam-close'].addEventListener('click', function () { game.camAuto = false; setCamera('close'); });
+    el['cam-wide'].addEventListener('click', function () { game.camAuto = false; setCamera('wide'); });
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onResize);
+
+    /* A race is created up front so the HUD has something to show behind the
+       start card, and so the tests can drive the page without pressing play. */
+    game.race = createRace(1);
+    updateHud();
+    applyStageVisuals();
+
+    requestAnimationFrame(tick);
+
+    /* Everything the test suite drives the page through. Nothing on the page
+       reads this object. */
+    window.__raceday = {
+        STAGES: STAGES, RIVALS: RIVALS, BANK: BANK, CAM: CAM,
+        game: game, world: world,
+        get renderer() { return renderer; },
+        get scene() { return scene; },
+        get camera() { return camera; },
+        get race() { return game.race; },
+        startRace: startRace,
+        submitAnswer: submitAnswer,
+        answerCorrectly: function () {
+            var q = currentQuestion(game.race);
+            if (!q) return false;
+            submitAnswer(q.a);
+            return true;
+        },
+        answerWrongly: function () {
+            var q = currentQuestion(game.race);
+            if (!q) return false;
+            submitAnswer(q.a === 0 ? 1 : 0);
+            return true;
+        },
+        /* Skip whatever pause the race is in and land on the next question
+           (or the ceremony), instead of waiting out the countdown. */
+        step: function () {
+            for (var i = 0; i < 6 && game.phase !== 'question' && game.phase !== 'ceremony'; i++) {
+                firePhaseTimer();
+            }
+        },
+        fireTimer: firePhaseTimer,
+        /* Run the simulation forward without waiting in real time — the tests
+           use it to check where the camera and the field settle. */
+        warm: function (seconds) {
+            if (!HAS_3D) return;
+            var n = Math.round(seconds * 60);
+            for (var i = 0; i < n; i++) { game.t += 1 / 60; updateWorld(1 / 60); }
+        },
+        /* Answer every remaining question, `wrongAt` listing the 0-based
+           question numbers to deliberately get wrong. */
+        playThrough: function (wrongAt) {
+            var wrong = wrongAt || [];
+            var guard = 0;
+            while (!game.race.finished && guard++ < 60) {
+                if (game.phase !== 'question') { firePhaseTimer(); continue; }
+                var asked = scoreOf(game.race).asked;
+                var q = currentQuestion(game.race);
+                var bad = wrong.indexOf(asked) !== -1;
+                submitAnswer(bad ? (q.a === 0 ? 1 : 0) : q.a);
+            }
+            return finalResult(game.race);
+        },
+        setCamera: setCamera,
+        enterCeremony: enterCeremony,
+        showFinishScreen: showFinishScreen,
+        helpers: {
+            createRace: createRace, answerQuestion: answerQuestion, raceElapsed: raceElapsed,
+            positionNow: positionNow, finalResult: finalResult, formatClock: formatClock,
+            formatGap: formatGap, ordinal: ordinal, ik2: ik2, pickQuestions: pickQuestions,
+            rivalStageTimes: rivalStageTimes, rivalElapsed: rivalElapsed, stageTime: stageTime,
+            courseFraction: courseFraction, scoreOf: scoreOf, totalTime: totalTime
+        }
+    };
+}
+
+/* A small way back to the 3D podium once the results card is dismissed. */
+function showResultsTab() {
+    var existing = document.getElementById('results-tab');
+    if (existing) { existing.style.display = 'block'; return; }
+    var b = document.createElement('button');
+    b.id = 'results-tab';
+    b.type = 'button';
+    b.className = 'btn ghost';
+    b.textContent = 'Show results';
+    b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:30;margin:0;background:rgba(6,20,34,.9);backdrop-filter:blur(10px)';
+    b.addEventListener('click', function () {
+        el['finish-screen'].classList.add('show');
+        b.style.display = 'none';
+    });
+    document.body.appendChild(b);
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();
+
+</script>
+</body>
+</html>

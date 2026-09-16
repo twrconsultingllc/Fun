@@ -35,7 +35,7 @@ not be loaded — so this drops straight into CI or a pre-push hook.
 
 ## What is covered
 
-332 assertions across four suites.
+555 assertions across six suites.
 
 ### `tricalc.html`
 
@@ -76,6 +76,32 @@ centre. It is an editorial judgement, not a benchmark, and it is the one field
 in the catalogue that cannot be verified against a source. The tests check that
 it is in range and internally consistent with the layout — they do not and
 cannot check that it is *right*.
+
+### `race-day.html`
+
+| Suite | File | Covers |
+|---|---|---|
+| `raceday-core` | `race-day.core.test.mjs` | The race economy — five leg times, the bonus and penalty per leg, and eight rivals whose weighted legs have to add back up to their finishing time — plus the 35-question checklist (four distinct options, one right, an explanation on each, no duplicates), the seeded draw, and the two-link inverse kinematics behind the pedal stroke. |
+| `raceday-dom` | `race-day.dom.test.mjs` | The page in jsdom with no WebGL at all: the banner that says so, the progress rail, starting a race, answering by click and by number key, the explanation panel, the running clock and score, crossing into the next leg, a won race and a lost one, the results card and the checklist recap, and the camera control. |
+
+Two numbers hold that suite together and both are derived by hand rather than
+read off the page. A perfect race is **8540s (2:22:20)** — the five leg bases
+sum to 10080 and twenty right answers take 1540 off. The fastest rival finishes
+in **9100s**, which puts the cliff between three mistakes and four. If either
+moves, the balance of the game moved with it.
+
+The suite also found two things worth recording. The saddle was three
+centimetres too high: sweeping a whole crank revolution through the IK showed
+the hip sitting 0.9124 from the pedal against a leg that reaches 0.9099, so the
+solver clamped and the foot lifted off at the bottom of the stroke. And a
+perfect swim does **not** lead out of the water — Bib 7 is the swim specialist
+and is up the road by about ninety seconds, which is the assertion
+*"but the swim specialist is still up the road"*.
+
+The page exposes `window.__raceday` for the same reason `ai-swarm.html` exposes
+`window.__swarm`: so the suite can press start, step past the pause between
+questions instead of sleeping through it, and play a whole race in one call.
+Nothing on the page reads it.
 
 The DOM suite drives the page the way a person does — setting input values and
 dispatching real events — so it tests behavior rather than internals.

@@ -21,7 +21,9 @@ const SUITES = [
     { id: 'core', page: 'tricalc.html', file: './tricalc.core.test.mjs' },
     { id: 'dom', page: 'tricalc.html', file: './tricalc.dom.test.mjs' },
     { id: 'swarm-core', page: 'ai-swarm.html', file: './ai-swarm.core.test.mjs' },
-    { id: 'swarm-dom', page: 'ai-swarm.html', file: './ai-swarm.dom.test.mjs' }
+    { id: 'swarm-dom', page: 'ai-swarm.html', file: './ai-swarm.dom.test.mjs' },
+    { id: 'raceday-core', page: 'race-day.html', file: './race-day.core.test.mjs' },
+    { id: 'raceday-dom', page: 'race-day.html', file: './race-day.dom.test.mjs' }
 ];
 
 const DEFAULT_BASE = new URL('../', import.meta.url).pathname;
