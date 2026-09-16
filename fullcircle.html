@@ -272,7 +272,7 @@
     .fail p { color: var(--text-dim); max-width: 46ch; }
 
     @media (max-width: 560px) {
-        .hud-tag { display: none; }
+        .hud-tag { font-size: 9px; letter-spacing: .08em; }
         .dock { gap: 8px 10px; padding: 9px 11px; }
         .readout { display: none; }
     }
@@ -294,7 +294,7 @@
 
 <div class="hud">
     <a class="backlink mono" href="index.html">&larr; Index</a>
-    <div class="hud-tag mono">Full Circle <b>/ the mark</b></div>
+    <div class="hud-tag mono">Full Circle <b>/ the mark</b> &nbsp;·&nbsp; <b id="buildTag">BUILD 3</b></div>
 </div>
 
 <div class="stage-foot">
