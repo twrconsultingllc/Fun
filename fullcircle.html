@@ -157,6 +157,10 @@
     }
 
     .dock {
+        display: none;   /* revealed only once the 3D layer is running */
+        align-items: center;
+    }
+    .dock.live {
         display: flex;
         align-items: center;
         flex-wrap: wrap;
@@ -296,13 +300,9 @@
 
     /* A non-blocking status chip, so a failure is readable instead of silent. */
     .diag {
-        position: fixed;
-        left: 50%;
-        transform: translateX(-50%);
-        bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
-        z-index: 8;
         max-width: min(92vw, 620px);
-        padding: 8px 13px;
+        padding: 9px 14px;
+        cursor: pointer;
         border: 1px solid var(--hairline);
         border-radius: 10px;
         background: rgba(10, 12, 20, .9);
@@ -315,6 +315,9 @@
         display: none;
     }
     .diag.show { display: block; }
+    .diag b { color: var(--text); font-weight: 500; }
+    .diag .detail { display: none; margin-top: 6px; color: var(--text-faint); font-size: 9.5px; }
+    .diag.open .detail { display: block; }
 
     @media (max-height: 760px) {
         .wordmark-line { font-size: clamp(1.6rem, 5.6vw, 2.9rem); }
@@ -368,11 +371,10 @@
 
 <canvas id="gl-canvas"></canvas>
 <div class="vignette"></div>
-<div class="diag" id="diag"></div>
 
 <div class="hud">
     <a class="backlink mono" href="index.html">&larr; Index</a>
-    <div class="hud-tag mono">Full Circle <b>/ the mark</b> &nbsp;·&nbsp; <b id="buildTag">BUILD 4</b></div>
+    <div class="hud-tag mono">Full Circle <b>/ the mark</b> &nbsp;·&nbsp; <b id="buildTag">BUILD 5</b></div>
 </div>
 
 <div class="stage-foot">
@@ -398,6 +400,8 @@
         <div class="divider" aria-hidden="true"></div>
         <div class="readout mono"><b id="fps">--</b> fps &nbsp;·&nbsp; <b id="tris">--</b> tris</div>
     </div>
+
+    <div class="diag mono" id="diag" role="status"></div>
 </div>
 
 <script>
@@ -405,10 +409,22 @@
    load - no import-map support, a blocked CDN, a parse error - this still runs
    and reports it on screen, because a tablet has no console to check. */
 (function () {
-    var diag = function (text) {
+    // Short sentence up front; the raw error only when it is asked for, so the
+    // page never shows a wall of text nobody can act on.
+    var diag = function (text, detail) {
         var el = document.getElementById('diag');
         if (!el) return;
-        el.textContent = text;
+        el.innerHTML = '';
+        var line = document.createElement('div');
+        line.innerHTML = '<b>Flat mark shown.</b> ' + text + (detail ? ' &nbsp;<span style="opacity:.6">(tap for details)</span>' : '');
+        el.appendChild(line);
+        if (detail) {
+            var d = document.createElement('div');
+            d.className = 'detail';
+            d.textContent = String(detail).slice(0, 400);
+            el.appendChild(d);
+            el.onclick = function () { el.classList.toggle('open'); };
+        }
         el.classList.add('show');
     };
     window.__fcDiag = diag;
@@ -417,17 +433,17 @@
     window.addEventListener('error', function (e) {
         if (window.__fcReady) return;
         var src = e && e.target && (e.target.src || e.target.href);
-        diag(src ? ('Could not load ' + String(src).split('/').pop() + ' - the 3D layer is off, showing the flat mark.')
-                 : ('3D layer off: ' + ((e && e.message) || 'script error') + ' - showing the flat mark.'));
+        diag(src ? 'A 3D library could not be downloaded.' : 'The 3D layer hit a script error.',
+             src || (e && e.message) || 'script error');
     }, true);
 
     window.addEventListener('unhandledrejection', function (e) {
         if (window.__fcReady) return;
-        diag('3D layer off: ' + ((e.reason && (e.reason.message || e.reason)) || 'load failed') + ' - showing the flat mark.');
+        diag('The 3D layer failed to start.', (e.reason && (e.reason.message || e.reason)) || 'load failed');
     });
 
     if (!HTMLScriptElement.supports || !HTMLScriptElement.supports('importmap')) {
-        diag('This browser does not support import maps, so the 3D layer is off. The flat mark is shown instead.');
+        diag('This browser cannot load the 3D libraries (no import-map support).', 'HTMLScriptElement.supports(importmap) === false');
     }
 
     // If the scene has not come up in eight seconds, say so rather than
@@ -436,7 +452,7 @@
         if (!window.__fcReady) {
             var el = document.getElementById('diag');
             if (el && !el.classList.contains('show')) {
-                diag('3D layer did not start (slow or blocked CDN). Showing the flat mark.');
+                diag('The 3D layer did not start in time - the library CDN may be slow or blocked.', 'watchdog: 8s elapsed, scene never rendered');
             }
         }
     }, 8000);
@@ -538,7 +554,7 @@ const parallax = new THREE.Vector2();
 try {
     init();
 } catch (err) {
-    if (window.__fcDiag) window.__fcDiag('3D layer off: ' + (err && err.message ? err.message : err));
+    if (window.__fcDiag) window.__fcDiag('The 3D layer could not start.', err && err.message ? err.message : err);
 }
 
 function init() {
@@ -547,7 +563,7 @@ function init() {
     try {
         renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
     } catch (err) {
-        if (window.__fcDiag) window.__fcDiag('WebGL is unavailable in this browser, so the flat mark is shown instead.');
+        if (window.__fcDiag) window.__fcDiag('WebGL is unavailable in this browser.', err && err.message);
         return;
     }
 
@@ -589,6 +605,7 @@ function init() {
     renderer.render(scene, camera);
     window.__fcReady = true;
     canvas.classList.add('live');
+    document.querySelector('.dock').classList.add('live');
     document.getElementById('staticMark').classList.add('retired');
     renderer.setAnimationLoop(animate);
 }
