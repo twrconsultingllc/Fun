@@ -2,15 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="Triathlon pace, split and finish-time calculator. Ironman, 70.3, Olympic, Sprint and run-only distances in imperial or metric units.">
+    <meta name="theme-color" content="#020617">
     <title>Full Circle Triathlon Calculator</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%231976D2'/%3E%3Cpath d='M 50 2 A 48 48 0 0 1 50 98 A 24 24 0 0 1 50 50 A 24 24 0 0 0 50 2 Z' fill='%237CB342'/%3E%3Ccircle cx='50' cy='26' r='7.5' fill='%231976D2'/%3E%3Ccircle cx='50' cy='74' r='7.5' fill='%237CB342'/%3E%3C/svg%3E">
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <script>
         tailwind.config = {
             theme: {
@@ -32,55 +38,62 @@
                         }
                     },
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
                     }
                 }
             }
         }
     </script>
     <style>
-        /* Custom scrollbar and smooth UI styling */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #090d16;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #1e293b;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #1976D2;
-        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #090d16; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #1976D2; }
+
         input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; }
+
+        /* Keep iOS from zooming the viewport when a field is focused. */
+        @media (max-width: 767px) {
+            input, select { font-size: 16px !important; }
         }
-        input[type="number"] {
-            -moz-appearance: textfield;
+
+        .tricalc-shadow { box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 20px 0 rgba(25, 118, 210, 0.15); }
+        .field { transition: border-color .15s ease, box-shadow .15s ease; }
+        .field:focus { outline: none; box-shadow: 0 0 0 2px rgba(25,118,210,.35); }
+        .field.is-invalid { border-color: #f87171 !important; box-shadow: 0 0 0 2px rgba(248,113,113,.25); }
+
+        .bar-seg { transition: width .35s cubic-bezier(.4,0,.2,1); }
+        .tick { animation: tick .35s ease; }
+        @keyframes tick { from { opacity: .35; transform: translateY(-2px); } to { opacity: 1; transform: none; } }
+
+        @media (prefers-reduced-motion: reduce) {
+            * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
         }
-        .tricalc-shadow {
-            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 20px 0 rgba(25, 118, 210, 0.15);
-        }
-        .glow-hover:hover {
-            box-shadow: 0 0 15px rgba(124, 179, 66, 0.3);
+
+        #toast { transition: opacity .25s ease, transform .25s ease; }
+
+        /* Bottom summary bar sits above the iOS home indicator. */
+        #mobileBar { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+        @media print {
+            header, #mobileBar, #toast, .no-print { display: none !important; }
+            body { background: #fff !important; color: #000 !important; }
+            .print-plain { background: #fff !important; border-color: #ccc !important; box-shadow: none !important; }
         }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-fcGreen selection:text-black antialiased">
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-fcGreen selection:text-black antialiased pb-20 lg:pb-0">
 
-    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-xl">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-4">
-            
-            <!-- Full Circle Logo (Recreated Exact SVG Brand Icon) -->
-            <div class="flex items-center space-x-3 cursor-pointer group" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
-                <div class="relative w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
-                    <!-- Brand Yin-Yang / Circle Icon -->
-                    <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow">
+    <header id="top" class="bg-slate-900/95 backdrop-blur border-b border-slate-800 sticky top-0 z-50 shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
+
+            <!-- Full Circle brand mark -->
+            <button type="button" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="flex items-center space-x-3 group text-left" aria-label="Back to top">
+                <div class="relative w-9 h-9 sm:w-11 sm:h-11 flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
+                    <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow" aria-hidden="true">
                         <circle cx="50" cy="50" r="48" fill="#1976D2" />
                         <path d="M 50 2 A 48 48 0 0 1 50 98 A 24 24 0 0 1 50 50 A 24 24 0 0 0 50 2 Z" fill="#7CB342" />
                         <circle cx="50" cy="26" r="7.5" fill="#1976D2" />
@@ -88,750 +101,1260 @@
                     </svg>
                 </div>
                 <div>
-                    <div class="flex items-baseline font-extrabold tracking-tight text-2xl sm:text-3xl">
+                    <div class="flex items-baseline font-extrabold tracking-tight text-xl sm:text-2xl lg:text-3xl">
                         <span class="text-fcBlue">FULL</span>
-                        <!-- Yin-yang inline dot -->
-                        <span class="inline-block w-4 h-4 sm:w-5 sm:h-5 mx-1 rounded-full bg-gradient-to-tr from-fcGreen via-fcBlue to-fcBlue shadow-sm"></span>
+                        <span class="inline-block w-3.5 h-3.5 sm:w-4 sm:h-4 mx-1 rounded-full bg-gradient-to-tr from-fcGreen via-fcBlue to-fcBlue shadow-sm"></span>
                         <span class="text-fcBlue">CIRCLE</span>
                     </div>
-                    <div class="text-[10px] sm:text-xs font-bold tracking-[0.28em] text-fcGreen uppercase -mt-1">
+                    <div class="text-[9px] sm:text-[11px] font-bold tracking-[0.25em] text-fcGreen uppercase -mt-0.5">
                         TRIATHLON • COACHING
                     </div>
                 </div>
-            </div>
+            </button>
 
-            <!-- Global Action Controls -->
-            <div class="flex items-center space-x-3">
-                <div class="bg-slate-800 p-1 rounded-xl flex items-center border border-slate-700 shadow-inner">
-                    <button id="unitImperialBtn" onclick="setUnitSystem('imperial')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-fcBlue text-white shadow">
-                        Imperial (mi / yd)
+            <!-- Global controls -->
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+                <div class="bg-slate-800 p-1 rounded-xl flex items-center border border-slate-700 shadow-inner" role="group" aria-label="Unit system">
+                    <button type="button" id="unitImperialBtn" onclick="setUnitSystem('imperial')" aria-pressed="true" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all bg-fcBlue text-white shadow">
+                        Imperial
                     </button>
-                    <button id="unitMetricBtn" onclick="setUnitSystem('metric')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white">
-                        Metric (km / m)
+                    <button type="button" id="unitMetricBtn" onclick="setUnitSystem('metric')" aria-pressed="false" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all text-slate-400 hover:text-white">
+                        Metric
                     </button>
                 </div>
 
-                <button onclick="resetCalculator()" title="Reset to default Ironman values" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5 active:scale-95">
-                    <i class="fa-solid fa-rotate-left text-fcGreen"></i> <span class="hidden sm:inline">Reset</span>
+                <button type="button" onclick="sharePlan()" title="Copy a link to this exact race plan" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5 active:scale-95">
+                    <i class="fa-solid fa-link text-fcBlue" aria-hidden="true"></i> <span class="hidden sm:inline">Share</span>
+                </button>
+
+                <button type="button" onclick="copySplits()" title="Copy the split table as text" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5 active:scale-95">
+                    <i class="fa-regular fa-copy text-fcGreen" aria-hidden="true"></i> <span class="hidden sm:inline">Copy</span>
+                </button>
+
+                <button type="button" onclick="resetCalculator()" title="Reset to the default Ironman plan" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5 active:scale-95">
+                    <i class="fa-solid fa-rotate-left text-fcGreen" aria-hidden="true"></i> <span class="hidden sm:inline">Reset</span>
                 </button>
             </div>
         </div>
     </header>
 
-    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
 
-        <!-- Top Welcome & Description Bar -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
-            <div class="absolute -right-6 -bottom-6 opacity-10 text-fcBlue pointer-events-none">
-                <i class="fa-solid fa-stopwatch text-9xl"></i>
+        <!-- Hero / headline result -->
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-lg flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative overflow-hidden print-plain">
+            <div class="absolute -right-6 -bottom-8 opacity-10 text-fcBlue pointer-events-none select-none" aria-hidden="true">
+                <i class="fa-solid fa-stopwatch text-8xl sm:text-9xl"></i>
             </div>
-            <div class="relative z-10 max-w-3xl space-y-1">
-                <div class="flex items-center space-x-2">
-                    <span class="text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-fcGreen/20 text-fcGreen border border-fcGreen/30">
-                        TriCalc 3.0 Engine
+            <div class="relative z-10 max-w-3xl space-y-1.5">
+                <div class="flex items-center flex-wrap gap-2">
+                    <span class="text-[10px] sm:text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-fcGreen/20 text-fcGreen border border-fcGreen/30">
+                        TriCalc 4.0 Engine
                     </span>
-                    <span class="text-slate-500 text-xs">• Interactive Pace & Time Tool</span>
+                    <span class="text-slate-500 text-xs">• Interactive pace &amp; finish-time tool</span>
                 </div>
                 <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                    Triathlon Pace & Finish Time Calculator
+                    Triathlon Pace &amp; Finish Time Calculator
                 </h1>
                 <p class="text-slate-400 text-sm leading-relaxed">
-                    Compute exact segment splits, total race duration, and projected clock finish time. Select a common race distance on the right or fine-tune your target pace inputs on the calculator.
+                    Every distance, pace and speed carries its own unit, so you can mix yards, meters, miles and kilometres freely &mdash; the splits stay correct. Pick a race preset or dial in your own targets and the plan updates as you type.
                 </p>
             </div>
-            <div class="relative z-10 flex-shrink-0 bg-slate-950/80 border border-slate-800 p-4 rounded-xl text-center min-w-[200px]">
-                <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Total Target Time</div>
-                <div id="topTotalDisplay" class="text-3xl font-black text-fcGreen tracking-tight font-mono">10:48:48</div>
-                <div class="text-[11px] text-slate-400 mt-1">Est. Clock: <span id="topClockDisplay" class="text-fcBlue font-bold">05:48 PM</span></div>
-            </div>
-        </div>
 
-        <!-- Main Workspace Grid: Left side TriCalc3 Gadget, Right side Distance Presets & Info -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
-            <div class="lg:col-span-6 xl:col-span-5 bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-4 sm:p-5 tricalc-shadow space-y-4">
-                
-                <!-- TriCalc3 Vintage Header Bar styled with Full Circle Theme -->
-                <div class="bg-gradient-to-r from-fcBlue-dark via-fcBlue to-fcBlue-hover p-3 rounded-xl shadow flex items-center justify-between">
-                    <div class="flex items-center space-x-2">
-                        <span class="bg-black/30 text-white text-[11px] px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-white/20">Menu</span>
-                        <h2 class="text-base font-extrabold text-white tracking-wide">TriCalc3 Calculator</h2>
+            <div class="relative z-10 flex-shrink-0 bg-slate-950/80 border border-slate-800 p-4 sm:p-5 rounded-xl text-center w-full lg:w-auto lg:min-w-[240px]">
+                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Total Target Time</div>
+                <div id="topTotalDisplay" class="text-3xl sm:text-4xl font-black text-fcGreen tracking-tight font-mono" aria-live="polite">--:--:--</div>
+                <div class="text-[11px] text-slate-400 mt-1.5">
+                    Est. finish <span id="topClockDisplay" class="text-fcBlue font-bold">--:--</span>
+                    <span id="topDayBadge" class="hidden ml-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-fcBlue/20 text-fcBlue border border-fcBlue/30">+1 day</span>
+                </div>
+                <div class="text-[11px] text-slate-500 mt-1"><span id="topDistanceDisplay">—</span> total</div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+
+            <!-- ============ CALCULATOR ============ -->
+            <section class="lg:col-span-6 xl:col-span-5 bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-4 sm:p-5 tricalc-shadow space-y-4 print-plain">
+
+                <div class="bg-gradient-to-r from-fcBlue-dark via-fcBlue to-fcBlue-hover p-3 rounded-xl shadow flex items-center justify-between gap-2">
+                    <div class="flex items-center space-x-2 min-w-0">
+                        <span class="bg-black/30 text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-white/20">Inputs</span>
+                        <h2 class="text-sm sm:text-base font-extrabold text-white tracking-wide truncate">Race Builder</h2>
                     </div>
-                    <div class="text-xs text-blue-100 font-medium flex items-center gap-1">
-                        <i class="fa-solid fa-bolt text-fcGreen"></i> Realtime Sync
+                    <div class="text-[11px] text-blue-100 font-medium flex items-center gap-1 flex-shrink-0">
+                        <i class="fa-solid fa-bolt text-fcGreen" aria-hidden="true"></i> Live
                     </div>
                 </div>
 
-                <!-- Input Form Grid (Modeled directly after TriCalc3 layout) -->
-                <div class="bg-slate-900/90 border border-slate-800/80 rounded-xl p-3.5 space-y-3.5 text-xs text-slate-300">
-                    
-                    <!-- Race Preset Selector inside Widget -->
-                    <div class="flex items-center justify-between pb-2 border-b border-slate-800 gap-2">
-                        <label for="selectPresetDropdown" class="font-bold text-slate-300 flex items-center gap-1.5">
-                            <i class="fa-solid fa-trophy text-fcGreen"></i> Select Distance:
-                        </label>
-                        <select id="selectPresetDropdown" onchange="applyPreset(this.value)" class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-semibold focus:outline-none focus:border-fcBlue max-w-[180px]">
-                            <option value="ironman">Full Ironman (140.6 mi)</option>
-                            <option value="half_ironman">70.3 Half-Iron (70.3 mi)</option>
-                            <option value="olympic">Olympic Tri (51.5 km)</option>
-                            <option value="sprint">Sprint Tri (25.7 km)</option>
-                            <option value="marathon">Marathon Run (26.2 mi)</option>
-                            <option value="half_marathon">Half-Marathon (13.1 mi)</option>
-                            <option value="10k">10K Run</option>
-                            <option value="5k">5K Run</option>
-                        </select>
-                    </div>
+                <div class="bg-slate-900/90 border border-slate-800/80 rounded-xl p-3 sm:p-4 space-y-3 text-xs text-slate-300">
 
-                    <!-- Start Time -->
-                    <div class="flex items-center justify-between py-1 border-b border-slate-800/60">
-                        <label for="startTime" class="font-bold text-slate-300">Start Time:</label>
-                        <div class="flex items-center space-x-1.5">
-                            <input type="time" id="startTime" value="07:00" onchange="calculateAll()" class="bg-slate-800 border border-slate-700 rounded-md px-2 py-1 text-xs font-mono font-semibold text-white focus:outline-none focus:border-fcBlue">
+                    <!-- Preset + start time -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-3 border-b border-slate-800">
+                        <div class="space-y-1">
+                            <label for="selectPresetDropdown" class="font-bold text-slate-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-trophy text-fcGreen" aria-hidden="true"></i> Race distance
+                            </label>
+                            <select id="selectPresetDropdown" onchange="applyPreset(this.value)" class="field w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white font-semibold">
+                                <!-- options injected by JS -->
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label for="startTime" class="font-bold text-slate-300 flex items-center gap-1.5">
+                                <i class="fa-regular fa-clock text-fcBlue" aria-hidden="true"></i> Start time
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <input type="time" id="startTime" value="07:00" class="field flex-1 min-w-0 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-2 text-xs font-mono font-semibold text-white">
+                                <button type="button" onclick="setStartToNow()" class="px-2.5 py-2 rounded-lg bg-slate-800 border border-slate-700 text-[11px] font-bold text-slate-300 hover:text-white hover:bg-slate-700 transition active:scale-95" title="Use the current time">Now</button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Swim Distance & Pace -->
-                    <div class="space-y-1.5 pt-1">
-                        <div class="flex items-center justify-between">
+                    <!-- ---- SWIM ---- -->
+                    <div class="space-y-2 pt-0.5">
+                        <div class="flex items-center justify-between gap-2">
                             <span class="font-bold text-cyan-400 flex items-center gap-1.5">
-                                <i class="fa-solid fa-person-swimming"></i> Swim Distance:
+                                <i class="fa-solid fa-person-swimming" aria-hidden="true"></i> Swim
                             </span>
-                            <div class="flex items-center space-x-1">
-                                <input type="number" id="swimDist" value="2.4" step="0.01" min="0" oninput="calculateAll()" class="w-20 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white text-right font-mono focus:border-cyan-400 focus:outline-none">
-                                <select id="swimUnit" onchange="calculateAll()" class="bg-slate-800 border border-slate-700 rounded px-1.5 py-1 text-[11px] text-slate-300 font-medium">
-                                    <option value="miles">miles</option>
-                                    <option value="meters">meters</option>
-                                    <option value="yards">yards</option>
+                            <span id="swimSplitChip" class="font-mono text-[11px] font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded">00:00:00</span>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-2">
+                            <label for="swimDist" class="text-slate-400 font-semibold pl-4">Distance</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="swimDist" value="2.4" step="any" min="0" inputmode="decimal" class="field w-20 sm:w-24 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-white text-right font-mono">
+                                <select id="swimDistUnit" class="field bg-slate-800 border border-slate-700 rounded px-1.5 py-1.5 text-[11px] text-slate-300 font-medium" aria-label="Swim distance unit">
+                                    <option value="mi">miles</option>
+                                    <option value="km">km</option>
+                                    <option value="m">meters</option>
+                                    <option value="yd">yards</option>
                                 </select>
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-between">
-                            <span class="font-semibold text-slate-400 pl-4">Swim Pace:</span>
-                            <div class="flex items-center space-x-1">
-                                <input type="number" id="swimPaceMin" value="1" min="0" max="59" placeholder="mm" oninput="calculateAll()" class="w-10 bg-slate-800 border border-slate-700 rounded px-1 py-1 text-xs text-center text-white font-mono focus:border-cyan-400 focus:outline-none">
-                                <span class="text-slate-500 font-bold">:</span>
-                                <input type="number" id="swimPaceSec" value="45" min="0" max="59" placeholder="ss" oninput="calculateAll()" class="w-10 bg-slate-800 border border-slate-700 rounded px-1 py-1 text-xs text-center text-white font-mono focus:border-cyan-400 focus:outline-none">
-                                <span class="text-slate-400 text-[11px] pl-1 w-16 text-right">/ <span class="swimPaceUnitLabel">100 yd</span></span>
+                        <div class="flex items-center justify-between gap-2">
+                            <label for="swimPaceMin" class="text-slate-400 font-semibold pl-4">Pace</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="swimPaceMin" value="1" min="0" max="599" inputmode="numeric" placeholder="mm" aria-label="Swim pace minutes" class="field w-11 bg-slate-800 border border-slate-700 rounded px-1 py-1.5 text-xs text-center text-white font-mono">
+                                <span class="text-slate-500 font-bold" aria-hidden="true">:</span>
+                                <input type="number" id="swimPaceSec" value="45" min="0" max="59" inputmode="numeric" placeholder="ss" aria-label="Swim pace seconds" class="field w-11 bg-slate-800 border border-slate-700 rounded px-1 py-1.5 text-xs text-center text-white font-mono">
+                                <select id="swimPaceUnit" class="field bg-slate-800 border border-slate-700 rounded px-1.5 py-1.5 text-[11px] text-slate-300 font-medium" aria-label="Swim pace unit">
+                                    <option value="100yd">/ 100 yd</option>
+                                    <option value="100m">/ 100 m</option>
+                                </select>
                             </div>
                         </div>
+                        <div id="swimEquiv" class="text-[11px] text-slate-500 pl-4 font-mono">&nbsp;</div>
                     </div>
 
-                    <!-- T1 Transition -->
-                    <div class="flex items-center justify-between py-1.5 border-y border-slate-800/80 bg-slate-950/40 px-2 rounded-lg">
-                        <span class="font-semibold text-slate-400 flex items-center gap-1.5">
-                            <i class="fa-solid fa-arrow-right-arrow-left text-slate-500"></i> Transition - T1:
-                        </span>
-                        <div class="flex items-center space-x-1">
-                            <input type="number" id="t1Min" value="02" min="0" max="59" placeholder="mm" oninput="calculateAll()" class="w-10 bg-slate-800 border border-slate-700 rounded px-1 py-0.5 text-xs text-center text-white font-mono focus:border-fcBlue focus:outline-none">
-                            <span class="text-slate-500 font-bold">:</span>
-                            <input type="number" id="t1Sec" value="00" min="0" max="59" placeholder="ss" oninput="calculateAll()" class="w-10 bg-slate-800 border border-slate-700 rounded px-1 py-0.5 text-xs text-center text-white font-mono focus:border-fcBlue focus:outline-none">
-                            <span class="text-slate-500 text-[10px] pl-1">(mm:ss)</span>
+                    <!-- ---- T1 ---- -->
+                    <div class="flex items-center justify-between gap-2 py-2 border-y border-slate-800/80 bg-slate-950/40 px-2 rounded-lg">
+                        <label for="t1Min" class="font-semibold text-slate-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-arrow-right-arrow-left text-slate-500" aria-hidden="true"></i> Transition T1
+                        </label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="t1Min" value="2" min="0" max="599" inputmode="numeric" placeholder="mm" aria-label="T1 minutes" class="field w-11 bg-slate-800 border border-slate-700 rounded px-1 py-1.5 text-xs text-center text-white font-mono">
+                            <span class="text-slate-500 font-bold" aria-hidden="true">:</span>
+                            <input type="number" id="t1Sec" value="0" min="0" max="59" inputmode="numeric" placeholder="ss" aria-label="T1 seconds" class="field w-11 bg-slate-800 border border-slate-700 rounded px-1 py-1.5 text-xs text-center text-white font-mono">
+                            <span class="text-slate-500 text-[10px] pl-1 w-12">mm:ss</span>
                         </div>
                     </div>
 
-                    <!-- Bike Distance & Speed -->
-                    <div class="space-y-1.5">
-                        <div class="flex items-center justify-between">
+                    <!-- ---- BIKE ---- -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between gap-2">
                             <span class="font-bold text-fcBlue flex items-center gap-1.5">
-                                <i class="fa-solid fa-person-biking"></i> Bike Distance:
+                                <i class="fa-solid fa-person-biking" aria-hidden="true"></i> Bike
                             </span>
-                            <div class="flex items-center space-x-1">
-                                <input type="number" id="bikeDist" value="112" step="0.1" min="0" oninput="calculateAll()" class="w-20 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white text-right font-mono focus:border-fcBlue focus:outline-none">
-                                <select id="bikeUnit" onchange="calculateAll()" class="bg-slate-800 border border-slate-700 rounded px-1.5 py-1 text-[11px] text-slate-300 font-medium">
-                                    <option value="miles">miles</option>
+                            <span id="bikeSplitChip" class="font-mono text-[11px] font-bold text-blue-300 bg-fcBlue/10 border border-fcBlue/25 px-2 py-0.5 rounded">00:00:00</span>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-2">
+                            <label for="bikeDist" class="text-slate-400 font-semibold pl-4">Distance</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="bikeDist" value="112" step="any" min="0" inputmode="decimal" class="field w-20 sm:w-24 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-white text-right font-mono">
+                                <select id="bikeDistUnit" class="field bg-slate-800 border border-slate-700 rounded px-1.5 py-1.5 text-[11px] text-slate-300 font-medium" aria-label="Bike distance unit">
+                                    <option value="mi">miles</option>
                                     <option value="km">km</option>
                                 </select>
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-between">
-                            <span class="font-semibold text-slate-400 pl-4">Bike Speed:</span>
-                            <div class="flex items-center space-x-1">
-                                <input type="number" id="bikeSpeed" value="19.3" step="0.1" min="0" oninput="calculateAll()" class="w-20 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-center text-white font-mono focus:border-fcBlue focus:outline-none">
-                                <span class="text-slate-400 text-[11px] pl-1 w-16 text-right"><span class="bikeSpeedUnitLabel">mph</span></span>
+                        <div class="flex items-center justify-between gap-2">
+                            <label for="bikeSpeed" class="text-slate-400 font-semibold pl-4">Speed</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="bikeSpeed" value="19.3" step="0.1" min="0" inputmode="decimal" class="field w-20 sm:w-24 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-white text-right font-mono">
+                                <select id="bikeSpeedUnit" class="field bg-slate-800 border border-slate-700 rounded px-1.5 py-1.5 text-[11px] text-slate-300 font-medium" aria-label="Bike speed unit">
+                                    <option value="mph">mph</option>
+                                    <option value="kmh">km/h</option>
+                                </select>
                             </div>
                         </div>
+                        <div id="bikeEquiv" class="text-[11px] text-slate-500 pl-4 font-mono">&nbsp;</div>
                     </div>
 
-                    <!-- T2 Transition -->
-                    <div class="flex items-center justify-between py-1.5 border-y border-slate-800/80 bg-slate-950/40 px-2 rounded-lg">
-                        <span class="font-semibold text-slate-400 flex items-center gap-1.5">
-                            <i class="fa-solid fa-arrow-right-arrow-left text-slate-500"></i> Transition - T2:
-                        </span>
-                        <div class="flex items-center space-x-1">
-                            <input type="number" id="t2Min" value="02" min="0" max="59" placeholder="mm" oninput="calculateAll()" class="w-10 bg-slate-800 border border-slate-700 rounded px-1 py-0.5 text-xs text-center text-white font-mono focus:border-fcBlue focus:outline-none">
-                            <span class="text-slate-500 font-bold">:</span>
-                            <input type="number" id="t2Sec" value="00" min="0" max="59" placeholder="ss" oninput="calculateAll()" class="w-10 bg-slate-800 border border-slate-700 rounded px-1 py-0.5 text-xs text-center text-white font-mono focus:border-fcBlue focus:outline-none">
-                            <span class="text-slate-500 text-[10px] pl-1">(mm:ss)</span>
+                    <!-- ---- T2 ---- -->
+                    <div class="flex items-center justify-between gap-2 py-2 border-y border-slate-800/80 bg-slate-950/40 px-2 rounded-lg">
+                        <label for="t2Min" class="font-semibold text-slate-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-arrow-right-arrow-left text-slate-500" aria-hidden="true"></i> Transition T2
+                        </label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="t2Min" value="2" min="0" max="599" inputmode="numeric" placeholder="mm" aria-label="T2 minutes" class="field w-11 bg-slate-800 border border-slate-700 rounded px-1 py-1.5 text-xs text-center text-white font-mono">
+                            <span class="text-slate-500 font-bold" aria-hidden="true">:</span>
+                            <input type="number" id="t2Sec" value="0" min="0" max="59" inputmode="numeric" placeholder="ss" aria-label="T2 seconds" class="field w-11 bg-slate-800 border border-slate-700 rounded px-1 py-1.5 text-xs text-center text-white font-mono">
+                            <span class="text-slate-500 text-[10px] pl-1 w-12">mm:ss</span>
                         </div>
                     </div>
 
-                    <!-- Run Distance & Pace -->
-                    <div class="space-y-1.5">
-                        <div class="flex items-center justify-between">
+                    <!-- ---- RUN ---- -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between gap-2">
                             <span class="font-bold text-fcGreen flex items-center gap-1.5">
-                                <i class="fa-solid fa-person-running"></i> Run Distance:
+                                <i class="fa-solid fa-person-running" aria-hidden="true"></i> Run
                             </span>
-                            <div class="flex items-center space-x-1">
-                                <input type="number" id="runDist" value="26.2" step="0.1" min="0" oninput="calculateAll()" class="w-20 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white text-right font-mono focus:border-fcGreen focus:outline-none">
-                                <select id="runUnit" onchange="calculateAll()" class="bg-slate-800 border border-slate-700 rounded px-1.5 py-1 text-[11px] text-slate-300 font-medium">
-                                    <option value="miles">miles</option>
+                            <span id="runSplitChip" class="font-mono text-[11px] font-bold text-lime-300 bg-fcGreen/10 border border-fcGreen/25 px-2 py-0.5 rounded">00:00:00</span>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-2">
+                            <label for="runDist" class="text-slate-400 font-semibold pl-4">Distance</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="runDist" value="26.2" step="any" min="0" inputmode="decimal" class="field w-20 sm:w-24 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-white text-right font-mono">
+                                <select id="runDistUnit" class="field bg-slate-800 border border-slate-700 rounded px-1.5 py-1.5 text-[11px] text-slate-300 font-medium" aria-label="Run distance unit">
+                                    <option value="mi">miles</option>
                                     <option value="km">km</option>
                                 </select>
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-between">
-                            <span class="font-semibold text-slate-400 pl-4">Run Pace:</span>
-                            <div class="flex items-center space-x-1">
-                                <input type="number" id="runPaceMin" value="08" min="0" max="59" placeholder="mm" oninput="calculateAll()" class="w-10 bg-slate-800 border border-slate-700 rounded px-1 py-1 text-xs text-center text-white font-mono focus:border-fcGreen focus:outline-none">
-                                <span class="text-slate-500 font-bold">:</span>
-                                <input type="number" id="runPaceSec" value="30" min="0" max="59" placeholder="ss" oninput="calculateAll()" class="w-10 bg-slate-800 border border-slate-700 rounded px-1 py-1 text-xs text-center text-white font-mono focus:border-fcGreen focus:outline-none">
-                                <span class="text-slate-400 text-[11px] pl-1 w-16 text-right">/ <span class="runPaceUnitLabel">mile</span></span>
+                        <div class="flex items-center justify-between gap-2">
+                            <label for="runPaceMin" class="text-slate-400 font-semibold pl-4">Pace</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="runPaceMin" value="8" min="0" max="599" inputmode="numeric" placeholder="mm" aria-label="Run pace minutes" class="field w-11 bg-slate-800 border border-slate-700 rounded px-1 py-1.5 text-xs text-center text-white font-mono">
+                                <span class="text-slate-500 font-bold" aria-hidden="true">:</span>
+                                <input type="number" id="runPaceSec" value="30" min="0" max="59" inputmode="numeric" placeholder="ss" aria-label="Run pace seconds" class="field w-11 bg-slate-800 border border-slate-700 rounded px-1 py-1.5 text-xs text-center text-white font-mono">
+                                <select id="runPaceUnit" class="field bg-slate-800 border border-slate-700 rounded px-1.5 py-1.5 text-[11px] text-slate-300 font-medium" aria-label="Run pace unit">
+                                    <option value="mi">/ mile</option>
+                                    <option value="km">/ km</option>
+                                </select>
                             </div>
                         </div>
+                        <div id="runEquiv" class="text-[11px] text-slate-500 pl-4 font-mono">&nbsp;</div>
                     </div>
+
+                    <p id="inputWarning" class="hidden text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded-lg px-2.5 py-2 leading-relaxed"></p>
                 </div>
+            </section>
 
-                <div class="bg-yellow-100/10 border border-yellow-500/20 rounded-xl p-3 overflow-hidden text-xs">
-                    <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
-                        <span><i class="fa-solid fa-table border-b border-yellow-500/30 pb-0.5 text-yellow-500"></i> Split Breakdown</span>
-                        <span id="presetLabelBadge" class="text-fcGreen font-semibold">Full Ironman</span>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left font-mono border-collapse">
-                            <thead>
-                                <tr class="text-[10px] text-slate-400 border-b border-slate-800 uppercase">
-                                    <th class="pb-1">Event</th>
-                                    <th class="pb-1 text-right">Split</th>
-                                    <th class="pb-1 text-right">Elapsed</th>
-                                    <th class="pb-1 text-right">Clock</th>
-                                </tr>
-                            </thead>
-                            <tbody id="gadgetTableBody" class="divide-y divide-slate-800/60 text-xs">
-                                <!-- Populated dynamically by JavaScript -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-            </div>
-
+            <!-- ============ RESULTS ============ -->
             <div class="lg:col-span-6 xl:col-span-7 space-y-6">
 
-                <!-- Instructions & Quick Conversion Box -->
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
-                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                        <i class="fa-solid fa-square-check text-fcGreen"></i> Common Event Presets
-                    </h3>
+                <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-5 print-plain">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                            <i class="fa-solid fa-table-list text-yellow-500" aria-hidden="true"></i> Race Plan
+                        </h2>
+                        <span id="presetLabelBadge" class="text-xs text-fcGreen font-bold bg-fcGreen/10 border border-fcGreen/25 px-2.5 py-0.5 rounded-full">Full Ironman</span>
+                    </div>
+
+                    <!-- Time distribution -->
+                    <div class="space-y-2">
+                        <div id="distBar" class="w-full h-3 rounded-full bg-slate-800 overflow-hidden flex" role="img" aria-label="Time distribution by discipline"></div>
+                        <div id="distLegend" class="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-400"></div>
+                    </div>
+
+                    <!-- Splits -->
+                    <div class="overflow-x-auto -mx-1 px-1">
+                        <table class="w-full text-left font-mono border-collapse min-w-[280px] sm:min-w-[360px]">
+                            <caption class="sr-only">Segment splits, elapsed time and projected clock time</caption>
+                            <thead>
+                                <tr class="text-[10px] text-slate-400 border-b border-slate-800 uppercase tracking-wider">
+                                    <th scope="col" class="pb-2 font-semibold">Event</th>
+                                    <th scope="col" class="pb-2 font-semibold text-right hidden sm:table-cell">Distance</th>
+                                    <th scope="col" class="pb-2 font-semibold text-right">Split</th>
+                                    <th scope="col" class="pb-2 font-semibold text-right">Elapsed</th>
+                                    <th scope="col" class="pb-2 font-semibold text-right">Clock</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gadgetTableBody" class="divide-y divide-slate-800/60 text-xs"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Insight tiles -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                        <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
+                            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Distance</div>
+                            <div id="statDistance" class="text-sm font-bold text-white font-mono mt-0.5">—</div>
+                        </div>
+                        <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
+                            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Moving time</div>
+                            <div id="statMoving" class="text-sm font-bold text-white font-mono mt-0.5">—</div>
+                        </div>
+                        <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
+                            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Transitions</div>
+                            <div id="statTransitions" class="text-sm font-bold text-white font-mono mt-0.5">—</div>
+                        </div>
+                        <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
+                            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Longest leg</div>
+                            <div id="statLongest" class="text-sm font-bold text-white font-mono mt-0.5">—</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Triathlon presets -->
+                <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4 no-print">
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-square-check text-fcGreen" aria-hidden="true"></i> Common Event Presets
+                    </h2>
                     <p class="text-xs text-slate-400 leading-relaxed">
-                        Use the buttons below to convert common event and race distances instantly. Selecting a preset updates the Swim, Bike, and Run values on the calculator automatically.
+                        Applying a preset loads that race&rsquo;s official distances plus a sensible target pace for the unit system you are in. Everything stays editable afterwards.
                     </p>
+                    <div id="triPresetGrid" class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 pt-1"></div>
+                </section>
 
-                    <!-- Presets Grid matched to TriCalc3 design -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                        
-                        <!-- Ironman Block -->
-                        <div class="bg-slate-950/70 border border-slate-800 p-3.5 rounded-xl space-y-2 hover:border-fcBlue/50 transition">
-                            <div class="flex items-center justify-between">
-                                <span class="font-bold text-sm text-white">Ironman Distance</span>
-                                <button onclick="applyPreset('ironman')" class="text-[10px] bg-fcBlue hover:bg-fcBlue-hover text-white font-bold px-2 py-0.5 rounded transition">Apply</button>
-                            </div>
-                            <div class="space-y-1 text-xs text-slate-400">
-                                <label class="flex items-center gap-2 cursor-pointer hover:text-slate-200" onclick="applyPreset('ironman')">
-                                    <i class="fa-regular fa-square-check text-fcGreen"></i> Swim (2.4 miles)
-                                </label>
-                                <label class="flex items-center gap-2 cursor-pointer hover:text-slate-200" onclick="applyPreset('ironman')">
-                                    <i class="fa-regular fa-square-check text-fcGreen"></i> Bike (112 miles)
-                                </label>
-                                <label class="flex items-center gap-2 cursor-pointer hover:text-slate-200" onclick="applyPreset('ironman')">
-                                    <i class="fa-regular fa-square-check text-fcGreen"></i> Run (26.2 miles)
-                                </label>
-                            </div>
-                        </div>
+                <!-- Single-sport presets -->
+                <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4 no-print">
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-person-running text-fcGreen" aria-hidden="true"></i> Single Sport &amp; Other Distances
+                    </h2>
+                    <div id="otherPresetGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3"></div>
+                </section>
 
-                        <!-- Half-Iron Block -->
-                        <div class="bg-slate-950/70 border border-slate-800 p-3.5 rounded-xl space-y-2 hover:border-fcBlue/50 transition">
-                            <div class="flex items-center justify-between">
-                                <span class="font-bold text-sm text-white">Half-Iron (70.3) Tri</span>
-                                <button onclick="applyPreset('half_ironman')" class="text-[10px] bg-fcBlue hover:bg-fcBlue-hover text-white font-bold px-2 py-0.5 rounded transition">Apply</button>
-                            </div>
-                            <div class="space-y-1 text-xs text-slate-400">
-                                <label class="flex items-center gap-2 cursor-pointer hover:text-slate-200" onclick="applyPreset('half_ironman')">
-                                    <i class="fa-regular fa-square-check text-fcGreen"></i> Swim (1.2 miles)
-                                </label>
-                                <label class="flex items-center gap-2 cursor-pointer hover:text-slate-200" onclick="applyPreset('half_ironman')">
-                                    <i class="fa-regular fa-square-check text-fcGreen"></i> Bike (56 miles)
-                                </label>
-                                <label class="flex items-center gap-2 cursor-pointer hover:text-slate-200" onclick="applyPreset('half_ironman')">
-                                    <i class="fa-regular fa-square-check text-fcGreen"></i> Run (13.1 miles)
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Olympic Block -->
-                        <div class="bg-slate-950/70 border border-slate-800 p-3.5 rounded-xl space-y-2 hover:border-fcBlue/50 transition">
-                            <div class="flex items-center justify-between">
-                                <span class="font-bold text-sm text-white">Olympic Triathlon</span>
-                                <button onclick="applyPreset('olympic')" class="text-[10px] bg-fcBlue hover:bg-fcBlue-hover text-white font-bold px-2 py-0.5 rounded transition">Apply</button>
-                            </div>
-                            <div class="space-y-1 text-xs text-slate-400">
-                                <label class="flex items-center gap-2 cursor-pointer hover:text-slate-200" onclick="applyPreset('olympic')">
-                                    <i class="fa-regular fa-square-check text-fcGreen"></i> Swim (1500 meters)
-                                </label>
-                                <label class="flex items-center gap-2 cursor-pointer hover:text-slate-200" onclick="applyPreset('olympic')">
-                                    <i class="fa-regular fa-square-check text-fcGreen"></i> Bike (40 km)
-                                </label>
-                                <label class="flex items-center gap-2 cursor-pointer hover:text-slate-200" onclick="applyPreset('olympic')">
-                                    <i class="fa-regular fa-square-check text-fcGreen"></i> Run (10 km)
-                                </label>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
-                <!-- Secondary Useful Distances Grid -->
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
-                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                        <i class="fa-solid fa-person-running text-fcGreen"></i> Single Sport & Other Useful Distances
-                    </h3>
-
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <button onclick="applyPreset('sprint')" class="p-3 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-left transition group">
-                            <div class="text-[10px] font-semibold text-fcGreen uppercase tracking-wider">Triathlon</div>
-                            <div class="text-sm font-bold text-white group-hover:text-fcBlue transition">Sprint Tri</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">25.7 km total</div>
-                        </button>
-
-                        <button onclick="applyPreset('marathon')" class="p-3 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-left transition group">
-                            <div class="text-[10px] font-semibold text-fcGreen uppercase tracking-wider">Run Only</div>
-                            <div class="text-sm font-bold text-white group-hover:text-fcBlue transition">Marathon</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">26.2 miles</div>
-                        </button>
-
-                        <button onclick="applyPreset('half_marathon')" class="p-3 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-left transition group">
-                            <div class="text-[10px] font-semibold text-fcGreen uppercase tracking-wider">Run Only</div>
-                            <div class="text-sm font-bold text-white group-hover:text-fcBlue transition">Half-Marathon</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">13.1 miles</div>
-                        </button>
-
-                        <button onclick="applyPreset('10k')" class="p-3 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-left transition group">
-                            <div class="text-[10px] font-semibold text-fcGreen uppercase tracking-wider">Run Only</div>
-                            <div class="text-sm font-bold text-white group-hover:text-fcBlue transition">10K Run</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">6.21 miles</div>
-                        </button>
-
-                        <button onclick="applyPreset('5k')" class="p-3 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-left transition group">
-                            <div class="text-[10px] font-semibold text-fcGreen uppercase tracking-wider">Run Only</div>
-                            <div class="text-sm font-bold text-white group-hover:text-fcBlue transition">5K Run</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">3.11 miles</div>
-                        </button>
-
-                        <button onclick="applyPreset('10miler')" class="p-3 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-left transition group">
-                            <div class="text-[10px] font-semibold text-fcGreen uppercase tracking-wider">Run Only</div>
-                            <div class="text-sm font-bold text-white group-hover:text-fcBlue transition">10 Miler</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">10.0 miles</div>
-                        </button>
-
-                        <button onclick="applyPreset('leadville')" class="p-3 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-left transition group">
-                            <div class="text-[10px] font-semibold text-fcGreen uppercase tracking-wider">Ultra Run</div>
-                            <div class="text-sm font-bold text-white group-hover:text-fcBlue transition">Leadville Ultra</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">100 miles</div>
-                        </button>
-
-                        <button onclick="applyPreset('bay30k')" class="p-3 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-left transition group">
-                            <div class="text-[10px] font-semibold text-fcGreen uppercase tracking-wider">Road Race</div>
-                            <div class="text-sm font-bold text-white group-hover:text-fcBlue transition">Around the Bay</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">30 km</div>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Full Circle Coaching Banner Callout -->
-                <div class="p-6 rounded-2xl bg-gradient-to-r from-fcBlue/20 via-slate-900 to-fcGreen/20 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+                <!-- Coaching callout -->
+                <section class="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-fcBlue/20 via-slate-900 to-fcGreen/20 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl no-print">
                     <div class="space-y-1 text-center sm:text-left">
-                        <div class="text-base font-extrabold text-white flex items-center justify-center sm:justify-start gap-2">
-                            <span>Ready to reach your target triathlon pace?</span>
-                        </div>
+                        <div class="text-base font-extrabold text-white">Ready to reach your target triathlon pace?</div>
                         <div class="text-xs text-slate-400 max-w-lg">
                             Get personalized training schedules, swim stroke analysis, and structured race-day pacing strategies from Full Circle Triathlon Coaching.
                         </div>
                     </div>
-                    <button class="px-5 py-2.5 bg-gradient-to-r from-fcBlue to-fcGreen text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg hover:brightness-110 transition whitespace-nowrap active:scale-95">
+                    <!-- TODO: point this at the real Full Circle contact / booking URL. -->
+                    <a href="#top" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;" class="px-5 py-3 bg-gradient-to-r from-fcBlue to-fcGreen text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg hover:brightness-110 transition whitespace-nowrap active:scale-95">
                         Get Coached
-                    </button>
-                </div>
-
+                    </a>
+                </section>
             </div>
         </div>
-
     </main>
 
     <footer class="mt-auto bg-slate-900 border-t border-slate-800 py-6 text-center text-xs text-slate-500">
         <div class="max-w-7xl mx-auto px-4 space-y-2">
-            <div class="flex items-center justify-center space-x-2">
+            <div class="flex items-center justify-center flex-wrap gap-x-2 gap-y-1">
                 <span class="text-slate-400 font-bold">FULL CIRCLE TRIATHLON COACHING</span>
-                <span>•</span>
-                <span>TriCalc3 Engine v3.0</span>
+                <span aria-hidden="true">•</span>
+                <span>TriCalc Engine v4.0</span>
             </div>
-            <p>© Copyright Full Circle Triathlon Coaching. All Rights Reserved.</p>
+            <p>&copy; Copyright Full Circle Triathlon Coaching. All Rights Reserved.</p>
         </div>
     </footer>
 
-    <script>
-        // Global Application State
-        let currentUnits = 'imperial'; // 'imperial' or 'metric'
-        let currentPreset = 'ironman';
+    <!-- Mobile summary bar -->
+    <div id="mobileBar" class="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 backdrop-blur border-t border-slate-800 shadow-[0_-8px_20px_-10px_rgba(0,0,0,.8)]">
+        <div class="px-4 py-2.5 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+                <div class="text-[9px] uppercase tracking-wider text-slate-500 font-bold">Total</div>
+                <div id="mobileTotal" class="text-lg font-black font-mono text-fcGreen leading-tight truncate">--:--:--</div>
+            </div>
+            <div class="text-right min-w-0">
+                <div class="text-[9px] uppercase tracking-wider text-slate-500 font-bold">Finish</div>
+                <div id="mobileClock" class="text-sm font-bold font-mono text-fcBlue leading-tight truncate">--:--</div>
+            </div>
+        </div>
+    </div>
 
-        // Helper: Formats total seconds to HH:MM:SS format
-        function formatTime(totalSeconds) {
-            if (isNaN(totalSeconds) || totalSeconds < 0) return "00:00:00";
-            const hrs = Math.floor(totalSeconds / 3600);
-            const mins = Math.floor((totalSeconds % 3600) / 60);
-            const secs = Math.floor(totalSeconds % 60);
-            
-            const pad = (num) => String(num).padStart(2, '0');
-            return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+    <div id="toast" class="fixed left-1/2 -translate-x-1/2 bottom-24 lg:bottom-8 z-50 opacity-0 pointer-events-none translate-y-2 bg-slate-800 border border-slate-700 text-slate-100 text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xl" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+
+/* ===== PURE MATH START =====
+   Everything between these markers is DOM-free and unit-test-covered. */
+
+// Canonical internal unit is the meter; canonical time unit is the second.
+var METERS = { mi: 1609.344, km: 1000, m: 1, yd: 0.9144 };
+// A "pace unit" is the distance a pace value refers to.
+var PACE_METERS = { '100yd': 91.44, '100m': 100, mi: 1609.344, km: 1000 };
+// Speed units expressed in meters per second.
+var SPEED_MPS = { mph: 1609.344 / 3600, kmh: 1000 / 3600 };
+
+function num(value) {
+    var n = typeof value === 'number' ? value : parseFloat(value);
+    return isFinite(n) ? n : 0;
+}
+
+function toMeters(value, unit) {
+    var factor = METERS[unit];
+    if (!factor) return 0;
+    return Math.max(0, num(value)) * factor;
+}
+
+function fromMeters(meters, unit) {
+    var factor = METERS[unit];
+    if (!factor) return 0;
+    return meters / factor;
+}
+
+// Seconds for a distance covered at a pace (seconds per paceUnit).
+function secondsFromPace(meters, paceSeconds, paceUnit) {
+    var unitMeters = PACE_METERS[paceUnit];
+    if (!unitMeters || !(meters > 0) || !(paceSeconds > 0)) return 0;
+    return (meters / unitMeters) * paceSeconds;
+}
+
+// Seconds for a distance covered at a speed (speedUnit per hour).
+function secondsFromSpeed(meters, speed, speedUnit) {
+    var mps = num(speed) * (SPEED_MPS[speedUnit] || 0);
+    if (!(meters > 0) || !(mps > 0)) return 0;
+    return meters / mps;
+}
+
+// Convert a pace between pace units, keeping the underlying speed identical.
+function convertPace(paceSeconds, fromUnit, toUnit) {
+    var a = PACE_METERS[fromUnit], b = PACE_METERS[toUnit];
+    if (!a || !b) return paceSeconds;
+    return paceSeconds * (b / a);
+}
+
+function convertSpeed(speed, fromUnit, toUnit) {
+    var a = SPEED_MPS[fromUnit], b = SPEED_MPS[toUnit];
+    if (!a || !b) return speed;
+    return num(speed) * (a / b);
+}
+
+function convertDistance(value, fromUnit, toUnit) {
+    return fromMeters(toMeters(value, fromUnit), toUnit);
+}
+
+// HH:MM:SS, with hours allowed to run past 24 for ultra distances.
+function formatTime(totalSeconds) {
+    if (!isFinite(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
+    var t = Math.round(totalSeconds);
+    var hrs = Math.floor(t / 3600);
+    var mins = Math.floor((t % 3600) / 60);
+    var secs = t % 60;
+    return pad2(hrs) + ':' + pad2(mins) + ':' + pad2(secs);
+}
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+// m:ss, used for pace values.
+function formatPace(paceSeconds) {
+    if (!isFinite(paceSeconds) || paceSeconds <= 0) return '--:--';
+    var t = Math.round(paceSeconds);
+    return Math.floor(t / 60) + ':' + pad2(t % 60);
+}
+
+// 12-hour clock plus how many calendar days the finish rolls over.
+function clockAt(startTimeStr, elapsedSeconds) {
+    var parts = String(startTimeStr || '').split(':');
+    var startHrs = Math.min(23, Math.max(0, parseInt(parts[0], 10) || 0));
+    var startMins = Math.min(59, Math.max(0, parseInt(parts[1], 10) || 0));
+
+    var absolute = (startHrs * 3600) + (startMins * 60) + Math.round(elapsedSeconds || 0);
+    var dayOffset = Math.floor(absolute / 86400);
+    var clockSecs = ((absolute % 86400) + 86400) % 86400;
+
+    var hrs = Math.floor(clockSecs / 3600);
+    var mins = Math.floor((clockSecs % 3600) / 60);
+    var secs = clockSecs % 60;
+    var ampm = hrs >= 12 ? 'PM' : 'AM';
+    var hrs12 = hrs % 12 || 12;
+
+    return {
+        text: pad2(hrs12) + ':' + pad2(mins) + ':' + pad2(secs) + ' ' + ampm,
+        short: pad2(hrs12) + ':' + pad2(mins) + ' ' + ampm,
+        dayOffset: dayOffset
+    };
+}
+
+/* Build the full race plan from a plain state object.
+   Each split is rounded to whole seconds first, so the elapsed column always
+   equals the sum of the splits above it. */
+function computePlan(state) {
+    var swimMeters = toMeters(state.swim.dist, state.swim.distUnit);
+    var bikeMeters = toMeters(state.bike.dist, state.bike.distUnit);
+    var runMeters = toMeters(state.run.dist, state.run.distUnit);
+
+    var swimSecs = Math.round(secondsFromPace(swimMeters, state.swim.pace, state.swim.paceUnit));
+    var bikeSecs = Math.round(secondsFromSpeed(bikeMeters, state.bike.speed, state.bike.speedUnit));
+    var runSecs = Math.round(secondsFromPace(runMeters, state.run.pace, state.run.paceUnit));
+    var t1Secs = Math.max(0, Math.round(num(state.t1)));
+    var t2Secs = Math.max(0, Math.round(num(state.t2)));
+
+    var rows = [
+        { key: 'swim', label: 'Swim', meters: swimMeters, seconds: swimSecs, kind: 'sport' },
+        { key: 't1', label: 'T1', meters: 0, seconds: t1Secs, kind: 'transition' },
+        { key: 'bike', label: 'Bike', meters: bikeMeters, seconds: bikeSecs, kind: 'sport' },
+        { key: 't2', label: 'T2', meters: 0, seconds: t2Secs, kind: 'transition' },
+        { key: 'run', label: 'Run', meters: runMeters, seconds: runSecs, kind: 'sport' }
+    ];
+
+    var elapsed = 0;
+    for (var i = 0; i < rows.length; i++) {
+        elapsed += rows[i].seconds;
+        rows[i].elapsed = elapsed;
+    }
+
+    var total = elapsed;
+    var movingSecs = swimSecs + bikeSecs + runSecs;
+    var totalMeters = swimMeters + bikeMeters + runMeters;
+
+    // A leg with distance but no pace/speed would silently vanish from the total.
+    var issues = [];
+    if (swimMeters > 0 && swimSecs === 0) issues.push('swim');
+    if (bikeMeters > 0 && bikeSecs === 0) issues.push('bike');
+    if (runMeters > 0 && runSecs === 0) issues.push('run');
+
+    return {
+        rows: rows,
+        swimSecs: swimSecs, bikeSecs: bikeSecs, runSecs: runSecs,
+        t1Secs: t1Secs, t2Secs: t2Secs,
+        movingSecs: movingSecs,
+        transitionSecs: t1Secs + t2Secs,
+        totalSecs: total,
+        totalMeters: totalMeters,
+        swimMeters: swimMeters, bikeMeters: bikeMeters, runMeters: runMeters,
+        issues: issues
+    };
+}
+
+// Round a distance to a sane number of decimals for its magnitude.
+function tidyDistance(value, unit) {
+    if (!isFinite(value)) return 0;
+    if (unit === 'm' || unit === 'yd') return Math.round(value);
+    if (value >= 100) return Math.round(value * 10) / 10;
+    if (value >= 10) return Math.round(value * 100) / 100;
+    return Math.round(value * 1000) / 1000;
+}
+
+/* ===== PURE MATH END ===== */
+
+/* ---------- Race presets ----------
+   Distances are the official numbers for each unit system. Paces are stored in
+   imperial and converted for metric, so a preset takes the same time either way. */
+var PRESETS = [
+    {
+        key: 'ironman', label: 'Full Ironman', tag: '140.6 mi', group: 'tri',
+        imperial: { swim: [2.4, 'mi'], bike: [112, 'mi'], run: [26.2, 'mi'] },
+        metric: { swim: [3800, 'm'], bike: [180, 'km'], run: [42.2, 'km'] },
+        pace: { swim: 105, bike: 19.3, run: 510 }, t1: 120, t2: 120
+    },
+    {
+        key: 'half_ironman', label: 'Half-Iron (70.3)', tag: '70.3 mi', group: 'tri',
+        imperial: { swim: [1.2, 'mi'], bike: [56, 'mi'], run: [13.1, 'mi'] },
+        metric: { swim: [1900, 'm'], bike: [90, 'km'], run: [21.1, 'km'] },
+        pace: { swim: 105, bike: 18.0, run: 525 }, t1: 120, t2: 120
+    },
+    {
+        key: 'olympic', label: 'Olympic Tri', tag: '51.5 km', group: 'tri',
+        imperial: { swim: [1640, 'yd'], bike: [24.85, 'mi'], run: [6.21, 'mi'] },
+        metric: { swim: [1500, 'm'], bike: [40, 'km'], run: [10, 'km'] },
+        pace: { swim: 100, bike: 20.0, run: 465 }, t1: 90, t2: 90
+    },
+    {
+        key: 'sprint', label: 'Sprint Tri', tag: '25.7 km', group: 'tri',
+        imperial: { swim: [820, 'yd'], bike: [12.42, 'mi'], run: [3.11, 'mi'] },
+        metric: { swim: [750, 'm'], bike: [20, 'km'], run: [5, 'km'] },
+        pace: { swim: 95, bike: 18.5, run: 450 }, t1: 75, t2: 75
+    },
+    {
+        key: 'super_sprint', label: 'Super Sprint Tri', tag: '12.9 km', group: 'tri',
+        imperial: { swim: [410, 'yd'], bike: [6.21, 'mi'], run: [1.55, 'mi'] },
+        metric: { swim: [375, 'm'], bike: [10, 'km'], run: [2.5, 'km'] },
+        pace: { swim: 95, bike: 18.5, run: 435 }, t1: 60, t2: 60
+    },
+    {
+        key: 'marathon', label: 'Marathon', tag: '26.2 mi', group: 'run', note: 'Run only',
+        imperial: { swim: [0, 'mi'], bike: [0, 'mi'], run: [26.2, 'mi'] },
+        metric: { swim: [0, 'm'], bike: [0, 'km'], run: [42.2, 'km'] },
+        pace: { swim: 105, bike: 18, run: 510 }, t1: 0, t2: 0
+    },
+    {
+        key: 'half_marathon', label: 'Half-Marathon', tag: '13.1 mi', group: 'run', note: 'Run only',
+        imperial: { swim: [0, 'mi'], bike: [0, 'mi'], run: [13.1, 'mi'] },
+        metric: { swim: [0, 'm'], bike: [0, 'km'], run: [21.1, 'km'] },
+        pace: { swim: 105, bike: 18, run: 495 }, t1: 0, t2: 0
+    },
+    {
+        key: '10k', label: '10K Run', tag: '6.21 mi', group: 'run', note: 'Run only',
+        imperial: { swim: [0, 'mi'], bike: [0, 'mi'], run: [6.21, 'mi'] },
+        metric: { swim: [0, 'm'], bike: [0, 'km'], run: [10, 'km'] },
+        pace: { swim: 105, bike: 18, run: 465 }, t1: 0, t2: 0
+    },
+    {
+        key: '5k', label: '5K Run', tag: '3.11 mi', group: 'run', note: 'Run only',
+        imperial: { swim: [0, 'mi'], bike: [0, 'mi'], run: [3.11, 'mi'] },
+        metric: { swim: [0, 'm'], bike: [0, 'km'], run: [5, 'km'] },
+        pace: { swim: 105, bike: 18, run: 450 }, t1: 0, t2: 0
+    },
+    {
+        key: '10miler', label: '10 Miler', tag: '10.0 mi', group: 'run', note: 'Run only',
+        imperial: { swim: [0, 'mi'], bike: [0, 'mi'], run: [10, 'mi'] },
+        metric: { swim: [0, 'm'], bike: [0, 'km'], run: [16.09, 'km'] },
+        pace: { swim: 105, bike: 18, run: 480 }, t1: 0, t2: 0
+    },
+    {
+        key: 'bay30k', label: 'Around the Bay 30K', tag: '30 km', group: 'run', note: 'Road race',
+        imperial: { swim: [0, 'mi'], bike: [0, 'mi'], run: [18.64, 'mi'] },
+        metric: { swim: [0, 'm'], bike: [0, 'km'], run: [30, 'km'] },
+        pace: { swim: 105, bike: 18, run: 480 }, t1: 0, t2: 0
+    },
+    {
+        key: 'leadville', label: 'Leadville 100', tag: '100 mi', group: 'run', note: 'Ultra run',
+        imperial: { swim: [0, 'mi'], bike: [0, 'mi'], run: [100, 'mi'] },
+        metric: { swim: [0, 'm'], bike: [0, 'km'], run: [160.9, 'km'] },
+        pace: { swim: 105, bike: 18, run: 870 }, t1: 0, t2: 0
+    },
+    {
+        key: 'century', label: 'Century Ride', tag: '100 mi', group: 'bike', note: 'Bike only',
+        imperial: { swim: [0, 'mi'], bike: [100, 'mi'], run: [0, 'mi'] },
+        metric: { swim: [0, 'm'], bike: [160.9, 'km'], run: [0, 'km'] },
+        pace: { swim: 105, bike: 17.0, run: 510 }, t1: 0, t2: 0
+    }
+];
+
+function findPreset(key) {
+    for (var i = 0; i < PRESETS.length; i++) if (PRESETS[i].key === key) return PRESETS[i];
+    return null;
+}
+
+/* ---------- Application state ---------- */
+var STORAGE_KEY = 'fc-tricalc-v4';
+
+var state = {
+    units: 'imperial',
+    preset: 'ironman',
+    startTime: '07:00',
+    swim: { dist: 2.4, distUnit: 'mi', pace: 105, paceUnit: '100yd' },
+    bike: { dist: 112, distUnit: 'mi', speed: 19.3, speedUnit: 'mph' },
+    run: { dist: 26.2, distUnit: 'mi', pace: 510, paceUnit: 'mi' },
+    t1: 120,
+    t2: 120
+};
+
+var el = function (id) { return document.getElementById(id); };
+
+/* ---------- State <-> DOM ---------- */
+function paceFromInputs(minId, secId) {
+    var mins = Math.max(0, parseInt(el(minId).value, 10) || 0);
+    var secs = Math.max(0, parseInt(el(secId).value, 10) || 0);
+    return (mins * 60) + secs;
+}
+
+function writePaceInputs(minId, secId, totalSeconds) {
+    var t = Math.max(0, Math.round(totalSeconds || 0));
+    el(minId).value = Math.floor(t / 60);
+    el(secId).value = pad2(t % 60);
+}
+
+function readStateFromDom() {
+    state.startTime = el('startTime').value || '07:00';
+
+    state.swim.dist = Math.max(0, num(el('swimDist').value));
+    state.swim.distUnit = el('swimDistUnit').value;
+    state.swim.pace = paceFromInputs('swimPaceMin', 'swimPaceSec');
+    state.swim.paceUnit = el('swimPaceUnit').value;
+
+    state.bike.dist = Math.max(0, num(el('bikeDist').value));
+    state.bike.distUnit = el('bikeDistUnit').value;
+    state.bike.speed = Math.max(0, num(el('bikeSpeed').value));
+    state.bike.speedUnit = el('bikeSpeedUnit').value;
+
+    state.run.dist = Math.max(0, num(el('runDist').value));
+    state.run.distUnit = el('runDistUnit').value;
+    state.run.pace = paceFromInputs('runPaceMin', 'runPaceSec');
+    state.run.paceUnit = el('runPaceUnit').value;
+
+    state.t1 = paceFromInputs('t1Min', 't1Sec');
+    state.t2 = paceFromInputs('t2Min', 't2Sec');
+}
+
+function writeStateToDom() {
+    el('startTime').value = state.startTime;
+
+    el('swimDist').value = state.swim.dist;
+    el('swimDistUnit').value = state.swim.distUnit;
+    writePaceInputs('swimPaceMin', 'swimPaceSec', state.swim.pace);
+    el('swimPaceUnit').value = state.swim.paceUnit;
+
+    el('bikeDist').value = state.bike.dist;
+    el('bikeDistUnit').value = state.bike.distUnit;
+    el('bikeSpeed').value = state.bike.speed;
+    el('bikeSpeedUnit').value = state.bike.speedUnit;
+
+    el('runDist').value = state.run.dist;
+    el('runDistUnit').value = state.run.distUnit;
+    writePaceInputs('runPaceMin', 'runPaceSec', state.run.pace);
+    el('runPaceUnit').value = state.run.paceUnit;
+
+    writePaceInputs('t1Min', 't1Sec', state.t1);
+    writePaceInputs('t2Min', 't2Sec', state.t2);
+
+    el('selectPresetDropdown').value = state.preset;
+    syncUnitButtons();
+}
+
+/* ---------- Presets ---------- */
+function applyPreset(key) {
+    var preset = findPreset(key);
+    if (!preset) return;
+
+    var block = state.units === 'metric' ? preset.metric : preset.imperial;
+    var metric = state.units === 'metric';
+
+    state.preset = key;
+    state.swim.dist = block.swim[0];
+    state.swim.distUnit = block.swim[1];
+    state.swim.paceUnit = metric ? '100m' : '100yd';
+    state.swim.pace = metric ? Math.round(convertPace(preset.pace.swim, '100yd', '100m')) : preset.pace.swim;
+
+    state.bike.dist = block.bike[0];
+    state.bike.distUnit = block.bike[1];
+    state.bike.speedUnit = metric ? 'kmh' : 'mph';
+    state.bike.speed = metric ? Math.round(convertSpeed(preset.pace.bike, 'mph', 'kmh') * 10) / 10 : preset.pace.bike;
+
+    state.run.dist = block.run[0];
+    state.run.distUnit = block.run[1];
+    state.run.paceUnit = metric ? 'km' : 'mi';
+    state.run.pace = metric ? Math.round(convertPace(preset.pace.run, 'mi', 'km')) : preset.pace.run;
+
+    state.t1 = preset.t1;
+    state.t2 = preset.t2;
+
+    writeStateToDom();
+    render();
+    persist();
+}
+
+function markCustom() {
+    if (state.preset !== 'custom') {
+        state.preset = 'custom';
+        var dd = el('selectPresetDropdown');
+        if (dd) dd.value = 'custom';
+    }
+}
+
+function currentPresetLabel() {
+    var preset = findPreset(state.preset);
+    return preset ? preset.label : 'Custom Plan';
+}
+
+/* ---------- Unit system ---------- */
+function syncUnitButtons() {
+    var active = "px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all bg-fcBlue text-white shadow";
+    var idle = "px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all text-slate-400 hover:text-white";
+    var imperial = state.units === 'imperial';
+    el('unitImperialBtn').className = imperial ? active : idle;
+    el('unitMetricBtn').className = imperial ? idle : active;
+    el('unitImperialBtn').setAttribute('aria-pressed', String(imperial));
+    el('unitMetricBtn').setAttribute('aria-pressed', String(!imperial));
+}
+
+// Switching systems converts the athlete's numbers instead of discarding them,
+// so the projected finish time stays put (to the nearest second).
+function setUnitSystem(system) {
+    if (state.units === system) return;
+    readStateFromDom();
+
+    var toMetric = system === 'metric';
+    var distMap = toMetric ? { mi: 'km', yd: 'm', km: 'km', m: 'm' } : { km: 'mi', m: 'yd', mi: 'mi', yd: 'yd' };
+
+    ['swim', 'bike', 'run'].forEach(function (leg) {
+        var from = state[leg].distUnit;
+        var to = distMap[from] || from;
+        if (to !== from) {
+            state[leg].dist = tidyDistance(convertDistance(state[leg].dist, from, to), to);
+            state[leg].distUnit = to;
         }
+    });
 
-        // Helper: Formats seconds into 12-Hour AM/PM clock time given start time string (HH:MM)
-        function formatClockTime(startTimeStr, elapsedSeconds) {
-            if (!startTimeStr) return "--:--";
-            const parts = startTimeStr.split(':');
-            let startHrs = parseInt(parts[0], 10) || 0;
-            let startMins = parseInt(parts[1], 10) || 0;
+    var swimTo = toMetric ? '100m' : '100yd';
+    if (state.swim.paceUnit !== swimTo) {
+        state.swim.pace = Math.round(convertPace(state.swim.pace, state.swim.paceUnit, swimTo));
+        state.swim.paceUnit = swimTo;
+    }
 
-            let totalStartSecs = (startHrs * 3600) + (startMins * 60) + elapsedSeconds;
-            let clockSecs = totalStartSecs % 86400; // Constrain to 24h
+    var speedTo = toMetric ? 'kmh' : 'mph';
+    if (state.bike.speedUnit !== speedTo) {
+        state.bike.speed = Math.round(convertSpeed(state.bike.speed, state.bike.speedUnit, speedTo) * 10) / 10;
+        state.bike.speedUnit = speedTo;
+    }
 
-            let hrs = Math.floor(clockSecs / 3600);
-            let mins = Math.floor((clockSecs % 3600) / 60);
-            let secs = Math.floor(clockSecs % 60);
+    var runTo = toMetric ? 'km' : 'mi';
+    if (state.run.paceUnit !== runTo) {
+        state.run.pace = Math.round(convertPace(state.run.pace, state.run.paceUnit, runTo));
+        state.run.paceUnit = runTo;
+    }
 
-            const ampm = hrs >= 12 ? 'PM' : 'AM';
-            let hrs12 = hrs % 12;
-            if (hrs12 === 0) hrs12 = 12;
+    state.units = system;
+    writeStateToDom();
+    render();
+    persist();
+}
 
-            const pad = (num) => String(num).padStart(2, '0');
-            return `${pad(hrs12)}:${pad(mins)}:${pad(secs)} ${ampm}`;
+/* ---------- Rendering ---------- */
+var UNIT_LABEL = { mi: 'mi', km: 'km', m: 'm', yd: 'yd' };
+
+function formatDistance(meters) {
+    if (!(meters > 0)) return '0';
+    if (state.units === 'metric') {
+        if (meters < 1000) return Math.round(meters) + ' m';
+        return (Math.round(meters / 100) / 10) + ' km';
+    }
+    var miles = meters / METERS.mi;
+    if (miles < 0.25) return Math.round(meters / METERS.yd) + ' yd';
+    return (Math.round(miles * 100) / 100) + ' mi';
+}
+
+function render() {
+    var plan = computePlan(state);
+    var start = state.startTime;
+
+    // Headline numbers
+    var finish = clockAt(start, plan.totalSecs);
+    setText('topTotalDisplay', formatTime(plan.totalSecs));
+    setText('topClockDisplay', finish.short);
+    setText('topDistanceDisplay', formatDistance(plan.totalMeters));
+    el('topDayBadge').classList.toggle('hidden', finish.dayOffset < 1);
+    if (finish.dayOffset >= 1) {
+        el('topDayBadge').textContent = '+' + finish.dayOffset + ' day' + (finish.dayOffset > 1 ? 's' : '');
+    }
+    setText('mobileTotal', formatTime(plan.totalSecs));
+    setText('mobileClock', finish.short);
+
+    // Per-leg chips in the builder
+    setText('swimSplitChip', formatTime(plan.swimSecs));
+    setText('bikeSplitChip', formatTime(plan.bikeSecs));
+    setText('runSplitChip', formatTime(plan.runSecs));
+
+    // Pace equivalents
+    setText('swimEquiv', plan.swimMeters > 0 && state.swim.pace > 0
+        ? formatPace(state.swim.pace) + ' /' + (state.swim.paceUnit === '100yd' ? '100yd' : '100m') +
+          '  ·  ' + formatPace(convertPace(state.swim.pace, state.swim.paceUnit, state.swim.paceUnit === '100yd' ? '100m' : '100yd')) +
+          ' /' + (state.swim.paceUnit === '100yd' ? '100m' : '100yd')
+        : ' ');
+
+    setText('bikeEquiv', plan.bikeMeters > 0 && state.bike.speed > 0
+        ? state.bike.speed + ' ' + (state.bike.speedUnit === 'mph' ? 'mph' : 'km/h') +
+          '  ·  ' + (Math.round(convertSpeed(state.bike.speed, state.bike.speedUnit, state.bike.speedUnit === 'mph' ? 'kmh' : 'mph') * 10) / 10) +
+          ' ' + (state.bike.speedUnit === 'mph' ? 'km/h' : 'mph') +
+          '  ·  ' + formatPace(secondsFromSpeed(METERS[state.bike.speedUnit === 'mph' ? 'mi' : 'km'], state.bike.speed, state.bike.speedUnit)) +
+          ' /' + (state.bike.speedUnit === 'mph' ? 'mi' : 'km')
+        : ' ');
+
+    setText('runEquiv', plan.runMeters > 0 && state.run.pace > 0
+        ? formatPace(state.run.pace) + ' /' + state.run.paceUnit +
+          '  ·  ' + formatPace(convertPace(state.run.pace, state.run.paceUnit, state.run.paceUnit === 'mi' ? 'km' : 'mi')) +
+          ' /' + (state.run.paceUnit === 'mi' ? 'km' : 'mi')
+        : ' ');
+
+    setText('presetLabelBadge', currentPresetLabel());
+
+    renderTable(plan, start);
+    renderDistribution(plan);
+    renderStats(plan);
+    renderWarning(plan);
+}
+
+function setText(id, text) {
+    var node = el(id);
+    if (!node) return;
+    if (node.textContent !== text) {
+        node.textContent = text;
+        if (id === 'topTotalDisplay') { node.classList.remove('tick'); void node.offsetWidth; node.classList.add('tick'); }
+    }
+}
+
+var ROW_ACCENT = {
+    swim: 'text-cyan-400',
+    bike: 'text-fcBlue',
+    run: 'text-fcGreen',
+    t1: 'text-slate-400',
+    t2: 'text-slate-400'
+};
+
+function renderTable(plan, start) {
+    var body = el('gadgetTableBody');
+    var html = '';
+    var shown = 0;
+
+    plan.rows.forEach(function (row) {
+        // Hide legs the athlete is not racing (a 5K has no swim, bike or transitions).
+        if (row.kind === 'sport' && !(row.meters > 0)) return;
+        if (row.kind === 'transition' && row.seconds === 0 && !hasBothNeighbours(plan)) return;
+        shown++;
+        var clock = clockAt(start, row.elapsed);
+        html += '<tr class="hover:bg-slate-800/40">' +
+            '<td class="py-1.5 font-semibold ' + (ROW_ACCENT[row.key] || 'text-slate-300') + '">' + row.label + '</td>' +
+            '<td class="py-1.5 text-right text-slate-400 hidden sm:table-cell">' + (row.kind === 'sport' ? formatDistance(row.meters) : '—') + '</td>' +
+            '<td class="py-1.5 text-right text-slate-200">' + formatTime(row.seconds) + '</td>' +
+            '<td class="py-1.5 text-right text-slate-400">' + formatTime(row.elapsed) + '</td>' +
+            '<td class="py-1.5 text-right text-slate-300 whitespace-nowrap">' + clock.short +
+                (clock.dayOffset >= 1 ? ' <span class="text-[9px] text-fcBlue font-bold">+' + clock.dayOffset + 'd</span>' : '') +
+            '</td></tr>';
+    });
+
+    if (!shown) {
+        html = '<tr><td colspan="5" class="py-4 text-center text-slate-500 text-xs font-sans">Add a distance to build your race plan.</td></tr>';
+    } else {
+        var finish = clockAt(start, plan.totalSecs);
+        html += '<tr class="font-bold border-t border-slate-700 bg-slate-900/80">' +
+            '<td class="py-2 text-white">Total</td>' +
+            '<td class="py-2 text-right text-slate-300 hidden sm:table-cell">' + formatDistance(plan.totalMeters) + '</td>' +
+            '<td class="py-2 text-right text-fcGreen">' + formatTime(plan.totalSecs) + '</td>' +
+            '<td class="py-2 text-right text-fcGreen">' + formatTime(plan.totalSecs) + '</td>' +
+            '<td class="py-2 text-right text-fcBlue whitespace-nowrap">' + finish.short +
+                (finish.dayOffset >= 1 ? ' <span class="text-[9px] font-bold">+' + finish.dayOffset + 'd</span>' : '') +
+            '</td></tr>';
+    }
+
+    body.innerHTML = html;
+}
+
+// Transitions only make sense when there is something to transition between.
+function hasBothNeighbours(plan) {
+    var legs = 0;
+    if (plan.swimMeters > 0) legs++;
+    if (plan.bikeMeters > 0) legs++;
+    if (plan.runMeters > 0) legs++;
+    return legs > 1;
+}
+
+var DIST_COLORS = {
+    swim: { bar: '#22d3ee', text: 'text-cyan-400' },
+    t1: { bar: '#475569', text: 'text-slate-400' },
+    bike: { bar: '#1976D2', text: 'text-fcBlue' },
+    t2: { bar: '#334155', text: 'text-slate-400' },
+    run: { bar: '#7CB342', text: 'text-fcGreen' }
+};
+
+function renderDistribution(plan) {
+    var bar = el('distBar');
+    var legend = el('distLegend');
+    var total = plan.totalSecs;
+
+    if (!(total > 0)) {
+        bar.innerHTML = '';
+        legend.innerHTML = '<span class="text-slate-600">No time to distribute yet.</span>';
+        return;
+    }
+
+    var barHtml = '', legendHtml = '';
+    plan.rows.forEach(function (row) {
+        if (row.seconds <= 0) return;
+        var pct = (row.seconds / total) * 100;
+        var colors = DIST_COLORS[row.key];
+        barHtml += '<div class="bar-seg h-full" style="width:' + pct.toFixed(3) + '%;background:' + colors.bar + '" title="' + row.label + ' — ' + formatTime(row.seconds) + ' (' + pct.toFixed(1) + '%)"></div>';
+        if (row.kind === 'sport' || pct >= 3) {
+            legendHtml += '<span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:' + colors.bar + '"></span>' +
+                '<span class="' + colors.text + ' font-semibold">' + row.label + '</span>' +
+                '<span class="text-slate-500 font-mono">' + pct.toFixed(1) + '%</span></span>';
         }
+    });
 
-        // Apply Race Preset Parameters
-        function applyPreset(type) {
-            currentPreset = type;
-            
-            // Sync dropdown selection if triggered from side buttons
-            const dropdown = document.getElementById('selectPresetDropdown');
-            if (dropdown && dropdown.value !== type && Array.from(dropdown.options).some(o => o.value === type)) {
-                dropdown.value = type;
-            }
+    bar.innerHTML = barHtml;
+    legend.innerHTML = legendHtml;
+}
 
-            const badge = document.getElementById('presetLabelBadge');
+function renderStats(plan) {
+    setText('statDistance', formatDistance(plan.totalMeters));
+    setText('statMoving', formatTime(plan.movingSecs));
+    setText('statTransitions', formatTime(plan.transitionSecs));
 
-            if (type === 'ironman') {
-                if (badge) badge.innerText = "Full Ironman";
-                document.getElementById('swimDist').value = currentUnits === 'imperial' ? 2.4 : 3800;
-                document.getElementById('swimUnit').value = currentUnits === 'imperial' ? 'miles' : 'meters';
-                document.getElementById('swimPaceMin').value = 1;
-                document.getElementById('swimPaceSec').value = 45;
+    var longest = { label: '—', seconds: 0 };
+    plan.rows.forEach(function (row) {
+        if (row.kind === 'sport' && row.seconds > longest.seconds) longest = { label: row.label, seconds: row.seconds };
+    });
+    setText('statLongest', longest.seconds > 0 ? longest.label + ' ' + formatTime(longest.seconds) : '—');
+}
 
-                document.getElementById('t1Min').value = 2;
-                document.getElementById('t1Sec').value = 0;
+function renderWarning(plan) {
+    var warn = el('inputWarning');
+    var labels = { swim: 'swim pace', bike: 'bike speed', run: 'run pace' };
+    var fields = { swim: ['swimPaceMin', 'swimPaceSec'], bike: ['bikeSpeed'], run: ['runPaceMin', 'runPaceSec'] };
 
-                document.getElementById('bikeDist').value = currentUnits === 'imperial' ? 112 : 180;
-                document.getElementById('bikeUnit').value = currentUnits === 'imperial' ? 'miles' : 'km';
-                document.getElementById('bikeSpeed').value = currentUnits === 'imperial' ? 19.3 : 31.0;
+    ['swim', 'bike', 'run'].forEach(function (leg) {
+        var flagged = plan.issues.indexOf(leg) !== -1;
+        fields[leg].forEach(function (id) { el(id).classList.toggle('is-invalid', flagged); });
+    });
 
-                document.getElementById('t2Min').value = 2;
-                document.getElementById('t2Sec').value = 0;
+    if (!plan.issues.length) {
+        warn.classList.add('hidden');
+        warn.textContent = '';
+        return;
+    }
+    var names = plan.issues.map(function (k) { return labels[k]; });
+    warn.textContent = 'Set a ' + names.join(' and a ') + ' — that leg has a distance but no pace, so it is counted as zero time.';
+    warn.classList.remove('hidden');
+}
 
-                document.getElementById('runDist').value = currentUnits === 'imperial' ? 26.2 : 42.2;
-                document.getElementById('runUnit').value = currentUnits === 'imperial' ? 'miles' : 'km';
-                document.getElementById('runPaceMin').value = 8;
-                document.getElementById('runPaceSec').value = 30;
-            } 
-            else if (type === 'half_ironman') {
-                if (badge) badge.innerText = "70.3 Half-Iron";
-                document.getElementById('swimDist').value = currentUnits === 'imperial' ? 1.2 : 1900;
-                document.getElementById('swimUnit').value = currentUnits === 'imperial' ? 'miles' : 'meters';
-                document.getElementById('swimPaceMin').value = 1;
-                document.getElementById('swimPaceSec').value = 45;
+/* ---------- Input plumbing ---------- */
+function onInputChange(fromPreset) {
+    readStateFromDom();
+    if (!fromPreset) markCustom();
+    render();
+    persist();
+}
 
-                document.getElementById('t1Min').value = 2;
-                document.getElementById('t1Sec').value = 0;
+// On blur, roll 90 seconds into 1:30 and clamp nonsense values.
+function normalizeSecondsField(minId, secId) {
+    var mins = Math.max(0, parseInt(el(minId).value, 10) || 0);
+    var secs = Math.max(0, parseInt(el(secId).value, 10) || 0);
+    mins += Math.floor(secs / 60);
+    secs = secs % 60;
+    if (mins > 599) { mins = 599; secs = 59; }
+    el(minId).value = mins;
+    el(secId).value = pad2(secs);
+}
 
-                document.getElementById('bikeDist').value = currentUnits === 'imperial' ? 56 : 90;
-                document.getElementById('bikeUnit').value = currentUnits === 'imperial' ? 'miles' : 'km';
-                document.getElementById('bikeSpeed').value = currentUnits === 'imperial' ? 18.0 : 29.0;
+function bindInputs() {
+    var paceGroups = [
+        ['swimPaceMin', 'swimPaceSec'],
+        ['runPaceMin', 'runPaceSec'],
+        ['t1Min', 't1Sec'],
+        ['t2Min', 't2Sec']
+    ];
 
-                document.getElementById('t2Min').value = 2;
-                document.getElementById('t2Sec').value = 0;
+    paceGroups.forEach(function (group) {
+        group.forEach(function (id) {
+            el(id).addEventListener('input', function () { onInputChange(false); });
+            el(id).addEventListener('change', function () {
+                normalizeSecondsField(group[0], group[1]);
+                onInputChange(false);
+            });
+        });
+    });
 
-                document.getElementById('runDist').value = currentUnits === 'imperial' ? 13.1 : 21.1;
-                document.getElementById('runUnit').value = currentUnits === 'imperial' ? 'miles' : 'km';
-                document.getElementById('runPaceMin').value = 8;
-                document.getElementById('runPaceSec').value = 45;
-            }
-            else if (type === 'olympic') {
-                if (badge) badge.innerText = "Olympic Tri";
-                document.getElementById('swimDist').value = currentUnits === 'imperial' ? 0.93 : 1500;
-                document.getElementById('swimUnit').value = currentUnits === 'imperial' ? 'miles' : 'meters';
-                document.getElementById('swimPaceMin').value = 1;
-                document.getElementById('swimPaceSec').value = 40;
+    ['swimDist', 'bikeDist', 'bikeSpeed', 'runDist'].forEach(function (id) {
+        el(id).addEventListener('input', function () { onInputChange(false); });
+        el(id).addEventListener('change', function () {
+            var v = Math.max(0, num(el(id).value));
+            el(id).value = Math.round(v * 1000) / 1000;
+            onInputChange(false);
+        });
+    });
 
-                document.getElementById('t1Min').value = 1;
-                document.getElementById('t1Sec').value = 30;
+    // Changing a unit dropdown converts the value so the athlete's intent survives.
+    [
+        ['swimDistUnit', function (from, to) { state.swim.dist = tidyDistance(convertDistance(state.swim.dist, from, to), to); }],
+        ['bikeDistUnit', function (from, to) { state.bike.dist = tidyDistance(convertDistance(state.bike.dist, from, to), to); }],
+        ['runDistUnit', function (from, to) { state.run.dist = tidyDistance(convertDistance(state.run.dist, from, to), to); }],
+        ['swimPaceUnit', function (from, to) { state.swim.pace = Math.round(convertPace(state.swim.pace, from, to)); }],
+        ['runPaceUnit', function (from, to) { state.run.pace = Math.round(convertPace(state.run.pace, from, to)); }],
+        ['bikeSpeedUnit', function (from, to) { state.bike.speed = Math.round(convertSpeed(state.bike.speed, from, to) * 10) / 10; }]
+    ].forEach(function (pair) {
+        var node = el(pair[0]);
+        node.dataset.prev = node.value;
+        node.addEventListener('change', function () {
+            readStateFromDom();
+            var from = node.dataset.prev, to = node.value;
+            if (from && from !== to) pair[1](from, to);
+            node.dataset.prev = to;
+            markCustom();
+            writeStateToDom();
+            render();
+            persist();
+        });
+    });
 
-                document.getElementById('bikeDist').value = currentUnits === 'imperial' ? 24.85 : 40;
-                document.getElementById('bikeUnit').value = currentUnits === 'imperial' ? 'miles' : 'km';
-                document.getElementById('bikeSpeed').value = currentUnits === 'imperial' ? 20.0 : 32.0;
+    el('startTime').addEventListener('input', function () { onInputChange(true); });
+    el('startTime').addEventListener('change', function () { onInputChange(true); });
+}
 
-                document.getElementById('t2Min').value = 1;
-                document.getElementById('t2Sec').value = 30;
+function setStartToNow() {
+    var now = new Date();
+    el('startTime').value = pad2(now.getHours()) + ':' + pad2(now.getMinutes());
+    onInputChange(true);
+}
 
-                document.getElementById('runDist').value = currentUnits === 'imperial' ? 6.21 : 10;
-                document.getElementById('runUnit').value = currentUnits === 'imperial' ? 'miles' : 'km';
-                document.getElementById('runPaceMin').value = 7;
-                document.getElementById('runPaceSec').value = 45;
-            }
-            else if (type === 'sprint') {
-                if (badge) badge.innerText = "Sprint Tri";
-                document.getElementById('swimDist').value = currentUnits === 'imperial' ? 0.47 : 750;
-                document.getElementById('swimUnit').value = currentUnits === 'imperial' ? 'miles' : 'meters';
-                document.getElementById('swimPaceMin').value = 1;
-                document.getElementById('swimPaceSec').value = 35;
+function resetCalculator() {
+    state.units = 'imperial';
+    syncUnitButtons();
+    applyPreset('ironman');
+    el('startTime').value = '07:00';
+    onInputChange(true);
+    state.preset = 'ironman';
+    el('selectPresetDropdown').value = 'ironman';
+    render();
+    toast('Reset to the default Ironman plan');
+}
 
-                document.getElementById('t1Min').value = 1;
-                document.getElementById('t1Sec').value = 15;
+/* ---------- Preset UI ---------- */
+function buildPresetUI() {
+    var dd = el('selectPresetDropdown');
+    var options = PRESETS.map(function (p) {
+        return '<option value="' + p.key + '">' + p.label + ' (' + p.tag + ')</option>';
+    }).join('');
+    dd.innerHTML = options + '<option value="custom">Custom plan</option>';
 
-                document.getElementById('bikeDist').value = currentUnits === 'imperial' ? 12.42 : 20;
-                document.getElementById('bikeUnit').value = currentUnits === 'imperial' ? 'miles' : 'km';
-                document.getElementById('bikeSpeed').value = currentUnits === 'imperial' ? 18.5 : 30.0;
+    var triHtml = '';
+    PRESETS.filter(function (p) { return p.group === 'tri'; }).slice(0, 3).forEach(function (p) {
+        var block = p.imperial;
+        triHtml += '<div class="bg-slate-950/70 border border-slate-800 p-3.5 rounded-xl space-y-2 hover:border-fcBlue/50 transition">' +
+            '<div class="flex items-center justify-between gap-2">' +
+                '<span class="font-bold text-sm text-white">' + p.label + '</span>' +
+                '<button type="button" onclick="applyPreset(\'' + p.key + '\')" class="text-[10px] bg-fcBlue hover:bg-fcBlue-hover text-white font-bold px-2.5 py-1 rounded transition active:scale-95">Apply</button>' +
+            '</div>' +
+            '<ul class="space-y-1 text-xs text-slate-400">' +
+                presetLine('person-swimming', 'Swim', p) +
+                presetLine('person-biking', 'Bike', p) +
+                presetLine('person-running', 'Run', p) +
+            '</ul></div>';
+    });
+    el('triPresetGrid').innerHTML = triHtml;
 
-                document.getElementById('t2Min').value = 1;
-                document.getElementById('t2Sec').value = 15;
+    var otherHtml = '';
+    PRESETS.filter(function (p) { return p.group !== 'tri' || p.key === 'sprint' || p.key === 'super_sprint'; }).forEach(function (p) {
+        otherHtml += '<button type="button" onclick="applyPreset(\'' + p.key + '\')" class="p-3 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-fcBlue/40 rounded-xl text-left transition group active:scale-[0.98]">' +
+            '<div class="text-[10px] font-semibold text-fcGreen uppercase tracking-wider">' + (p.note || 'Triathlon') + '</div>' +
+            '<div class="text-sm font-bold text-white group-hover:text-fcBlue transition leading-tight">' + p.label + '</div>' +
+            '<div class="text-[11px] text-slate-400 mt-0.5">' + p.tag + '</div>' +
+        '</button>';
+    });
+    el('otherPresetGrid').innerHTML = otherHtml;
+}
 
-                document.getElementById('runDist').value = currentUnits === 'imperial' ? 3.11 : 5;
-                document.getElementById('runUnit').value = currentUnits === 'imperial' ? 'miles' : 'km';
-                document.getElementById('runPaceMin').value = 7;
-                document.getElementById('runPaceSec').value = 30;
-            }
-            else if (type === 'marathon') {
-                if (badge) badge.innerText = "Marathon Run";
-                zeroOutSegment('swim');
-                zeroOutSegment('bike');
-                document.getElementById('runDist').value = currentUnits === 'imperial' ? 26.2 : 42.2;
-                document.getElementById('runUnit').value = currentUnits === 'imperial' ? 'miles' : 'km';
-                document.getElementById('runPaceMin').value = 8;
-                document.getElementById('runPaceSec').value = 30;
-            }
-            else if (type === 'half_marathon') {
-                if (badge) badge.innerText = "Half-Marathon";
-                zeroOutSegment('swim');
-                zeroOutSegment('bike');
-                document.getElementById('runDist').value = currentUnits === 'imperial' ? 13.1 : 21.1;
-                document.getElementById('runUnit').value = currentUnits === 'imperial' ? 'miles' : 'km';
-                document.getElementById('runPaceMin').value = 8;
-                document.getElementById('runPaceSec').value = 15;
-            }
-            else if (type === '10k') {
-                if (badge) badge.innerText = "10K Run";
-                zeroOutSegment('swim');
-                zeroOutSegment('bike');
-                document.getElementById('runDist').value = currentUnits === 'imperial' ? 6.21 : 10;
-                document.getElementById('runUnit').value = currentUnits === 'imperial' ? 'miles' : 'km';
-                document.getElementById('runPaceMin').value = 7;
-                document.getElementById('runPaceSec').value = 45;
-            }
-            else if (type === '5k') {
-                if (badge) badge.innerText = "5K Run";
-                zeroOutSegment('swim');
-                zeroOutSegment('bike');
-                document.getElementById('runDist').value = currentUnits === 'imperial' ? 3.11 : 5;
-                document.getElementById('runUnit').value = currentUnits === 'imperial' ? 'miles' : 'km';
-                document.getElementById('runPaceMin').value = 7;
-                document.getElementById('runPaceSec').value = 30;
-            }
-            else if (type === '10miler') {
-                if (badge) badge.innerText = "10 Miler";
-                zeroOutSegment('swim');
-                zeroOutSegment('bike');
-                document.getElementById('runDist').value = currentUnits === 'imperial' ? 10.0 : 16.09;
-                document.getElementById('runUnit').value = currentUnits === 'imperial' ? 'miles' : 'km';
-                document.getElementById('runPaceMin').value = 8;
-                document.getElementById('runPaceSec').value = 0;
-            }
-            else if (type === 'leadville') {
-                if (badge) badge.innerText = "Leadville 100";
-                zeroOutSegment('swim');
-                zeroOutSegment('bike');
-                document.getElementById('runDist').value = currentUnits === 'imperial' ? 100.0 : 160.9;
-                document.getElementById('runUnit').value = currentUnits === 'imperial' ? 'miles' : 'km';
-                document.getElementById('runPaceMin').value = 14;
-                document.getElementById('runPaceSec').value = 30;
-            }
-            else if (type === 'bay30k') {
-                if (badge) badge.innerText = "Around Bay 30K";
-                zeroOutSegment('swim');
-                zeroOutSegment('bike');
-                document.getElementById('runDist').value = currentUnits === 'imperial' ? 18.64 : 30.0;
-                document.getElementById('runUnit').value = currentUnits === 'imperial' ? 'miles' : 'km';
-                document.getElementById('runPaceMin').value = 8;
-                document.getElementById('runPaceSec').value = 0;
-            }
+function presetLine(icon, label, preset) {
+    var key = label.toLowerCase();
+    var imperial = preset.imperial[key];
+    var metric = preset.metric[key];
+    var value = state.units === 'metric'
+        ? metric[0] + ' ' + UNIT_LABEL[metric[1]]
+        : imperial[0] + ' ' + UNIT_LABEL[imperial[1]];
+    return '<li class="flex items-center gap-2"><i class="fa-solid fa-' + icon + ' text-fcGreen w-4 text-center" aria-hidden="true"></i> ' + label + ' — ' + value + '</li>';
+}
 
-            calculateAll();
-        }
+/* ---------- Share, copy, persistence ---------- */
+function planToParams() {
+    return new URLSearchParams({
+        u: state.units,
+        p: state.preset,
+        st: state.startTime,
+        sd: String(state.swim.dist), su: state.swim.distUnit, sp: String(state.swim.pace), spu: state.swim.paceUnit,
+        bd: String(state.bike.dist), bu: state.bike.distUnit, bs: String(state.bike.speed), bsu: state.bike.speedUnit,
+        rd: String(state.run.dist), ru: state.run.distUnit, rp: String(state.run.pace), rpu: state.run.paceUnit,
+        t1: String(state.t1), t2: String(state.t2)
+    });
+}
 
-        // Zero out a specific discipline when run/single sport presets are picked
-        function zeroOutSegment(seg) {
-            if (seg === 'swim') {
-                document.getElementById('swimDist').value = 0;
-                document.getElementById('t1Min').value = 0;
-                document.getElementById('t1Sec').value = 0;
-            }
-            if (seg === 'bike') {
-                document.getElementById('bikeDist').value = 0;
-                document.getElementById('t2Min').value = 0;
-                document.getElementById('t2Sec').value = 0;
-            }
-        }
+function applyParams(params) {
+    if (!params.get('sd') && !params.get('rd')) return false;
+    var pick = function (key, allowed, fallback) {
+        var v = params.get(key);
+        return allowed.indexOf(v) !== -1 ? v : fallback;
+    };
+    state.units = pick('u', ['imperial', 'metric'], 'imperial');
+    state.preset = params.get('p') || 'custom';
+    if (state.preset !== 'custom' && !findPreset(state.preset)) state.preset = 'custom';
+    state.startTime = /^\d{2}:\d{2}$/.test(params.get('st') || '') ? params.get('st') : '07:00';
 
-        // Imperial <-> Metric System Switching
-        function setUnitSystem(system) {
-            if (currentUnits === system) return;
-            currentUnits = system;
+    state.swim.dist = Math.max(0, num(params.get('sd')));
+    state.swim.distUnit = pick('su', ['mi', 'km', 'm', 'yd'], 'mi');
+    state.swim.pace = Math.max(0, Math.round(num(params.get('sp'))));
+    state.swim.paceUnit = pick('spu', ['100yd', '100m'], '100yd');
 
-            const impBtn = document.getElementById('unitImperialBtn');
-            const metBtn = document.getElementById('unitMetricBtn');
+    state.bike.dist = Math.max(0, num(params.get('bd')));
+    state.bike.distUnit = pick('bu', ['mi', 'km'], 'mi');
+    state.bike.speed = Math.max(0, num(params.get('bs')));
+    state.bike.speedUnit = pick('bsu', ['mph', 'kmh'], 'mph');
 
-            if (system === 'imperial') {
-                impBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-fcBlue text-white shadow";
-                metBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white";
-                
-                document.querySelectorAll('.swimPaceUnitLabel').forEach(e => e.innerText = "100 yd");
-                document.querySelectorAll('.bikeSpeedUnitLabel').forEach(e => e.innerText = "mph");
-                document.querySelectorAll('.runPaceUnitLabel').forEach(e => e.innerText = "mile");
-            } else {
-                metBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-fcBlue text-white shadow";
-                impBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white";
+    state.run.dist = Math.max(0, num(params.get('rd')));
+    state.run.distUnit = pick('ru', ['mi', 'km'], 'mi');
+    state.run.pace = Math.max(0, Math.round(num(params.get('rp'))));
+    state.run.paceUnit = pick('rpu', ['mi', 'km'], 'mi');
 
-                document.querySelectorAll('.swimPaceUnitLabel').forEach(e => e.innerText = "100 m");
-                document.querySelectorAll('.bikeSpeedUnitLabel').forEach(e => e.innerText = "km/h");
-                document.querySelectorAll('.runPaceUnitLabel').forEach(e => e.innerText = "km");
-            }
+    state.t1 = Math.max(0, Math.round(num(params.get('t1'))));
+    state.t2 = Math.max(0, Math.round(num(params.get('t2'))));
+    return true;
+}
 
-            // Reapply preset to adjust unit values cleanly
-            applyPreset(currentPreset);
-        }
+function sharePlan() {
+    var url = location.origin + location.pathname + '?' + planToParams().toString();
+    copyText(url, 'Shareable link copied');
+    try { history.replaceState(null, '', '?' + planToParams().toString()); } catch (e) { /* file:// */ }
+}
 
-        // Main Real-time Calculation Engine
-        function calculateAll() {
-            const startTimeVal = document.getElementById('startTime').value || '07:00';
+function copySplits() {
+    var plan = computePlan(state);
+    var lines = [currentPresetLabel() + ' — start ' + clockAt(state.startTime, 0).short];
+    plan.rows.forEach(function (row) {
+        if (row.kind === 'sport' && !(row.meters > 0)) return;
+        if (row.kind === 'transition' && row.seconds === 0) return;
+        lines.push(row.label.padEnd(6) + formatTime(row.seconds) + '   elapsed ' + formatTime(row.elapsed) + '   ' + clockAt(state.startTime, row.elapsed).short);
+    });
+    lines.push('TOTAL ' + formatTime(plan.totalSecs) + '   finish ' + clockAt(state.startTime, plan.totalSecs).short);
+    copyText(lines.join('\n'), 'Splits copied to clipboard');
+}
 
-            // 1. Swim Calculation
-            const swimDist = parseFloat(document.getElementById('swimDist').value) || 0;
-            const swimUnit = document.getElementById('swimUnit').value;
-            const swimMin = parseInt(document.getElementById('swimPaceMin').value, 10) || 0;
-            const swimSec = parseInt(document.getElementById('swimPaceSec').value, 10) || 0;
-            const swimPacePer100Sec = (swimMin * 60) + swimSec;
-            
-            let swim100Units = 0;
-            if (swimUnit === 'miles') swim100Units = (swimDist * 1760) / 100;
-            else if (swimUnit === 'meters') swim100Units = swimDist / 100;
-            else if (swimUnit === 'yards') swim100Units = swimDist / 100;
+function copyText(text, message) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { toast(message); }, function () { fallbackCopy(text, message); });
+    } else {
+        fallbackCopy(text, message);
+    }
+}
 
-            const totalSwimSecs = Math.round(swim100Units * swimPacePer100Sec);
+function fallbackCopy(text, message) {
+    var area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(area);
+    toast(ok ? message : 'Copy failed — select the text manually');
+}
 
-            // 2. T1 Transition Calculation
-            const t1Min = parseInt(document.getElementById('t1Min').value, 10) || 0;
-            const t1Sec = parseInt(document.getElementById('t1Sec').value, 10) || 0;
-            const totalT1Secs = (t1Min * 60) + t1Sec;
+var toastTimer = null;
+function toast(message) {
+    var node = el('toast');
+    node.textContent = message;
+    node.style.opacity = '1';
+    node.style.transform = 'translate(-50%, 0)';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+        node.style.opacity = '0';
+        node.style.transform = 'translate(-50%, 8px)';
+    }, 2200);
+}
 
-            // 3. Bike Calculation
-            const bikeDist = parseFloat(document.getElementById('bikeDist').value) || 0;
-            const bikeSpeed = parseFloat(document.getElementById('bikeSpeed').value) || 0;
-            let totalBikeSecs = 0;
-            if (bikeSpeed > 0 && bikeDist > 0) {
-                totalBikeSecs = Math.round((bikeDist / bikeSpeed) * 3600);
-            }
+function persist() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* private mode */ }
+}
 
-            // 4. T2 Transition Calculation
-            const t2Min = parseInt(document.getElementById('t2Min').value, 10) || 0;
-            const t2Sec = parseInt(document.getElementById('t2Sec').value, 10) || 0;
-            const totalT2Secs = (t2Min * 60) + t2Sec;
+function restore() {
+    var params = new URLSearchParams(location.search);
+    if (applyParams(params)) return true;
+    try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+        var saved = JSON.parse(raw);
+        if (!saved || !saved.swim || !saved.bike || !saved.run) return false;
+        return applyParams(new URLSearchParams({
+            u: saved.units || 'imperial', p: saved.preset || 'custom', st: saved.startTime || '07:00',
+            sd: saved.swim.dist, su: saved.swim.distUnit, sp: saved.swim.pace, spu: saved.swim.paceUnit,
+            bd: saved.bike.dist, bu: saved.bike.distUnit, bs: saved.bike.speed, bsu: saved.bike.speedUnit,
+            rd: saved.run.dist, ru: saved.run.distUnit, rp: saved.run.pace, rpu: saved.run.paceUnit,
+            t1: saved.t1, t2: saved.t2
+        }));
+    } catch (e) {
+        return false;
+    }
+}
 
-            // 5. Run Calculation
-            const runDist = parseFloat(document.getElementById('runDist').value) || 0;
-            const runMin = parseInt(document.getElementById('runPaceMin').value, 10) || 0;
-            const runSec = parseInt(document.getElementById('runPaceSec').value, 10) || 0;
-            const runPaceSec = (runMin * 60) + runSec;
-            const totalRunSecs = Math.round(runDist * runPaceSec);
-
-            // Cumulative Breakdown Time Accumulation
-            const cumulativeSwim = totalSwimSecs;
-            const cumulativeT1 = cumulativeSwim + totalT1Secs;
-            const cumulativeBike = cumulativeT1 + totalBikeSecs;
-            const cumulativeT2 = cumulativeBike + totalT2Secs;
-            const cumulativeTotal = cumulativeT2 + totalRunSecs;
-
-            // Update Header / Summary Displays
-            document.getElementById('topTotalDisplay').innerText = formatTime(cumulativeTotal);
-            document.getElementById('topClockDisplay').innerText = formatClockTime(startTimeVal, cumulativeTotal);
-
-            // Populate TriCalc3 Style Table Body
-            const tbody = document.getElementById('gadgetTableBody');
-            tbody.innerHTML = `
-                <tr class="hover:bg-slate-800/40">
-                    <td class="py-1 font-semibold text-cyan-400">Swim</td>
-                    <td class="py-1 text-right">${formatTime(totalSwimSecs)}</td>
-                    <td class="py-1 text-right text-slate-400">${formatTime(cumulativeSwim)}</td>
-                    <td class="py-1 text-right text-slate-300">${formatClockTime(startTimeVal, cumulativeSwim)}</td>
-                </tr>
-                <tr class="hover:bg-slate-800/40 text-slate-400">
-                    <td class="py-1 font-semibold text-slate-400">T1</td>
-                    <td class="py-1 text-right">${formatTime(totalT1Secs)}</td>
-                    <td class="py-1 text-right">${formatTime(cumulativeT1)}</td>
-                    <td class="py-1 text-right text-slate-300">${formatClockTime(startTimeVal, cumulativeT1)}</td>
-                </tr>
-                <tr class="hover:bg-slate-800/40">
-                    <td class="py-1 font-semibold text-fcBlue">Bike</td>
-                    <td class="py-1 text-right">${formatTime(totalBikeSecs)}</td>
-                    <td class="py-1 text-right text-slate-400">${formatTime(cumulativeBike)}</td>
-                    <td class="py-1 text-right text-slate-300">${formatClockTime(startTimeVal, cumulativeBike)}</td>
-                </tr>
-                <tr class="hover:bg-slate-800/40 text-slate-400">
-                    <td class="py-1 font-semibold text-slate-400">T2</td>
-                    <td class="py-1 text-right">${formatTime(totalT2Secs)}</td>
-                    <td class="py-1 text-right">${formatTime(cumulativeT2)}</td>
-                    <td class="py-1 text-right text-slate-300">${formatClockTime(startTimeVal, cumulativeT2)}</td>
-                </tr>
-                <tr class="hover:bg-slate-800/40">
-                    <td class="py-1 font-semibold text-fcGreen">Run</td>
-                    <td class="py-1 text-right">${formatTime(totalRunSecs)}</td>
-                    <td class="py-1 text-right text-slate-400">${formatTime(cumulativeTotal)}</td>
-                    <td class="py-1 text-right text-slate-300">${formatClockTime(startTimeVal, cumulativeTotal)}</td>
-                </tr>
-                <tr class="font-bold border-t border-slate-700 bg-slate-900/80">
-                    <td class="py-1.5 text-white">Total</td>
-                    <td class="py-1.5 text-right text-fcGreen">${formatTime(cumulativeTotal)}</td>
-                    <td class="py-1.5 text-right text-fcGreen">${formatTime(cumulativeTotal)}</td>
-                    <td class="py-1.5 text-right text-fcBlue">${formatClockTime(startTimeVal, cumulativeTotal)}</td>
-                </tr>
-            `;
-        }
-
-        // Reset Calculator to Default State
-        function resetCalculator() {
-            applyPreset('ironman');
-        }
-
-        // Initialize on page window load
-        window.onload = function() {
-            calculateAll();
-        };
-    </script>
+/* ---------- Boot ---------- */
+document.addEventListener('DOMContentLoaded', function () {
+    restore();
+    buildPresetUI();
+    writeStateToDom();
+    bindInputs();
+    // Re-sync the unit dropdown snapshots after restore wrote new values.
+    ['swimDistUnit', 'bikeDistUnit', 'runDistUnit', 'swimPaceUnit', 'runPaceUnit', 'bikeSpeedUnit'].forEach(function (id) {
+        el(id).dataset.prev = el(id).value;
+    });
+    render();
+});
+</script>
 </body>
 </html>
