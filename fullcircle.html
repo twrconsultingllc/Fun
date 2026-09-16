@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Full Circle — The Mark</title>
+<meta name="description" content="The Full Circle Triathlon logo rebuilt as a physically shaded 3D medallion — real metal, swept highlights and bloom, in a single Three.js page.">
+<meta name="theme-color" content="#06070d">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%231976D2'/%3E%3Cpath d='M 50 2 A 48 48 0 0 1 50 98 A 24 24 0 0 1 50 50 A 24 24 0 0 0 50 2 Z' fill='%237CB342'/%3E%3Ccircle cx='50' cy='26' r='7.5' fill='%231976D2'/%3E%3Ccircle cx='50' cy='74' r='7.5' fill='%237CB342'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --page:     #06070d;
+        --hairline: #1b2130;
+        --hairline-strong: #2b3446;
+        --text:     #e8ecf4;
+        --text-dim: #8d97ab;
+        --text-faint: #5b6577;
+        --fc-blue:  #1976D2;
+        --fc-green: #7CB342;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { height: 100%; }
+
+    body {
+        background-color: var(--page);
+        /* Brand-tinted pools of light behind the canvas, so the dark plate is
+           never flat even before a single pixel of WebGL lands on it. */
+        background-image:
+            radial-gradient(60vw 60vw at 22% 18%, rgba(25, 118, 210, .17), transparent 62%),
+            radial-gradient(55vw 55vw at 80% 78%, rgba(124, 179, 66, .14), transparent 62%),
+            radial-gradient(90vw 70vw at 50% 50%, rgba(10, 14, 26, .55), transparent 70%);
+        color: var(--text);
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        font-size: 15px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        overflow: hidden;
+        overscroll-behavior: none;
+    }
+
+    #gl-canvas {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: none;
+        cursor: grab;
+        z-index: 1;
+    }
+    #gl-canvas:active { cursor: grabbing; }
+
+    /* Vignette, above the canvas but transparent to clicks. */
+    .vignette {
+        position: fixed;
+        inset: 0;
+        z-index: 2;
+        pointer-events: none;
+        background: radial-gradient(ellipse 78% 68% at 50% 46%, transparent 42%, rgba(4, 5, 10, .78) 100%);
+    }
+
+    .mono {
+        font-family: 'IBM Plex Mono', ui-monospace, monospace;
+        font-size: 11px;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+    }
+
+    /* ---------- top bar ---------- */
+
+    .hud {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 4;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 20px clamp(16px, 4vw, 34px);
+        pointer-events: none;
+    }
+    .hud > * { pointer-events: auto; }
+
+    .backlink { color: var(--text-faint); text-decoration: none; transition: color .18s; }
+    .backlink:hover, .backlink:focus-visible { color: #22d3ee; outline: none; }
+
+    .hud-tag { color: var(--text-faint); text-align: right; }
+    .hud-tag b { color: var(--text-dim); font-weight: 500; }
+
+    /* ---------- wordmark + dock ---------- */
+
+    .stage-foot {
+        position: fixed;
+        left: 0; right: 0;
+        bottom: 0;
+        z-index: 4;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        padding: 0 clamp(12px, 4vw, 28px) calc(20px + env(safe-area-inset-bottom, 0px));
+        pointer-events: none;
+    }
+    .stage-foot > * { pointer-events: auto; }
+
+    .wordmark { text-align: center; user-select: none; }
+    .wordmark-line {
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        font-weight: 900;
+        letter-spacing: -.02em;
+        font-size: clamp(1.5rem, 5vw, 2.6rem);
+        line-height: 1;
+        /* A brushed-metal sweep, so the type matches the medallion. */
+        background: linear-gradient(100deg, #6ea8dc 0%, #eaf2ff 26%, #9fd06a 52%, #eaf2ff 74%, #5f97cc 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 2px 18px rgba(25, 118, 210, .35));
+    }
+    .wordmark-dot {
+        width: .58em; height: .58em;
+        margin: 0 .3em;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--fc-green), var(--fc-blue) 70%);
+        box-shadow: 0 0 16px rgba(124, 179, 66, .55);
+        align-self: center;
+    }
+    .wordmark-sub {
+        margin-top: 8px;
+        color: var(--text-faint);
+        font-family: 'IBM Plex Mono', ui-monospace, monospace;
+        font-size: clamp(9px, 2.2vw, 11px);
+        letter-spacing: .3em;
+        text-transform: uppercase;
+    }
+
+    .dock {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px 14px;
+        padding: 10px 14px;
+        border: 1px solid var(--hairline);
+        border-radius: 16px;
+        background: rgba(10, 12, 20, .72);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        box-shadow: 0 18px 40px -22px rgba(0, 0, 0, .9);
+        max-width: 100%;
+    }
+
+    .seg { display: flex; gap: 4px; padding: 3px; border-radius: 11px; background: rgba(255,255,255,.04); }
+
+    .seg button {
+        appearance: none;
+        border: 0;
+        border-radius: 8px;
+        padding: 7px 11px;
+        background: transparent;
+        color: var(--text-faint);
+        font-family: 'IBM Plex Mono', ui-monospace, monospace;
+        font-size: 10.5px;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: background .18s, color .18s;
+        white-space: nowrap;
+    }
+    .seg button:hover { color: var(--text); }
+    .seg button[aria-pressed="true"] {
+        background: linear-gradient(135deg, rgba(25,118,210,.9), rgba(124,179,66,.85));
+        color: #05070c;
+        font-weight: 500;
+    }
+    .seg button:focus-visible { outline: 2px solid #22d3ee; outline-offset: 1px; }
+
+    .slider-wrap { display: flex; align-items: center; gap: 9px; color: var(--text-faint); }
+    .slider-wrap label { white-space: nowrap; }
+
+    input[type="range"] {
+        appearance: none;
+        width: clamp(70px, 16vw, 116px);
+        height: 3px;
+        border-radius: 2px;
+        background: linear-gradient(90deg, var(--fc-blue), var(--fc-green));
+        outline: none;
+        cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+        appearance: none;
+        width: 14px; height: 14px;
+        border-radius: 50%;
+        background: #eaf2ff;
+        box-shadow: 0 0 10px rgba(124,179,66,.7);
+        cursor: pointer;
+    }
+    input[type="range"]::-moz-range-thumb {
+        width: 14px; height: 14px;
+        border: 0;
+        border-radius: 50%;
+        background: #eaf2ff;
+        box-shadow: 0 0 10px rgba(124,179,66,.7);
+        cursor: pointer;
+    }
+
+    .divider { width: 1px; align-self: stretch; background: var(--hairline); }
+
+    .readout {
+        color: var(--text-faint);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+    .readout b { color: var(--text-dim); font-weight: 500; }
+
+    /* ---------- loader ---------- */
+
+    .loader {
+        position: fixed;
+        inset: 0;
+        z-index: 9;
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 18px;
+        background: var(--page);
+        transition: opacity .7s ease, visibility .7s;
+    }
+    .loader.done { opacity: 0; visibility: hidden; }
+    .loader-ring {
+        width: 46px; height: 46px;
+        border-radius: 50%;
+        border: 2px solid var(--hairline-strong);
+        border-top-color: var(--fc-blue);
+        border-right-color: var(--fc-green);
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader p { color: var(--text-faint); }
+
+    .fail {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: none;
+        place-content: center;
+        text-align: center;
+        padding: 30px;
+        background: var(--page);
+    }
+    .fail.show { display: grid; }
+    .fail h2 { font-size: 1.1rem; margin-bottom: 10px; }
+    .fail p { color: var(--text-dim); max-width: 46ch; }
+
+    @media (max-width: 560px) {
+        .hud-tag { display: none; }
+        .dock { gap: 8px 10px; padding: 9px 11px; }
+        .readout { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .loader-ring { animation: none; }
+    }
+</style>
+</head>
+<body>
+
+<canvas id="gl-canvas"></canvas>
+<div class="vignette"></div>
+
+<div class="hud">
+    <a class="backlink mono" href="index.html">&larr; Index</a>
+    <div class="hud-tag mono">Full Circle <b>/ the mark</b></div>
+</div>
+
+<div class="stage-foot">
+    <div class="wordmark">
+        <div class="wordmark-line">
+            <span>FULL</span><span class="wordmark-dot" aria-hidden="true"></span><span>CIRCLE</span>
+        </div>
+        <div class="wordmark-sub">Triathlon &bull; Coaching</div>
+    </div>
+
+    <div class="dock">
+        <div class="seg" id="finishSeg" role="group" aria-label="Material finish"></div>
+        <div class="divider" aria-hidden="true"></div>
+        <div class="slider-wrap">
+            <label class="mono" for="shine">Shine</label>
+            <input type="range" id="shine" min="0" max="160" value="62" aria-label="Bloom intensity">
+        </div>
+        <div class="divider" aria-hidden="true"></div>
+        <div class="seg">
+            <button type="button" id="spinBtn" aria-pressed="true">Spin</button>
+            <button type="button" id="resetBtn">Reset</button>
+        </div>
+        <div class="divider" aria-hidden="true"></div>
+        <div class="readout mono"><b id="fps">--</b> fps &nbsp;·&nbsp; <b id="tris">--</b> tris</div>
+    </div>
+</div>
+
+<div class="loader" id="loader">
+    <div class="loader-ring"></div>
+    <p class="mono">Forging the mark</p>
+</div>
+
+<div class="fail" id="fail">
+    <div>
+        <h2>WebGL unavailable</h2>
+        <p>This page needs WebGL to render the logo. Try a different browser, or enable hardware acceleration.</p>
+    </div>
+</div>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"
+    }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+/* ------------------------------------------------------------------
+   The logo, exactly as it ships in the rest of the site. Parsing the
+   real SVG rather than re-modelling it by hand means the curves here
+   are the brand's curves, arcs and all.
+------------------------------------------------------------------ */
+const LOGO_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="48" fill="#1976D2" />
+  <path d="M 50 2 A 48 48 0 0 1 50 98 A 24 24 0 0 1 50 50 A 24 24 0 0 0 50 2 Z" fill="#7CB342" />
+  <circle cx="50" cy="26" r="7.5" fill="#1976D2" />
+  <circle cx="50" cy="74" r="7.5" fill="#7CB342" />
+</svg>`;
+
+/* Each SVG element becomes its own slab. Stacking them at different depths
+   turns a flat mark into a struck medallion: the green yin sits proud of the
+   blue disc, and the two dots sit proud of both. */
+const LAYERS = [
+    { key: 'disc',   depth: 9,  front: 4.5, bevelThickness: 1.15, bevelSize: 1.0 },
+    { key: 'yin',    depth: 11, front: 5.9, bevelThickness: 0.95, bevelSize: 0.85 },
+    { key: 'dotA',   depth: 12, front: 7.0, bevelThickness: 0.7,  bevelSize: 0.6 },
+    { key: 'dotB',   depth: 12, front: 7.0, bevelThickness: 0.7,  bevelSize: 0.6 }
+];
+
+const FINISHES = {
+    chrome: {
+        label: 'Chrome',
+        params: { metalness: 1, roughness: 0.085, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.9, iridescence: 0, transmission: 0, reflectivity: 0.6 },
+        lift: 0.34, bloom: 0.62
+    },
+    enamel: {
+        label: 'Enamel',
+        params: { metalness: 0.15, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 1.15, iridescence: 0, transmission: 0, reflectivity: 0.5 },
+        lift: 0, bloom: 0.42
+    },
+    oilslick: {
+        label: 'Oil Slick',
+        params: { metalness: 1, roughness: 0.035, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 2.1, iridescence: 1, iridescenceIOR: 1.8, transmission: 0, reflectivity: 0.7 },
+        lift: 0.22, bloom: 0.8
+    },
+    glass: {
+        label: 'Glass',
+        params: { metalness: 0, roughness: 0.05, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 2.4, iridescence: 0, transmission: 1, thickness: 5.5, ior: 1.52, reflectivity: 0.9 },
+        lift: 0.5, bloom: 0.7
+    }
+};
+
+const BRAND = { blue: '#1976D2', green: '#7CB342' };
+const LOGO_RADIUS = 5.4;            // world units after scaling
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let renderer, scene, camera, controls, composer, bloomPass;
+let logoGroup, logoPivot, lightRig, starField;
+let materials = [];
+let currentFinish = 'chrome';
+let autoSpin = !reduceMotion;
+let shineScale = 0.62;
+let flash = 0;
+let spinImpulse = 0;
+
+const clock = new THREE.Clock();
+const pointer = new THREE.Vector2();
+const parallax = new THREE.Vector2();
+
+init();
+
+function init() {
+    const canvas = document.getElementById('gl-canvas');
+
+    try {
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+    } catch (err) {
+        document.getElementById('fail').classList.add('show');
+        document.getElementById('loader').classList.add('done');
+        return;
+    }
+
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+
+    scene = new THREE.Scene();
+
+    camera = new THREE.PerspectiveCamera(32, window.innerWidth / window.innerHeight, 0.1, 400);
+    camera.position.set(0, 0, 26);
+
+    // A room probe gives the metal something real to reflect. Without it,
+    // "shiny" collapses into a flat specular dot.
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+
+    buildLights();
+    buildStars();
+    buildLogo();
+    buildComposer();
+    buildControls();
+    buildUI();
+
+    window.addEventListener('resize', onResize);
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    canvas.addEventListener('pointerdown', onPointerDown);
+    canvas.addEventListener('pointerup', onPointerUp);
+    document.addEventListener('keydown', onKeyDown);
+
+    frameCamera();
+    onResize();
+
+    requestAnimationFrame(() => document.getElementById('loader').classList.add('done'));
+    renderer.setAnimationLoop(animate);
+}
+
+function buildLights() {
+    scene.add(new THREE.AmbientLight(0x8899bb, 0.35));
+
+    // The rig rotates as a unit, so highlights sweep across the bevels
+    // instead of sitting still — that travelling glint is most of the "shine".
+    lightRig = new THREE.Group();
+    scene.add(lightRig);
+
+    const key = new THREE.DirectionalLight(0xffffff, 2.6);
+    key.position.set(6, 9, 11);
+    lightRig.add(key);
+
+    const cyan = new THREE.PointLight(0x22d3ee, 260, 70, 2);
+    cyan.position.set(-11, -5, 9);
+    lightRig.add(cyan);
+
+    const violet = new THREE.PointLight(0xa855f7, 210, 70, 2);
+    violet.position.set(12, -8, 5);
+    lightRig.add(violet);
+
+    const lime = new THREE.PointLight(0x9fd06a, 180, 70, 2);
+    lime.position.set(-4, 12, -6);
+    lightRig.add(lime);
+
+    const backGlow = new THREE.PointLight(0x1976D2, 220, 80, 2);
+    backGlow.position.set(0, 0, -16);
+    scene.add(backGlow);
+}
+
+function buildStars() {
+    const COUNT = 1400;
+    const positions = new Float32Array(COUNT * 3);
+    const colors = new Float32Array(COUNT * 3);
+    const palette = [new THREE.Color('#eaf2ff'), new THREE.Color(BRAND.blue), new THREE.Color(BRAND.green), new THREE.Color('#22d3ee')];
+
+    for (let i = 0; i < COUNT; i++) {
+        // Even spread over a spherical shell well behind the medallion.
+        const u = Math.random() * 2 - 1;
+        const theta = Math.random() * Math.PI * 2;
+        const r = 34 + Math.random() * 62;
+        const s = Math.sqrt(1 - u * u);
+        positions[i * 3] = r * s * Math.cos(theta);
+        positions[i * 3 + 1] = r * s * Math.sin(theta);
+        positions[i * 3 + 2] = r * u;
+
+        const c = palette[Math.random() < 0.72 ? 0 : 1 + Math.floor(Math.random() * 3)];
+        colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b;
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    starField = new THREE.Points(geo, new THREE.PointsMaterial({
+        size: 0.42,
+        sizeAttenuation: true,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.85,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+    }));
+    scene.add(starField);
+}
+
+function buildLogo() {
+    const paths = new SVGLoader().parse(LOGO_SVG).paths;
+
+    logoPivot = new THREE.Group();
+    scene.add(logoPivot);
+
+    logoGroup = new THREE.Group();
+    logoPivot.add(logoGroup);
+
+    let triangles = 0;
+
+    paths.forEach((path, i) => {
+        const layer = LAYERS[i] || LAYERS[LAYERS.length - 1];
+        const shapes = path.toShapes();
+
+        const material = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(path.color),
+            side: THREE.DoubleSide,   // the y-flip below reverses winding
+            ...FINISHES[currentFinish].params
+        });
+        material.userData.baseColor = new THREE.Color(path.color);
+        materials.push(material);
+
+        shapes.forEach((shape) => {
+            const geometry = new THREE.ExtrudeGeometry(shape, {
+                depth: layer.depth,
+                bevelEnabled: true,
+                bevelThickness: layer.bevelThickness,
+                bevelSize: layer.bevelSize,
+                bevelSegments: 5,
+                curveSegments: 80          // the mark is all arcs; keep them smooth
+            });
+
+            // SVG origin is top-left; recentre on the artboard midpoint.
+            geometry.translate(-50, -50, layer.front - layer.depth);
+            geometry.computeVertexNormals();
+            triangles += geometry.index ? geometry.index.count / 3 : geometry.attributes.position.count / 3;
+
+            logoGroup.add(new THREE.Mesh(geometry, material));
+        });
+    });
+
+    // SVG's y axis points down, so mirror it. DoubleSide above covers the
+    // winding that the negative scale reverses.
+    const s = (LOGO_RADIUS * 2) / 100;
+    logoGroup.scale.set(s, -s, s);
+
+    document.getElementById('tris').textContent = Math.round(triangles).toLocaleString();
+    applyFinish(currentFinish);
+}
+
+function buildComposer() {
+    composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+
+    bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(window.innerWidth, window.innerHeight),
+        FINISHES[currentFinish].bloom, 0.62, 0.78
+    );
+    composer.addPass(bloomPass);
+    composer.addPass(new OutputPass());
+}
+
+function buildControls() {
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.07;
+    controls.enablePan = false;
+    controls.minDistance = 13;
+    controls.maxDistance = 60;
+    controls.rotateSpeed = 0.75;
+    controls.zoomSpeed = 0.7;
+    controls.autoRotate = autoSpin;
+    controls.autoRotateSpeed = 0.9;
+}
+
+/* ---------------- UI ---------------- */
+
+function buildUI() {
+    const seg = document.getElementById('finishSeg');
+    seg.innerHTML = Object.entries(FINISHES).map(([key, f]) =>
+        `<button type="button" data-finish="${key}" aria-pressed="${key === currentFinish}">${f.label}</button>`
+    ).join('');
+
+    seg.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-finish]');
+        if (!btn) return;
+        applyFinish(btn.dataset.finish);
+    });
+
+    const shine = document.getElementById('shine');
+    shine.addEventListener('input', () => {
+        shineScale = Number(shine.value) / 100;
+        bloomPass.strength = FINISHES[currentFinish].bloom * shineScale / 0.62;
+    });
+
+    const spinBtn = document.getElementById('spinBtn');
+    spinBtn.setAttribute('aria-pressed', String(autoSpin));
+    spinBtn.addEventListener('click', () => {
+        autoSpin = !autoSpin;
+        controls.autoRotate = autoSpin;
+        spinBtn.setAttribute('aria-pressed', String(autoSpin));
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', resetView);
+}
+
+function applyFinish(key) {
+    const finish = FINISHES[key];
+    if (!finish) return;
+    currentFinish = key;
+
+    materials.forEach((material) => {
+        // Reset the properties a previous finish may have set, so switching
+        // back and forth cannot accumulate leftovers.
+        material.iridescence = 0;
+        material.transmission = 0;
+        material.thickness = 0;
+        Object.assign(material, finish.params);
+
+        // Metals read almost black under tone mapping unless the base colour
+        // is lifted toward the light it reflects.
+        const c = material.userData.baseColor.clone();
+        if (finish.lift > 0) c.lerp(new THREE.Color(0xffffff), finish.lift);
+        material.color.copy(c);
+        material.needsUpdate = true;
+    });
+
+    bloomPass.strength = finish.bloom * shineScale / 0.62;
+
+    document.querySelectorAll('#finishSeg button').forEach((b) =>
+        b.setAttribute('aria-pressed', String(b.dataset.finish === key)));
+}
+
+function resetView() {
+    controls.reset();
+    camera.position.set(0, 0, 26);
+    frameCamera();
+    logoPivot.rotation.set(0, 0, 0);
+    spinImpulse = 0;
+}
+
+/* ---------------- events ---------------- */
+
+let dragStart = null;
+
+function onPointerMove(e) {
+    pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = (e.clientY / window.innerHeight) * 2 - 1;
+}
+
+function onPointerDown(e) { dragStart = { x: e.clientX, y: e.clientY, t: performance.now() }; }
+
+function onPointerUp(e) {
+    if (!dragStart) return;
+    const moved = Math.hypot(e.clientX - dragStart.x, e.clientY - dragStart.y);
+    const quick = performance.now() - dragStart.t < 400;
+    // A tap (not a drag) strikes the medallion: flare the bloom and spin it.
+    if (moved < 6 && quick) {
+        flash = 1;
+        spinImpulse = 5.2;
+    }
+    dragStart = null;
+}
+
+function onKeyDown(e) {
+    if (e.key === ' ') {
+        e.preventDefault();
+        document.getElementById('spinBtn').click();
+    } else if (e.key.toLowerCase() === 'r') {
+        resetView();
+    }
+}
+
+function frameCamera() {
+    // Keep the whole mark on screen at any aspect, including tall phones.
+    const vFov = THREE.MathUtils.degToRad(camera.fov);
+    const need = LOGO_RADIUS / Math.tan(vFov / 2);
+    const aspect = camera.aspect;
+    const distance = (aspect < 1 ? need / aspect : need) * 1.42;
+    const dir = camera.position.clone().normalize();
+    camera.position.copy(dir.multiplyScalar(THREE.MathUtils.clamp(distance, 13, 60)));
+    controls?.update();
+}
+
+function onResize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(w, h);
+    composer.setSize(w, h);   // resizes every pass, bloom included
+    frameCamera();
+}
+
+/* ---------------- loop ---------------- */
+
+let fpsFrames = 0, fpsLast = performance.now();
+
+function animate() {
+    const dt = Math.min(clock.getDelta(), 0.05);
+    const t = clock.elapsedTime;
+
+    // Ease the pointer into a parallax tilt rather than snapping to it.
+    parallax.x += (pointer.x - parallax.x) * 0.045;
+    parallax.y += (pointer.y - parallax.y) * 0.045;
+
+    if (logoPivot) {
+        const idle = reduceMotion ? 0 : 1;
+        spinImpulse *= 0.94;
+        logoPivot.rotation.y += spinImpulse * dt;
+        logoPivot.rotation.x = parallax.y * 0.22 + Math.sin(t * 0.45) * 0.05 * idle;
+        logoPivot.rotation.z = -parallax.x * 0.1 + Math.sin(t * 0.33) * 0.03 * idle;
+        logoPivot.position.y = Math.sin(t * 0.62) * 0.28 * idle;
+    }
+
+    if (lightRig && !reduceMotion) {
+        lightRig.rotation.z = t * 0.22;
+        lightRig.rotation.y = Math.sin(t * 0.3) * 0.35;
+    }
+
+    if (starField) {
+        starField.rotation.y += dt * 0.012;
+        starField.rotation.x += dt * 0.005;
+    }
+
+    if (flash > 0.001) {
+        flash *= 0.9;
+        bloomPass.strength = (FINISHES[currentFinish].bloom * shineScale / 0.62) + flash * 1.5;
+    }
+
+    controls.update();
+    composer.render();
+
+    fpsFrames++;
+    const now = performance.now();
+    if (now - fpsLast >= 1000) {
+        document.getElementById('fps').textContent = Math.round((fpsFrames * 1000) / (now - fpsLast));
+        fpsFrames = 0;
+        fpsLast = now;
+    }
+}
+</script>
+</body>
+</html>
