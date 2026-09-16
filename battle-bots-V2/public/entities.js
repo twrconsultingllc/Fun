@@ -80,6 +80,13 @@ export class Bot {
         } else if (def.effect === 'dash') {
             this.dashTimer = def.dashTime;
         }
+
+        // A flat shield on the lower-damage skills, so Aggressive Charge's burst
+        // isn't the only thing worth picking — it trades survivability for damage.
+        if (def.bonusShield) {
+            this.shieldHp = Math.max(this.shieldHp, def.bonusShield);
+            this.shieldMax = Math.max(this.shieldMax, def.bonusShield);
+        }
     }
 
     get effect() {
@@ -403,6 +410,13 @@ export class Bot {
                 ctx.font = '9px monospace';
                 ctx.fillStyle = 'rgba(226,232,240,0.7)';
                 ctx.fillText(txt, this.x, this.y - 66);
+            }
+
+            if (this.taunt) {
+                const txt = this.taunt.length > 28 ? `${this.taunt.slice(0, 27)}…` : this.taunt;
+                ctx.font = 'italic 9px monospace';
+                ctx.fillStyle = this.color;
+                ctx.fillText(`"${txt}"`, this.x, this.y - 78);
             }
         }
 

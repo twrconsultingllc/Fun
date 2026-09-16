@@ -6,36 +6,36 @@
 export const SKILL_CATALOG = {
     SNIPE_STANCE: {
         action: 'Snipe',
-        description: 'Root in place for slow, very accurate, double-damage shots.',
-        effect: 'root',
+        description: 'Root in place for slow, very accurate, double-damage shots. Raises a small 20-point shield.',
+        effect: 'root', bonusShield: 20,
         aggression: 10, speedModifier: 0.0, duration: 3.0,
         damageMultiplier: 2.0, fireRateModifier: 0.5, accuracyMultiplier: 0.15
     },
     FLANK_LEFT: {
         action: 'Flank Left',
-        description: 'Arc around the target to its left, using cover.',
-        effect: 'flank', flankDir: -1,
+        description: 'Arc around the target to its left, using cover. Raises a 30-point shield.',
+        effect: 'flank', flankDir: -1, bonusShield: 30,
         aggression: 60, speedModifier: 1.2, duration: 4.0,
         damageMultiplier: 1.0, fireRateModifier: 1.0, accuracyMultiplier: 1.0
     },
     FLANK_RIGHT: {
         action: 'Flank Right',
-        description: 'Arc around the target to its right, using cover.',
-        effect: 'flank', flankDir: 1,
+        description: 'Arc around the target to its right, using cover. Raises a 30-point shield.',
+        effect: 'flank', flankDir: 1, bonusShield: 30,
         aggression: 60, speedModifier: 1.2, duration: 4.0,
         damageMultiplier: 1.0, fireRateModifier: 1.0, accuracyMultiplier: 1.0
     },
     CHARGE_BEAM: {
         action: 'Aggressive Charge',
         description: 'Wind up briefly, then fire one heavy piercing shot from your own weapon, while closing fast.',
-        effect: 'charge', chargeTime: 1.2, chargeDamageMultiplier: 6, chargeSpeedMultiplier: 1.4,
+        effect: 'charge', chargeTime: 1.2, chargeDamageMultiplier: 4, chargeSpeedMultiplier: 1.4,
         aggression: 100, speedModifier: 1.5, duration: 4.0,
         damageMultiplier: 1.0, fireRateModifier: 1.0, accuracyMultiplier: 1.0
     },
     KITE_RETREAT: {
         action: 'Retreat',
-        description: 'Burst-dash away from the target, then hold distance.',
-        effect: 'dash', dashTime: 0.45, dashSpeed: 520,
+        description: 'Burst-dash away from the target, then hold distance. Raises a 30-point shield.',
+        effect: 'dash', dashTime: 0.45, dashSpeed: 520, bonusShield: 30,
         aggression: 0, speedModifier: 1.0, duration: 3.5,
         damageMultiplier: 1.0, fireRateModifier: 1.0, accuracyMultiplier: 1.0
     },

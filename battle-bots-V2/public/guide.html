@@ -546,42 +546,43 @@
           <tr>
             <td>Snipe<span class="skillname">SNIPE_STANCE</span></td>
             <td class="nowrap">3.0 s</td>
-            <td>Speed drops to zero — the bot roots. Fire rate is halved, spread shrinks to 15%, damage doubles. Holds at ~364 px. Drawn with four tick marks around the chassis.</td>
+            <td>Speed drops to zero — the bot roots. Fire rate is halved, spread shrinks to 15%, damage doubles. Holds at ~364 px. Also raises a 20-point shield. Drawn with four tick marks around the chassis.</td>
             <td>10</td>
           </tr>
           <tr>
             <td>Flank Left<span class="skillname">FLANK_LEFT</span></td>
             <td class="nowrap">4.0 s</td>
-            <td>Orbits to a point ~0.9 rad counter-clockwise around the target at 1.2× speed, keeping ~184 px. Cover collisions do the actual pathing.</td>
+            <td>Orbits to a point ~0.9 rad counter-clockwise around the target at 1.2× speed, keeping ~184 px. Also raises a 30-point shield. Cover collisions do the actual pathing.</td>
             <td>60</td>
           </tr>
           <tr>
             <td>Flank Right<span class="skillname">FLANK_RIGHT</span></td>
             <td class="nowrap">4.0 s</td>
-            <td>The same arc, mirrored clockwise.</td>
+            <td>The same arc, mirrored clockwise. Also raises a 30-point shield.</td>
             <td>60</td>
           </tr>
           <tr>
             <td>Aggressive Charge<span class="skillname">CHARGE_BEAM</span></td>
             <td class="nowrap">4.0 s</td>
-            <td>Holds fire for 1.2 s while closing at 1.5× speed, then releases one heavy shot from the bot's <strong>own</strong> weapon — 6× its damage at 1.4× its speed, always piercing and colour-matched to the team. On Rapid that's 54 dmg at 602 px/s; on Railgun, 270 dmg at 1260 px/s. Wants to be 40 px away, and will blind-fire afterwards.</td>
+            <td>Holds fire for 1.2 s while closing at 1.5× speed, then releases one heavy shot from the bot's <strong>own</strong> weapon — 4× its damage at 1.4× its speed, always piercing and colour-matched to the team. On Rapid that's 36 dmg at 602 px/s; on Railgun, 180 dmg at 1260 px/s. No shield of its own — it trades survivability for the hardest single hit in the game. Wants to be 40 px away, and will blind-fire afterwards.</td>
             <td>100</td>
           </tr>
           <tr>
             <td>Retreat<span class="skillname">KITE_RETREAT</span></td>
             <td class="nowrap">3.5 s</td>
-            <td>A 0.45 s burst dash at 520 px/s directly away from the target, then holds at ~400 px and keeps shooting.</td>
+            <td>A 0.45 s burst dash at 520 px/s directly away from the target, then holds at ~400 px and keeps shooting. Also raises a 30-point shield.</td>
             <td>0</td>
           </tr>
           <tr>
             <td>Defend<span class="skillname">DEFENSIVE_SHIELD</span></td>
             <td class="nowrap">5.0 s</td>
-            <td>Raises a 70-point shield pool and halves speed. The shield is not a timer — it lasts until something eats it, and re-casting tops it back up.</td>
+            <td>Raises a 70-point shield pool and halves speed — still the biggest shield in the game. The shield is not a timer — it lasts until something eats it, and re-casting tops it back up.</td>
             <td>30</td>
           </tr>
         </tbody>
       </table>
     </div>
+    <p>Every skill except Aggressive Charge now carries a flat shield (20–30 points) on top of whatever it already does, so the hardest-hitting skill isn't also the safest one to spam — see <a href="#tuning">Tuning</a> for the reasoning. Shields from different skills don't add together; recasting any of them just tops the pool back up to that skill's own value.</p>
   </section>
 
   <section id="gear">
@@ -634,11 +635,11 @@
     <h2><span class="num">07</span>Reading the screen</h2>
     <p class="lede">Almost everything the AI is doing is drawn on the arena itself, so you can follow a match without reading the log.</p>
     <dl class="deflist">
-      <div class="defrow"><dt>Text above a bot</dt><dd>The active skill in team colour, and above it, in grey, the model's own reasoning for picking it — clipped to about 32 characters.</dd></div>
+      <div class="defrow"><dt>Text above a bot</dt><dd>Top to bottom: the model's italic taunt in team colour (quoted), its reasoning for the order in grey, then the active skill's name in team colour — each clipped to 28–32 characters.</dd></div>
       <div class="defrow"><dt>Faint text below a bot</dt><dd>Its actual equipped weapon, always shown. Skills can make a shot look very different (see Aggressive Charge) without ever changing this — if it still reads the weapon you picked, the weapon didn't change; a skill just did.</dd></div>
       <div class="defrow"><dt>Pulsing dots</dt><dd>That team has a model call in flight right now.</dd></div>
       <div class="defrow"><dt>Expanding ring</dt><dd>New orders just landed and the skill actually changed.</dd></div>
-      <div class="defrow"><dt>Violet arc</dt><dd>An active shield. The arc shortens as the pool is eaten.</dd></div>
+      <div class="defrow"><dt>Violet arc</dt><dd>An active shield. The arc shortens as the pool is eaten. Every skill but Aggressive Charge raises one now, not just Defend.</dd></div>
       <div class="defrow"><dt>Tightening white circle</dt><dd>A charge beam winding up. It fires when the circle closes.</dd></div>
       <div class="defrow"><dt>Four tick marks</dt><dd>The bot is rooted in snipe stance and will not move.</dd></div>
       <div class="defrow"><dt>Small coloured pips</dt><dd>Above the HP bar: orange for a damage boost, cyan for speed.</dd></div>
@@ -669,6 +670,9 @@
     <h3>Writing prompts that actually change the match</h3>
     <p>The model sees exact distances, HP and line-of-sight flags, so conditional orders work far better than adjectives. "Push only when the enemy is under 100 HP, otherwise hold cover" gives it something to evaluate; "be aggressive" mostly collapses into charge spam. Naming a resource works too — telling a team to contest pickups makes it read the crate list it's already being handed.</p>
 
+    <h3>Skill balance: the hardest hit carries no shield</h3>
+    <p>Aggressive Charge used to be a free lunch — the biggest single hit in the game <em>and</em> normal weapon fire for the rest of its duration, with nothing given up for it. Its multiplier is now 4× instead of 6×, and every other skill was given a flat shield (20 on Snipe, 30 on Flank Left/Right and Retreat) that Aggressive Charge doesn't get. A prompt that leans on charge spam now trades survivability for damage instead of getting both for free.</p>
+
     <h3>If you're hitting rate limits</h3>
     <p>Raise the tick interval first — it's linear on request count, and at 10–12 s matches still read fine because skills last 3–5 s anyway. Free-for-all costs four calls a tick to 1v1's two. The log will tell you plainly when a team is backing off and for how long.</p>
 
@@ -689,7 +693,6 @@
     <p class="lede">Real behaviours of the current build, worth knowing before you read a number as gospel.</p>
 
     <div class="quirk"><b>Shotgun accuracy can exceed 100%.</b> A volley counts as one shot fired but five possible hits, so the ACC column overstates it. Compare shotguns to shotguns, not to railguns.</div>
-    <div class="quirk"><b>Taunts are generated but never displayed.</b> The model writes one per bot, the server keeps it and the bot stores it — nothing draws it yet. It's a free hook if you want speech bubbles.</div>
     <div class="quirk"><b>Line of sight is sampled, not solved.</b> It tests 11 points along the sight line, so a shot can occasionally clip a thin corner the check called clear.</div>
     <div class="quirk"><b>Targeting ignores orders.</b> Every bot always shoots at the <em>nearest</em> living enemy. The model steers where a bot goes and how it fights, but it can't call focus fire on a specific target.</div>
     <div class="quirk"><b>The scoreboard isn't the history.</b> Win tallies reset when the page reloads; the round-history table persists. They can disagree.</div>
