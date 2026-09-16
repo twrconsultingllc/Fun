@@ -790,6 +790,13 @@ function writeStateToDom() {
 
     el('selectPresetDropdown').value = state.preset;
     syncUnitButtons();
+
+    // Keep each dropdown's change-detection baseline in sync, since
+    // setUnitSystem() rewrites these values without firing 'change'.
+    ['swimDistUnit', 'bikeDistUnit', 'runDistUnit', 'swimPaceUnit', 'runPaceUnit', 'bikeSpeedUnit'].forEach(function (id) {
+        var node = el(id);
+        if (node) node.dataset.prev = node.value;
+    });
 }
 
 /* ---------- Presets ---------- */
@@ -885,6 +892,7 @@ function setUnitSystem(system) {
     }
 
     state.units = system;
+    buildPresetUI();
     writeStateToDom();
     render();
     persist();
@@ -893,14 +901,16 @@ function setUnitSystem(system) {
 /* ---------- Rendering ---------- */
 var UNIT_LABEL = { mi: 'mi', km: 'km', m: 'm', yd: 'yd' };
 
-function formatDistance(meters) {
+function formatDistance(meters, kind) {
     if (!(meters > 0)) return '0';
     if (state.units === 'metric') {
         if (meters < 1000) return Math.round(meters) + ' m';
         return (Math.round(meters / 100) / 10) + ' km';
     }
     var miles = meters / METERS.mi;
-    if (miles < 0.25) return Math.round(meters / METERS.yd) + ' yd';
+    // Swim legs are conventionally measured in yards below a mile; bike and
+    // run legs are always miles, so the kind must be passed in explicitly.
+    if (kind === 'swim' && miles < 1.0) return Math.round(meters / METERS.yd) + ' yd';
     return (Math.round(miles * 100) / 100) + ' mi';
 }
 
@@ -984,7 +994,7 @@ function renderTable(plan, start) {
         var clock = clockAt(start, row.elapsed);
         html += '<tr class="hover:bg-slate-800/40">' +
             '<td class="py-1.5 font-semibold ' + (ROW_ACCENT[row.key] || 'text-slate-300') + '">' + row.label + '</td>' +
-            '<td class="py-1.5 text-right text-slate-400 hidden sm:table-cell">' + (row.kind === 'sport' ? formatDistance(row.meters) : '—') + '</td>' +
+            '<td class="py-1.5 text-right text-slate-400 hidden sm:table-cell">' + (row.kind === 'sport' ? formatDistance(row.meters, row.key) : '—') + '</td>' +
             '<td class="py-1.5 text-right text-slate-200">' + formatTime(row.seconds) + '</td>' +
             '<td class="py-1.5 text-right text-slate-400">' + formatTime(row.elapsed) + '</td>' +
             '<td class="py-1.5 text-right text-slate-300 whitespace-nowrap">' + clock.short +
