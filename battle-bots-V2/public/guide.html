@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Battle Bots V2 — User Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+
+<style>
+  /* Dark first, to match the arena the guide is linked from.
+     A light-preferring viewer gets the paper palette instead. */
+  :root {
+    --paper:      #0d1319;
+    --surface:    #141c24;
+    --surface-2:  #1b262f;
+    --ink:        #e6edf3;
+    --ink-2:      #adbcc8;
+    --ink-3:      #7d8d9b;
+    --rule:       #2a3742;
+    --rule-soft:  #212d37;
+    --accent:     #3fd8e8;
+    --accent-ink: #8de9f4;
+    --accent-bg:  #10323a;
+
+    --t-red:    #ff2d6b;
+    --t-blue:   #35d6ea;
+    --t-green:  #39ff6a;
+    --t-yellow: #ffd23f;
+
+    --warn: #f0a04b;
+
+    --maxw: 74ch;
+    color-scheme: dark;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --paper:      #eef1f4;
+      --surface:    #ffffff;
+      --surface-2:  #e4e9ee;
+      --ink:        #141c24;
+      --ink-2:      #44525f;
+      --ink-3:      #6d7b88;
+      --rule:       #cdd6de;
+      --rule-soft:  #dee5eb;
+      --accent:     #0b7c8c;
+      --accent-ink: #065463;
+      --accent-bg:  #d9edf0;
+
+      --t-red:    #c50046;
+      --t-blue:   #0a7f96;
+      --t-green:  #1f8a45;
+      --t-yellow: #93700a;
+
+      --warn: #a35a06;
+
+      color-scheme: light;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size: 15.5px;
+    line-height: 1.62;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+  img { max-width: 100%; }
+
+  /* ---------- masthead + nav ---------- */
+
+  .masthead {
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface);
+  }
+  .masthead-inner {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 26px;
+  }
+  .backlink {
+    display: inline-block;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    text-decoration: none;
+    margin-bottom: 18px;
+    border-bottom: 1px solid transparent;
+  }
+  .backlink:hover { border-bottom-color: var(--accent-ink); }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-family: "Chakra Petch", "IBM Plex Sans", sans-serif;
+    font-weight: 700;
+    font-size: clamp(2rem, 7vw, 2.9rem);
+    line-height: 1.04;
+    letter-spacing: -.015em;
+    text-wrap: balance;
+    margin: 0 0 12px;
+  }
+  h1 .v2 { color: var(--accent); }
+  .standfirst {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: 1.02rem;
+    max-width: 58ch;
+  }
+  .masthead-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule-soft);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--ink-3);
+  }
+  .masthead-facts b { color: var(--ink-2); font-weight: 500; }
+
+  nav.toc {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--surface);
+    border-bottom: 1px solid var(--rule);
+  }
+  .toc-scroll {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 9px;
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .toc-scroll::-webkit-scrollbar { display: none; }
+  .toc-scroll a {
+    flex: none;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    text-decoration: none;
+    white-space: nowrap;
+    padding-block: 2px;
+    border-bottom: 2px solid transparent;
+  }
+  .toc-scroll a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  .toc-scroll a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- document body ---------- */
+
+  main {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 8px 72px;
+  }
+
+  section { padding-block: 30px 6px; border-top: 1px solid var(--rule-soft); }
+  section:first-of-type { border-top: none; }
+
+  h2 {
+    font-family: "Chakra Petch", sans-serif;
+    font-size: 1.42rem;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    line-height: 1.2;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  h2 .num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .72em;
+    font-weight: 500;
+    color: var(--accent);
+    margin-right: .55em;
+  }
+  h3 {
+    font-family: "Chakra Petch", sans-serif;
+    font-size: 1.02rem;
+    font-weight: 600;
+    letter-spacing: .01em;
+    margin: 26px 0 6px;
+  }
+  .lede { color: var(--ink-2); margin: 0 0 18px; }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 1.15rem; }
+  li { margin-bottom: 6px; }
+  li::marker { color: var(--ink-3); }
+  strong { font-weight: 600; }
+  a { color: var(--accent-ink); }
+
+  code, .mono {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .86em;
+  }
+  code {
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+
+  /* ---------- tables ---------- */
+
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: var(--surface);
+    margin-bottom: 18px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  thead th {
+    text-align: left;
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 500;
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+    background: var(--surface-2);
+  }
+  tbody td {
+    padding: 9px 12px;
+    border-top: 1px solid var(--rule-soft);
+    vertical-align: top;
+    color: var(--ink-2);
+  }
+  tbody tr:first-child td { border-top: none; }
+  tbody td:first-child { color: var(--ink); font-weight: 500; }
+  td .mono { color: var(--ink); }
+  .nowrap { white-space: nowrap; }
+
+  .skillname {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--accent-ink);
+    display: block;
+  }
+
+  /* ---------- pipeline strip ---------- */
+
+  .pipeline {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    gap: 8px;
+    margin: 4px 0 20px;
+  }
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-top: 2px solid var(--accent);
+    border-radius: 3px;
+    padding: 11px 12px 13px;
+  }
+  .step .k {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px;
+    letter-spacing: .12em;
+    color: var(--ink-3);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .step .t {
+    font-family: "Chakra Petch", sans-serif;
+    font-weight: 600;
+    font-size: .95rem;
+    display: block;
+    margin-bottom: 3px;
+  }
+  .step .d { font-size: 12.5px; color: var(--ink-2); line-height: 1.45; }
+
+  /* ---------- callouts ---------- */
+
+  .note {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-bg);
+    padding: 12px 14px;
+    margin: 0 0 18px;
+    font-size: 14px;
+    color: var(--ink-2);
+    border-radius: 0 3px 3px 0;
+  }
+  .note b { color: var(--ink); }
+
+  .quirk {
+    border-left: 3px solid var(--warn);
+    background: var(--surface);
+    border-top: 1px solid var(--rule-soft);
+    border-right: 1px solid var(--rule-soft);
+    border-bottom: 1px solid var(--rule-soft);
+    padding: 12px 14px;
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: var(--ink-2);
+    border-radius: 0 3px 3px 0;
+  }
+  .quirk b { color: var(--ink); }
+
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 12px 14px;
+    overflow-x: auto;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    margin: 0 0 18px;
+  }
+  pre b { color: var(--ink); font-weight: 500; }
+
+  /* ---------- team legend ---------- */
+
+  .teams {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .team-chip {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px;
+    letter-spacing: .06em;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+    padding: 3px 9px;
+  }
+  .c-red { color: var(--t-red); }
+  .c-blue { color: var(--t-blue); }
+  .c-green { color: var(--t-green); }
+  .c-yellow { color: var(--t-yellow); }
+
+  /* ---------- definition rows ---------- */
+
+  .deflist { border-top: 1px solid var(--rule-soft); margin-bottom: 18px; }
+  .defrow {
+    display: grid;
+    grid-template-columns: 158px 1fr;
+    gap: 4px 18px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .defrow dt {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--ink);
+    letter-spacing: .02em;
+  }
+  .defrow dd { margin: 0; color: var(--ink-2); font-size: 14px; }
+  @media (max-width: 560px) {
+    .defrow { grid-template-columns: 1fr; }
+  }
+
+  footer {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 22px 40px;
+    border-top: 1px solid var(--rule);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: .06em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+  }
+  footer a { color: var(--accent-ink); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+  html { scroll-behavior: smooth; }
+  :target { scroll-margin-top: 64px; }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="backlink" href="index.html">&larr; Back to the arena</a>
+    <p class="eyebrow">Operator's Manual · Rev. Phase 4</p>
+    <h1>Battle Bots <span class="v2">V2</span></h1>
+    <p class="standfirst">A browser auto-battler where you never touch the bots. You write the doctrine, pick the model, and a language model calls the tactics live while a 60&nbsp;fps engine does the shooting.</p>
+    <div class="masthead-facts">
+      <span><b>Arena</b> 600 × 600</span>
+      <span><b>Modes</b> 1v1 · 2v2 · FFA</span>
+      <span><b>Skills</b> 6</span>
+      <span><b>Weapons</b> 4</span>
+      <span><b>Pickups</b> 4</span>
+      <span><b>Brain</b> Gemini via <span class="mono">/api/get-actions</span></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <div class="toc-scroll">
+    <a href="#start">1 Quick start</a>
+    <a href="#panel">2 Controls</a>
+    <a href="#brain">3 How the AI plays</a>
+    <a href="#skills">4 Skills</a>
+    <a href="#gear">5 Weapons &amp; pickups</a>
+    <a href="#arena">6 Arena &amp; combat</a>
+    <a href="#hud">7 Reading the screen</a>
+    <a href="#new">8 New in V2</a>
+    <a href="#tuning">9 Tuning</a>
+    <a href="#quirks">10 Quirks</a>
+  </div>
+</nav>
+
+<main>
+
+  <section id="start">
+    <h2><span class="num">01</span>Quick start</h2>
+    <p class="lede">The app is a static front end in <code>public/</code> plus one serverless function in <code>api/</code>. The function is the only thing that holds your API key.</p>
+
+    <ol>
+      <li>Set <code>GEMINI_API_KEY</code> in the environment the function runs in (a <code>.env</code> file locally, project settings on Vercel). The browser never sees it.</li>
+      <li>From <code>battle-bots-V2/</code>, run <code>npm install</code>, then serve the folder with something that runs the <code>api/</code> route — <code>vercel dev</code> is what the layout is built for.</li>
+      <li>Open the page. The model dropdowns fill themselves from a <code>GET /api/get-actions</code> call against Google's live catalog, and the telemetry log prints how many models came back.</li>
+      <li>Pick a match mode, write a strategy line for each team, then hit <strong>Initiate Match</strong>.</li>
+    </ol>
+
+    <div class="note"><b>The plain static server won't do.</b> <code>preview-server.mjs</code> at the repo root serves files only — no <code>/api</code>. Under it the model list comes back empty and every tick logs an error, so the bots just hold their default stance.</div>
+  </section>
+
+  <section id="panel">
+    <h2><span class="num">02</span>The control panel</h2>
+    <p class="lede">Everything is set before the bell. Nothing here is editable mid-match except in the sense that the next tick reads your latest prompt — the panel stays live, so you can rewrite a team's orders while the match runs and the change lands on the following tick.</p>
+
+    <h3>Match modes</h3>
+    <div class="teams">
+      <span class="team-chip c-red">RED</span>
+      <span class="team-chip c-blue">BLUE</span>
+      <span class="team-chip c-green">GREEN</span>
+      <span class="team-chip c-yellow">YELLOW</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Mode</th><th>Roster</th><th>Spawns</th></tr></thead>
+        <tbody>
+          <tr><td>1 v 1</td><td>Red · Blue, one bot each</td><td>Facing off across the mid-line</td></tr>
+          <tr><td>2 v 2</td><td>Red · Blue, two bots each</td><td>Stacked pairs on each edge</td></tr>
+          <tr><td>Free-for-all</td><td>All four teams, one bot each</td><td>One per corner</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>In 2v2 both bots on a team share one prompt, one model and one stat line — but each still gets its own order every tick, addressed by bot id (<code>red-1</code>, <code>red-2</code>). The model can split them: one holds the lane, the other flanks.</p>
+
+    <h3>Per-team settings</h3>
+    <dl class="deflist">
+      <div class="defrow"><dt>AI Strategy Prompt</dt><dd>Free text, injected as "standing orders from your commander". This is your only lever on behaviour. Defaults ship one archetype per colour — red charges, blue snipes, green picks off the wounded, yellow turtles.</dd></div>
+      <div class="defrow"><dt>Model</dt><dd>Any model in the live catalog that supports <code>generateContent</code>. Every team defaults to <code>gemini-3.5-flash-lite</code>. Point two teams at different models and the match becomes a head-to-head.</dd></div>
+      <div class="defrow"><dt>Weapon</dt><dd>Rapid, Shotgun, Railgun or Homing — fixed for the match, chosen by you, not the model.</dd></div>
+      <div class="defrow"><dt>Base HP</dt><dd>50–600, default 225.</dd></div>
+      <div class="defrow"><dt>Base Speed</dt><dd>30–250, default 125. Skills and the speed pickup multiply this.</dd></div>
+    </dl>
+
+    <h3>Arena &amp; cadence</h3>
+    <dl class="deflist">
+      <div class="defrow"><dt>Layout Type 0–3</dt><dd><b>0</b> open ground, no cover · <b>1</b> four corner blocks · <b>2</b> two long horizontal bars · <b>3</b> a four-armed cross.</dd></div>
+      <div class="defrow"><dt>AI Tick Interval</dt><dd>3–15 s, default 6 s. One model call per living team per tick. This is the single biggest knob on both cost and how twitchy the bots feel.</dd></div>
+    </dl>
+
+    <h3>Readouts</h3>
+    <p><strong>Live AI telemetry</strong> keeps the last 14 lines: <span class="mono">SENT</span> per tick with each team's model, <span class="mono">RECV</span> per bot with its chosen skill and the model's own one-line reasoning, and <span class="mono">ERROR</span> for anything that failed. <strong>Match stats</strong> refresh about twice a second with HP, damage out, damage in, accuracy and each bot's most-used skill. <strong>Round history</strong> keeps the last five completed matches — winner, mode, winning model, winning strategy — in browser storage, so it survives a reload.</p>
+  </section>
+
+  <section id="brain">
+    <h2><span class="num">03</span>How the AI actually controls the bots</h2>
+    <p class="lede">The division of labour is the whole design: the model picks <em>intent</em> every few seconds, the engine executes it every frame. The model never sets a coordinate, never pulls a trigger, and never touches a bot directly.</p>
+
+    <div class="pipeline">
+      <div class="step"><span class="k">TICK</span><span class="t">Snapshot</span><span class="d">Every living team's view of the world is frozen at the same instant.</span></div>
+      <div class="step"><span class="k">POST</span><span class="t">Ask</span><span class="d">One call per team, in parallel, each with its own prompt and model.</span></div>
+      <div class="step"><span class="k">JSON</span><span class="t">Orders</span><span class="d">One skill, one reasoning line and one taunt per bot id.</span></div>
+      <div class="step"><span class="k">GUARD</span><span class="t">Validate</span><span class="d">Unknown or missing skill falls back; engine stats are attached server-side.</span></div>
+      <div class="step"><span class="k">60 FPS</span><span class="t">Execute</span><span class="d">Movement, aim, fire, collisions and damage until the next tick.</span></div>
+    </div>
+
+    <h3>What each team is allowed to see</h3>
+    <p>Every team gets its own snapshot, written from its point of view — there is no shared omniscient state and no peeking at another team's prompt. The payload holds:</p>
+    <ul>
+      <li>Arena size, every cover block with its <strong>current hit points</strong>, and every pickup on the floor with its type and position.</li>
+      <li>For each of your own bots: position, velocity, current speed, HP, shield, weapon, seconds left on the fire cooldown, active skill and its remaining duration, whether a damage or speed boost is running, and <strong>how much damage it took since the last tick</strong>.</li>
+      <li>For each enemy, per bot: id, team, HP, exact distance, and a true/false <strong>line of sight</strong> flag computed against real cover.</li>
+      <li>A rolling log of the last 8 things that happened to this team, and the outcome of up to 5 previous matches with the orders that produced them.</li>
+    </ul>
+    <p>Everything else — where an enemy is heading, what skill an enemy just picked, what the opposing commander wrote — is invisible. The model infers it or does without.</p>
+
+    <h3>What it sends back</h3>
+    <pre>{ "orders": {
+    "<b>red-1</b>": { "skill": "<b>FLANK_LEFT</b>", "reasoning": "under 12 words", "taunt": "under 8 words" },
+    "<b>red-2</b>": { "skill": "<b>DEFENSIVE_SHIELD</b>", "reasoning": "...", "taunt": "..." }
+} }</pre>
+    <p>The response is requested as strict JSON. The server then re-validates it rather than trusting it: a skill name it doesn't recognise is replaced with <code>SNIPE_STANCE</code> and flagged as a fallback, reasoning is clipped to 120 characters, taunts to 80, and <strong>every bot is guaranteed an order</strong>. A malformed or half-empty reply degrades one bot's tactics; it can never stall a team. The real numbers behind a skill — damage multipliers, durations, speeds — are attached from the server's own catalog, so the model can't invent its own stats.</p>
+
+    <h3>What happens to an order</h3>
+    <p>Applying an order sets the bot's active skill, starts its duration timer, and sets an <strong>aggression</strong> value from 0 to 100. Aggression is the engine's master dial: it converts straight into a preferred fighting distance — <code>400 − aggression × 3.6</code> pixels — so a 100-aggression charger wants to be 40 px from your face while a 0-aggression retreater wants 400. It also controls how much a bot strafes (aggressive bots strafe less), tightens shot spread as it rises, and above 80 it lets a bot blind-fire at cover it can't see through, roughly half the time.</p>
+    <p>When the duration runs out the bot reverts to its baseline stance and keeps fighting on the engine's own logic — always targeting the <em>nearest</em> living enemy — until the next order lands.</p>
+
+    <h3>Memory, and why bots adapt</h3>
+    <p>Two memories feed the prompt. The <strong>match log</strong> is per team and holds the last 8 entries: what each of your bots chose last tick and how much damage it had taken, plus every kill and every pickup grab in the arena, which are broadcast to everyone. The <strong>round history</strong> is persistent, and tells a team whether it won or lost its last five matches <em>and under which standing orders</em>. That's the loop that makes a losing strategy visibly change its mind.</p>
+
+    <h3>Rate limits and failure</h3>
+    <p>Each team has its own in-flight guard and its own backoff. A 429 puts that team alone on an exponential cool-down — 4 s, 8 s, 16 s, up to a minute — while the other teams keep calling on schedule. A team that's mid-call skips the next tick rather than stacking requests; a team with no living bots is skipped entirely. Bots with stale orders keep fighting on their last instruction, so a throttled team degrades gracefully instead of freezing.</p>
+  </section>
+
+  <section id="skills">
+    <h2><span class="num">04</span>The six skills</h2>
+    <p class="lede">These are the model's entire action space — one per bot per tick. Each is a real behaviour in the engine, not just a pair of numbers. The catalog is defined once in <code>public/skills.js</code> and imported by both the browser and the API, so what the model is offered and what the engine does can't drift apart.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Skill</th><th>Lasts</th><th>What the engine does</th><th>Aggr.</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Snipe<span class="skillname">SNIPE_STANCE</span></td>
+            <td class="nowrap">3.0 s</td>
+            <td>Speed drops to zero — the bot roots. Fire rate is halved, spread shrinks to 15%, damage doubles. Holds at ~364 px. Drawn with four tick marks around the chassis.</td>
+            <td>10</td>
+          </tr>
+          <tr>
+            <td>Flank Left<span class="skillname">FLANK_LEFT</span></td>
+            <td class="nowrap">4.0 s</td>
+            <td>Orbits to a point ~0.9 rad counter-clockwise around the target at 1.2× speed, keeping ~184 px. Cover collisions do the actual pathing.</td>
+            <td>60</td>
+          </tr>
+          <tr>
+            <td>Flank Right<span class="skillname">FLANK_RIGHT</span></td>
+            <td class="nowrap">4.0 s</td>
+            <td>The same arc, mirrored clockwise.</td>
+            <td>60</td>
+          </tr>
+          <tr>
+            <td>Aggressive Charge<span class="skillname">CHARGE_BEAM</span></td>
+            <td class="nowrap">4.0 s</td>
+            <td>Holds fire for 1.2 s while closing at 1.5× speed, then releases one white piercing beam: 55 damage, 950 px/s, passes through bots. Wants to be 40 px away, and will blind-fire afterwards.</td>
+            <td>100</td>
+          </tr>
+          <tr>
+            <td>Retreat<span class="skillname">KITE_RETREAT</span></td>
+            <td class="nowrap">3.5 s</td>
+            <td>A 0.45 s burst dash at 520 px/s directly away from the target, then holds at ~400 px and keeps shooting.</td>
+            <td>0</td>
+          </tr>
+          <tr>
+            <td>Defend<span class="skillname">DEFENSIVE_SHIELD</span></td>
+            <td class="nowrap">5.0 s</td>
+            <td>Raises a 70-point shield pool and halves speed. The shield is not a timer — it lasts until something eats it, and re-casting tops it back up.</td>
+            <td>30</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="gear">
+    <h2><span class="num">05</span>Weapons and pickups</h2>
+
+    <h3>Weapons — your choice, fixed for the match</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Weapon</th><th>Damage</th><th>Rate</th><th>Shot speed</th><th>Character</th></tr></thead>
+        <tbody>
+          <tr><td>Rapid</td><td>9</td><td>4.0/s</td><td>430</td><td>The default. Steady chip damage, forgiving spread.</td></tr>
+          <tr><td>Shotgun</td><td>7 × 5</td><td>1.1/s</td><td>380</td><td>Five pellets at wide spread — brutal point-blank, near useless across the arena.</td></tr>
+          <tr><td>Railgun</td><td>45</td><td>0.7/s</td><td>900</td><td>Pierces bots, near-perfect accuracy. One shot every 1.4 s, so a miss hurts.</td></tr>
+          <tr><td>Homing</td><td>12</td><td>1.6/s</td><td>260</td><td>Slow rounds that steer toward the nearest enemy at 2.6 rad/s. Punishes anyone standing still.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Skill modifiers stack on top of the weapon: Snipe's doubled damage turns a railgun round into 90, and its halved rate stretches the reload to 2.9 s.</p>
+
+    <h3>Pickups — contested, first-come</h3>
+    <p>One spawns 6 s into the match and roughly every 11 s after, up to three on the floor at once, always clear of cover and at least 70 px from any bot. Each lives 22 s and blinks out over its last 4. Anyone who touches one takes it, and <strong>everybody is told who got it</strong> on the next tick.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Crate</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td><span class="c-green">HP</span></td><td>+60 health, capped at the bot's maximum.</td></tr>
+          <tr><td>SHD</td><td>+50 shield, added to any shield already up.</td></tr>
+          <tr><td><span class="c-yellow">DMG</span></td><td>1.6× damage for 9 s. Multiplies the charge beam too.</td></tr>
+          <tr><td><span class="c-blue">SPD</span></td><td>1.45× speed for 9 s, on top of whatever the active skill is doing.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="arena">
+    <h2><span class="num">06</span>Arena and combat rules</h2>
+
+    <h3>Cover is destructible, and that changes everything</h3>
+    <p>Every block has 120 hit points. It blocks movement, blocks line of sight, and stops <em>every</em> projectile — piercing railgun rounds and charge beams included — while absorbing that shot's damage into its own HP. Cracks spread across it as it wears, and when it dies it bursts, kicks the camera and leaves open ground. Since the model is told each block's current HP, a wall that's nearly gone is a legitimately bad place to hide, and a good place to shoot through in two more volleys.</p>
+
+    <h3>Damage order</h3>
+    <p>A hit is soaked by the shield pool first and only touches HP once the shield is gone; shield absorption sparks violet instead of the shooter's colour. Both halves are still counted as damage taken, which is what the model reads next tick. At zero HP the bot explodes, the camera shakes, and every surviving team is told which bot died.</p>
+
+    <h3>Winning</h3>
+    <p>A match ends when <strong>only one team still has a bot standing</strong> — not on first blood, which is what makes 2v2 and free-for-all work. If the last bots die together it's a draw. The winner's scoreboard tally increments and persists while the page stays open; the round is written to history either way.</p>
+    <p>The button under the mode selector doubles as an abort: while a match is running it reads <strong>Abort AI Match</strong> and stops the AI loop immediately.</p>
+  </section>
+
+  <section id="hud">
+    <h2><span class="num">07</span>Reading the screen</h2>
+    <p class="lede">Almost everything the AI is doing is drawn on the arena itself, so you can follow a match without reading the log.</p>
+    <dl class="deflist">
+      <div class="defrow"><dt>Text above a bot</dt><dd>The active skill in team colour, and above it, in grey, the model's own reasoning for picking it — clipped to about 32 characters.</dd></div>
+      <div class="defrow"><dt>Pulsing dots</dt><dd>That team has a model call in flight right now.</dd></div>
+      <div class="defrow"><dt>Expanding ring</dt><dd>New orders just landed and the skill actually changed.</dd></div>
+      <div class="defrow"><dt>Violet arc</dt><dd>An active shield. The arc shortens as the pool is eaten.</dd></div>
+      <div class="defrow"><dt>Tightening white circle</dt><dd>A charge beam winding up. It fires when the circle closes.</dd></div>
+      <div class="defrow"><dt>Four tick marks</dt><dd>The bot is rooted in snipe stance and will not move.</dd></div>
+      <div class="defrow"><dt>Small coloured pips</dt><dd>Above the HP bar: orange for a damage boost, cyan for speed.</dd></div>
+      <div class="defrow"><dt>Sound</dt><dd>Each team fires at its own pitch — red 400 Hz, green 500, blue 600, yellow 720 — so a four-way fight stays readable by ear.</dd></div>
+    </dl>
+  </section>
+
+  <section id="new">
+    <h2><span class="num">08</span>What V2 added</h2>
+    <p class="lede">V1 was one file, two hard-coded bots and a single model call that moved both sides. V2 rebuilt it in four passes.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Phase</th><th>What changed</th></tr></thead>
+        <tbody>
+          <tr><td>1 — Engine</td><td>The 472-line monolith split into nine modules with a shared mutable world, so the arena supports N bots on N teams instead of exactly two. Match modes arrived with it.</td></tr>
+          <tr><td>2 — Opponents</td><td>Each team got its own prompt, its own model and its own API call, fired in parallel with independent rate-limit backoff. Reasoning, per-match memory, persistent round history and four-way free-for-all all landed here.</td></tr>
+          <tr><td>3 — Substance</td><td>Skills stopped being two numbers and became real behaviours — roots, orbits, dashes, charge beams, shield pools. Four weapons, four pickups and destructible cover were added, and the catalog became a single file shared by the browser and the API.</td></tr>
+          <tr><td>4 — Legibility</td><td>Reasoning and status drawn on the arena, muzzle flashes, shockwaves, camera shake, cracked cover, per-team audio pitch, the live match-stats table and the wide-screen layout.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>One smaller change matters more than it looks: nothing hard-codes a model id any more. The default is resolved against Google's live catalog at call time and degrades to the closest flash-lite or flash sibling, because a stale id would 404 every single call.</p>
+  </section>
+
+  <section id="tuning">
+    <h2><span class="num">09</span>Tuning and troubleshooting</h2>
+
+    <h3>Writing prompts that actually change the match</h3>
+    <p>The model sees exact distances, HP and line-of-sight flags, so conditional orders work far better than adjectives. "Push only when the enemy is under 100 HP, otherwise hold cover" gives it something to evaluate; "be aggressive" mostly collapses into charge spam. Naming a resource works too — telling a team to contest pickups makes it read the crate list it's already being handed.</p>
+
+    <h3>If you're hitting rate limits</h3>
+    <p>Raise the tick interval first — it's linear on request count, and at 10–12 s matches still read fine because skills last 3–5 s anyway. Free-for-all costs four calls a tick to 1v1's two. The log will tell you plainly when a team is backing off and for how long.</p>
+
+    <h3>Running a fair model comparison</h3>
+    <p>Give both teams the identical prompt, HP, speed and weapon, change only the model dropdowns, and run several rounds on the same layout. The round-history table records the winning model and its orders for exactly this. Bear in mind the arena itself isn't symmetric in free-for-all, and pickups spawn at random, so single rounds prove nothing.</p>
+
+    <h3>Common failures</h3>
+    <ul>
+      <li><strong>Dropdowns stuck on "Loading models…"</strong> — the <code>GET</code> failed. Missing or invalid <code>GEMINI_API_KEY</code>, or you're on a static server with no API route.</li>
+      <li><strong>Bots fight but never change skill</strong> — every tick is erroring. Check the telemetry log; orders aren't arriving and bots are running on engine defaults.</li>
+      <li><strong>Everything picks Snipe</strong> — that's the fallback skill. It means responses are arriving but with skill names the catalog doesn't recognise.</li>
+      <li><strong>History is empty after a reload</strong> — browser storage is blocked or cleared. History is a nicety and is allowed to fail silently.</li>
+    </ul>
+  </section>
+
+  <section id="quirks">
+    <h2><span class="num">10</span>Known quirks</h2>
+    <p class="lede">Real behaviours of the current build, worth knowing before you read a number as gospel.</p>
+
+    <div class="quirk"><b>Shotgun accuracy can exceed 100%.</b> A volley counts as one shot fired but five possible hits, so the ACC column overstates it. Compare shotguns to shotguns, not to railguns.</div>
+    <div class="quirk"><b>Taunts are generated but never displayed.</b> The model writes one per bot, the server keeps it and the bot stores it — nothing draws it yet. It's a free hook if you want speech bubbles.</div>
+    <div class="quirk"><b>Line of sight is sampled, not solved.</b> It tests 11 points along the sight line, so a shot can occasionally clip a thin corner the check called clear.</div>
+    <div class="quirk"><b>Targeting ignores orders.</b> Every bot always shoots at the <em>nearest</em> living enemy. The model steers where a bot goes and how it fights, but it can't call focus fire on a specific target.</div>
+    <div class="quirk"><b>The scoreboard isn't the history.</b> Win tallies reset when the page reloads; the round-history table persists. They can disagree.</div>
+  </section>
+
+</main>
+
+<footer>Battle Bots V2 · <a href="index.html">Back to the arena</a> · one model call per team per tick</footer>
+</body>
+</html>

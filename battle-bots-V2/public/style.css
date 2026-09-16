@@ -221,6 +221,43 @@ input[type=range]:focus { outline: none; }
 /* The narrow column above is the phone layout; on a monitor the arena sits
    beside the controls instead of stacking a phone UI down the middle. */
 
+/* Link out to the user guide: quiet on the overlay, a full-width row in the panel. */
+.guide-link {
+    display: block;
+    margin-top: 18px;
+    color: #00e5ff;
+    font-size: 0.72rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.35);
+    padding-bottom: 2px;
+    align-self: center;
+}
+.guide-link:hover {
+    color: #fff;
+    border-bottom-color: #fff;
+    text-shadow: 0 0 8px rgba(0, 229, 255, 0.8);
+}
+.guide-link:focus-visible { outline: 2px solid #00e5ff; outline-offset: 3px; }
+
+.guide-link-panel {
+    margin-top: 0;
+    align-self: stretch;
+    text-align: center;
+    padding: 9px 10px;
+    border: 1px solid #333;
+    border-bottom: 1px solid #333;
+    border-radius: 8px;
+    background: rgba(0, 229, 255, 0.05);
+    font-size: 0.68rem;
+    letter-spacing: 1.5px;
+}
+.guide-link-panel:hover {
+    border-color: #00e5ff;
+    background: rgba(0, 229, 255, 0.12);
+}
+
 @media (min-width: 1024px) {
     #app-container {
         max-width: 1200px;
