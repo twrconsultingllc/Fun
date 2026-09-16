@@ -8,29 +8,65 @@ just Node plus `jsdom`, so these keep running years from now.
 ```bash
 cd tests
 npm install          # once, installs jsdom
-npm test             # tests ../tricalc.html
+npm test             # every suite, against the working copy
 ```
 
 To check what is **actually deployed** rather than your working copy:
 
 ```bash
-npm run test:live
-# or any URL / path:
-node run.mjs --target=https://twrconsultingllc.github.io/Fun/tricalc.html
-node run.mjs --target=../tricalc.html --only=core
+npm run test:live    # every suite, against GitHub Pages
 ```
+
+To narrow things down:
+
+```bash
+node run.mjs --only=swarm-core                    # one suite
+node run.mjs --page=ai-swarm.html                 # every suite for one page
+node run.mjs --base=https://twrconsultingllc.github.io/Fun/ --page=ai-swarm.html
+node run.mjs --target=../tricalc.html --only=core  # force an exact file
+```
+
+Each suite names the page it drives, and `--base` decides where that page is
+read from. That is what lets the identical assertions run against the working
+copy and against the deploy.
 
 Exit code is 0 when everything passes, 1 on any failure, 2 if the page could
 not be loaded — so this drops straight into CI or a pre-push hook.
 
 ## What is covered
 
-`tricalc.html` — 112 assertions in two suites:
+294 assertions across four suites.
+
+### `tricalc.html`
 
 | Suite | File | Covers |
 |---|---|---|
 | `core` | `tricalc.core.test.mjs` | Unit conversion, pace/speed math, clock arithmetic, plan invariants, bad-input guards. Runs the page's math directly, with no DOM. |
 | `dom` | `tricalc.dom.test.mjs` | The real page in jsdom: rendering, typing into fields, unit toggles, presets, warnings, share links, persistence, and markup/script sync. |
+
+### `ai-swarm.html`
+
+| Suite | File | Covers |
+|---|---|---|
+| `swarm-core` | `ai-swarm.core.test.mjs` | The layout contract (strongest at the core, weakest at the rim), direction vectors, token/price/date formatting, and the integrity of the ~105-model catalogue: unique ids, resolvable and acyclic lineage, no model descended from a later release, no half-priced entries. Also pins the Anthropic figures against the published model catalogue. |
+| `swarm-dom` | `ai-swarm.dom.test.mjs` | The page in jsdom against a small three.js stub, so the whole interaction layer really runs: legend and status filters, search, the timeline scrubber, the detail panel, lineage links, deep links. Plus the no-WebGL path. |
+
+#### Why the swarm suite stubs three.js
+
+jsdom has no WebGL and does not fetch the three.js CDN, so `ai-swarm.dom.test.mjs`
+supplies a ~90-line stand-in that implements only what the page calls and draws
+nothing. That is deliberate: the point is to exercise the page's own logic, not
+three's. The suite also runs the page once *without* the stub, to pin what
+happens when the CDN is unreachable — the page has to say so on screen, which is
+the rule the "make failures visible" work set for this repo.
+
+#### On the `power` score
+
+Each model carries a 0-100 `power` score that drives its distance from the
+centre. It is an editorial judgement, not a benchmark, and it is the one field
+in the catalogue that cannot be verified against a source. The tests check that
+it is in range and internally consistent with the layout — they do not and
+cannot check that it is *right*.
 
 The DOM suite drives the page the way a person does — setting input values and
 dispatching real events — so it tests behavior rather than internals.

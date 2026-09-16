@@ -1,45 +1,61 @@
 #!/usr/bin/env node
 /* Test runner for the single-file pages in this repo.
  *
- *   node run.mjs                                  # test ../tricalc.html
- *   node run.mjs --target=../tricalc.html         # test a specific file
- *   node run.mjs --target=https://…/tricalc.html  # test the deployed page
- *   node run.mjs --only=core                      # run one suite
+ *   node run.mjs                                   # every suite, working copy
+ *   node run.mjs --only=swarm-core                 # one suite
+ *   node run.mjs --page=ai-swarm.html              # every suite for one page
+ *   node run.mjs --base=https://…/Fun/             # run everything against the deploy
+ *   node run.mjs --target=../tricalc.html --only=core
  *
  * Suites are plain ES modules exporting `name` and a default
  * `run(harness, page)` function, so adding one is a single line below.
+ * Each suite names the page it drives; `--base` decides where that page is
+ * read from, which is how the same assertions run against the working copy
+ * and against what GitHub Pages actually serves.
  */
 
 import { createHarness } from './lib/harness.mjs';
 import { loadPage } from './lib/page.mjs';
 
 const SUITES = [
-    { id: 'core', file: './tricalc.core.test.mjs' },
-    { id: 'dom', file: './tricalc.dom.test.mjs' }
+    { id: 'core', page: 'tricalc.html', file: './tricalc.core.test.mjs' },
+    { id: 'dom', page: 'tricalc.html', file: './tricalc.dom.test.mjs' },
+    { id: 'swarm-core', page: 'ai-swarm.html', file: './ai-swarm.core.test.mjs' },
+    { id: 'swarm-dom', page: 'ai-swarm.html', file: './ai-swarm.dom.test.mjs' }
 ];
 
-const DEFAULT_TARGET = new URL('../tricalc.html', import.meta.url).pathname;
+const DEFAULT_BASE = new URL('../', import.meta.url).pathname;
 
 function parseArgs(argv) {
-    const args = { target: DEFAULT_TARGET, only: null };
+    const args = { base: DEFAULT_BASE, target: null, only: null, page: null };
     for (const arg of argv.slice(2)) {
-        if (arg.startsWith('--target=')) args.target = arg.slice('--target='.length);
+        if (arg.startsWith('--base=')) args.base = arg.slice('--base='.length);
+        else if (arg.startsWith('--target=')) args.target = arg.slice('--target='.length);
         else if (arg.startsWith('--only=')) args.only = arg.slice('--only='.length);
+        else if (arg.startsWith('--page=')) args.page = arg.slice('--page='.length);
         else if (arg === '--help' || arg === '-h') args.help = true;
         else if (!arg.startsWith('--')) args.target = arg;
     }
     return args;
 }
 
+/* A base is either a URL or a directory; either way the page hangs off it. */
+function resolveTarget(base, page) {
+    if (/^https?:\/\//.test(base)) return new URL(page, base.endsWith('/') ? base : base + '/').href;
+    return (base.endsWith('/') ? base : base + '/') + page;
+}
+
 const args = parseArgs(process.argv);
 
 if (args.help) {
     console.log(`
-Usage: node run.mjs [--target=<path|url>] [--only=<${SUITES.map((s) => s.id).join('|')}>]
+Usage: node run.mjs [--base=<dir|url>] [--only=<suite>] [--page=<file>] [--target=<path|url>]
 
-  --target   Page to test. Defaults to ../tricalc.html.
+  --base     Where to read pages from. Defaults to the repo root.
              Pass a URL to test what is actually deployed.
-  --only     Run a single suite.
+  --only     Run a single suite: ${SUITES.map((s) => s.id).join(', ')}
+  --page     Run every suite that covers one page, e.g. ai-swarm.html
+  --target   Force an exact page for the selected suites. Best with --only.
 
 First run: cd tests && npm install   (installs jsdom)
 `);
@@ -48,23 +64,36 @@ First run: cd tests && npm install   (installs jsdom)
 
 const BOLD = '\x1b[1m', DIM = '\x1b[2m', GREEN = '\x1b[32m', RED = '\x1b[31m', OFF = '\x1b[0m';
 
-let page;
-try {
-    page = await loadPage(args.target);
-} catch (error) {
-    console.error(`${RED}Could not load ${args.target}${OFF}\n${error.message}`);
+const selected = SUITES.filter((s) => (!args.only || args.only === s.id) && (!args.page || args.page === s.page));
+
+if (!selected.length) {
+    console.error(`${RED}No suite matches${OFF} ${args.only || args.page}`);
     process.exit(2);
 }
 
-console.log(`\n${BOLD}Testing${OFF} ${page.source}  ${DIM}(${(page.html.length / 1024).toFixed(0)} KB)${OFF}`);
+/* Load each distinct page once, however many suites drive it. */
+const pages = new Map();
+async function pageFor(suite) {
+    const target = args.target || resolveTarget(args.base, suite.page);
+    if (!pages.has(target)) pages.set(target, await loadPage(target));
+    return pages.get(target);
+}
 
 const harness = createHarness();
 let crashed = 0;
 
-for (const suite of SUITES) {
-    if (args.only && args.only !== suite.id) continue;
+for (const suite of selected) {
+    let page;
+    try {
+        page = await pageFor(suite);
+    } catch (error) {
+        crashed++;
+        console.log(`\n${RED}Could not load the page for ${suite.id}${OFF}\n  ${error.message}`);
+        continue;
+    }
+
     const module = await import(suite.file);
-    console.log(`\n${BOLD}══ ${module.name || suite.id} ══${OFF}`);
+    console.log(`\n${BOLD}══ ${module.name || suite.id} ══${OFF}  ${DIM}${page.source} (${(page.html.length / 1024).toFixed(0)} KB)${OFF}`);
     try {
         await module.default(harness, page);
     } catch (error) {

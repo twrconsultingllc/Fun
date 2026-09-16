@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "test": "node run.mjs",
-    "test:live": "node run.mjs --target=https://twrconsultingllc.github.io/Fun/tricalc.html"
+    "test:live": "node run.mjs --base=https://twrconsultingllc.github.io/Fun/",
+    "test:swarm": "node run.mjs --page=ai-swarm.html"
   },
   "devDependencies": {
     "jsdom": "^27.0.0"

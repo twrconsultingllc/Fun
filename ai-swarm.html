@@ -1,0 +1,1974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Model Swarm — every model, ranked by gravity</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --bg: #03040a;
+    --panel: rgba(9, 11, 20, 0.82);
+    --panel-solid: #0a0c16;
+    --edge: rgba(255, 255, 255, 0.10);
+    --edge-hot: rgba(255, 255, 255, 0.26);
+    --ink: #eef1f8;
+    --ink-dim: #99a2b8;
+    --ink-faint: #5d667d;
+    --accent: #00d4ff;
+}
+
+html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+#scene { position: fixed; inset: 0; z-index: 0; display: block; touch-action: none; }
+
+/* A soft vignette so the outer, older models fall away into the dark. */
+#vignette {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 46%, rgba(0,0,0,0) 34%, rgba(3,4,10,0.55) 78%, rgba(3,4,10,0.92) 100%);
+}
+
+.hud { position: fixed; z-index: 5; }
+
+/* ---------- title ---------- */
+#title {
+    top: 18px; left: 20px; max-width: 360px; pointer-events: none;
+}
+#title h1 {
+    font-size: 1.32rem; font-weight: 900; letter-spacing: 0.16em; text-transform: uppercase;
+    background: linear-gradient(92deg, #ffffff 0%, #7fe7ff 55%, #b98cff 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+#title p { font-size: 0.72rem; color: var(--ink-faint); margin-top: 5px; line-height: 1.5; letter-spacing: 0.02em; }
+#title .count { color: var(--accent); font-weight: 600; }
+
+/* ---------- generic panel chrome ---------- */
+.card {
+    background: var(--panel);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--edge);
+    border-radius: 12px;
+}
+.card h2 {
+    font-size: 0.6rem; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--ink-faint); padding: 11px 13px 8px;
+}
+
+/* ---------- left rail: search + ranked list ---------- */
+#rail {
+    top: 96px; left: 20px; bottom: 132px; width: 262px;
+    display: flex; flex-direction: column;
+}
+#search {
+    width: 100%; padding: 9px 12px; font: inherit; font-size: 0.8rem;
+    background: rgba(255,255,255,0.05); color: var(--ink);
+    border: 1px solid var(--edge); border-radius: 9px; outline: none;
+}
+#search::placeholder { color: var(--ink-faint); }
+#search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,0.12); }
+
+#ranked {
+    margin-top: 10px; flex: 1; overflow-y: auto; overscroll-behavior: contain;
+    border-radius: 12px;
+}
+#ranked::-webkit-scrollbar { width: 6px; }
+#ranked::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.13); border-radius: 3px; }
+
+.rank-row {
+    display: flex; align-items: center; gap: 9px;
+    padding: 6px 10px; cursor: pointer; border-radius: 8px;
+    border: 1px solid transparent; transition: background 0.12s, border-color 0.12s;
+}
+.rank-row:hover { background: rgba(255,255,255,0.06); border-color: var(--edge); }
+.rank-row.on { background: rgba(0,212,255,0.11); border-color: rgba(0,212,255,0.42); }
+.rank-row.muted { opacity: 0.32; }
+.rank-n { font-size: 0.62rem; color: var(--ink-faint); width: 22px; text-align: right; font-variant-numeric: tabular-nums; flex: none; }
+.rank-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.rank-name { font-size: 0.76rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-pow { margin-left: auto; font-size: 0.64rem; color: var(--ink-faint); font-variant-numeric: tabular-nums; flex: none; }
+
+/* ---------- right: legend + filters ---------- */
+#right-rail {
+    top: 18px; right: 20px; width: 214px;
+    display: flex; flex-direction: column; gap: 10px;
+    max-height: calc(100vh - 300px); overflow-y: auto; overscroll-behavior: contain;
+}
+#right-rail::-webkit-scrollbar { width: 5px; }
+#right-rail::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+#legend { padding-bottom: 9px; flex: none; }
+.leg-row {
+    display: flex; align-items: center; gap: 8px; padding: 4px 13px;
+    cursor: pointer; font-size: 0.73rem; color: var(--ink-dim);
+    transition: color 0.12s;
+}
+.leg-row:hover { color: var(--ink); }
+.leg-row.off { opacity: 0.3; }
+.leg-swatch { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.leg-n { margin-left: auto; font-size: 0.62rem; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+
+#status-filter { padding-bottom: 11px; flex: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 13px; }
+.chip {
+    font-size: 0.62rem; padding: 3px 8px; border-radius: 20px; cursor: pointer;
+    border: 1px solid var(--edge); color: var(--ink-dim); letter-spacing: 0.04em;
+    text-transform: uppercase; font-weight: 600; transition: all 0.12s; user-select: none;
+}
+.chip:hover { border-color: var(--edge-hot); color: var(--ink); }
+.chip.off { opacity: 0.3; }
+
+#toggles { padding-bottom: 11px; flex: none; }
+
+/* ---------- bottom: timeline ---------- */
+#timeline {
+    bottom: 18px; left: 20px; right: 20px; height: 94px;
+    padding: 11px 16px 13px; display: flex; flex-direction: column; gap: 7px;
+}
+.tl-head { display: flex; align-items: center; gap: 12px; }
+.tl-date { font-size: 1.02rem; font-weight: 800; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
+.tl-sub { font-size: 0.68rem; color: var(--ink-faint); }
+#play {
+    font: inherit; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 5px 13px; border-radius: 20px; cursor: pointer;
+    background: rgba(0,212,255,0.12); color: var(--accent);
+    border: 1px solid rgba(0,212,255,0.4); transition: all 0.14s;
+}
+#play:hover { background: rgba(0,212,255,0.22); }
+#reveal-all {
+    margin-left: auto; font-size: 0.66rem; color: var(--ink-faint); cursor: pointer;
+    border-bottom: 1px dotted var(--ink-faint);
+}
+#reveal-all:hover { color: var(--ink); }
+
+#scrub { width: 100%; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.12); outline: none; cursor: pointer; }
+#scrub::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%; background: var(--accent); cursor: grab; box-shadow: 0 0 10px rgba(0,212,255,0.7); }
+#scrub::-moz-range-thumb { width: 15px; height: 15px; border: none; border-radius: 50%; background: var(--accent); cursor: grab; }
+
+#ticks { position: relative; height: 13px; }
+.tick { position: absolute; top: 0; transform: translateX(-50%); font-size: 0.56rem; color: var(--ink-faint); letter-spacing: 0.06em; }
+.tick::before { content: ''; position: absolute; top: -5px; left: 50%; width: 1px; height: 3px; background: rgba(255,255,255,0.18); }
+
+/* ---------- detail panel ---------- */
+#detail {
+    position: fixed; z-index: 7; top: 0; right: 0; bottom: 0; width: 396px; max-width: 92vw;
+    background: var(--panel-solid);
+    border-left: 1px solid var(--edge);
+    box-shadow: -30px 0 70px rgba(0,0,0,0.6);
+    transform: translateX(100%); transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+    overflow-y: auto; overscroll-behavior: contain;
+    display: flex; flex-direction: column;
+}
+#detail.open { transform: translateX(0); }
+#detail::-webkit-scrollbar { width: 7px; }
+#detail::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 4px; }
+
+.d-top { padding: 22px 24px 18px; border-bottom: 1px solid var(--edge); position: relative; }
+.d-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+#d-close {
+    position: absolute; top: 15px; right: 16px; width: 26px; height: 26px; border-radius: 50%;
+    border: 1px solid var(--edge); background: transparent; color: var(--ink-dim);
+    cursor: pointer; font-size: 0.95rem; line-height: 1; display: grid; place-items: center;
+}
+#d-close:hover { border-color: var(--edge-hot); color: var(--ink); }
+.d-org { font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 800; }
+.d-name { font-size: 1.62rem; font-weight: 800; letter-spacing: -0.015em; margin: 5px 0 9px; line-height: 1.12; }
+.d-badges { display: flex; flex-wrap: wrap; gap: 5px; }
+.badge {
+    font-size: 0.58rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 4px; border: 1px solid var(--edge); color: var(--ink-dim);
+}
+.badge.s-frontier { background: rgba(0,255,170,0.14); border-color: rgba(0,255,170,0.45); color: #6effc8; }
+.badge.s-active { background: rgba(0,180,255,0.12); border-color: rgba(0,180,255,0.4); color: #79d8ff; }
+.badge.s-legacy { background: rgba(255,200,60,0.11); border-color: rgba(255,200,60,0.34); color: #ffd980; }
+.badge.s-deprecated { background: rgba(255,140,60,0.12); border-color: rgba(255,140,60,0.38); color: #ffb37a; }
+.badge.s-retired { background: rgba(255,70,110,0.11); border-color: rgba(255,70,110,0.34); color: #ff8fa8; }
+.badge.s-restricted { background: rgba(190,120,255,0.13); border-color: rgba(190,120,255,0.4); color: #d3a8ff; }
+.badge.open { background: rgba(160,255,80,0.1); border-color: rgba(160,255,80,0.32); color: #c6ff8f; }
+
+.d-body { padding: 18px 24px 34px; }
+.d-note { font-size: 0.87rem; line-height: 1.62; color: #c6cddc; margin-bottom: 20px; }
+
+.d-sec { font-size: 0.58rem; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); margin: 22px 0 9px; }
+.d-sec:first-child { margin-top: 0; }
+
+.d-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--edge); border: 1px solid var(--edge); border-radius: 9px; overflow: hidden; }
+.d-cell { background: var(--panel-solid); padding: 10px 12px; }
+.d-cell .k { font-size: 0.57rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-faint); }
+.d-cell .v { font-size: 0.95rem; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.d-cell .v small { font-size: 0.64rem; font-weight: 400; color: var(--ink-faint); letter-spacing: 0.02em; }
+.d-cell.wide { grid-column: 1 / -1; }
+.d-cell .v.unk { color: var(--ink-faint); font-weight: 400; font-size: 0.8rem; }
+
+.d-api {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.76rem;
+    color: #8ee9ff; background: rgba(0,212,255,0.07); border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 6px; padding: 7px 10px; word-break: break-all; display: block;
+}
+
+.d-meter { height: 5px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; margin-top: 7px; }
+.d-meter i { display: block; height: 100%; border-radius: 3px; }
+
+.lineage { display: flex; flex-direction: column; gap: 5px; }
+.lin-row {
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px; cursor: pointer;
+    border: 1px solid var(--edge); border-radius: 8px; font-size: 0.78rem;
+    transition: border-color 0.12s, background 0.12s;
+}
+.lin-row:hover { border-color: var(--edge-hot); background: rgba(255,255,255,0.04); }
+.lin-arrow { font-size: 0.56rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); flex: none; width: 68px; }
+.lin-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.lin-year { margin-left: auto; font-size: 0.64rem; color: var(--ink-faint); }
+
+.d-cost { font-size: 0.76rem; color: var(--ink-dim); line-height: 1.6; }
+.d-cost b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.d-nav { display: flex; gap: 8px; margin-top: 26px; }
+.d-nav button {
+    flex: 1; font: inherit; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 9px; border-radius: 8px; cursor: pointer;
+    background: rgba(255,255,255,0.05); color: var(--ink-dim); border: 1px solid var(--edge);
+}
+.d-nav button:hover { background: rgba(255,255,255,0.1); color: var(--ink); }
+
+/* ---------- hover tooltip + 3D labels ---------- */
+#tip {
+    position: fixed; z-index: 8; pointer-events: none; opacity: 0;
+    background: rgba(5,7,14,0.94); border: 1px solid var(--edge-hot); border-radius: 8px;
+    padding: 7px 11px; font-size: 0.78rem; font-weight: 600; white-space: nowrap;
+    transition: opacity 0.12s; transform: translate(-50%, -160%);
+}
+#tip .t-sub { display: block; font-size: 0.62rem; font-weight: 400; color: var(--ink-faint); margin-top: 2px; }
+
+#labels { position: fixed; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+.lbl {
+    position: absolute; font-size: 0.66rem; font-weight: 600; letter-spacing: 0.03em;
+    white-space: nowrap; transform: translate(-50%, -50%);
+    text-shadow: 0 0 9px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,1);
+    will-change: transform, opacity;
+}
+
+/* ---------- help + notice ---------- */
+#help {
+    bottom: 126px; left: 20px; font-size: 0.64rem; color: var(--ink-faint);
+    line-height: 1.75; pointer-events: none; letter-spacing: 0.03em;
+}
+#help kbd {
+    font-family: inherit; font-size: 0.6rem; padding: 1px 5px; border-radius: 4px;
+    border: 1px solid var(--edge); background: rgba(255,255,255,0.05); color: var(--ink-dim);
+}
+
+#provenance {
+    bottom: 126px; right: 20px; width: 214px; font-size: 0.6rem; color: var(--ink-faint);
+    line-height: 1.6; text-align: right; letter-spacing: 0.02em;
+}
+#provenance a { color: var(--ink-dim); }
+
+#boot {
+    position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
+    background: var(--bg); transition: opacity 0.5s; text-align: center; padding: 24px;
+}
+#boot.gone { opacity: 0; pointer-events: none; }
+#boot .b-title { font-size: 0.72rem; letter-spacing: 0.34em; text-transform: uppercase; color: var(--ink-faint); }
+#boot .b-msg { font-size: 0.86rem; color: var(--ink-dim); margin-top: 14px; max-width: 460px; line-height: 1.6; }
+#boot .b-msg.bad { color: #ff8fa8; }
+
+#backlink {
+    position: fixed; z-index: 6; top: 18px; left: 50%; transform: translateX(-50%);
+    font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 700;
+    color: var(--ink-faint); text-decoration: none; padding: 5px 13px;
+    border: 1px solid var(--edge); border-radius: 20px;
+}
+#backlink:hover { color: var(--ink); border-color: var(--edge-hot); }
+
+@media (max-width: 1180px) {
+    #rail { display: none; }
+    #help { display: none; }
+}
+@media (max-width: 860px) {
+    #right-rail, #provenance { display: none; }
+    #title { max-width: 60vw; }
+    #timeline { height: 88px; padding: 9px 12px 11px; }
+    #detail { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+<div id="vignette"></div>
+<div id="labels"></div>
+
+<a id="backlink" href="index.html">← Fun</a>
+
+<div id="title" class="hud">
+    <h1>AI Model Swarm</h1>
+    <p><span class="count" id="visible-count">—</span> models from 2018 to today. The strongest sit at
+       the core; capability falls away toward the rim. Drag to orbit, scroll to fly in, click any node.</p>
+</div>
+
+<div id="rail" class="hud">
+    <input id="search" type="text" placeholder="Search models, labs, API ids…" autocomplete="off" spellcheck="false">
+    <div id="ranked" class="card"></div>
+</div>
+
+<div id="right-rail" class="hud">
+    <div id="legend" class="card">
+        <h2>Labs</h2>
+        <div id="legend-rows"></div>
+    </div>
+    <div id="status-filter" class="card">
+        <h2>Status</h2>
+        <div class="chips" id="status-chips"></div>
+    </div>
+    <div id="toggles" class="card">
+        <h2>View</h2>
+        <div class="chips" id="view-chips"></div>
+    </div>
+</div>
+
+<div id="timeline" class="hud card">
+    <div class="tl-head">
+        <button id="play">▶ Play</button>
+        <span class="tl-date" id="tl-date">—</span>
+        <span class="tl-sub" id="tl-sub"></span>
+        <span id="reveal-all">show everything</span>
+    </div>
+    <input id="scrub" type="range" min="0" max="100" value="100" step="1">
+    <div id="ticks"></div>
+</div>
+
+<div id="help" class="hud">
+    <div><kbd>drag</kbd> orbit &nbsp; <kbd>scroll</kbd> zoom &nbsp; <kbd>right-drag</kbd> pan</div>
+    <div><kbd>←</kbd> <kbd>→</kbd> step through the ranking &nbsp; <kbd>esc</kbd> close &nbsp; <kbd>R</kbd> reset view</div>
+</div>
+
+<div id="provenance" class="hud">
+    Anthropic figures from the bundled Claude model catalog; other labs from public
+    pricing pages as of Sept 2026. Dates marked <b>≈</b> are approximate.
+</div>
+
+<div id="tip"></div>
+
+<aside id="detail">
+    <div class="d-top">
+        <div class="d-bar" id="d-bar"></div>
+        <button id="d-close" aria-label="Close">✕</button>
+        <div class="d-org" id="d-org"></div>
+        <div class="d-name" id="d-name"></div>
+        <div class="d-badges" id="d-badges"></div>
+    </div>
+    <div class="d-body" id="d-body"></div>
+</aside>
+
+<div id="boot">
+    <div>
+        <div class="b-title">Assembling the swarm</div>
+        <div class="b-msg" id="boot-msg">Loading three.js…</div>
+    </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+/* ===== PURE MATH START =====
+   Everything between these markers is DOM-free so tests/ai-swarm.core.test.mjs
+   can evaluate it in isolation. Keep three.js, document and window out of here. */
+
+/* ---------------------------------------------------------------------------
+   THE LABS
+   `dir` is filled in below by a Fibonacci sphere so each lab occupies its own
+   arm of the swarm; `order` just fixes the arm assignment so the layout is
+   stable across reloads.
+--------------------------------------------------------------------------- */
+var PROVIDERS = {
+    anthropic: { label: 'Anthropic',  color: '#ff8c42', order: 0 },
+    openai:    { label: 'OpenAI',     color: '#00e5a8', order: 1 },
+    google:    { label: 'Google',     color: '#4d9fff', order: 2 },
+    xai:       { label: 'xAI',        color: '#e6e9f2', order: 3 },
+    meta:      { label: 'Meta',       color: '#7b5cff', order: 4 },
+    deepseek:  { label: 'DeepSeek',   color: '#ff4d8d', order: 5 },
+    alibaba:   { label: 'Alibaba',    color: '#ffd23f', order: 6 },
+    mistral:   { label: 'Mistral',    color: '#a3ff4d', order: 7 },
+    zhipu:     { label: 'Z.ai',       color: '#00d4ff', order: 8 },
+    moonshot:  { label: 'Moonshot',   color: '#cf7bff', order: 9 },
+    other:     { label: 'Other labs', color: '#8f9bb3', order: 10 }
+};
+
+var STATUSES = ['frontier', 'active', 'legacy', 'deprecated', 'retired', 'restricted'];
+
+var STATUS_LABEL = {
+    frontier: 'Frontier',
+    active: 'Active',
+    legacy: 'Legacy',
+    deprecated: 'Deprecated',
+    retired: 'Retired',
+    restricted: 'Restricted'
+};
+
+/* ---------------------------------------------------------------------------
+   THE MODELS
+
+   power  — a 0-100 standing score. It is a judgement call, not a benchmark:
+            it blends where a model sat against its contemporaries with how
+            capable it is in absolute terms today. It drives the radius, so
+            the core of the swarm is the current frontier and the rim is 2018.
+   pin/pout — USD per million input / output tokens on the lab's own API.
+              null means the model has no public per-token price (open weights
+              you host yourself, or a figure we could not verify).
+   approx  — the release date is month-accurate at best; shown with a "≈".
+--------------------------------------------------------------------------- */
+var MODELS = [
+
+/* ---------------- Anthropic ---------------- */
+{ id: 'fable-5-1', name: 'Claude Fable 5.1', org: 'Anthropic', p: 'anthropic', api: 'claude-fable-5-1',
+  released: '2026-08-15', approx: true, power: 99, status: 'frontier', ctx: 1000000, maxOut: 128000,
+  pin: 10, pout: 50, mode: 'multimodal', parent: 'fable-5',
+  note: 'Anthropic’s most capable widely released model, built for long-horizon agentic work. Thinking is always on and the raw chain of thought is never returned; forced tool use and assistant prefill are both gone. Cache reads drop to $0.25/MTok.' },
+
+{ id: 'mythos-5-1', name: 'Claude Mythos 5.1', org: 'Anthropic', p: 'anthropic', api: 'claude-mythos-5-1',
+  released: '2026-08-15', approx: true, power: 99, status: 'restricted', ctx: 1000000, maxOut: 128000,
+  pin: 10, pout: 50, mode: 'multimodal', parent: 'fable-5-1',
+  note: 'The same model as Fable 5.1 — identical capabilities, limits and pricing — offered only to approved Project Glasswing customers. It runs access-program-dependent safeguards, so refusals are part of its contract.' },
+
+{ id: 'fable-5', name: 'Claude Fable 5', org: 'Anthropic', p: 'anthropic', api: 'claude-fable-5',
+  released: '2026-05-01', approx: true, power: 96, status: 'active', ctx: 1000000, maxOut: 128000,
+  pin: 10, pout: 50, mode: 'multimodal', parent: 'opus-4-8',
+  note: 'The first model in the Fable tier: same price as 5.1 but without preserved thinking, per-message effort or the cheaper cache reads. Still served, but new work should start on 5.1.' },
+
+{ id: 'opus-5', name: 'Claude Opus 5', org: 'Anthropic', p: 'anthropic', api: 'claude-opus-5',
+  released: '2026-07-01', approx: true, power: 95, status: 'frontier', ctx: 1000000, maxOut: 128000,
+  pin: 5, pout: 25, mode: 'multimodal', parent: 'opus-4-8',
+  note: 'A step change over Opus 4.8 at the same price — half the cost of Fable 5.1 and the workhorse for complex agentic coding. Thinking is on by default and the full effort ladder runs through "max".' },
+
+{ id: 'opus-4-8', name: 'Claude Opus 4.8', org: 'Anthropic', p: 'anthropic', api: 'claude-opus-4-8',
+  released: '2026-04-01', approx: true, power: 93, status: 'active', ctx: 1000000, maxOut: 128000,
+  pin: 5, pout: 25, mode: 'multimodal', parent: 'opus-4-7',
+  note: 'The strongest of the Opus 4 series: highly autonomous, state of the art on long-horizon agentic work and memory, with a 1M context window at standard pricing and noticeably warmer writing.' },
+
+{ id: 'opus-4-7', name: 'Claude Opus 4.7', org: 'Anthropic', p: 'anthropic', api: 'claude-opus-4-7',
+  released: '2026-02-01', approx: true, power: 90, status: 'active', ctx: 1000000, maxOut: 128000,
+  pin: 5, pout: 25, mode: 'multimodal', parent: 'opus-4-6',
+  note: 'Introduced the new tokenizer still used by the Fable tier, plus the "xhigh" effort level. Sampling parameters and fixed thinking budgets were removed here in favour of adaptive thinking.' },
+
+{ id: 'opus-4-6', name: 'Claude Opus 4.6', org: 'Anthropic', p: 'anthropic', api: 'claude-opus-4-6',
+  released: '2026-01-01', approx: true, power: 87, status: 'active', ctx: 1000000, maxOut: 128000,
+  pin: 5, pout: 25, mode: 'multimodal', parent: 'opus-4-5',
+  note: 'The model that brought adaptive thinking to the Opus line and auto-enabled interleaved thinking without a beta header. The last Opus where a manual budget_tokens escape hatch still works.' },
+
+{ id: 'sonnet-5', name: 'Claude Sonnet 5', org: 'Anthropic', p: 'anthropic', api: 'claude-sonnet-5',
+  released: '2026-05-01', approx: true, power: 91, status: 'frontier', ctx: 1000000, maxOut: 128000,
+  pin: 2, pout: 10, mode: 'multimodal', parent: 'sonnet-4-6',
+  note: 'Near-Opus quality on coding and agentic work at $2/$10 — the best speed-to-intelligence ratio Anthropic ships. New tokenizer costs roughly 30% more tokens per unit of text than Sonnet 4.6.' },
+
+{ id: 'sonnet-4-6', name: 'Claude Sonnet 4.6', org: 'Anthropic', p: 'anthropic', api: 'claude-sonnet-4-6',
+  released: '2025-12-01', approx: true, power: 85, status: 'active', ctx: 1000000, maxOut: 128000,
+  pin: 3, pout: 15, mode: 'multimodal', parent: 'sonnet-4-5',
+  note: 'Previous-generation Sonnet, and for a while the default mid-tier model everywhere. 1M context, adaptive thinking, and the last Sonnet before the tokenizer change.' },
+
+{ id: 'opus-4-5', name: 'Claude Opus 4.5', org: 'Anthropic', p: 'anthropic', api: 'claude-opus-4-5-20251101',
+  released: '2025-11-01', power: 84, status: 'legacy', ctx: 200000, maxOut: 64000,
+  pin: 5, pout: 25, mode: 'multimodal', parent: 'opus-4-1',
+  note: 'The release that cut Opus pricing from $15/$75 to $5/$25 — a two-thirds drop that made frontier-tier Claude viable for everyday agent loops. First Opus with the effort parameter.' },
+
+{ id: 'haiku-4-5', name: 'Claude Haiku 4.5', org: 'Anthropic', p: 'anthropic', api: 'claude-haiku-4-5-20251001',
+  released: '2025-10-01', power: 76, status: 'active', ctx: 200000, maxOut: 64000,
+  pin: 1, pout: 5, mode: 'multimodal', parent: 'haiku-3-5',
+  note: 'The fastest and cheapest current Claude, and the only one still using the old fixed thinking budget. The default choice for sub-agents, bulk extraction and LLM judges.' },
+
+{ id: 'sonnet-4-5', name: 'Claude Sonnet 4.5', org: 'Anthropic', p: 'anthropic', api: 'claude-sonnet-4-5-20250929',
+  released: '2025-09-29', power: 80, status: 'legacy', ctx: 200000, maxOut: 64000,
+  pin: 3, pout: 15, mode: 'multimodal', parent: 'sonnet-4',
+  note: 'The coding-agent breakout of 2025 and the model Claude Code was built around. Still active, still widely deployed, but superseded twice over.' },
+
+{ id: 'opus-4-1', name: 'Claude Opus 4.1', org: 'Anthropic', p: 'anthropic', api: 'claude-opus-4-1-20250805',
+  released: '2025-08-05', power: 78, status: 'deprecated', ctx: 200000, maxOut: 32000,
+  pin: 15, pout: 75, mode: 'multimodal', parent: 'opus-4',
+  note: 'A point upgrade on Opus 4 that sharpened agentic search and multi-file refactoring. Retires 2026-08-05 — migrate to Opus 5.' },
+
+{ id: 'opus-4', name: 'Claude Opus 4', org: 'Anthropic', p: 'anthropic', api: 'claude-opus-4-20250514',
+  released: '2025-05-14', power: 75, status: 'deprecated', ctx: 200000, maxOut: 32000,
+  pin: 15, pout: 75, mode: 'multimodal', parent: 'opus-3',
+  note: 'Launched alongside Sonnet 4 as Anthropic’s first hybrid-reasoning generation, with extended thinking and tool use interleaved for the first time.' },
+
+{ id: 'sonnet-4', name: 'Claude Sonnet 4', org: 'Anthropic', p: 'anthropic', api: 'claude-sonnet-4-20250514',
+  released: '2025-05-14', power: 72, status: 'deprecated', ctx: 200000, maxOut: 64000,
+  pin: 3, pout: 15, mode: 'multimodal', parent: 'sonnet-3-7',
+  note: 'The mid-tier half of the Claude 4 launch and the workhorse of 2025 — the model most production Claude traffic ran on before 4.5.' },
+
+{ id: 'sonnet-3-7', name: 'Claude Sonnet 3.7', org: 'Anthropic', p: 'anthropic', api: 'claude-3-7-sonnet-20250219',
+  released: '2025-02-19', power: 68, status: 'retired', ctx: 200000, maxOut: 64000,
+  pin: 3, pout: 15, mode: 'multimodal', parent: 'sonnet-3-5-v2',
+  note: 'The first Claude with visible extended thinking, and the first to ship with a coding agent attached. Retired 2026-02-19, exactly a year after launch.' },
+
+{ id: 'opus-3', name: 'Claude Opus 3', org: 'Anthropic', p: 'anthropic', api: 'claude-3-opus-20240229',
+  released: '2024-02-29', power: 60, status: 'retired', ctx: 200000, maxOut: 4096,
+  pin: 15, pout: 75, mode: 'multimodal', parent: 'claude-2-1',
+  note: 'The model that first put Anthropic at the top of the leaderboard, briefly beating GPT-4. Its $15/$75 price set the frontier tier that held until Opus 4.5 broke it. Retired 2026-01-05.' },
+
+{ id: 'sonnet-3-5-v2', name: 'Claude Sonnet 3.5 (new)', org: 'Anthropic', p: 'anthropic', api: 'claude-3-5-sonnet-20241022',
+  released: '2024-10-22', power: 64, status: 'retired', ctx: 200000, maxOut: 8192,
+  pin: 3, pout: 15, mode: 'multimodal', parent: 'sonnet-3-5',
+  note: 'The October refresh that introduced computer use — the first mainstream model shipped with a mouse and keyboard. Widely regarded as the best coding model of its year.' },
+
+{ id: 'sonnet-3-5', name: 'Claude Sonnet 3.5', org: 'Anthropic', p: 'anthropic', api: 'claude-3-5-sonnet-20240620',
+  released: '2024-06-20', power: 62, status: 'retired', ctx: 200000, maxOut: 8192,
+  pin: 3, pout: 15, mode: 'multimodal', parent: 'sonnet-3',
+  note: 'Beat the far more expensive Opus 3 at a fifth of the price, and shipped Artifacts. The moment the mid-tier stopped being a compromise.' },
+
+{ id: 'sonnet-3', name: 'Claude Sonnet 3', org: 'Anthropic', p: 'anthropic', api: 'claude-3-sonnet-20240229',
+  released: '2024-02-29', power: 50, status: 'retired', ctx: 200000, maxOut: 4096,
+  pin: 3, pout: 15, mode: 'multimodal', parent: 'claude-2-1',
+  note: 'The middle child of the Claude 3 family, and the first Claude to accept images. Retired July 2025.' },
+
+{ id: 'haiku-3-5', name: 'Claude Haiku 3.5', org: 'Anthropic', p: 'anthropic', api: 'claude-3-5-haiku-20241022',
+  released: '2024-10-22', power: 52, status: 'retired', ctx: 200000, maxOut: 8192,
+  pin: 0.8, pout: 4, mode: 'text', parent: 'haiku-3',
+  note: 'Matched the original Opus 3 on many benchmarks at a fiftieth of the price — the clearest single illustration of how fast the cost curve was falling.' },
+
+{ id: 'haiku-3', name: 'Claude Haiku 3', org: 'Anthropic', p: 'anthropic', api: 'claude-3-haiku-20240307',
+  released: '2024-03-07', power: 40, status: 'deprecated', ctx: 200000, maxOut: 4096,
+  pin: 0.25, pout: 1.25, mode: 'multimodal', parent: 'claude-instant-1-2',
+  note: 'At $0.25/$1.25 it was the cheapest vision-capable model anyone shipped for a long time, and it survived far longer than its siblings. Retires 2026-04-19.' },
+
+{ id: 'claude-2-1', name: 'Claude 2.1', org: 'Anthropic', p: 'anthropic', api: 'claude-2.1',
+  released: '2023-11-21', power: 35, status: 'retired', ctx: 200000, maxOut: 4096,
+  pin: 8, pout: 24, mode: 'text', parent: 'claude-2',
+  note: 'Doubled the context window to 200K tokens — an order of magnitude past what anyone else offered — and halved hallucination rates on long documents.' },
+
+{ id: 'claude-2', name: 'Claude 2', org: 'Anthropic', p: 'anthropic', api: 'claude-2.0',
+  released: '2023-07-11', power: 32, status: 'retired', ctx: 100000, maxOut: 4096,
+  pin: 8, pout: 24, mode: 'text', parent: 'claude-1',
+  note: 'The first Claude available to the public without a waitlist, with a 100K context window that made whole-codebase and whole-book prompts practical.' },
+
+{ id: 'claude-instant-1-2', name: 'Claude Instant 1.2', org: 'Anthropic', p: 'anthropic', api: 'claude-instant-1.2',
+  released: '2023-08-09', power: 25, status: 'retired', ctx: 100000, maxOut: 4096,
+  pin: 1.63, pout: 5.51, mode: 'text', parent: 'claude-1',
+  note: 'The original cheap-and-fast Claude, and the ancestor of the entire Haiku line. Roughly a fifth the price of Claude 2 for classification and routing work.' },
+
+{ id: 'claude-1', name: 'Claude 1', org: 'Anthropic', p: 'anthropic', api: 'claude-v1',
+  released: '2023-03-14', power: 22, status: 'retired', ctx: 9000, maxOut: 4096,
+  pin: 11, pout: 32, mode: 'text', parent: null,
+  note: 'The first Claude, launched the same day as GPT-4 and trained with Constitutional AI — the RLHF alternative that still shapes every model in this arm of the swarm.' },
+
+/* ---------------- OpenAI ---------------- */
+{ id: 'gpt-6-astra', name: 'GPT-6 Astra', org: 'OpenAI', p: 'openai', api: 'gpt-6-astra',
+  released: '2026-09-03', power: 99, status: 'frontier', ctx: null, maxOut: null,
+  pin: 10, pout: 50, mode: 'multimodal', parent: 'gpt-5-6-sol',
+  note: 'OpenAI’s current flagship, released 3 September 2026 at $10/$50 — matching Fable 5.1 token for token. The first of the GPT-6 generation.' },
+
+{ id: 'gpt-5-6-sol', name: 'GPT-5.6 Sol', org: 'OpenAI', p: 'openai', api: 'gpt-5.6-sol',
+  released: '2026-05-01', approx: true, power: 94, status: 'active', ctx: null, maxOut: null,
+  pin: 5, pout: 30, mode: 'multimodal', parent: 'gpt-5-1',
+  note: 'The top of the GPT-5.6 line and the model GPT-6 replaced at the frontier. Carries promotional pricing of $4 input / $20 output through at least 21 November 2026.' },
+
+{ id: 'gpt-5-6-terra', name: 'GPT-5.6 Terra', org: 'OpenAI', p: 'openai', api: 'gpt-5.6-terra',
+  released: '2026-05-01', approx: true, power: 88, status: 'active', ctx: null, maxOut: null,
+  pin: 2, pout: 12, mode: 'multimodal', parent: 'gpt-5-1',
+  note: 'The mid tier of the 5.6 family — OpenAI’s direct answer to Sonnet 5, priced at $2/$12 for general production traffic.' },
+
+{ id: 'gpt-5-6-luna', name: 'GPT-5.6 Luna', org: 'OpenAI', p: 'openai', api: 'gpt-5.6-luna',
+  released: '2026-05-01', approx: true, power: 74, status: 'active', ctx: null, maxOut: null,
+  pin: 0.2, pout: 1.2, mode: 'multimodal', parent: 'gpt-5-1',
+  note: 'The cheap end of the 5.6 family. A price cut on 30 July 2026 took it to $0.20/$1.20, undercutting almost everything else that can still hold a coherent tool loop.' },
+
+{ id: 'gpt-5-1', name: 'GPT-5.1', org: 'OpenAI', p: 'openai', api: 'gpt-5.1',
+  released: '2025-11-12', power: 84, status: 'legacy', ctx: 400000, maxOut: 128000,
+  pin: 1.25, pout: 10, mode: 'multimodal', parent: 'gpt-5',
+  note: 'The refresh that made GPT-5 usable day to day — adaptive reasoning effort, a warmer default voice, and much better instruction following.' },
+
+{ id: 'gpt-5', name: 'GPT-5', org: 'OpenAI', p: 'openai', api: 'gpt-5',
+  released: '2025-08-07', power: 82, status: 'legacy', ctx: 400000, maxOut: 128000,
+  pin: 1.25, pout: 10, mode: 'multimodal', parent: 'o3',
+  note: 'Folded the o-series reasoning models and the GPT chat line into one router-fronted system. A messy launch, but the pricing — $1.25/$10 at the frontier — reset expectations.' },
+
+{ id: 'o3-pro', name: 'o3-pro', org: 'OpenAI', p: 'openai', api: 'o3-pro',
+  released: '2025-06-10', power: 83, status: 'legacy', ctx: 200000, maxOut: 100000,
+  pin: 20, pout: 80, mode: 'multimodal', parent: 'o3',
+  note: 'The most expensive way to ask a question in 2025. Ran o3 with far more test-time compute and set the bar for how much a single answer could be worth.' },
+
+{ id: 'o3', name: 'o3', org: 'OpenAI', p: 'openai', api: 'o3',
+  released: '2025-04-16', power: 79, status: 'legacy', ctx: 200000, maxOut: 100000,
+  pin: 2, pout: 8, mode: 'multimodal', parent: 'o1',
+  note: 'The reasoning model that made tool use inside the chain of thought normal. A June 2025 price cut took it from $10/$40 to $2/$8 overnight.' },
+
+{ id: 'o4-mini', name: 'o4-mini', org: 'OpenAI', p: 'openai', api: 'o4-mini',
+  released: '2025-04-16', power: 72, status: 'legacy', ctx: 200000, maxOut: 100000,
+  pin: 1.1, pout: 4.4, mode: 'multimodal', parent: 'o3-mini',
+  note: 'Small, fast reasoning at $1.10/$4.40 — for a while the best value on any leaderboard that measured maths and competitive programming.' },
+
+{ id: 'o3-mini', name: 'o3-mini', org: 'OpenAI', p: 'openai', api: 'o3-mini',
+  released: '2025-01-31', power: 66, status: 'retired', ctx: 200000, maxOut: 100000,
+  pin: 1.1, pout: 4.4, mode: 'text', parent: 'o1-mini',
+  note: 'Brought selectable reasoning effort — low, medium, high — to a cheap model, an idea every lab has since copied.' },
+
+{ id: 'gpt-4-1', name: 'GPT-4.1', org: 'OpenAI', p: 'openai', api: 'gpt-4.1',
+  released: '2025-04-14', power: 71, status: 'legacy', ctx: 1047576, maxOut: 32768,
+  pin: 2, pout: 8, mode: 'multimodal', parent: 'gpt-4o',
+  note: 'The first OpenAI model with a million-token context window, and a large jump on instruction following and diff-format code edits.' },
+
+{ id: 'gpt-4-5', name: 'GPT-4.5', org: 'OpenAI', p: 'openai', api: 'gpt-4.5-preview',
+  released: '2025-02-27', power: 70, status: 'retired', ctx: 128000, maxOut: 16384,
+  pin: 75, pout: 150, mode: 'multimodal', parent: 'gpt-4o',
+  note: 'The last and largest pure pre-training scale-up OpenAI shipped, at $75/$150. It was withdrawn within months — the clearest signal that scale alone had stopped paying.' },
+
+{ id: 'o1', name: 'o1', org: 'OpenAI', p: 'openai', api: 'o1',
+  released: '2024-12-05', power: 70, status: 'retired', ctx: 200000, maxOut: 100000,
+  pin: 15, pout: 60, mode: 'multimodal', parent: 'gpt-4o',
+  note: 'The model that opened the test-time compute era: spend tokens thinking before answering. Every "reasoning" model in this swarm descends from it.' },
+
+{ id: 'o1-mini', name: 'o1-mini', org: 'OpenAI', p: 'openai', api: 'o1-mini',
+  released: '2024-09-12', power: 58, status: 'retired', ctx: 128000, maxOut: 65536,
+  pin: 1.1, pout: 4.4, mode: 'text', parent: 'gpt-4o-mini',
+  note: 'Shipped alongside the o1 preview and showed that chain-of-thought training worked at small scale too — strong maths, weak world knowledge.' },
+
+{ id: 'gpt-4o', name: 'GPT-4o', org: 'OpenAI', p: 'openai', api: 'gpt-4o',
+  released: '2024-05-13', power: 66, status: 'legacy', ctx: 128000, maxOut: 16384,
+  pin: 2.5, pout: 10, mode: 'multimodal', parent: 'gpt-4-turbo',
+  note: 'The "omni" model: one network for text, vision and audio, at half the price of GPT-4 Turbo and twice the speed. It defined what a default chat model looked like for two years.' },
+
+{ id: 'gpt-4o-mini', name: 'GPT-4o mini', org: 'OpenAI', p: 'openai', api: 'gpt-4o-mini',
+  released: '2024-07-18', power: 50, status: 'legacy', ctx: 128000, maxOut: 16384,
+  pin: 0.15, pout: 0.6, mode: 'multimodal', parent: 'gpt-3-5-turbo',
+  note: 'At $0.15/$0.60 it was more than 60x cheaper than the original GPT-4 and beat it on most benchmarks. The model that made LLM features free to ship.' },
+
+{ id: 'gpt-4-turbo', name: 'GPT-4 Turbo', org: 'OpenAI', p: 'openai', api: 'gpt-4-turbo',
+  released: '2023-11-06', power: 60, status: 'legacy', ctx: 128000, maxOut: 4096,
+  pin: 10, pout: 30, mode: 'multimodal', parent: 'gpt-4',
+  note: 'Cut GPT-4’s price by two thirds, pushed context to 128K and added JSON mode and reproducible outputs — the release that turned GPT-4 from a demo into infrastructure.' },
+
+{ id: 'gpt-4', name: 'GPT-4', org: 'OpenAI', p: 'openai', api: 'gpt-4',
+  released: '2023-03-14', power: 56, status: 'legacy', ctx: 8192, maxOut: 8192,
+  pin: 30, pout: 60, mode: 'multimodal', parent: 'gpt-3-5-turbo',
+  note: 'The model that started the modern race. Passed professional exams, accepted images, and held the top of every leaderboard for the best part of a year.' },
+
+{ id: 'gpt-oss-120b', name: 'gpt-oss-120b', org: 'OpenAI', p: 'openai', api: 'gpt-oss-120b',
+  released: '2025-08-05', power: 65, status: 'active', open: true, ctx: 131072, maxOut: 131072,
+  pin: null, pout: null, mode: 'text', parent: 'o3-mini',
+  note: 'OpenAI’s first open-weight release since GPT-2 — Apache 2.0, runs on a single 80GB card, and roughly matches o3-mini on reasoning.' },
+
+{ id: 'gpt-3-5-turbo', name: 'GPT-3.5 Turbo', org: 'OpenAI', p: 'openai', api: 'gpt-3.5-turbo',
+  released: '2022-11-30', power: 30, status: 'legacy', ctx: 16385, maxOut: 4096,
+  pin: 0.5, pout: 1.5, mode: 'text', parent: 'gpt-3',
+  note: 'The model behind the original ChatGPT. It is here because nothing else in this swarm changed public expectations more in a single week.' },
+
+{ id: 'gpt-3', name: 'GPT-3', org: 'OpenAI', p: 'openai', api: 'davinci-002',
+  released: '2020-06-11', power: 18, status: 'retired', ctx: 2048, maxOut: 2048,
+  pin: 2, pout: 2, mode: 'text', parent: 'gpt-2',
+  note: '175B parameters and the paper that named few-shot prompting. The first time a language model was sold as an API product rather than published as a checkpoint.' },
+
+{ id: 'gpt-2', name: 'GPT-2', org: 'OpenAI', p: 'openai', api: 'gpt2',
+  released: '2019-02-14', power: 8, status: 'retired', open: true, ctx: 1024, maxOut: 1024,
+  pin: null, pout: null, mode: 'text', parent: 'gpt-1',
+  note: 'Famously held back at launch as "too dangerous to release", then fully published nine months later. 1.5B parameters; the whole safety-and-release debate starts here.' },
+
+{ id: 'gpt-1', name: 'GPT-1', org: 'OpenAI', p: 'openai', api: 'openai-gpt',
+  released: '2018-06-11', power: 3, status: 'retired', open: true, ctx: 512, maxOut: 512,
+  pin: null, pout: null, mode: 'text', parent: null,
+  note: 'The original generative pre-training paper: 117M parameters, unsupervised pre-training then task-specific fine-tuning. The far edge of the swarm.' },
+
+/* ---------------- Google ---------------- */
+{ id: 'gemini-3-1-pro', name: 'Gemini 3.1 Pro', org: 'Google DeepMind', p: 'google', api: 'gemini-3.1-pro-preview',
+  released: '2026-07-01', approx: true, power: 97, status: 'frontier', ctx: null, maxOut: null,
+  pin: null, pout: null, mode: 'multimodal', parent: 'gemini-3-pro',
+  note: 'Google’s current top-tier reasoning model, still carrying a preview label. Pro-tier models left the free tier in April 2026 and now bill on a service tier that can swing the rate by nearly 2x.' },
+
+{ id: 'gemini-3-8-flash', name: 'Gemini 3.8 Flash', org: 'Google DeepMind', p: 'google', api: 'gemini-3.8-flash',
+  released: '2026-08-01', approx: true, power: 86, status: 'frontier', ctx: null, maxOut: null,
+  pin: null, pout: null, mode: 'multimodal', parent: 'gemini-3-7-flash',
+  note: 'The newest Flash, and the first with native grounding built in rather than bolted on as a tool. Google now ships Flash revisions faster than most labs ship anything.' },
+
+{ id: 'gemini-3-7-flash', name: 'Gemini 3.7 Flash', org: 'Google DeepMind', p: 'google', api: 'gemini-3.7-flash',
+  released: '2026-06-01', approx: true, power: 83, status: 'active', ctx: null, maxOut: null,
+  pin: null, pout: null, mode: 'multimodal', parent: 'gemini-3-6-flash',
+  note: 'One step back in a Flash line that now turns over every couple of months — a cadence no other lab matches at this tier.' },
+
+{ id: 'gemini-3-6-flash', name: 'Gemini 3.6 Flash', org: 'Google DeepMind', p: 'google', api: 'gemini-3.6-flash',
+  released: '2026-04-01', approx: true, power: 81, status: 'active', ctx: null, maxOut: null,
+  pin: 1.5, pout: 7.5, mode: 'multimodal', parent: 'gemini-3-5-flash',
+  note: 'The workhorse of the current Flash line at $1.50/$7.50 — a long way from the $0.10 Flash models of 2024, and a sign of how much capability moved into the tier.' },
+
+{ id: 'gemini-3-5-flash', name: 'Gemini 3.5 Flash', org: 'Google DeepMind', p: 'google', api: 'gemini-3.5-flash',
+  released: '2026-02-01', approx: true, power: 78, status: 'active', ctx: null, maxOut: null,
+  pin: null, pout: null, mode: 'multimodal', parent: 'gemini-3-pro',
+  note: 'Paired with a Flash-Lite sibling for cheap high-volume work. Both are still widely used as default models in third-party apps.' },
+
+{ id: 'gemini-3-5-flash-lite', name: 'Gemini 3.5 Flash-Lite', org: 'Google DeepMind', p: 'google', api: 'gemini-3.5-flash-lite',
+  released: '2026-02-01', approx: true, power: 68, status: 'active', ctx: null, maxOut: null,
+  pin: null, pout: null, mode: 'multimodal', parent: 'gemini-2-5-flash-lite',
+  note: 'The cheapest rung of the current Gemini ladder and a common default for chat apps that need a free tier — Flash and Flash-Lite still have one; Pro no longer does.' },
+
+{ id: 'gemini-3-pro', name: 'Gemini 3 Pro', org: 'Google DeepMind', p: 'google', api: 'gemini-3-pro',
+  released: '2025-11-18', power: 89, status: 'legacy', ctx: 1000000, maxOut: 64000,
+  pin: 2, pout: 12, mode: 'multimodal', parent: 'gemini-2-5-pro',
+  note: 'The release that put Google back at the top of the general leaderboards, with a big jump on multimodal reasoning and long-context retrieval.' },
+
+{ id: 'gemini-2-5-pro', name: 'Gemini 2.5 Pro', org: 'Google DeepMind', p: 'google', api: 'gemini-2.5-pro',
+  released: '2025-03-25', power: 80, status: 'legacy', ctx: 1048576, maxOut: 65536,
+  pin: 1.25, pout: 10, mode: 'multimodal', parent: 'gemini-2-0-flash',
+  note: 'A million-token context with thinking on by default, at $1.25/$10. For most of 2025 it was the cheapest genuinely frontier-class model you could buy.' },
+
+{ id: 'gemini-2-5-flash', name: 'Gemini 2.5 Flash', org: 'Google DeepMind', p: 'google', api: 'gemini-2.5-flash',
+  released: '2025-04-17', power: 70, status: 'legacy', ctx: 1048576, maxOut: 65536,
+  pin: 0.3, pout: 2.5, mode: 'multimodal', parent: 'gemini-2-0-flash',
+  note: 'The first Flash with a controllable thinking budget — you paid for reasoning only when you wanted it. A million-token context for thirty cents.' },
+
+{ id: 'gemini-2-5-flash-lite', name: 'Gemini 2.5 Flash-Lite', org: 'Google DeepMind', p: 'google', api: 'gemini-2.5-flash-lite',
+  released: '2025-07-22', power: 58, status: 'legacy', ctx: 1048576, maxOut: 65536,
+  pin: 0.1, pout: 0.4, mode: 'multimodal', parent: 'gemini-2-5-flash',
+  note: 'A million-token multimodal context at $0.10/$0.40. Still the reference point for what "cheap" means in this swarm.' },
+
+{ id: 'gemini-2-0-flash', name: 'Gemini 2.0 Flash', org: 'Google DeepMind', p: 'google', api: 'gemini-2.0-flash',
+  released: '2024-12-11', power: 62, status: 'legacy', ctx: 1048576, maxOut: 8192,
+  pin: 0.1, pout: 0.4, mode: 'multimodal', parent: 'gemini-1-5-flash',
+  note: 'Native tool use, native image and audio output, and a live bidirectional API — the first model that felt built for agents rather than adapted for them.' },
+
+{ id: 'gemini-1-5-pro', name: 'Gemini 1.5 Pro', org: 'Google DeepMind', p: 'google', api: 'gemini-1.5-pro',
+  released: '2024-02-15', power: 58, status: 'retired', ctx: 2097152, maxOut: 8192,
+  pin: 1.25, pout: 5, mode: 'multimodal', parent: 'gemini-1-ultra',
+  note: 'Jumped straight to a million-token context — and later two million — while everyone else was at 128K. Mixture-of-experts, and near-perfect needle-in-a-haystack recall.' },
+
+{ id: 'gemini-1-5-flash', name: 'Gemini 1.5 Flash', org: 'Google DeepMind', p: 'google', api: 'gemini-1.5-flash',
+  released: '2024-05-14', power: 48, status: 'retired', ctx: 1048576, maxOut: 8192,
+  pin: 0.075, pout: 0.3, mode: 'multimodal', parent: 'gemini-1-5-pro',
+  note: 'Distilled from 1.5 Pro and priced at seven and a half cents per million input tokens. The original argument that most traffic does not need a frontier model.' },
+
+{ id: 'gemini-1-ultra', name: 'Gemini 1.0 Ultra', org: 'Google DeepMind', p: 'google', api: 'gemini-1.0-ultra',
+  released: '2023-12-06', power: 52, status: 'retired', ctx: 32768, maxOut: 8192,
+  pin: null, pout: null, mode: 'multimodal', parent: 'palm-2',
+  note: 'Google’s first natively multimodal model and its answer to GPT-4 — trained on text, images, audio and video from the start rather than stitched together.' },
+
+{ id: 'palm-2', name: 'PaLM 2', org: 'Google', p: 'google', api: 'text-bison-001',
+  released: '2023-05-10', power: 30, status: 'retired', ctx: 8192, maxOut: 1024,
+  pin: null, pout: null, mode: 'text', parent: 'lamda',
+  note: 'Powered the original Bard and the first Google generative APIs. Smaller and better trained than its predecessor — an early argument for data quality over raw parameter count.' },
+
+{ id: 'lamda', name: 'LaMDA', org: 'Google', p: 'google', api: null,
+  released: '2021-05-18', power: 14, status: 'retired', ctx: 4096, maxOut: 1024,
+  pin: null, pout: null, mode: 'text', parent: 'bert',
+  note: 'Google’s dialogue-tuned model, never released publicly. Best remembered for the 2022 sentience claim that put LLM behaviour on front pages a year before ChatGPT.' },
+
+{ id: 'bert', name: 'BERT', org: 'Google', p: 'google', api: null,
+  released: '2018-10-11', power: 6, status: 'retired', open: true, ctx: 512, maxOut: null,
+  pin: null, pout: null, mode: 'text', parent: null,
+  note: 'Bidirectional, encoder-only, and not generative at all — but it proved that pre-training then fine-tuning beat everything else, and it set the direction for all of this.' },
+
+/* ---------------- xAI ---------------- */
+{ id: 'grok-4-6', name: 'Grok 4.6', org: 'xAI', p: 'xai', api: 'grok-4.6',
+  released: '2026-08-12', power: 93, status: 'frontier', ctx: 500000, maxOut: null,
+  pin: 2, pout: 6, mode: 'multimodal', parent: 'grok-4-5',
+  note: 'xAI’s current flagship: a 500K context aimed at long-running agents at $2/$6. Prompts over 200K tokens reprice the whole request at double rate.' },
+
+{ id: 'grok-4-5', name: 'Grok 4.5', org: 'xAI', p: 'xai', api: 'grok-4.5',
+  released: '2026-05-01', approx: true, power: 90, status: 'active', ctx: 256000, maxOut: null,
+  pin: 2, pout: 6, mode: 'multimodal', parent: 'grok-4-3',
+  note: 'Same headline pricing as 4.6 but with a more expensive cached-input rate, so there is rarely a reason to stay on it.' },
+
+{ id: 'grok-4-3', name: 'Grok 4.3', org: 'xAI', p: 'xai', api: 'grok-4.3',
+  released: '2026-02-01', approx: true, power: 86, status: 'active', ctx: 256000, maxOut: null,
+  pin: 1.25, pout: 2.5, mode: 'multimodal', parent: 'grok-4',
+  note: 'The cheapest way into the current Grok line at $1.25/$2.50 — an unusually narrow gap between input and output pricing.' },
+
+{ id: 'grok-build', name: 'Grok Build 0.1', org: 'xAI', p: 'xai', api: 'grok-build-0.1',
+  released: '2026-06-01', approx: true, power: 80, status: 'active', ctx: 256000, maxOut: null,
+  pin: 1, pout: 2, mode: 'text', parent: 'grok-4-3',
+  note: 'A coding-specialised model priced at $1/$2 — xAI’s bet that a narrower model beats a general one on repository-scale work.' },
+
+{ id: 'grok-4', name: 'Grok 4', org: 'xAI', p: 'xai', api: 'grok-4',
+  released: '2025-07-09', power: 82, status: 'legacy', ctx: 256000, maxOut: null,
+  pin: 3, pout: 15, mode: 'multimodal', parent: 'grok-3',
+  note: 'The release that first put xAI genuinely at the frontier, with a heavy multi-agent variant that ran several reasoning threads in parallel.' },
+
+{ id: 'grok-3', name: 'Grok 3', org: 'xAI', p: 'xai', api: 'grok-3',
+  released: '2025-02-17', power: 72, status: 'legacy', ctx: 131072, maxOut: null,
+  pin: 3, pout: 15, mode: 'multimodal', parent: 'grok-2',
+  note: 'Trained on the Colossus cluster and marketed on raw compute scale. Introduced Think and Big Brain reasoning modes.' },
+
+{ id: 'grok-2', name: 'Grok 2', org: 'xAI', p: 'xai', api: 'grok-2',
+  released: '2024-08-13', power: 58, status: 'retired', ctx: 131072, maxOut: null,
+  pin: 2, pout: 10, mode: 'multimodal', parent: 'grok-1',
+  note: 'Added image understanding and generation, and was the first Grok anyone outside X could call through an API.' },
+
+{ id: 'grok-1', name: 'Grok 1', org: 'xAI', p: 'xai', api: null,
+  released: '2023-11-04', power: 40, status: 'retired', open: true, ctx: 8192, maxOut: null,
+  pin: null, pout: null, mode: 'text', parent: null,
+  note: 'A 314B mixture-of-experts model open-sourced under Apache 2.0 in March 2024 — at the time the largest set of open weights anyone had published.' },
+
+/* ---------------- Meta ---------------- */
+{ id: 'llama-4-maverick', name: 'Llama 4 Maverick', org: 'Meta', p: 'meta', api: 'llama-4-maverick',
+  released: '2025-04-05', power: 70, status: 'active', open: true, ctx: 1000000, maxOut: 8192,
+  pin: null, pout: null, mode: 'multimodal', parent: 'llama-3-1-405b',
+  note: 'Meta’s first natively multimodal mixture-of-experts model: 17B active parameters across 128 experts, open weights, 1M context.' },
+
+{ id: 'llama-4-scout', name: 'Llama 4 Scout', org: 'Meta', p: 'meta', api: 'llama-4-scout',
+  released: '2025-04-05', power: 66, status: 'active', open: true, ctx: 10000000, maxOut: 8192,
+  pin: null, pout: null, mode: 'multimodal', parent: 'llama-3-1-405b',
+  note: 'A 10 million token context window — by far the largest ever shipped — on weights small enough to run on a single H100.' },
+
+{ id: 'llama-3-1-405b', name: 'Llama 3.1 405B', org: 'Meta', p: 'meta', api: 'llama-3.1-405b',
+  released: '2024-07-23', power: 64, status: 'legacy', open: true, ctx: 131072, maxOut: 4096,
+  pin: null, pout: null, mode: 'text', parent: 'llama-3-70b',
+  note: 'The first open-weight model to trade blows with GPT-4 class systems. Its licence change also made synthetic data generation from Llama outputs explicitly allowed.' },
+
+{ id: 'llama-3-70b', name: 'Llama 3 70B', org: 'Meta', p: 'meta', api: 'llama-3-70b',
+  released: '2024-04-18', power: 56, status: 'legacy', open: true, ctx: 8192, maxOut: 4096,
+  pin: null, pout: null, mode: 'text', parent: 'llama-2-70b',
+  note: 'Trained on 15 trillion tokens — far past what scaling laws said was optimal — and proved that small models trained far longer beat big undertrained ones.' },
+
+{ id: 'llama-2-70b', name: 'Llama 2 70B', org: 'Meta', p: 'meta', api: 'llama-2-70b',
+  released: '2023-07-18', power: 42, status: 'legacy', open: true, ctx: 4096, maxOut: 4096,
+  pin: null, pout: null, mode: 'text', parent: 'llama-1',
+  note: 'The first Llama licensed for commercial use. It is the reason a genuine open-weight ecosystem exists at all, and the base for thousands of fine-tunes.' },
+
+{ id: 'llama-1', name: 'LLaMA', org: 'Meta', p: 'meta', api: null,
+  released: '2023-02-24', power: 30, status: 'retired', open: true, ctx: 2048, maxOut: 2048,
+  pin: null, pout: null, mode: 'text', parent: null,
+  note: 'Released to researchers, leaked within a week, and running on laptops within a month. The single most consequential accident in this swarm.' },
+
+/* ---------------- DeepSeek ---------------- */
+{ id: 'deepseek-v4', name: 'DeepSeek V4', org: 'DeepSeek', p: 'deepseek', api: 'deepseek-v4',
+  released: '2026-06-01', approx: true, power: 90, status: 'frontier', open: true, ctx: null, maxOut: null,
+  pin: null, pout: null, mode: 'text', parent: 'deepseek-r1',
+  note: 'MIT-licensed open weights, with the 304B checkpoint widely rated the strongest cost-and-agent option you can self-host. Frontier capability with no API bill attached.' },
+
+{ id: 'deepseek-v4-1-flash', name: 'DeepSeek V4.1 Flash', org: 'DeepSeek', p: 'deepseek', api: 'deepseek-v4.1-flash',
+  released: '2026-09-10', power: 88, status: 'frontier', open: true, ctx: null, maxOut: null,
+  pin: null, pout: null, mode: 'text', parent: 'deepseek-v4',
+  note: 'Released 10 September 2026 — the newest model in this entire swarm. A speed-tuned V4.1 checkpoint aimed at high-throughput agent loops.' },
+
+{ id: 'deepseek-r1', name: 'DeepSeek R1', org: 'DeepSeek', p: 'deepseek', api: 'deepseek-reasoner',
+  released: '2025-01-20', power: 76, status: 'legacy', open: true, ctx: 65536, maxOut: 8192,
+  pin: 0.55, pout: 2.19, mode: 'text', parent: 'deepseek-v3',
+  note: 'Matched o1 on reasoning benchmarks at roughly a thirtieth of the price, with open weights and a published training recipe. It moved markets, literally.' },
+
+{ id: 'deepseek-v3', name: 'DeepSeek V3', org: 'DeepSeek', p: 'deepseek', api: 'deepseek-chat',
+  released: '2024-12-26', power: 70, status: 'legacy', open: true, ctx: 65536, maxOut: 8192,
+  pin: 0.27, pout: 1.1, mode: 'text', parent: null,
+  note: '671B parameters with 37B active, trained for a reported $5.6M. The efficiency claim that made every lab re-examine its own training bill.' },
+
+/* ---------------- Alibaba ---------------- */
+{ id: 'qwen-3-8', name: 'Qwen3.8', org: 'Alibaba', p: 'alibaba', api: 'qwen3.8',
+  released: '2026-07-01', approx: true, power: 91, status: 'frontier', open: true, ctx: null, maxOut: null,
+  pin: null, pout: null, mode: 'multimodal', parent: 'qwen-3-6',
+  note: 'A 2.4 trillion parameter sparse model at the top of the line, with a 27B Apache-2.0 multimodal checkpoint underneath it that has become a common local default.' },
+
+{ id: 'qwen-3-8-27b', name: 'Qwen3.8-27B', org: 'Alibaba', p: 'alibaba', api: 'qwen3.8-27b',
+  released: '2026-07-01', approx: true, power: 84, status: 'frontier', open: true, ctx: null, maxOut: null,
+  pin: null, pout: null, mode: 'multimodal', parent: 'qwen-3-8',
+  note: 'Apache 2.0, multimodal, and small enough to run on one workstation card — the practical choice when you want capable weights you fully control.' },
+
+{ id: 'qwen-3-6', name: 'Qwen3.6-35B-A3B', org: 'Alibaba', p: 'alibaba', api: 'qwen3.6-35b-a3b',
+  released: '2026-03-01', approx: true, power: 80, status: 'active', open: true, ctx: null, maxOut: null,
+  pin: null, pout: null, mode: 'text', parent: 'qwen-3-coder',
+  note: 'Scores 73.4 on SWE-Bench Verified with only 3B active parameters — a striking demonstration of how far sparse routing has come.' },
+
+{ id: 'qwen-3-coder', name: 'Qwen3-Coder 480B', org: 'Alibaba', p: 'alibaba', api: 'qwen3-coder-480b-a35b',
+  released: '2025-07-23', power: 78, status: 'active', open: true, ctx: 262144, maxOut: 65536,
+  pin: null, pout: null, mode: 'text', parent: 'qwen-2-5-72b',
+  note: '480B total, 35B active, trained specifically for agentic coding. The first open-weight model that could plausibly replace a paid coding API.' },
+
+{ id: 'qwen-2-5-72b', name: 'Qwen2.5-72B', org: 'Alibaba', p: 'alibaba', api: 'qwen2.5-72b-instruct',
+  released: '2024-09-19', power: 60, status: 'legacy', open: true, ctx: 131072, maxOut: 8192,
+  pin: null, pout: null, mode: 'text', parent: null,
+  note: 'The release that made Qwen the default open-weight family outside the West, with strong multilingual coverage and a full size ladder from 0.5B up.' },
+
+/* ---------------- Mistral ---------------- */
+{ id: 'mistral-large-3', name: 'Mistral Large 3', org: 'Mistral AI', p: 'mistral', api: 'mistral-large-3',
+  released: '2025-12-01', approx: true, power: 80, status: 'active', open: true, ctx: 256000, maxOut: 32000,
+  pin: null, pout: null, mode: 'multimodal', parent: 'mistral-large-2',
+  note: '675B total with 41B active, a 256K context, and — unusually for a flagship — Apache 2.0 weights. Europe’s strongest open release.' },
+
+{ id: 'mistral-small-4', name: 'Mistral Small 4', org: 'Mistral AI', p: 'mistral', api: 'mistral-small-4',
+  released: '2026-03-01', approx: true, power: 68, status: 'active', open: true, ctx: 128000, maxOut: 32000,
+  pin: null, pout: null, mode: 'multimodal', parent: 'mistral-large-3',
+  note: 'The current small open model in the line, aimed at on-premise deployments where data cannot leave the building.' },
+
+{ id: 'mistral-large-2', name: 'Mistral Large 2', org: 'Mistral AI', p: 'mistral', api: 'mistral-large-2407',
+  released: '2024-07-24', power: 62, status: 'legacy', ctx: 128000, maxOut: 8192,
+  pin: 2, pout: 6, mode: 'text', parent: 'mixtral-8x7b',
+  note: '123B dense parameters with strong code and multilingual performance, released the day after Llama 3.1 and priced well under GPT-4.' },
+
+{ id: 'mixtral-8x7b', name: 'Mixtral 8x7B', org: 'Mistral AI', p: 'mistral', api: 'open-mixtral-8x7b',
+  released: '2023-12-11', power: 48, status: 'legacy', open: true, ctx: 32768, maxOut: 8192,
+  pin: 0.7, pout: 0.7, mode: 'text', parent: 'mistral-7b',
+  note: 'The first sparse mixture-of-experts model with open weights. It beat GPT-3.5 while only activating 13B parameters per token, and made MoE the default frontier architecture.' },
+
+{ id: 'mistral-7b', name: 'Mistral 7B', org: 'Mistral AI', p: 'mistral', api: 'open-mistral-7b',
+  released: '2023-09-27', power: 36, status: 'legacy', open: true, ctx: 8192, maxOut: 8192,
+  pin: 0.25, pout: 0.25, mode: 'text', parent: null,
+  note: 'Beat Llama 2 13B on every benchmark at half the size, under Apache 2.0. The model that proved a small European lab could compete on efficiency alone.' },
+
+/* ---------------- Z.ai / Zhipu ---------------- */
+{ id: 'glm-5-3', name: 'GLM-5.3', org: 'Z.ai (Zhipu)', p: 'zhipu', api: 'glm-5.3',
+  released: '2026-08-01', approx: true, power: 92, status: 'frontier', open: true, ctx: null, maxOut: null,
+  pin: null, pout: null, mode: 'text', parent: 'glm-5-2',
+  note: 'At maximum effort it ranked highest of any open-weight model on the Artificial Analysis index as of 8 September 2026 — the current top of the open frontier.' },
+
+{ id: 'glm-5-2', name: 'GLM-5.2', org: 'Z.ai (Zhipu)', p: 'zhipu', api: 'glm-5.2',
+  released: '2026-05-01', approx: true, power: 89, status: 'active', open: true, ctx: null, maxOut: null,
+  pin: null, pout: null, mode: 'text', parent: 'glm-4-6',
+  note: 'The release that put GLM into serious contention with DeepSeek and Qwen for the open-weight crown, with strong agentic and coding scores.' },
+
+{ id: 'glm-4-6', name: 'GLM-4.6', org: 'Z.ai (Zhipu)', p: 'zhipu', api: 'glm-4.6',
+  released: '2025-09-30', power: 74, status: 'legacy', open: true, ctx: 200000, maxOut: 128000,
+  pin: 0.6, pout: 2.2, mode: 'text', parent: null,
+  note: 'A 200K context coding model with open weights and an aggressive subscription plan — the first Chinese lab to seriously market a Claude Code alternative.' },
+
+/* ---------------- Moonshot ---------------- */
+{ id: 'kimi-k2-6', name: 'Kimi K2.6', org: 'Moonshot AI', p: 'moonshot', api: 'kimi-k2.6',
+  released: '2026-07-01', approx: true, power: 88, status: 'frontier', open: true, ctx: null, maxOut: null,
+  pin: null, pout: null, mode: 'text', parent: 'kimi-k2',
+  note: 'The current Kimi, and a regular fixture near the top of open-weight agentic benchmarks alongside GLM-5.3 and DeepSeek V4.' },
+
+{ id: 'kimi-k2', name: 'Kimi K2', org: 'Moonshot AI', p: 'moonshot', api: 'kimi-k2-instruct',
+  released: '2025-07-11', power: 74, status: 'legacy', open: true, ctx: 131072, maxOut: 16384,
+  pin: 0.6, pout: 2.5, mode: 'text', parent: null,
+  note: 'A trillion-parameter mixture-of-experts with 32B active, trained specifically for tool use. The first open model that was genuinely good at agent loops.' },
+
+/* ---------------- Other labs ---------------- */
+{ id: 'nova-pro', name: 'Amazon Nova Pro', org: 'Amazon', p: 'other', api: 'amazon.nova-pro-v1:0',
+  released: '2024-12-03', power: 58, status: 'active', ctx: 300000, maxOut: 5120,
+  pin: 0.8, pout: 3.2, mode: 'multimodal', parent: null,
+  note: 'Amazon’s own frontier attempt, priced well under the models it competes with and wired directly into Bedrock. Mostly interesting as a floor on what AWS will charge.' },
+
+{ id: 'command-a', name: 'Command A', org: 'Cohere', p: 'other', api: 'command-a-03-2025',
+  released: '2025-03-13', power: 60, status: 'active', open: true, ctx: 256000, maxOut: 8192,
+  pin: 2.5, pout: 10, mode: 'text', parent: null,
+  note: 'Runs on two GPUs instead of the usual thirty-two, with open weights for research. Cohere’s bet on enterprise RAG and private deployment rather than raw benchmark scores.' },
+
+{ id: 'phi-4', name: 'Phi-4', org: 'Microsoft', p: 'other', api: 'phi-4',
+  released: '2024-12-12', power: 50, status: 'active', open: true, ctx: 16384, maxOut: 4096,
+  pin: null, pout: null, mode: 'text', parent: null,
+  note: '14B parameters trained largely on synthetic textbook-style data, beating models several times its size on maths. The strongest evidence that data curation beats scale.' },
+
+{ id: 'jamba-1-5', name: 'Jamba 1.5 Large', org: 'AI21 Labs', p: 'other', api: 'jamba-1.5-large',
+  released: '2024-08-22', power: 45, status: 'legacy', open: true, ctx: 256000, maxOut: 4096,
+  pin: 2, pout: 8, mode: 'text', parent: null,
+  note: 'A hybrid Transformer-Mamba architecture — one of the few serious attempts to leave pure attention behind, with much cheaper long-context inference as the payoff.' },
+
+{ id: 'bloom', name: 'BLOOM', org: 'BigScience', p: 'other', api: 'bigscience/bloom',
+  released: '2022-07-12', power: 16, status: 'retired', open: true, ctx: 2048, maxOut: 2048,
+  pin: null, pout: null, mode: 'text', parent: null,
+  note: '176B parameters across 46 languages, trained in the open by a thousand researchers on a French public supercomputer. The first large model built as a public good.' },
+
+{ id: 'gpt-neox', name: 'GPT-NeoX-20B', org: 'EleutherAI', p: 'other', api: 'EleutherAI/gpt-neox-20b',
+  released: '2022-02-09', power: 12, status: 'retired', open: true, ctx: 2048, maxOut: 2048,
+  pin: null, pout: null, mode: 'text', parent: null,
+  note: 'A volunteer collective replicating GPT-3 in public, weights and all. For two years this was what "open source AI" actually meant.' }
+
+];
+
+/* ---------------------------------------------------------------------------
+   LAYOUT MATH
+   Radius is driven purely by `power`, so "smartest" and "closest to the
+   centre" are the same statement. Direction is driven by the lab, so each
+   lab forms an arm you can follow from the rim to the core.
+--------------------------------------------------------------------------- */
+
+var R_CORE = 7;    /* the strongest model sits this far from the origin */
+var R_RIM  = 118;  /* the weakest sits out here */
+var FALLOFF = 1.35; /* >1 packs the strong models tightly into the core */
+
+/* Radius for a 0-100 power score. */
+function radiusForPower(power) {
+    var t = Math.max(0, Math.min(100, power)) / 100;
+    return R_CORE + Math.pow(1 - t, FALLOFF) * (R_RIM - R_CORE);
+}
+
+/* Evenly spaced unit vectors on a sphere (golden-angle spiral). Used both for
+   lab arm directions and for scattering nodes inside an arm. */
+function fibDirection(i, n) {
+    var offset = 2 / n;
+    var increment = Math.PI * (3 - Math.sqrt(5));
+    var y = ((i * offset) - 1) + (offset / 2);
+    var r = Math.sqrt(Math.max(0, 1 - y * y));
+    var phi = i * increment;
+    return { x: Math.cos(phi) * r, y: y, z: Math.sin(phi) * r };
+}
+
+/* A deterministic 0..1 hash so the layout is identical on every reload. */
+function hash01(str, salt) {
+    var h = 2166136261 ^ (salt || 0);
+    for (var i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = (h * 16777619) >>> 0;
+    }
+    return (h >>> 8) / 16777216;
+}
+
+function normalize(v) {
+    var len = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z) || 1;
+    return { x: v.x / len, y: v.y / len, z: v.z / len };
+}
+
+/* Where a model sits. `armDir` is its lab's direction; nodes near the core
+   drift away from their arm so the centre reads as one shared cluster, while
+   the rim fans out into clearly separate lab arms. */
+function nodePosition(model, armDir, index, total) {
+    var radius = radiusForPower(model.power);
+    var rimness = (radius - R_CORE) / (R_RIM - R_CORE);      /* 0 core .. 1 rim */
+    var cohesion = 0.20 + 0.62 * rimness;                     /* arms tighten outward */
+
+    var scatter = fibDirection((index * 7919) % total, total);
+    var wob = {
+        x: scatter.x + (hash01(model.id, 1) - 0.5) * 0.9,
+        y: scatter.y + (hash01(model.id, 2) - 0.5) * 0.9,
+        z: scatter.z + (hash01(model.id, 3) - 0.5) * 0.9
+    };
+    wob = normalize(wob);
+
+    var dir = normalize({
+        x: armDir.x * cohesion + wob.x * (1 - cohesion),
+        y: armDir.y * cohesion + wob.y * (1 - cohesion),
+        z: armDir.z * cohesion + wob.z * (1 - cohesion)
+    });
+
+    /* Squash vertically a little so the swarm reads as a disc-ish cloud
+       rather than a perfect ball — easier to orbit and to read. */
+    return { x: dir.x * radius, y: dir.y * radius * 0.72, z: dir.z * radius };
+}
+
+/* Node size: deliberately superlinear so the frontier is unmistakable. */
+function nodeRadius(power) {
+    return 0.55 + Math.pow(Math.max(0, power) / 100, 3.1) * 2.6;
+}
+
+/* ---------------------------------------------------------------------------
+   FORMATTING
+--------------------------------------------------------------------------- */
+
+function formatTokens(n) {
+    if (n === null || n === undefined) return null;
+    if (n >= 1000000) {
+        var m = n / 1000000;
+        return (m >= 10 ? Math.round(m) : Math.round(m * 10) / 10) + 'M';
+    }
+    if (n >= 1000) return Math.round(n / 1000) + 'K';
+    return String(n);
+}
+
+function formatPrice(p) {
+    if (p === null || p === undefined) return null;
+    if (p === 0) return '$0';
+    if (p < 1) return '$' + p.toFixed(p < 0.1 ? 3 : 2);
+    return '$' + (Number.isInteger(p) ? p : p.toFixed(2));
+}
+
+/* What one representative job costs: 1M tokens in, 100K tokens out. */
+function costForJob(pin, pout, inTokens, outTokens) {
+    if (pin === null || pin === undefined || pout === null || pout === undefined) return null;
+    return (inTokens / 1000000) * pin + (outTokens / 1000000) * pout;
+}
+
+function formatUSD(v) {
+    if (v === null || v === undefined) return null;
+    if (v >= 100) return '$' + v.toFixed(0);
+    if (v >= 1) return '$' + v.toFixed(2);
+    return '$' + v.toFixed(3);
+}
+
+/* Months since Jan 2018 — the timeline's unit. */
+var EPOCH_YEAR = 2018;
+
+function monthIndex(dateStr) {
+    var parts = String(dateStr).split('-');
+    var y = parseInt(parts[0], 10);
+    var m = parseInt(parts[1] || '1', 10);
+    return (y - EPOCH_YEAR) * 12 + (m - 1);
+}
+
+function monthLabel(idx) {
+    var NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var y = EPOCH_YEAR + Math.floor(idx / 12);
+    return NAMES[((idx % 12) + 12) % 12] + ' ' + y;
+}
+
+function formatDate(dateStr, approx) {
+    var parts = String(dateStr).split('-');
+    var NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
+                 'July', 'August', 'September', 'October', 'November', 'December'];
+    var month = NAMES[parseInt(parts[1], 10) - 1];
+    if (approx) return '≈ ' + month + ' ' + parts[0];
+    return parseInt(parts[2], 10) + ' ' + month + ' ' + parts[0];
+}
+
+/* Build the derived fields every consumer needs: arm directions, positions,
+   ranks and the lineage index. Pure — hand it MODELS, get a layout back. */
+function buildLayout(models, providers) {
+    var keys = Object.keys(providers).sort(function (a, b) {
+        return providers[a].order - providers[b].order;
+    });
+    var arms = {};
+    keys.forEach(function (key, i) { arms[key] = fibDirection(i, keys.length); });
+
+    var ranked = models.slice().sort(function (a, b) { return b.power - a.power; });
+    var rankOf = {};
+    ranked.forEach(function (m, i) { rankOf[m.id] = i + 1; });
+
+    var children = {};
+    models.forEach(function (m) {
+        if (!m.parent) return;
+        (children[m.parent] = children[m.parent] || []).push(m.id);
+    });
+
+    var laid = models.map(function (m, i) {
+        return {
+            model: m,
+            rank: rankOf[m.id],
+            pos: nodePosition(m, arms[m.p] || arms[keys[0]], i, models.length),
+            size: nodeRadius(m.power),
+            month: monthIndex(m.released)
+        };
+    });
+
+    return { arms: arms, ranked: ranked, rankOf: rankOf, children: children, nodes: laid };
+}
+
+/* ===== PURE MATH END ===== */
+
+/* ---------------------------------------------------------------------------
+   BOOT
+   Nothing below this point is reachable if WebGL is missing, and the reason
+   is put on screen rather than left in the console.
+--------------------------------------------------------------------------- */
+var $ = function (id) { return document.getElementById(id); };
+var bootEl = $('boot'), bootMsg = $('boot-msg');
+
+function fatal(message, detail) {
+    bootEl.classList.remove('gone');
+    bootMsg.className = 'b-msg bad';
+    bootMsg.textContent = message + (detail ? '  (' + detail + ')' : '');
+}
+
+if (!window.THREE) {
+    fatal('three.js did not load. Check the network, then reload.');
+    return;
+}
+bootMsg.textContent = 'Placing ' + MODELS.length + ' models…';
+
+/* ---------------------------------------------------------------------------
+   DERIVED STATE
+--------------------------------------------------------------------------- */
+var LAYOUT = buildLayout(MODELS, PROVIDERS);
+var NODES = LAYOUT.nodes;
+var BY_ID = {};
+NODES.forEach(function (n) { BY_ID[n.model.id] = n; });
+
+var MIN_MONTH = NODES.reduce(function (a, n) { return Math.min(a, n.month); }, 1e9);
+var MAX_MONTH = NODES.reduce(function (a, n) { return Math.max(a, n.month); }, -1e9);
+
+var STATUS_DIM = { frontier: 1, active: 0.95, legacy: 0.78, deprecated: 0.6, retired: 0.4, restricted: 0.85 };
+
+var VIEW_OPTIONS = [
+    { id: 'lineage', label: 'Lineage', on: true },
+    { id: 'labels', label: 'All labels', on: false },
+    { id: 'dust', label: 'Dust', on: true },
+    { id: 'spin', label: 'Auto-spin', on: true }
+];
+
+var state = {
+    providers: {},
+    statuses: {},
+    view: {},
+    query: '',
+    cutoff: MAX_MONTH,
+    selected: null,
+    hovered: null,
+    playing: false
+};
+Object.keys(PROVIDERS).forEach(function (k) { state.providers[k] = true; });
+STATUSES.forEach(function (s) { state.statuses[s] = true; });
+VIEW_OPTIONS.forEach(function (v) { state.view[v.id] = v.on; });
+
+/* ---------------------------------------------------------------------------
+   SCENE
+--------------------------------------------------------------------------- */
+var canvas = $('scene');
+var renderer;
+try {
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+} catch (err) {
+    fatal('WebGL is unavailable in this browser, so the swarm cannot be drawn.', err && err.message);
+    return;
+}
+if (!renderer.getContext()) {
+    fatal('WebGL is unavailable in this browser, so the swarm cannot be drawn.');
+    return;
+}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setClearColor(0x03040a, 1);
+
+var scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x03040a, 0.0034);
+
+var camera = new THREE.PerspectiveCamera(52, 1, 0.5, 2400);
+
+/* A soft radial sprite, used for node halos and for the drifting dust. */
+function radialTexture(size, inner, falloff) {
+    var c = document.createElement('canvas');
+    c.width = c.height = size;
+    var ctx = c.getContext('2d');
+    var g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(inner, 'rgba(255,255,255,0.55)');
+    g.addColorStop(falloff, 'rgba(255,255,255,0.10)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+    var t = new THREE.Texture(c);
+    t.needsUpdate = true;
+    return t;
+}
+
+var HALO_TEX = radialTexture(128, 0.16, 0.45);
+var DUST_TEX = radialTexture(64, 0.1, 0.35);
+
+/* ---------- drifting dust: the swarm the models hang inside ---------- */
+var dust = null;
+(function buildDust() {
+    var COUNT = 4600;
+    var pos = new Float32Array(COUNT * 3);
+    var col = new Float32Array(COUNT * 3);
+    var inner = new THREE.Color('#7fe7ff');
+    var outer = new THREE.Color('#3b2f7a');
+
+    for (var i = 0; i < COUNT; i++) {
+        var d = fibDirection(i, COUNT);
+        var jitter = hash01('dust' + i, 5);
+        var r = 14 + Math.pow(jitter, 0.55) * 210;
+        var swirl = hash01('dust' + i, 9) * Math.PI * 2;
+        var wob = 1 + (hash01('dust' + i, 13) - 0.5) * 0.35;
+
+        pos[i * 3]     = (d.x * Math.cos(swirl) - d.z * Math.sin(swirl)) * r * wob;
+        pos[i * 3 + 1] = d.y * r * 0.5 * wob;
+        pos[i * 3 + 2] = (d.x * Math.sin(swirl) + d.z * Math.cos(swirl)) * r * wob;
+
+        var t = Math.min(1, r / 200);
+        var c = inner.clone().lerp(outer, t);
+        var fade = 0.25 + 0.75 * (1 - t);
+        col[i * 3] = c.r * fade; col[i * 3 + 1] = c.g * fade; col[i * 3 + 2] = c.b * fade;
+    }
+
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+
+    dust = new THREE.Points(geo, new THREE.PointsMaterial({
+        size: 1.9, map: DUST_TEX, vertexColors: true, transparent: true,
+        opacity: 0.62, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true
+    }));
+    scene.add(dust);
+})();
+
+/* ---------- the model nodes ---------- */
+var swarm = new THREE.Group();
+scene.add(swarm);
+
+var SPHERE = new THREE.SphereGeometry(1, 20, 14);
+
+NODES.forEach(function (n) {
+    var color = new THREE.Color(PROVIDERS[n.model.p].color);
+    n.color = color;
+    n.base = new THREE.Vector3(n.pos.x, n.pos.y, n.pos.z);
+    n.phase = hash01(n.model.id, 17) * Math.PI * 2;
+    n.bob = 0.6 + hash01(n.model.id, 19) * 1.4;
+    n.baseOpacity = STATUS_DIM[n.model.status] || 0.7;
+
+    n.mat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: n.baseOpacity });
+    n.mesh = new THREE.Mesh(SPHERE, n.mat);
+    n.mesh.position.copy(n.base);
+    n.mesh.scale.setScalar(n.size);
+    n.mesh.userData.node = n;
+    swarm.add(n.mesh);
+
+    n.haloMat = new THREE.SpriteMaterial({
+        map: HALO_TEX, color: color, transparent: true, opacity: 0.42 * n.baseOpacity,
+        depthWrite: false, blending: THREE.AdditiveBlending
+    });
+    n.halo = new THREE.Sprite(n.haloMat);
+    n.halo.position.copy(n.base);
+    n.halo.scale.setScalar(n.size * 8.5);
+    swarm.add(n.halo);
+
+    n.shown = true;
+    n.emphasis = 0;   /* animated 0..1 for hover/selection */
+});
+
+/* ---------- lineage filaments ---------- */
+var lineage = null;
+(function buildLineageObject() {
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(NODES.length * 6), 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(NODES.length * 6), 3));
+    lineage = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({
+        vertexColors: true, transparent: true, opacity: 0.34,
+        depthWrite: false, blending: THREE.AdditiveBlending
+    }));
+    swarm.add(lineage);
+})();
+
+function rebuildLineage() {
+    var pos = lineage.geometry.attributes.position.array;
+    var col = lineage.geometry.attributes.color.array;
+    var i = 0;
+
+    NODES.forEach(function (n) {
+        var parentId = n.model.parent;
+        if (!parentId || !n.shown) return;
+        var p = BY_ID[parentId];
+        if (!p || !p.shown) return;
+
+        pos[i] = p.base.x; pos[i + 1] = p.base.y; pos[i + 2] = p.base.z;
+        pos[i + 3] = n.base.x; pos[i + 4] = n.base.y; pos[i + 5] = n.base.z;
+        col[i] = p.color.r * 0.28; col[i + 1] = p.color.g * 0.28; col[i + 2] = p.color.b * 0.28;
+        col[i + 3] = n.color.r; col[i + 4] = n.color.g; col[i + 5] = n.color.b;
+        i += 6;
+    });
+
+    lineage.geometry.setDrawRange(0, i / 3);
+    lineage.geometry.attributes.position.needsUpdate = true;
+    lineage.geometry.attributes.color.needsUpdate = true;
+    lineage.visible = state.view.lineage && i > 0;
+}
+
+/* ---------------------------------------------------------------------------
+   CAMERA — orbit / dolly / pan, written here so the page keeps its
+   single-file promise and does not need a second CDN script.
+--------------------------------------------------------------------------- */
+var VIEW_HOME = { theta: 0.62, phi: 1.17, dist: 330 };
+
+var view = { theta: VIEW_HOME.theta, phi: VIEW_HOME.phi, dist: 900, target: new THREE.Vector3() };
+var goal = { theta: VIEW_HOME.theta, phi: VIEW_HOME.phi, dist: VIEW_HOME.dist, target: new THREE.Vector3() };
+
+var PHI_MIN = 0.16, PHI_MAX = Math.PI - 0.16, DIST_MIN = 11, DIST_MAX = 1000;
+
+function applyCamera() {
+    var sp = Math.sin(view.phi), cp = Math.cos(view.phi);
+    camera.position.set(
+        view.target.x + view.dist * sp * Math.sin(view.theta),
+        view.target.y + view.dist * cp,
+        view.target.z + view.dist * sp * Math.cos(view.theta)
+    );
+    camera.lookAt(view.target);
+}
+
+function resetView() {
+    goal.theta = VIEW_HOME.theta;
+    goal.phi = VIEW_HOME.phi;
+    goal.dist = VIEW_HOME.dist;
+    goal.target.set(0, 0, 0);
+}
+
+function flyTo(node) {
+    goal.target.copy(node.base);
+    goal.dist = Math.max(DIST_MIN + 4, node.size * 13 + 22);
+}
+
+var pointer = { down: false, button: 0, x: 0, y: 0, moved: 0 };
+
+canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+canvas.addEventListener('pointerdown', function (e) {
+    pointer.down = true;
+    pointer.button = e.button;
+    pointer.x = e.clientX; pointer.y = e.clientY; pointer.moved = 0;
+    canvas.setPointerCapture(e.pointerId);
+});
+
+canvas.addEventListener('pointermove', function (e) {
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    mouse.px = e.clientX; mouse.py = e.clientY;
+    mouse.dirty = true;
+
+    if (!pointer.down) return;
+    var dx = e.clientX - pointer.x, dy = e.clientY - pointer.y;
+    pointer.moved += Math.abs(dx) + Math.abs(dy);
+    pointer.x = e.clientX; pointer.y = e.clientY;
+
+    if (pointer.button === 0 && !e.shiftKey) {
+        goal.theta -= dx * 0.0052;
+        goal.phi = Math.max(PHI_MIN, Math.min(PHI_MAX, goal.phi - dy * 0.0052));
+    } else {
+        /* pan across the camera's own plane */
+        var scale = goal.dist * 0.0016;
+        var right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0);
+        var up = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1);
+        goal.target.addScaledVector(right, -dx * scale);
+        goal.target.addScaledVector(up, dy * scale);
+    }
+});
+
+function endPointer() { pointer.down = false; }
+canvas.addEventListener('pointerup', function (e) {
+    if (pointer.down && pointer.moved < 6) handleClick();
+    endPointer();
+});
+canvas.addEventListener('pointercancel', endPointer);
+canvas.addEventListener('pointerleave', function () { if (!pointer.down) { mouse.dirty = true; } });
+
+canvas.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    var factor = Math.exp(e.deltaY * 0.0011);
+    goal.dist = Math.max(DIST_MIN, Math.min(DIST_MAX, goal.dist * factor));
+}, { passive: false });
+
+/* two-finger pinch */
+var pinch = null;
+canvas.addEventListener('touchstart', function (e) {
+    if (e.touches.length === 2) {
+        var a = e.touches[0], b = e.touches[1];
+        pinch = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    }
+}, { passive: true });
+canvas.addEventListener('touchmove', function (e) {
+    if (e.touches.length === 2 && pinch) {
+        var a = e.touches[0], b = e.touches[1];
+        var d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+        goal.dist = Math.max(DIST_MIN, Math.min(DIST_MAX, goal.dist * (pinch / d)));
+        pinch = d;
+        e.preventDefault();
+    }
+}, { passive: false });
+canvas.addEventListener('touchend', function () { pinch = null; }, { passive: true });
+
+/* ---------------------------------------------------------------------------
+   PICKING
+--------------------------------------------------------------------------- */
+var raycaster = new THREE.Raycaster();
+var mouse = { x: 0, y: 0, px: 0, py: 0, dirty: false };
+var tipEl = $('tip');
+
+function pickNode() {
+    raycaster.setFromCamera(mouse, camera);
+    var meshes = [];
+    for (var i = 0; i < NODES.length; i++) if (NODES[i].shown) meshes.push(NODES[i].mesh);
+    var hits = raycaster.intersectObjects(meshes, false);
+    return hits.length ? hits[0].object.userData.node : null;
+}
+
+function updateHover() {
+    if (!mouse.dirty) return;
+    mouse.dirty = false;
+
+    var hit = pointer.down ? state.hovered : pickNode();
+    if (hit === state.hovered) { positionTip(); return; }
+    state.hovered = hit;
+    canvas.style.cursor = hit ? 'pointer' : 'grab';
+
+    if (!hit) { tipEl.style.opacity = '0'; return; }
+    tipEl.innerHTML = '';
+    var strong = document.createElement('span');
+    strong.textContent = hit.model.name;
+    strong.style.color = PROVIDERS[hit.model.p].color;
+    var sub = document.createElement('span');
+    sub.className = 't-sub';
+    sub.textContent = hit.model.org + ' · ' + formatDate(hit.model.released, hit.model.approx) + ' · #' + hit.rank;
+    tipEl.appendChild(strong);
+    tipEl.appendChild(sub);
+    tipEl.style.opacity = '1';
+    positionTip();
+}
+
+function positionTip() {
+    if (!state.hovered) return;
+    tipEl.style.left = mouse.px + 'px';
+    tipEl.style.top = mouse.py + 'px';
+}
+
+function handleClick() {
+    var hit = pickNode();
+    if (hit) select(hit.model.id, true);
+    else deselect();
+}
+
+/* ---------------------------------------------------------------------------
+   DETAIL PANEL
+--------------------------------------------------------------------------- */
+var detailEl = $('detail');
+
+function cell(key, value, wide, unknown) {
+    return '<div class="d-cell' + (wide ? ' wide' : '') + '">' +
+        '<div class="k">' + key + '</div>' +
+        '<div class="v' + (unknown ? ' unk' : '') + '">' + value + '</div></div>';
+}
+
+function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderDetail(node) {
+    var m = node.model;
+    var prov = PROVIDERS[m.p];
+
+    $('d-bar').style.background = 'linear-gradient(90deg, ' + prov.color + ', transparent)';
+    $('d-org').textContent = m.org;
+    $('d-org').style.color = prov.color;
+    $('d-name').textContent = m.name;
+
+    var badges = '<span class="badge s-' + m.status + '">' + STATUS_LABEL[m.status] + '</span>';
+    badges += '<span class="badge">#' + node.rank + ' of ' + NODES.length + '</span>';
+    if (m.open) badges += '<span class="badge open">Open weights</span>';
+    if (m.mode === 'multimodal') badges += '<span class="badge">Multimodal</span>';
+    $('d-badges').innerHTML = badges;
+
+    var html = '';
+    html += '<div class="d-note">' + esc(m.note) + '</div>';
+
+    /* --- the numbers --- */
+    html += '<div class="d-sec">The numbers</div><div class="d-grid">';
+    html += cell('Released', formatDate(m.released, m.approx));
+    html += cell('Standing', m.power + ' <small>/ 100</small>');
+    html += cell('Context', formatTokens(m.ctx) ? formatTokens(m.ctx) + ' <small>tokens</small>' : 'not published', false, !formatTokens(m.ctx));
+    html += cell('Max output', formatTokens(m.maxOut) ? formatTokens(m.maxOut) + ' <small>tokens</small>' : 'not published', false, !formatTokens(m.maxOut));
+    html += '</div>';
+
+    /* --- token cost --- */
+    html += '<div class="d-sec">Token cost <small style="text-transform:none;letter-spacing:0">(per million)</small></div>';
+    if (m.pin === null || m.pin === undefined) {
+        html += '<div class="d-cost">' + (m.open
+            ? 'No first-party per-token price. These are open weights &mdash; you run them yourself, so the cost is whatever your hardware or your hosting provider charges.'
+            : 'No public per-token price for this model.') + '</div>';
+    } else {
+        html += '<div class="d-grid">';
+        html += cell('Input', formatPrice(m.pin) + ' <small>/ MTok</small>');
+        html += cell('Output', formatPrice(m.pout) + ' <small>/ MTok</small>');
+        html += '</div>';
+        var job = costForJob(m.pin, m.pout, 1000000, 100000);
+        var cheapest = NODES.reduce(function (best, n) {
+            if (n.model.pin === null || n.model.pin === undefined) return best;
+            var c = costForJob(n.model.pin, n.model.pout, 1000000, 100000);
+            return (best === null || c < best) ? c : best;
+        }, null);
+        html += '<div class="d-cost" style="margin-top:10px">A one-million-token prompt with a 100K-token answer costs ' +
+                '<b>' + formatUSD(job) + '</b> on this model' +
+                (cheapest !== null && job > cheapest ? ' &mdash; ' + (job / cheapest).toFixed(job / cheapest >= 10 ? 0 : 1) + '× the cheapest model in this swarm.' : '.') +
+                '</div>';
+    }
+
+    /* --- api id --- */
+    if (m.api) {
+        html += '<div class="d-sec">API identifier</div><code class="d-api">' + esc(m.api) + '</code>';
+    }
+
+    /* --- where it sits --- */
+    html += '<div class="d-sec">Where it sits</div>';
+    html += '<div class="d-cost">Distance from the core is a direct function of the standing score, so this node ' +
+            'sits <b>' + Math.round(radiusForPower(m.power)) + '</b> units out of a possible ' + R_RIM + '.</div>';
+    html += '<div class="d-meter"><i style="width:' + m.power + '%;background:' + prov.color + '"></i></div>';
+
+    /* --- lineage --- */
+    var kids = LAYOUT.children[m.id] || [];
+    if (m.parent || kids.length) {
+        html += '<div class="d-sec">Lineage</div><div class="lineage">';
+        if (m.parent && BY_ID[m.parent]) {
+            html += lineageRow(BY_ID[m.parent], 'Follows');
+        }
+        kids.forEach(function (kid) {
+            if (BY_ID[kid]) html += lineageRow(BY_ID[kid], 'Led to');
+        });
+        html += '</div>';
+    }
+
+    html += '<div class="d-nav"><button data-step="-1">◀ Stronger</button><button data-step="1">Weaker ▶</button></div>';
+
+    var body = $('d-body');
+    body.innerHTML = html;
+    body.scrollTop = 0;
+
+    Array.prototype.forEach.call(body.querySelectorAll('.lin-row'), function (row) {
+        row.addEventListener('click', function () { select(row.getAttribute('data-id'), true); });
+    });
+    Array.prototype.forEach.call(body.querySelectorAll('[data-step]'), function (btn) {
+        btn.addEventListener('click', function () { step(parseInt(btn.getAttribute('data-step'), 10)); });
+    });
+
+    detailEl.scrollTop = 0;
+    detailEl.classList.add('open');
+}
+
+function lineageRow(node, label) {
+    return '<div class="lin-row" data-id="' + node.model.id + '">' +
+        '<span class="lin-arrow">' + label + '</span>' +
+        '<span class="lin-dot" style="background:' + PROVIDERS[node.model.p].color + '"></span>' +
+        '<span>' + esc(node.model.name) + '</span>' +
+        '<span class="lin-year">' + node.model.released.slice(0, 4) + '</span></div>';
+}
+
+function select(id, fly) {
+    var node = BY_ID[id];
+    if (!node) return;
+    state.selected = node;
+    renderDetail(node);
+    if (fly) flyTo(node);
+    markRanked();
+    try { history.replaceState(null, '', '#' + id); } catch (e) { /* file:// */ }
+}
+
+function deselect() {
+    state.selected = null;
+    detailEl.classList.remove('open');
+    markRanked();
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* file:// */ }
+}
+
+/* Step through the ranking, skipping anything the filters have hidden. */
+function step(delta) {
+    var visible = LAYOUT.ranked.filter(function (m) { return BY_ID[m.id].shown; });
+    if (!visible.length) return;
+    var at = state.selected ? visible.findIndex(function (m) { return m.id === state.selected.model.id; }) : -1;
+    var next = at === -1 ? 0 : (at + delta + visible.length) % visible.length;
+    select(visible[next].id, true);
+    scrollRankedIntoView();
+}
+
+$('d-close').addEventListener('click', deselect);
+
+/* ---------------------------------------------------------------------------
+   HUD — legend, filters, ranked list, timeline
+--------------------------------------------------------------------------- */
+var legendRows = {};
+(function buildLegend() {
+    var host = $('legend-rows');
+    Object.keys(PROVIDERS).sort(function (a, b) { return PROVIDERS[a].order - PROVIDERS[b].order; })
+    .forEach(function (key) {
+        var row = document.createElement('div');
+        row.className = 'leg-row';
+        row.innerHTML = '<span class="leg-swatch" style="background:' + PROVIDERS[key].color + '"></span>' +
+                        '<span>' + PROVIDERS[key].label + '</span><span class="leg-n"></span>';
+        row.addEventListener('click', function (e) {
+            if (e.altKey || e.metaKey) {
+                /* alt-click isolates one lab */
+                var onlyMe = Object.keys(state.providers).every(function (k) { return state.providers[k] === (k === key); });
+                Object.keys(state.providers).forEach(function (k) { state.providers[k] = onlyMe ? true : (k === key); });
+            } else {
+                state.providers[key] = !state.providers[key];
+            }
+            applyFilters();
+        });
+        host.appendChild(row);
+        legendRows[key] = row;
+    });
+})();
+
+var statusChips = {};
+(function buildStatusChips() {
+    var host = $('status-chips');
+    STATUSES.forEach(function (s) {
+        var chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = STATUS_LABEL[s];
+        chip.addEventListener('click', function () { state.statuses[s] = !state.statuses[s]; applyFilters(); });
+        host.appendChild(chip);
+        statusChips[s] = chip;
+    });
+})();
+
+var viewChips = {};
+(function buildViewChips() {
+    var host = $('view-chips');
+    VIEW_OPTIONS.forEach(function (v) {
+        var chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = v.label;
+        chip.addEventListener('click', function () {
+            state.view[v.id] = !state.view[v.id];
+            syncViewChips();
+            if (v.id === 'lineage') rebuildLineage();
+            if (v.id === 'dust') dust.visible = state.view.dust;
+        });
+        host.appendChild(chip);
+        viewChips[v.id] = chip;
+    });
+})();
+
+function syncViewChips() {
+    VIEW_OPTIONS.forEach(function (v) { viewChips[v.id].classList.toggle('off', !state.view[v.id]); });
+}
+
+var rankRows = {};
+(function buildRanked() {
+    var host = $('ranked');
+    LAYOUT.ranked.forEach(function (m, i) {
+        var node = BY_ID[m.id];
+        var row = document.createElement('div');
+        row.className = 'rank-row';
+        row.innerHTML = '<span class="rank-n">' + (i + 1) + '</span>' +
+                        '<span class="rank-dot" style="background:' + PROVIDERS[m.p].color + '"></span>' +
+                        '<span class="rank-name">' + esc(m.name) + '</span>' +
+                        '<span class="rank-pow">' + m.power + '</span>';
+        row.addEventListener('click', function () { select(m.id, true); });
+        row.addEventListener('mouseenter', function () { node.hoverFromList = true; });
+        row.addEventListener('mouseleave', function () { node.hoverFromList = false; });
+        host.appendChild(row);
+        rankRows[m.id] = row;
+    });
+})();
+
+function markRanked() {
+    Object.keys(rankRows).forEach(function (id) {
+        rankRows[id].classList.toggle('on', !!state.selected && state.selected.model.id === id);
+    });
+}
+
+function scrollRankedIntoView() {
+    if (!state.selected) return;
+    var row = rankRows[state.selected.model.id];
+    if (row && row.scrollIntoView) row.scrollIntoView({ block: 'nearest' });
+}
+
+/* ---------- timeline ---------- */
+var scrub = $('scrub');
+scrub.min = String(MIN_MONTH);
+scrub.max = String(MAX_MONTH);
+scrub.value = String(MAX_MONTH);
+
+(function buildTicks() {
+    var host = $('ticks');
+    var span = MAX_MONTH - MIN_MONTH;
+    for (var y = EPOCH_YEAR; y <= EPOCH_YEAR + Math.floor(MAX_MONTH / 12); y++) {
+        var idx = (y - EPOCH_YEAR) * 12;
+        if (idx < MIN_MONTH || idx > MAX_MONTH) continue;
+        var el = document.createElement('span');
+        el.className = 'tick';
+        el.textContent = String(y);
+        el.style.left = (((idx - MIN_MONTH) / span) * 100) + '%';
+        host.appendChild(el);
+    }
+})();
+
+scrub.addEventListener('input', function () {
+    state.cutoff = parseInt(scrub.value, 10);
+    stopPlaying();
+    applyFilters();
+});
+
+var playTimer = null;
+function stopPlaying() {
+    state.playing = false;
+    if (playTimer) { clearInterval(playTimer); playTimer = null; }
+    $('play').textContent = '▶ Play';
+}
+$('play').addEventListener('click', function () {
+    if (state.playing) { stopPlaying(); return; }
+    state.playing = true;
+    $('play').textContent = '❚❚ Pause';
+    if (state.cutoff >= MAX_MONTH) state.cutoff = MIN_MONTH;
+    playTimer = setInterval(function () {
+        state.cutoff += 1;
+        if (state.cutoff >= MAX_MONTH) { state.cutoff = MAX_MONTH; stopPlaying(); }
+        scrub.value = String(state.cutoff);
+        applyFilters();
+    }, 110);
+});
+
+$('reveal-all').addEventListener('click', function () {
+    stopPlaying();
+    state.cutoff = MAX_MONTH;
+    scrub.value = String(MAX_MONTH);
+    state.query = '';
+    $('search').value = '';
+    Object.keys(state.providers).forEach(function (k) { state.providers[k] = true; });
+    STATUSES.forEach(function (s) { state.statuses[s] = true; });
+    applyFilters();
+});
+
+$('search').addEventListener('input', function (e) {
+    state.query = e.target.value.trim().toLowerCase();
+    applyFilters();
+});
+
+/* ---------------------------------------------------------------------------
+   FILTERS — one function decides what is on screen, and everything else
+   reads from the `shown` flag it sets.
+--------------------------------------------------------------------------- */
+function matchesQuery(m) {
+    if (!state.query) return true;
+    var hay = (m.name + ' ' + m.org + ' ' + (m.api || '') + ' ' + m.note).toLowerCase();
+    return hay.indexOf(state.query) !== -1;
+}
+
+function applyFilters() {
+    var counts = {};
+    Object.keys(PROVIDERS).forEach(function (k) { counts[k] = 0; });
+    var visible = 0;
+
+    NODES.forEach(function (n) {
+        var m = n.model;
+        var inTime = n.month <= state.cutoff;
+        if (inTime) counts[m.p]++;
+
+        n.shown = inTime && state.providers[m.p] && state.statuses[m.status] && matchesQuery(m);
+        n.mesh.visible = n.shown;
+        n.halo.visible = n.shown;
+        if (n.shown) visible++;
+        if (rankRows[m.id]) rankRows[m.id].classList.toggle('muted', !n.shown);
+    });
+
+    Object.keys(legendRows).forEach(function (k) {
+        legendRows[k].classList.toggle('off', !state.providers[k]);
+        legendRows[k].querySelector('.leg-n').textContent = counts[k];
+    });
+    STATUSES.forEach(function (s) { statusChips[s].classList.toggle('off', !state.statuses[s]); });
+
+    $('visible-count').textContent = visible;
+    $('tl-date').textContent = monthLabel(state.cutoff);
+    $('tl-sub').textContent = visible + ' of ' + NODES.length + ' shown';
+
+    if (state.selected && !state.selected.shown) deselect();
+    rebuildLineage();
+}
+
+/* ---------------------------------------------------------------------------
+   LABELS — HTML, projected onto the 3D positions each frame.
+--------------------------------------------------------------------------- */
+var labelHost = $('labels');
+var labelPool = [];
+var projected = new THREE.Vector3();
+
+function labelBudget() { return state.view.labels ? 70 : 26; }
+
+function updateLabels() {
+    var candidates = [];
+    for (var i = 0; i < NODES.length; i++) {
+        var n = NODES[i];
+        if (!n.shown) continue;
+        var always = state.view.labels || n.model.status === 'frontier';
+        var focused = (state.selected === n) || (state.hovered === n) || n.hoverFromList;
+        if (!always && !focused) continue;
+
+        projected.copy(n.current || n.base).project(camera);
+        if (projected.z > 1 || projected.z < -1) continue;
+        var sx = (projected.x * 0.5 + 0.5) * window.innerWidth;
+        var sy = (-projected.y * 0.5 + 0.5) * window.innerHeight;
+        if (sx < -120 || sx > window.innerWidth + 120 || sy < -40 || sy > window.innerHeight + 40) continue;
+
+        candidates.push({ n: n, sx: sx, sy: sy, z: projected.z, score: n.model.power + (focused ? 1000 : 0) });
+    }
+
+    candidates.sort(function (a, b) { return b.score - a.score; });
+    candidates.length = Math.min(candidates.length, labelBudget());
+
+    while (labelPool.length < candidates.length) {
+        var el = document.createElement('div');
+        el.className = 'lbl';
+        labelHost.appendChild(el);
+        labelPool.push(el);
+    }
+
+    for (var j = 0; j < labelPool.length; j++) {
+        var el2 = labelPool[j];
+        if (j >= candidates.length) { el2.style.display = 'none'; continue; }
+        var c = candidates[j];
+        el2.style.display = 'block';
+        el2.style.transform = 'translate(-50%,-50%) translate(' + Math.round(c.sx) + 'px,' + Math.round(c.sy - (c.n.size * 7 + 10)) + 'px)';
+        el2.style.color = PROVIDERS[c.n.model.p].color;
+        el2.style.opacity = String(Math.max(0.35, 1 - Math.max(0, c.z - 0.6) * 2.2));
+        if (el2.textContent !== c.n.model.name) el2.textContent = c.n.model.name;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   KEYBOARD
+--------------------------------------------------------------------------- */
+window.addEventListener('keydown', function (e) {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+        if (e.key === 'Escape') { e.target.blur(); }
+        return;
+    }
+    if (e.key === 'Escape') { deselect(); stopPlaying(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+    else if (e.key === 'r' || e.key === 'R') { resetView(); }
+    else if (e.key === '/') { e.preventDefault(); $('search').focus(); }
+});
+
+/* ---------------------------------------------------------------------------
+   RESIZE + FRAME LOOP
+--------------------------------------------------------------------------- */
+function resize() {
+    var w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+var clock = new THREE.Clock();
+
+function frame() {
+    requestAnimationFrame(frame);
+    var dt = Math.min(clock.getDelta(), 0.05);
+    var t = clock.elapsedTime;
+
+    /* ease the camera toward its goal */
+    var k = 1 - Math.pow(0.0001, dt);
+    view.theta += (goal.theta - view.theta) * k;
+    view.phi += (goal.phi - view.phi) * k;
+    view.dist += (goal.dist - view.dist) * k;
+    view.target.lerp(goal.target, k);
+
+    if (state.view.spin && !pointer.down) goal.theta += dt * 0.024;
+
+    applyCamera();
+
+    /* node bob + hover/selection emphasis */
+    for (var i = 0; i < NODES.length; i++) {
+        var n = NODES[i];
+        if (!n.shown) continue;
+
+        var lift = Math.sin(t * 0.55 + n.phase) * n.bob;
+        n.mesh.position.set(n.base.x, n.base.y + lift, n.base.z);
+        n.halo.position.copy(n.mesh.position);
+        n.current = n.mesh.position;
+
+        var wanted = (state.selected === n) ? 1 : ((state.hovered === n || n.hoverFromList) ? 0.62 : 0);
+        n.emphasis += (wanted - n.emphasis) * Math.min(1, dt * 11);
+
+        var pulse = state.selected === n ? 1 + Math.sin(t * 4.4) * 0.09 : 1;
+        n.mesh.scale.setScalar(n.size * (1 + n.emphasis * 0.55) * pulse);
+        n.halo.scale.setScalar(n.size * 8.5 * (1 + n.emphasis * 0.85) * pulse);
+        n.mat.opacity = Math.min(1, n.baseOpacity + n.emphasis * 0.6);
+        n.haloMat.opacity = 0.42 * n.baseOpacity + n.emphasis * 0.55;
+    }
+
+    if (dust) dust.rotation.y += dt * 0.008;
+    updateHover();
+    updateLabels();
+    renderer.render(scene, camera);
+}
+
+/* ---------------------------------------------------------------------------
+   GO
+--------------------------------------------------------------------------- */
+syncViewChips();
+applyFilters();
+markRanked();
+resetView();
+frame();
+
+var deepLink = (location.hash || '').replace('#', '');
+if (deepLink && BY_ID[deepLink]) {
+    select(deepLink, true);
+} else {
+    /* open on the strongest model so the page explains itself immediately */
+    goal.dist = VIEW_HOME.dist;
+}
+
+bootEl.classList.add('gone');
+setTimeout(function () { if (bootEl.parentNode) bootEl.parentNode.removeChild(bootEl); }, 700);
+
+})();
+</script>
+</body>
+</html>
