@@ -61,7 +61,7 @@
         inset: 0;
         z-index: 2;
         pointer-events: none;
-        background: radial-gradient(ellipse 78% 68% at 50% 46%, transparent 42%, rgba(4, 5, 10, .78) 100%);
+        background: radial-gradient(ellipse 96% 92% at 50% 44%, transparent 62%, rgba(4, 5, 10, .55) 100%);
     }
 
     .mono {
@@ -94,6 +94,18 @@
 
     /* ---------- wordmark + dock ---------- */
 
+    /* The medallion now runs almost the full height, so the wordmark sits over
+       its lower edge. This scrim keeps the type readable against it. */
+    .stage-foot::before {
+        content: '';
+        position: absolute;
+        inset: auto 0 0 0;
+        height: 230px;
+        background: linear-gradient(to top, rgba(4,5,10,.92) 0%, rgba(4,5,10,.72) 42%, transparent 100%);
+        pointer-events: none;
+        z-index: -1;
+    }
+
     .stage-foot {
         position: fixed;
         left: 0; right: 0;
@@ -102,8 +114,8 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 16px;
-        padding: 0 clamp(12px, 4vw, 28px) calc(20px + env(safe-area-inset-bottom, 0px));
+        gap: 12px;
+        padding: 0 clamp(12px, 4vw, 28px) calc(16px + env(safe-area-inset-bottom, 0px));
         pointer-events: none;
     }
     .stage-foot > * { pointer-events: auto; }
@@ -115,7 +127,7 @@
         justify-content: center;
         font-weight: 900;
         letter-spacing: -.02em;
-        font-size: clamp(1.5rem, 5vw, 2.6rem);
+        font-size: clamp(2.1rem, 8.6vw, 5rem);
         line-height: 1;
         /* A brushed-metal sweep, so the type matches the medallion. */
         background: linear-gradient(100deg, #6ea8dc 0%, #eaf2ff 26%, #9fd06a 52%, #eaf2ff 74%, #5f97cc 100%);
@@ -133,11 +145,11 @@
         align-self: center;
     }
     .wordmark-sub {
-        margin-top: 8px;
-        color: var(--text-faint);
+        margin-top: 13px;
+        color: var(--text-dim);
         font-family: 'IBM Plex Mono', ui-monospace, monospace;
-        font-size: clamp(9px, 2.2vw, 11px);
-        letter-spacing: .3em;
+        font-size: clamp(11px, 2.9vw, 15px);
+        letter-spacing: .38em;
         text-transform: uppercase;
     }
 
@@ -265,6 +277,11 @@
         .readout { display: none; }
     }
 
+    @media (max-height: 760px) {
+        .wordmark-line { font-size: clamp(1.6rem, 5.6vw, 2.9rem); }
+        .wordmark-sub { font-size: 10px; margin-top: 8px; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
         .loader-ring { animation: none; }
     }
@@ -353,22 +370,22 @@ const LOGO_SVG = `
    turns a flat mark into a struck medallion: the green yin sits proud of the
    blue disc, and the two dots sit proud of both. */
 const LAYERS = [
-    { key: 'disc',   depth: 9,  front: 4.5, bevelThickness: 1.15, bevelSize: 1.0 },
-    { key: 'yin',    depth: 11, front: 5.9, bevelThickness: 0.95, bevelSize: 0.85 },
-    { key: 'dotA',   depth: 12, front: 7.0, bevelThickness: 0.7,  bevelSize: 0.6 },
-    { key: 'dotB',   depth: 12, front: 7.0, bevelThickness: 0.7,  bevelSize: 0.6 }
+    { key: 'disc',   depth: 16, front: 8.0,  bevelThickness: 1.7, bevelSize: 1.5 },
+    { key: 'yin',    depth: 19, front: 10.6, bevelThickness: 1.3, bevelSize: 1.15 },
+    { key: 'dotA',   depth: 21, front: 12.6, bevelThickness: 1.0, bevelSize: 0.85 },
+    { key: 'dotB',   depth: 21, front: 12.6, bevelThickness: 1.0, bevelSize: 0.85 }
 ];
 
 const FINISHES = {
-    chrome: {
-        label: 'Chrome',
-        params: { metalness: 1, roughness: 0.085, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.9, iridescence: 0, transmission: 0, reflectivity: 0.6 },
-        lift: 0.34, bloom: 0.62
-    },
     enamel: {
         label: 'Enamel',
-        params: { metalness: 0.15, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 1.15, iridescence: 0, transmission: 0, reflectivity: 0.5 },
-        lift: 0, bloom: 0.42
+        params: { metalness: 0.28, roughness: 0.16, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.5, iridescence: 0, transmission: 0, reflectivity: 0.6 },
+        lift: 0.05, bloom: 0.5
+    },
+    chrome: {
+        label: 'Chrome',
+        params: { metalness: 1, roughness: 0.085, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 2.6, iridescence: 0, transmission: 0, reflectivity: 0.6 },
+        lift: 0.52, bloom: 0.62
     },
     oilslick: {
         label: 'Oil Slick',
@@ -383,15 +400,19 @@ const FINISHES = {
 };
 
 const BRAND = { blue: '#1976D2', green: '#7CB342' };
-const LOGO_RADIUS = 5.4;            // world units after scaling
+const LOGO_RADIUS = 5.4;            // the medallion itself, in world units
+const RING_RADIUS = 6.1;            // accent rings; allowed to bleed off-frame
+const FRAME_RADIUS = 5.6;           // frame the medallion, not the rings
+// Barely any breathing room: the mark should dominate the page.
+const FRAME_MARGIN = { landscape: 1.12, portrait: 1.04 };
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let renderer, scene, camera, controls, composer, bloomPass;
-let logoGroup, logoPivot, lightRig, starField;
+let logoGroup, logoPivot, lightRig, starField, halo, ringGroup;
 let materials = [];
-let currentFinish = 'chrome';
+let currentFinish = 'enamel';
 let autoSpin = !reduceMotion;
-let shineScale = 0.62;
+let shineScale = 0.7;
 let flash = 0;
 let spinImpulse = 0;
 
@@ -415,12 +436,12 @@ function init() {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.42;
 
     scene = new THREE.Scene();
 
-    camera = new THREE.PerspectiveCamera(32, window.innerWidth / window.innerHeight, 0.1, 400);
-    camera.position.set(0, 0, 26);
+    camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.1, 400);
+    camera.position.set(2.8, 1.5, 20);
 
     // A room probe gives the metal something real to reflect. Without it,
     // "shiny" collapses into a flat specular dot.
@@ -430,7 +451,9 @@ function init() {
 
     buildLights();
     buildStars();
+    buildHalo();
     buildLogo();
+    buildRings();
     buildComposer();
     buildControls();
     buildUI();
@@ -449,7 +472,7 @@ function init() {
 }
 
 function buildLights() {
-    scene.add(new THREE.AmbientLight(0x8899bb, 0.35));
+    scene.add(new THREE.AmbientLight(0x93a6c8, 0.7));
 
     // The rig rotates as a unit, so highlights sweep across the bevels
     // instead of sitting still — that travelling glint is most of the "shine".
@@ -478,7 +501,7 @@ function buildLights() {
 }
 
 function buildStars() {
-    const COUNT = 1400;
+    const COUNT = 2000;
     const positions = new Float32Array(COUNT * 3);
     const colors = new Float32Array(COUNT * 3);
     const palette = [new THREE.Color('#eaf2ff'), new THREE.Color(BRAND.blue), new THREE.Color(BRAND.green), new THREE.Color('#22d3ee')];
@@ -502,15 +525,78 @@ function buildStars() {
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     starField = new THREE.Points(geo, new THREE.PointsMaterial({
-        size: 0.42,
+        size: 0.8,
         sizeAttenuation: true,
         vertexColors: true,
         transparent: true,
-        opacity: 0.85,
+        opacity: 0.92,
         depthWrite: false,
         blending: THREE.AdditiveBlending
     }));
     scene.add(starField);
+}
+
+function buildHalo() {
+    // A painted glow well behind the mark, so the stage reads as lit space
+    // rather than a black void with an object floating in it.
+    const c = document.createElement('canvas');
+    c.width = c.height = 512;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+    g.addColorStop(0.00, 'rgba(150, 205, 255, 0.95)');
+    g.addColorStop(0.22, 'rgba(25, 118, 210, 0.52)');
+    g.addColorStop(0.52, 'rgba(124, 179, 66, 0.22)');
+    g.addColorStop(1.00, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 512, 512);
+
+    const texture = new THREE.CanvasTexture(c);
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    halo = new THREE.Mesh(
+        new THREE.PlaneGeometry(42, 42),
+        new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+            opacity: 0.8
+        })
+    );
+    halo.position.z = -15;
+    scene.add(halo);
+}
+
+function buildRings() {
+    // Two slim chrome rings give the medallion a sense of scale and keep
+    // something moving in the outer frame.
+    ringGroup = new THREE.Group();
+    logoPivot.add(ringGroup);
+
+    const ringMaterial = new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color('#dfe9f7'),
+        metalness: 1,
+        roughness: 0.12,
+        clearcoat: 1,
+        envMapIntensity: 2.4
+    });
+
+    const outer = new THREE.Mesh(new THREE.TorusGeometry(RING_RADIUS, 0.075, 16, 220), ringMaterial);
+    outer.rotation.x = 0.42;
+    ringGroup.add(outer);
+
+    const inner = new THREE.Mesh(
+        new THREE.TorusGeometry(RING_RADIUS - 0.34, 0.045, 14, 200),
+        new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(BRAND.green),
+            metalness: 1,
+            roughness: 0.18,
+            envMapIntensity: 2.0
+        })
+    );
+    inner.rotation.x = -0.55;
+    inner.rotation.y = 0.3;
+    ringGroup.add(inner);
 }
 
 function buildLogo() {
@@ -581,12 +667,13 @@ function buildControls() {
     controls.enableDamping = true;
     controls.dampingFactor = 0.07;
     controls.enablePan = false;
-    controls.minDistance = 13;
+    controls.target.set(0, -0.75, 0);
+    controls.minDistance = 8;
     controls.maxDistance = 60;
     controls.rotateSpeed = 0.75;
     controls.zoomSpeed = 0.7;
     controls.autoRotate = autoSpin;
-    controls.autoRotateSpeed = 0.9;
+    controls.autoRotateSpeed = 1.15;
 }
 
 /* ---------------- UI ---------------- */
@@ -688,13 +775,22 @@ function onKeyDown(e) {
 }
 
 function frameCamera() {
-    // Keep the whole mark on screen at any aspect, including tall phones.
+    // Keep the mark and its rings on screen at any aspect, including tall
+    // phones, with only a sliver of margin so it fills the page.
     const vFov = THREE.MathUtils.degToRad(camera.fov);
-    const need = LOGO_RADIUS / Math.tan(vFov / 2);
+    const need = FRAME_RADIUS / Math.tan(vFov / 2);
     const aspect = camera.aspect;
-    const distance = (aspect < 1 ? need / aspect : need) * 1.42;
-    const dir = camera.position.clone().normalize();
-    camera.position.copy(dir.multiplyScalar(THREE.MathUtils.clamp(distance, 13, 60)));
+    const portrait = aspect < 1;
+    const margin = portrait ? FRAME_MARGIN.portrait : FRAME_MARGIN.landscape;
+    const distance = THREE.MathUtils.clamp((portrait ? need / aspect : need) * margin, 8, 60);
+
+    const target = controls ? controls.target : new THREE.Vector3();
+    const dir = camera.position.clone().sub(target);
+    if (dir.lengthSq() < 1e-6) dir.set(3.1, 1.7, 22);
+    dir.normalize();
+
+    camera.position.copy(dir.multiplyScalar(distance).add(target));
+    camera.lookAt(target);
     controls?.update();
 }
 
@@ -737,6 +833,17 @@ function animate() {
     if (starField) {
         starField.rotation.y += dt * 0.012;
         starField.rotation.x += dt * 0.005;
+    }
+
+    if (ringGroup && !reduceMotion) {
+        ringGroup.rotation.z = t * 0.16;
+        ringGroup.children[0].rotation.z = t * 0.28;
+        ringGroup.children[1].rotation.z = -t * 0.36;
+    }
+
+    if (halo) {
+        halo.material.opacity = 0.62 + Math.sin(t * 0.7) * 0.12 + flash * 0.5;
+        halo.rotation.z = t * 0.04;
     }
 
     if (flash > 0.001) {
