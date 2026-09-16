@@ -69,6 +69,21 @@ export default async function run(t, page) {
     t.ok('buildLogo tags droplet materials as liquid mercury', /material\.userData\.liquidMercury = true/.test(html));
     t.ok('applyFinish leaves liquid-mercury materials alone', /if \(material\.userData\.liquidMercury\) return;/.test(html));
 
+    // Droplets should look like water, not the mercury-silver they briefly
+    // were — shine and motion stay mercury-like, colour does not.
+    t.ok('droplet material colour reads as water-blue, not silver/grey', /material\.color\.set\('#bfe3fb'\)/.test(html));
+    t.ok('the old silver droplet colour is gone', !html.includes("material.color.set('#dce7f2')"));
+    const dropGradBlock = (html.match(/id="dropGrad"[\s\S]*?<\/radialGradient>/) || [''])[0];
+    t.ok('the static drop gradient is blue-tinted, not grey', /#8ec9f2|#dff0ff/.test(dropGradBlock));
+    t.ok('the static drop gradient has no grey stops left over', !/#7c8fa0|#b9cdd9/.test(dropGradBlock));
+
+    t.section('Droplets drip and splash as the medallion spins');
+
+    t.ok('buildLogo tracks per-droplet drip animations', /dropletAnims\.push\(\{/.test(html));
+    t.ok('each droplet is recentred on its own bead before animating', /geometry\.boundingBox\.getCenter\(center\)/.test(html));
+    t.ok('animate() advances the drip/splash cycle every frame', /dropletAnims\.forEach\(\(d\)/.test(html));
+    t.ok('the drip animation is skipped under prefers-reduced-motion', /if \(dropletAnims\.length && !reduceMotion\)/.test(html));
+
     t.section('Swimmer / cyclist / runner pictograms were redesigned, and stay in sync');
 
     const staticPictoBlock = (html.match(/<g fill="#0d3a63" fill-rule="evenodd">([\s\S]*?)<\/g>/) || [null, ''])[1];
