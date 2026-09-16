@@ -9,6 +9,10 @@ This file is where durable guidance for this project belongs. If a working
 preference comes up that should hold for future sessions, add it here so it is
 committed, visible to everyone, and survives any machine being rebuilt.
 
+When you finish a task, if you learned something durable and non-obvious that
+would help a future session, say so and ask whether it belongs in this file —
+don't add it unprompted.
+
 ## Deployment: verify the live site, not the commit
 
 Work here is checked by opening the live deployed site, not by reading a diff or
