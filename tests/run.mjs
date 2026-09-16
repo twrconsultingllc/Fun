@@ -26,7 +26,8 @@ const SUITES = [
     { id: 'raceday-dom', page: 'race-day.html', file: './race-day.dom.test.mjs' },
     { id: 'bots-core', page: 'battle-bots-V2/public/index.html', file: './battle-bots-v2.core.test.mjs' },
     { id: 'bots-dom', page: 'battle-bots-V2/public/index.html', file: './battle-bots-v2.dom.test.mjs' },
-    { id: 'fullcircle-core', page: 'fullcircle.html', file: './fullcircle.core.test.mjs' }
+    { id: 'fullcircle-core', page: 'fullcircle.html', file: './fullcircle.core.test.mjs' },
+    { id: 'snake-dom', page: 'snake.html', file: './snake.dom.test.mjs' }
 ];
 
 const DEFAULT_BASE = new URL('../', import.meta.url).pathname;

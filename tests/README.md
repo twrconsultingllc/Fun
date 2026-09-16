@@ -35,7 +35,7 @@ not be loaded — so this drops straight into CI or a pre-push hook.
 
 ## What is covered
 
-605 assertions across nine suites.
+632 assertions across ten suites.
 
 ### `fullcircle.html`
 
@@ -91,6 +91,30 @@ centre. It is an editorial judgement, not a benchmark, and it is the one field
 in the catalogue that cannot be verified against a source. The tests check that
 it is in range and internally consistent with the layout — they do not and
 cannot check that it is *right*.
+
+### `snake.html`
+
+| Suite | File | Covers |
+|---|---|---|
+| `snake-dom` | `snake.dom.test.mjs` | The rival AI snakes: they populate the board without overlapping anything, running into one kills the player, running into the player kills the rival instead (leaving the player untouched), and a head-on meeting kills both. Also that the new `triangle` and `shard` food kinds exist and `rollFoodType()` can actually produce them from level 2 on. |
+
+The page exposes `window.__snake` (state, the live `snake`/`enemies`/`foods`/
+`obstacles` arrays, and `step`/`stepEnemies`/`buildLevel`) purely so the suite
+can drive the simulation directly. Nothing on the page reads it.
+
+The rival AI picks a direction fresh every tick — greedy toward the nearest
+food, steering away from anything lethal — so making it walk into a specific
+cell on cue means cornering it for real: obstacles block every direction but
+the one under test, food is cleared so there's nothing to chase instead, and
+`Math.random` is pinned so the AI's fallback pick lands on a known index. That
+exercises the same code path a player relies on in-game ("cut one off and it
+dies instead"), rather than special-casing anything for the test.
+
+Writing that scenario caught a real bug: the head-on mutual-death check was
+gated on the enemy not already being marked dead, but the generic "ran into
+the player" check always marks it dead first (since a head-on cell is also
+just the player's head), so the player's own death branch never ran. Fixed by
+checking the position match unconditionally instead of gating on `dead[i]`.
 
 ### `race-day.html`
 
