@@ -245,6 +245,14 @@ html, body {
     backdrop-filter: blur(5px); opacity: 0; visibility: hidden; transition: opacity .45s, visibility .45s;
 }
 .overlay.show { opacity: 1; visibility: visible; }
+
+/* ---------- stage-cut flash ---------- */
+#flash {
+    position: fixed; inset: 0; z-index: 55; background: #04121f;
+    opacity: 0; visibility: hidden; transition: opacity .15s linear, visibility .15s linear;
+    pointer-events: none;
+}
+#flash.show { opacity: 1; visibility: visible; }
 .card {
     width: min(620px, 100%); max-height: calc(100vh - 40px); overflow-y: auto;
     background: var(--panel-hi); border: 1px solid var(--edge); border-radius: 20px;
@@ -352,6 +360,7 @@ html, body {
 <body>
 
 <canvas id="scene"></canvas>
+<div id="flash"></div>
 
 <div id="boot"><div class="spin"></div><div id="boot-msg">Racking the bikes…</div></div>
 <div id="nowebgl">3D is unavailable on this device, so the race is running as a quiz only. Everything else still works.</div>
@@ -1213,6 +1222,10 @@ function initAssets() {
     GEO.torus = new THREE.TorusGeometry(1, 0.05, 6, 20);
     GEO.plane = new THREE.PlaneGeometry(1, 1);
     GEO.dome = new THREE.SphereGeometry(1, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.55);
+    /* shoulders wider than the waist, one shared taper for every torso */
+    GEO.torso = new THREE.CylinderGeometry(1, 0.72, 1, 12);
+
+    MAT.face = makeFaceMaterial();
 
     MAT.deck = new THREE.MeshStandardMaterial({ color: 0x3b4356, roughness: 0.95, metalness: 0.02 });
     MAT.deckEdge = new THREE.MeshStandardMaterial({ color: 0xdfe6ef, roughness: 0.8 });
@@ -1243,6 +1256,22 @@ function mesh(geo, mat, sx, sy, sz, px, py, pz) {
 function boxMesh(mat, w, h, d, x, y, z) { return mesh(GEO.box, mat, w, h, d, x, y, z); }
 function cylMesh(mat, r, h, x, y, z) { return mesh(GEO.cyl, mat, r, h, r, x, y, z); }
 function ballMesh(mat, r, x, y, z) { return mesh(GEO.sphere, mat, r, r, r, x, y, z); }
+
+/* One small transparent decal — two eyes and a mouth — shared by every head
+   in the race. A plane this size is only ever seen close up, so nothing
+   fancier than flat shapes earns its cost across nine simultaneous figures. */
+function makeFaceMaterial() {
+    var c = document.createElement('canvas');
+    c.width = c.height = 64;
+    var ctx = c.getContext('2d');
+    ctx.fillStyle = '#20140f';
+    ctx.beginPath(); ctx.ellipse(21, 26, 4.2, 5.2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(43, 26, 4.2, 5.2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.strokeStyle = '#3a231a';
+    ctx.beginPath(); ctx.moveTo(24, 42); ctx.quadraticCurveTo(32, 46, 40, 42); ctx.stroke();
+    var tex = new THREE.CanvasTexture(c);
+    return new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.4, side: THREE.DoubleSide });
+}
 
 /* --- sky ------------------------------------------------------------------
    An equirectangular canvas wrapped on the inside of a big sphere: the dusk
@@ -1376,6 +1405,19 @@ function makeDeck() {
     return g;
 }
 
+/* Solid ground under the causeway for every leg that is not actually over
+   the bay — T1, T2 and the run along Ocean Drive. Without it, hiding the
+   ocean on those legs left the pillars planted in nothing; with it, the
+   road reads as built on land instead of perpetually flooded. The swim and
+   the bike stay over real water, which is what the Rickenbacker Causeway
+   actually is. */
+function makeGround() {
+    var mat = new THREE.MeshLambertMaterial({ color: 0x3f5a3e });
+    /* the deck's pillars bottom out at y = -2.0 (makeDeck), so the ground's
+       top surface sits a hair above that — planted, not just nearby */
+    return boxMesh(mat, 2600, 0.4, 700, 0, -2.15, 0);
+}
+
 /* Lane dashes, recycled individually so the road always looks like it moves. */
 function makeDashes() {
     var g = new THREE.Group();
@@ -1487,6 +1529,41 @@ function makeSkyline() {
     towers.userData.horizon = true;
     g.add(towers);
     g.userData.towers = towers;
+    return g;
+}
+
+/* --- the Rickenbacker Causeway, the bridge the bike leg actually crosses.
+   Built as a landmark on the horizon rather than the road underfoot (that's
+   `makeDeck`), so it reads as Miami from every leg, not only while riding
+   across it. Pinned a fixed distance ahead of the athlete every frame,
+   the same way the downtown towers are, instead of being recycled like a
+   tiled prop — there is only ever one of it. */
+function makeCauseway() {
+    var g = new THREE.Group();
+    var deckMat = new THREE.MeshStandardMaterial({ color: 0x8a94a6, roughness: 0.85 });
+    var pylonMat = new THREE.MeshStandardMaterial({ color: 0xe8edf3, roughness: 0.55, metalness: 0.1 });
+    var cableMat = new THREE.MeshBasicMaterial({ color: 0xcdd7e2 });
+    var Z = -190, SPAN = 260, BASE_Y = 8, PY_H = 34;
+
+    g.add(boxMesh(deckMat, SPAN, 1.1, 8, 0, BASE_Y, Z));
+
+    var stays = [
+        { len: 10, ang: 0.32 }, { len: 16, ang: 0.5 }, { len: 22, ang: 0.62 },
+        { len: 27, ang: 0.72 }, { len: 31, ang: 0.8 }
+    ];
+    for (var side = -1; side <= 1; side += 2) {
+        var px = side * SPAN * 0.24;
+        g.add(cylMesh(pylonMat, 1.3, PY_H, px, BASE_Y + PY_H / 2, Z));
+        for (var c = 0; c < stays.length; c++) {
+            var s = stays[c];
+            var cable = boxMesh(cableMat, 0.1, s.len, 0.1,
+                px - side * Math.sin(s.ang) * s.len * 0.5,
+                BASE_Y + PY_H - Math.cos(s.ang) * s.len * 0.5,
+                Z);
+            cable.rotation.z = side * s.ang;
+            g.add(cable);
+        }
+    }
     return g;
 }
 
@@ -1657,7 +1734,7 @@ function buildFigure(opt) {
         color: opt.suit !== undefined ? opt.suit : 0x1976D2, roughness: 0.5, metalness: 0.05
     });
     var limbMat = new THREE.MeshStandardMaterial({
-        color: opt.limb !== undefined ? opt.limb : 0xdfe7f0, roughness: 0.65
+        color: opt.limb !== undefined ? opt.limb : 0xd9a679, roughness: 0.65
     });
     var accMat = new THREE.MeshStandardMaterial({
         color: opt.accent !== undefined ? opt.accent : 0x7CB342, roughness: 0.45
@@ -1689,9 +1766,10 @@ function buildFigure(opt) {
         f.legs.push({ hip: hip, thigh: thigh, shin: shin, foot: foot, side: side });
     }
 
-    /* torso, and everything the lean carries with it */
+    /* torso, and everything the lean carries with it. Shoulders wider than
+       the waist, so it reads as a body rather than a pole. */
     f.torso = new THREE.Group(); f.core.add(f.torso);
-    var spine = cylMesh(suitMat, 0.072, TORSO, 0, TORSO / 2, 0);
+    var spine = mesh(GEO.torso, suitMat, 0.10, TORSO, 0.10, 0, TORSO / 2, 0);
     f.torso.add(spine);
     f.torso.add(boxMesh(accMat, 0.02, 0.2, 0.19, 0.085, TORSO * 0.55, 0));   /* suit stripe */
     f.torso.add(cylMesh(suitMat, 0.07, 0.4, 0, TORSO, 0));
@@ -1704,7 +1782,11 @@ function buildFigure(opt) {
     f.head = new THREE.Group();
     f.head.position.y = 0.09 + HEAD_R;
     f.neck.add(f.head);
-    f.head.add(ballMesh(limbMat, HEAD_R, 0, 0, 0));
+    f.head.add(mesh(GEO.sphere, limbMat, HEAD_R * 0.92, HEAD_R * 1.08, HEAD_R * 0.96, 0, 0, 0));
+    /* a small painted-on face, facing the direction of travel */
+    var face = mesh(GEO.plane, MAT.face, HEAD_R * 1.05, HEAD_R * 0.85, 1, HEAD_R * 0.84, 0.01, 0);
+    face.rotation.y = Math.PI / 2;
+    f.head.add(face);
 
     /* head kit, one piece visible per leg of the race */
     f.cap = new THREE.Group();
@@ -1738,7 +1820,7 @@ function buildFigure(opt) {
         f.torso.add(shoulder);
         var upper = bone(shoulder, UPPER, 0.042, limbMat);
         var fore = bone(upper.userData.tip, FORE, 0.036, limbMat);
-        var hand = ballMesh(limbMat, 0.055, 0, -0.02, 0);
+        var hand = mesh(GEO.sphere, limbMat, 0.048, 0.08, 0.055, 0, -0.03, 0);
         fore.userData.tip.add(hand);
         f.arms.push({ shoulder: shoulder, upper: upper, fore: fore, hand: hand, side: aside });
     }
@@ -1781,6 +1863,23 @@ function resetPose(f) {
     }
 }
 
+/* How far below the hip the lowest point of a shod foot sits, given its
+   thigh, shin and foot-box angles. The ankle alone stays clear of the
+   ground through a run stride, but the foot box is offset forward of the
+   ankle and tips with it, so at heel-strike its trailing corner reaches
+   lower than the ankle position suggests — which is what read as the foot
+   sinking into the road. Solving the stance leg fully with IK, the way
+   poseBike does for the pedal, would fix it exactly; this is the cheap
+   equivalent, close enough for a foot box this size. */
+function footDropBelowHip(thighA, shinA, footA) {
+    var total = thighA + shinA;
+    var ankleY = -THIGH * Math.cos(thighA) - SHIN * Math.cos(total);
+    var boxAngle = total + footA;
+    var dy = 0.06 * Math.sin(total) - 0.035 * Math.cos(total);
+    var extent = 0.11 * Math.abs(Math.sin(boxAngle)) + 0.035 * Math.abs(Math.cos(boxAngle));
+    return ankleY + dy - extent;
+}
+
 /* Running: opposite arm to leg, elbows held at a right angle, a little
    forward lean and a bob on every foot strike. */
 function poseRun(f, p, effort) {
@@ -1790,21 +1889,30 @@ function poseRun(f, p, effort) {
     var e = effort === undefined ? 1 : effort;
 
     f.torso.rotation.z = -0.13 - 0.05 * e;
+    f.torso.rotation.y = -Math.sin(p) * 0.05 * e;   /* trunk counter-twists against the arm swing */
     f.neck.rotation.z = 0.10;
-    f.core.position.y = HIP_Y + Math.abs(Math.sin(p)) * 0.075 * e;
+    var coreYBase = HIP_Y + Math.abs(Math.sin(p)) * 0.075 * e;
 
+    var drop = [0, 0];
     for (var i = 0; i < 2; i++) {
         var phase = p + (i === 0 ? 0 : Math.PI);
         var leg = f.legs[i];
-        leg.thigh.rotation.z = Math.sin(phase) * (0.75 * e + 0.15);
-        leg.shin.rotation.z = -Math.max(0, Math.sin(phase - 1.0)) * (1.7 * e) - 0.12;
-        leg.foot.rotation.z = 0.25 + Math.sin(phase + 0.6) * 0.3;
+        var thighA = Math.sin(phase) * (0.75 * e + 0.15);
+        var shinA = -Math.max(0, Math.sin(phase - 1.0)) * (1.7 * e) - 0.12;
+        var footA = 0.25 + Math.sin(phase + 0.6) * 0.3;
+        leg.thigh.rotation.z = thighA;
+        leg.shin.rotation.z = shinA;
+        leg.foot.rotation.z = footA;
+        drop[i] = footDropBelowHip(thighA, shinA, footA);
 
         var arm = f.arms[i];
         arm.upper.rotation.z = -Math.sin(phase) * (0.62 * e) + 0.18;
         arm.fore.rotation.z = -1.35 - Math.sin(phase + 0.9) * 0.34 * e;
         arm.shoulder.rotation.y = arm.side * 0.12;
     }
+
+    /* whichever foot is planted, keep it off the road */
+    f.core.position.y = Math.max(coreYBase, -Math.min(drop[0], drop[1]));
 }
 
 /* Freestyle: the whole body pitches a quarter turn so it lies along the
@@ -1918,22 +2026,64 @@ function poseTransition(f, p, kit) {
     arm.shoulder.rotation.y = 0.85;
 }
 
+/* The close-up beat of a transition: bent forward, working on one piece of
+   gear, while the stage-cut flash covers the actual cut behind it. `kind`
+   picks what's being adjusted — shoes going into T1 or the run, the helmet
+   going into the bike, the bike itself going into T2. */
+function poseGearAdjust(f, kind, p) {
+    resetPose(f);
+    var kit = kind === 'shoes' ? 'run' : 'bike';
+    setKit(f, kit);
+    f.bike.visible = kind !== 'shoes';
+    if (f.bike.visible) {
+        f.bike.position.set(0.3, 0, 0.5);
+        f.bike.rotation.set(0, 0, -0.1);
+        f.bike.scale.setScalar(1);
+    }
+
+    var sway = Math.sin(p * 0.9) * 0.04;
+    f.torso.rotation.z = -0.85 + sway;
+    f.neck.rotation.z = 0.5;
+
+    /* one leg works the gear and lifts clear of the road; the other plants
+       and gets the same sinking-foot correction the run stride does */
+    var workLeg = f.legs[1], plantLeg = f.legs[0];
+    var workThigh = 0.55, workShin = -1.05, workFoot = 0.5;
+    var plantThigh = -0.05, plantShin = -0.08, plantFoot = 0.15;
+    workLeg.thigh.rotation.z = workThigh; workLeg.shin.rotation.z = workShin; workLeg.foot.rotation.z = workFoot;
+    plantLeg.thigh.rotation.z = plantThigh; plantLeg.shin.rotation.z = plantShin; plantLeg.foot.rotation.z = plantFoot;
+    var plantDrop = footDropBelowHip(plantThigh, plantShin, plantFoot);
+    f.core.position.y = Math.max(HIP_Y - 0.03, -plantDrop);
+
+    /* one arm reaches to the gear, the other braces on the working knee */
+    var reachArm = f.arms[1], braceArm = f.arms[0];
+    if (kind === 'shoes') {
+        reachArm.upper.rotation.z = 1.35; reachArm.fore.rotation.z = -1.7; reachArm.shoulder.rotation.y = 0.3;
+    } else {
+        reachArm.upper.rotation.z = 1.9; reachArm.fore.rotation.z = -0.9; reachArm.shoulder.rotation.y = 0.5;
+    }
+    braceArm.upper.rotation.z = 0.75 + sway; braceArm.fore.rotation.z = -0.6; braceArm.shoulder.rotation.y = -0.15;
+}
+
 /* On the box: both arms up, a slow celebratory sway. */
 function posePodium(f, p) {
     resetPose(f);
     setKit(f, 'run');
     f.bike.visible = false;
     f.torso.rotation.z = Math.sin(p * 0.7) * 0.07;
-    f.core.position.y = HIP_Y + Math.abs(Math.sin(p * 1.6)) * 0.05;
+    var coreYBase = HIP_Y + Math.abs(Math.sin(p * 1.6)) * 0.05;
+    var thighA = 0, shinA = -0.05, footA = 0.1;
+    var drop = footDropBelowHip(thighA, shinA, footA);
+    f.core.position.y = Math.max(coreYBase, -drop);
     for (var i = 0; i < 2; i++) {
         var arm = f.arms[i];
         arm.upper.rotation.z = Math.PI * 0.88 + Math.sin(p * 1.5 + i) * 0.13;
         arm.fore.rotation.z = 0.28 + Math.sin(p * 1.5 + i) * 0.18;
         arm.shoulder.rotation.y = arm.side * 0.55;
         var leg = f.legs[i];
-        leg.thigh.rotation.z = 0;
-        leg.shin.rotation.z = -0.05;
-        leg.foot.rotation.z = 0.1;
+        leg.thigh.rotation.z = thighA;
+        leg.shin.rotation.z = shinA;
+        leg.foot.rotation.z = footA;
     }
 }
 
@@ -2160,6 +2310,7 @@ function makePodium() {
    straight through the lens; the two positive lanes are there for the wide
    shot, where the camera is far enough back to see both sides. */
 var RIVAL_LANES = [-2.4, -4.3, -6.3, -1.5, -8.3, 5.2, -5.3, 7.0];
+var SKIN_TONES = [0xd9a679, 0xb8875a, 0x8d5a3c, 0xf0c9a0, 0x6b4327, 0xe8b48a];
 
 function buildWorld(canvas) {
     renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: !MOBILE, powerPreference: 'high-performance' });
@@ -2196,14 +2347,16 @@ function buildWorld(canvas) {
     world.ocean = makeOcean(210, MOBILE ? 56 : 92, true, 0x0c7395);
     scene.add(world.ocean);
 
+    world.ground = makeGround(); scene.add(world.ground);
     world.deck = makeDeck(); scene.add(world.deck);
     world.dashes = makeDashes(); scene.add(world.dashes);
     world.palms = makePalmRow(); scene.add(world.palms);
     world.skyline = makeSkyline(); scene.add(world.skyline);
+    world.causeway = makeCauseway(); scene.add(world.causeway);
     world.buoys = makeBuoys(); scene.add(world.buoys);
     world.transition = makeTransition(); scene.add(world.transition);
 
-    world.hero = buildFigure({ suit: 0x1976D2, accent: 0x7CB342, limb: 0xe9f0f8 });
+    world.hero = buildFigure({ suit: 0x1976D2, accent: 0x7CB342, limb: SKIN_TONES[0] });
     scene.add(world.hero.root);
 
     world.rivals = [];
@@ -2212,7 +2365,7 @@ function buildWorld(canvas) {
         var fig = buildFigure({
             suit: new THREE.Color(RIVALS[i].color).getHex(),
             accent: 0x22303f,
-            limb: 0xcdd7e2
+            limb: SKIN_TONES[(i + 1) % SKIN_TONES.length]
         });
         fig.root.position.z = RIVAL_LANES[i % RIVAL_LANES.length];
         fig.bib.visible = false;
@@ -2274,6 +2427,7 @@ function makeShore() {
 var STAGE_SPEED = { swim: 1.45, t1: 3.2, bike: 11.5, t2: 3.2, run: 4.2 };
 var STAGE_CADENCE = { swim: 1.0, t1: 1.45, bike: 1.5, t2: 1.45, run: 1.5 };
 var SWIM_Y = 0.13, DECK_Y = 1.5;
+function groundY(id) { return id === 'swim' ? SWIM_Y : DECK_Y; }
 
 var game = {
     race: null,
@@ -2283,6 +2437,7 @@ var game = {
     surge: 0,
     slump: 0,
     phaseTimer: 0,
+    cutscene: null,        /* { into: stageId, t } while a stage-cut flash/close-up is playing */
     strokePhase: 0,
     camMode: 'close',
     camAuto: true,
@@ -2294,7 +2449,7 @@ var game = {
 
 var el = {};
 function cacheEls() {
-    var ids = ['boot', 'boot-msg', 'nowebgl', 'stage-name', 'stage-detail', 'clock', 'place', 'score',
+    var ids = ['boot', 'boot-msg', 'nowebgl', 'flash', 'stage-name', 'stage-detail', 'clock', 'place', 'score',
         'rail', 'quiz', 'q-chip', 'q-label', 'q-count', 'q-text', 'q-opts', 'q-why', 'verdict',
         'cam-pill', 'cam-close', 'cam-wide', 'start-screen', 'start-btn', 'finish-screen',
         'again-btn', 'podium-btn', 'medal', 'finish-place', 'stat-time', 'stat-score', 'stat-gap',
@@ -2446,6 +2601,9 @@ function afterReaction() {
     if (res && res.finished) {
         game.phase = 'tofinish';
         game.phaseTimer = 4.0;
+        /* just the flash, not the gear close-up — crossing the line is its
+           own moment, not a transition to hide */
+        game.cutscene = { t: 0, flashOnly: true };
         if (HAS_3D) {
             world.finishArch.visible = true;
             world.finishArch.position.set(game.heroX + 58, DECK_Y, 0);
@@ -2457,6 +2615,7 @@ function afterReaction() {
     if (res && res.stageDone) {
         game.phase = 'stagecut';
         game.phaseTimer = 2.6;
+        game.cutscene = { t: 0 };
         applyStageVisuals();
         updateHud();
         return;
@@ -2471,6 +2630,7 @@ function afterReaction() {
    it forward without waiting in real time. */
 function firePhaseTimer() {
     game.phaseTimer = 0;
+    game.cutscene = null;
     if (game.phase === 'react') afterReaction();
     else if (game.phase === 'stagecut' || game.phase === 'gap') showQuestion();
     else if (game.phase === 'tofinish') enterCeremony();
@@ -2489,12 +2649,19 @@ function applyStageVisuals() {
     var id = visualStage();
     var swimming = id === 'swim';
     var transition = id === 't1' || id === 't2';
+    /* the bike leg is the one part of the race actually over the bay — the
+       Rickenbacker Causeway is a bridge — so it keeps the ocean underneath.
+       T1, T2 and the run are all on dry land. */
+    var overWater = swimming || id === 'bike';
 
     world.deck.visible = !swimming;
     world.dashes.visible = !swimming && !transition;
     world.palms.visible = !swimming;
     world.buoys.visible = swimming;
     world.transition.visible = transition;
+    world.ocean.visible = overWater;
+    world.oceanFar.visible = overWater;
+    world.ground.visible = !overWater;
 
     var y = swimming ? SWIM_Y : DECK_Y;
     world.hero.root.position.y = y;
@@ -2537,6 +2704,16 @@ var CAM = {
     }
 };
 
+/* The close-up shot for the gear-adjustment beat of a stage cut — tight and
+   low, on whatever `poseGearAdjust` is doing, keyed by the stage being
+   entered rather than by camera mode. */
+var TRANSITION_CAM = {
+    t1:   { off: [1.3, 1.15, 1.6], look: [0.05, 1.05, 0.15], fov: 30 },
+    bike: { off: [1.5, 1.0, 1.7], look: [0.15, 0.85, 0], fov: 30 },
+    t2:   { off: [1.3, 1.15, 1.6], look: [0.05, 1.05, 0.15], fov: 30 },
+    run:  { off: [1.1, 0.7, 1.3], look: [0.05, 0.6, 0], fov: 30 }
+};
+
 /* Built in buildWorld, not here: this file has to be able to load and run the
    quiz on a device with no WebGL at all, so nothing touches THREE until the
    renderer is known to work.
@@ -2573,7 +2750,8 @@ function updateCamera(dt) {
         camera.position.copy(camState.pos);
         camera.lookAt(camState.look);
     } else {
-        var set = CAM[game.camMode][id] || CAM[game.camMode].run;
+        var cutIn = game.cutscene && !game.cutscene.flashOnly && TRANSITION_CAM[id];
+        var set = cutIn || CAM[game.camMode][id] || CAM[game.camMode].run;
         var base = world.hero.root.position;
         _v1.set(set.off[0], set.off[1], set.off[2]);
         _v2.set(set.look[0], set.look[1], set.look[2]);
@@ -2598,13 +2776,22 @@ function updateCamera(dt) {
 
 /* --- the frame ---------------------------------------------------------- */
 
+/* Which piece of gear the hero is shown adjusting during the close-up beat
+   of a stage cut, keyed by the stage being entered. */
+function gearKindFor(id) {
+    if (id === 'bike') return 'helmet';
+    if (id === 't2') return 'rack';
+    return 'shoes';
+}
+
 function updateWorld(dt) {
     var id = visualStage();
     var ceremony = game.phase === 'ceremony';
+    var cutscene = game.cutscene;
 
     var speed = STAGE_SPEED[id] || 4;
     var mult = 1 + game.surge * 0.9 - game.slump * 0.34;
-    if (ceremony) mult = 0;
+    if (ceremony || (cutscene && !cutscene.flashOnly)) mult = 0;
 
     game.heroX += speed * mult * dt;
     game.surge = Math.max(0, game.surge - dt * 0.5);
@@ -2615,7 +2802,9 @@ function updateWorld(dt) {
     if (!ceremony) {
         hero.root.position.x = game.heroX;
         hero.root.position.z = 0;
-        if (id === 'swim') poseSwim(hero, game.strokePhase);
+        hero.root.position.y = groundY(id);
+        if (cutscene && !cutscene.flashOnly && TRANSITION_CAM[id]) poseGearAdjust(hero, gearKindFor(id), game.t);
+        else if (id === 'swim') poseSwim(hero, game.strokePhase);
         else if (id === 'bike') poseBike(hero, game.strokePhase);
         else if (id === 't1' || id === 't2') poseTransition(hero, game.strokePhase, 'bike');
         else poseRun(hero, game.strokePhase, 1 + game.surge * 0.35);
@@ -2638,6 +2827,7 @@ function updateWorld(dt) {
         fig.root.position.x = approach(fig.root.position.x || want, want, 1.4, dt);
         /* open water is wide; the causeway is fifteen metres of tarmac */
         fig.root.position.z = r.lane * (id === 'swim' ? 1.15 : 0.72);
+        fig.root.position.y = groundY(id);
         var ph = game.strokePhase * (0.93 + (i % 5) * 0.03) + r.phase;
         if (id === 'swim') poseSwim(fig, ph);
         else if (id === 'bike') poseBike(fig, ph);
@@ -2647,13 +2837,21 @@ function updateWorld(dt) {
 
     /* scenery */
     var x = game.heroX;
-    recycle(world.deck, x, 150);
+    /* Unlike the tiled props below, the deck is a single 320-unit object, so
+       there is no neighbour to cover the seam when it jumps a whole span.
+       The jump is gapless only when it fires with the athlete exactly at
+       the object's midpoint — margin = span / 2 — so that they land in the
+       same relative spot on the new span they were about to leave on the
+       old one. The old margin of 150 missed that by 10 units, which is
+       exactly the width of the gap that opened at every recycle. */
+    recycle(world.deck, x, 160);
     recycleGroup(world.dashes, x, 120);
     recycleGroup(world.palms, x, 90);
     recycleGroup(world.skyline, x, 110);
     recycleGroup(world.buoys, x, 60);
     recycleGroup(world.transition, x, 70);
     if (world.skyline.userData.towers) world.skyline.userData.towers.position.x = x;
+    if (world.causeway) world.causeway.position.x = x + 60;
 
     world.ocean.position.x = x;
     world.oceanFar.position.x = x;
@@ -2884,6 +3082,15 @@ function tick(now) {
     if (game.phaseTimer > 0) {
         game.phaseTimer -= dt;
         if (game.phaseTimer <= 0) firePhaseTimer();
+    }
+
+    /* the flash is a brief DOM overlay, not a 3D effect, so it covers a
+       stage cut even on a device with no WebGL */
+    if (game.cutscene) {
+        game.cutscene.t += dt;
+        el.flash.classList.toggle('show', game.cutscene.t < 0.15);
+    } else if (el.flash.classList.contains('show')) {
+        el.flash.classList.remove('show');
     }
 
     if (HAS_3D && game.race) {
