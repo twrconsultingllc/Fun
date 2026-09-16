@@ -35,7 +35,7 @@ not be loaded — so this drops straight into CI or a pre-push hook.
 
 ## What is covered
 
-555 assertions across six suites.
+588 assertions across eight suites.
 
 ### `tricalc.html`
 
@@ -169,6 +169,41 @@ any buffered output stuck in the pipe. `run.mjs` calls `closeAllDoms()` after
 every suite, so a suite that forgets cannot hang the runner — but an ad-hoc
 script that imports this module and skips `close()` will hang outright. One did,
 for over an hour, which is why this is written down.
+
+### `battle-bots-V2` (a multi-file app, not a single-file page)
+
+| Suite | File | Covers |
+|---|---|---|
+| `bots-core` | `battle-bots-v2.core.test.mjs` | A bot's configured weapon never changes at runtime no matter what skills fire; Aggressive Charge scales off the bot's *own* weapon instead of a fixed generic shot; the bonus shields added to the other skills (20 on Snipe, 30 on Flank Left/Right and Retreat, 70 on Defend, none on Charge); the weapon fire-rate balance numbers. |
+| `bots-dom` | `battle-bots-v2.dom.test.mjs` | The control panel: default speed and weapon match the balance change, the weapon dropdown actually drives the team config and survives a panel re-render, and the stats table's WPN column shows the right label. |
+
+battle-bots-V2 is the one app in this repo that isn't a single self-contained
+HTML file — it's `public/*.js` ES modules plus a `api/` serverless function,
+and its real, functional deployment is a separate Vercel project, not GitHub
+Pages. That breaks the pattern the other suites use:
+
+- **No `extractPureMath`.** There's nothing to extract — the logic already
+  lives in its own files. `bots-core` just `import()`s the real
+  `entities.js`/`skills.js`/`state.js` directly.
+- **No `window.__pagename` hook.** `bots-dom` can't hand the whole page to
+  `openDom` and read results off a hook the way `ai-swarm.dom`/`race-day.dom`
+  do, because battle-bots-V2 exposes no such hook and `main.js` calls
+  `paintIdleArena()` at import time — which needs a working `<canvas>` 2D
+  context that jsdom doesn't have without the native `canvas` package, and
+  throws immediately. So `bots-dom` parses `index.html` with `runScripts:
+  'outside-only'` (markup loads, the embedded module script does not run)
+  and imports `ui.js` directly against that document instead — a unit test
+  of one module, not a full-page integration test.
+- **A remote target needs staging.** `entities.js` imports `./skills.js` and
+  friends by relative path, which Node's ESM loader only resolves against
+  `file:`/`data:` URLs — not `https:`. So testing a deployed copy (`--target=
+  https://<url>/index.html`) fetches those files into a temp dir first and
+  imports them from there; see `lib/bots-modules.mjs`.
+- **`npm run test:live` still works here**, just not the way it sounds: the
+  default GitHub Pages base serves this app's static files too (the whole
+  repo is published there), so both suites pass against it — they just never
+  exercise the real `/api/get-actions` route, which only exists on Vercel.
+  Point `--target` at the live Vercel URL to test the actual running app.
 
 ## Note on expected values
 

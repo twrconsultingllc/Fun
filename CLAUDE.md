@@ -66,6 +66,34 @@ changing it. Do not "fix" a failure by pasting in whatever the page now prints �
 during the TriCalc 4.0 rewrite three failures turned out to be wrong
 expectations in the test, but the fourth would have papered over a real bug.
 
+### Testing a multi-file app (battle-bots-V2)
+
+`battle-bots-V2` is not a single-file page — it's `public/*.js` ES modules
+plus an `api/` serverless function, deployed separately on Vercel rather than
+GitHub Pages. `battle-bots-v2.core.test.mjs` and `battle-bots-v2.dom.test.mjs`
+cover it, but the pattern is different enough from the single-file suites
+that it's worth knowing before reaching for `chromium-cli` or a real browser:
+
+- **`chromium-cli` was not installed in this environment**, and neither is a
+  local `canvas` npm package, so jsdom's `getContext('2d')` returns `null`.
+  `battle-bots-V2/public/main.js` calls `paintIdleArena()` at import time,
+  which uses that context immediately — so loading the real page in jsdom
+  with scripts enabled throws before anything else runs. Verify this app's
+  logic by `import()`-ing its ES modules directly (`entities.js`, `skills.js`,
+  `state.js` have no DOM dependency at all) rather than trying to run the
+  whole page.
+- There's no `window.__pagename` hook here (unlike `ai-swarm.html` /
+  `race-day.html`), so a DOM-level check imports `ui.js` directly against a
+  `runScripts: 'outside-only'` jsdom document instead of letting `main.js`
+  run. See the comments at the top of `battle-bots-v2.dom.test.mjs`.
+- `npm run test:live`'s GitHub Pages base actually does reach these files
+  (the whole repo is published there) — it just never exercises the real
+  `/api/get-actions` route, which only exists on Vercel. To test the actual
+  running app, target it directly: `--target=https://<live-url>/index.html`.
+  `lib/bots-modules.mjs` stages a remote target's files into a temp dir
+  first, since Node's loader can't resolve one module's relative import of
+  another against an `https:` URL.
+
 ## Do not judge third-party model IDs from memory
 
 An unfamiliar model ID is far more likely to be newer than the training cutoff

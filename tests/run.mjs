@@ -23,7 +23,9 @@ const SUITES = [
     { id: 'swarm-core', page: 'ai-swarm.html', file: './ai-swarm.core.test.mjs' },
     { id: 'swarm-dom', page: 'ai-swarm.html', file: './ai-swarm.dom.test.mjs' },
     { id: 'raceday-core', page: 'race-day.html', file: './race-day.core.test.mjs' },
-    { id: 'raceday-dom', page: 'race-day.html', file: './race-day.dom.test.mjs' }
+    { id: 'raceday-dom', page: 'race-day.html', file: './race-day.dom.test.mjs' },
+    { id: 'bots-core', page: 'battle-bots-V2/public/index.html', file: './battle-bots-v2.core.test.mjs' },
+    { id: 'bots-dom', page: 'battle-bots-V2/public/index.html', file: './battle-bots-v2.dom.test.mjs' }
 ];
 
 const DEFAULT_BASE = new URL('../', import.meta.url).pathname;
