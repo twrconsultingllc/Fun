@@ -5,13 +5,36 @@ import { SKILL_CATALOG, DEFAULT_SKILL, catalogForPrompt } from '../public/skills
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// The key must never reach the browser. Two defences:
+//   1. Send it as a header so it is not embedded in a URL that a network-layer
+//      error, a log line or a proxy could quote back.
+//   2. Redact anything key-shaped from error text before returning it, since
+//      these messages are surfaced in the UI.
+const GEMINI_MODELS_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+
+function geminiHeaders(apiKey) {
+    return { "x-goog-api-key": apiKey || "" };
+}
+
+function safeMessage(error, fallback) {
+    const raw = (error && error.message) || "";
+    if (!raw) return fallback;
+    const scrubbed = raw
+        .replace(/([?&]key=)[^&\s"'`]+/gi, "$1[redacted]")
+        .replace(/AIza[0-9A-Za-z_-]{10,}/g, "[redacted]")
+        .replace(/(x-goog-api-key["':\s]+)[^\s"',}]+/gi, "$1[redacted]")
+        .slice(0, 300);
+    return scrubbed.trim() || fallback;
+}
+
+
 const PREFERRED_MODEL = "gemini-3.5-flash-lite";
 
 async function listModels(apiKey) {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    const response = await fetch(GEMINI_MODELS_URL, { headers: geminiHeaders(apiKey) });
     const data = await response.json();
     if (!response.ok) {
-        const err = new Error(data.error?.message || "Failed to fetch models");
+        const err = new Error(safeMessage({ message: data.error?.message }, "Failed to fetch models"));
         err.status = response.status;
         throw err;
     }
@@ -76,7 +99,7 @@ export default async function handler(req, res) {
         try {
             return res.status(200).json({ models: await listModels(apiKey) });
         } catch (error) {
-            return res.status(error.status || 500).json({ error: error.message || "Failed to list models" });
+            return res.status(error.status || 500).json({ error: safeMessage(error, "Failed to list models") });
         }
     }
 
@@ -125,6 +148,6 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error(`Gemini API Error (${teamId}):`, error);
         const statusCode = (error.message && error.message.includes('429')) ? 429 : 500;
-        return res.status(statusCode).json({ error: error.message || "Unknown API Error" });
+        return res.status(statusCode).json({ error: safeMessage(error, "Unknown API Error") });
     }
 }

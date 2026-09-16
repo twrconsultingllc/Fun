@@ -1,6 +1,29 @@
-﻿import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// The key must never reach the browser. Two defences:
+//   1. Send it as a header so it is not embedded in a URL that a network-layer
+//      error, a log line or a proxy could quote back.
+//   2. Redact anything key-shaped from error text before returning it, since
+//      these messages are surfaced in the UI.
+const GEMINI_MODELS_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+
+function geminiHeaders(apiKey) {
+    return { "x-goog-api-key": apiKey || "" };
+}
+
+function safeMessage(error, fallback) {
+    const raw = (error && error.message) || "";
+    if (!raw) return fallback;
+    const scrubbed = raw
+        .replace(/([?&]key=)[^&\s"'`]+/gi, "$1[redacted]")
+        .replace(/AIza[0-9A-Za-z_-]{10,}/g, "[redacted]")
+        .replace(/(x-goog-api-key["':\s]+)[^\s"',}]+/gi, "$1[redacted]")
+        .slice(0, 300);
+    return scrubbed.trim() || fallback;
+}
+
 
 const SKILL_CATALOG = {
     "SNIPE_STANCE": { action: "Snipe", aggression: 10, speedModifier: 0.8 },
@@ -16,10 +39,10 @@ export default async function handler(req, res) {
         // Fetch the active model list from Google
         try {
             const apiKey = process.env.GEMINI_API_KEY;
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+            const response = await fetch(GEMINI_MODELS_URL, { headers: geminiHeaders(apiKey) });
             const data = await response.json();
 
-            if (!response.ok) return res.status(response.status).json({ error: data.error?.message || "Failed to fetch models" });
+            if (!response.ok) return res.status(response.status).json({ error: safeMessage({ message: data.error?.message }, "Failed to fetch models") });
 
             const availableModels = (data.models || [])
                 .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
@@ -27,7 +50,7 @@ export default async function handler(req, res) {
 
             return res.status(200).json({ models: availableModels });
         } catch (error) {
-            return res.status(500).json({ error: error.message || "Failed to list models" });
+            return res.status(500).json({ error: safeMessage(error, "Failed to list models") });
         }
     } else if (req.method === 'POST') {
         const { gameState, selectedModel, promptA, promptB } = req.body;
@@ -75,7 +98,7 @@ export default async function handler(req, res) {
         } catch (error) {
             console.error("Gemini API Error:", error);
             const statusCode = (error.message && error.message.includes('429')) ? 429 : 500;
-            return res.status(statusCode).json({ error: error.message || "Unknown API Error" });
+            return res.status(statusCode).json({ error: safeMessage(error, "Unknown API Error") });
         }
     } else {
         return res.status(405).json({ error: 'Method Not Allowed' });
