@@ -362,12 +362,20 @@
                     <stop offset="45%" stop-color="#ffffff" stop-opacity=".12"/>
                     <stop offset="100%" stop-color="#ffffff" stop-opacity=".6"/>
                 </linearGradient>
-                <radialGradient id="dropGrad" cx="32%" cy="22%" r="75%">
+                <radialGradient id="dropGrad" cx="30%" cy="20%" r="80%">
                     <stop offset="0%"  stop-color="#ffffff"/>
-                    <stop offset="45%" stop-color="#dff0ff"/>
-                    <stop offset="100%" stop-color="#8ec9f2"/>
+                    <stop offset="35%" stop-color="#eef6fb"/>
+                    <stop offset="70%" stop-color="#b9cdd9"/>
+                    <stop offset="100%" stop-color="#7c8fa0"/>
                 </radialGradient>
-                <path id="ringTextPath" d="M 50 50 m -47.3,0 a 47.3,47.3 0 1,1 94.6,0 a 47.3,47.3 0 1,1 -94.6,0"/>
+                <linearGradient id="ringTextGrad" x1="0%" y1="0%" x2="100%" y2="60%">
+                    <stop offset="0%"  stop-color="#6ea8dc"/>
+                    <stop offset="26%" stop-color="#eaf2ff"/>
+                    <stop offset="52%" stop-color="#9fd06a"/>
+                    <stop offset="74%" stop-color="#eaf2ff"/>
+                    <stop offset="100%" stop-color="#5f97cc"/>
+                </linearGradient>
+                <path id="ringTextPath" d="M 50 50 m -42.6,0 a 42.6,42.6 0 1,1 85.2,0 a 42.6,42.6 0 1,1 -85.2,0"/>
             </defs>
 
             <path d="M 46.422 4.541 L 47.852 4.451 L 48.72 0.617 L 51.28 0.617 L 52.148 4.451 L 55.004 4.675 L 56.461 1.024 L 58.99 1.425 L 59.247 5.347 L 62.033 6.016 L 64.043 2.638 L 66.478 3.429 L 66.118 7.344 L 68.765 8.44 L 71.279 5.418 L 73.56 6.58 L 72.593 10.39 L 75.035 11.887 L 77.991 9.295 L 80.063 10.8 L 78.511 14.412 L 80.689 16.273 L 84.014 14.175 L 85.825 15.986 L 83.727 19.311 L 85.588 21.489 L 89.2 19.937 L 90.705 22.009 L 88.113 24.965 L 89.61 27.407 L 93.42 26.44 L 94.582 28.721 L 91.56 31.235 L 92.656 33.882 L 96.571 33.522 L 97.362 35.957 L 93.984 37.967 L 94.653 40.753 L 98.575 41.01 L 98.976 43.539 L 95.325 44.996 L 95.549 47.852 L 99.383 48.72 L 99.383 51.28 L 95.549 52.148 L 95.325 55.004 L 98.976 56.461 L 98.575 58.99 L 94.653 59.247 L 93.984 62.033 L 97.362 64.043 L 96.571 66.478 L 92.656 66.118 L 91.56 68.765 L 94.582 71.279 L 93.42 73.56 L 89.61 72.593 L 88.113 75.035 L 90.705 77.991 L 89.2 80.063 L 85.588 78.511 L 83.727 80.689 L 85.825 84.014 L 84.014 85.825 L 80.689 83.727 L 78.511 85.588 L 80.063 89.2 L 77.991 90.705 L 75.035 88.113 L 72.593 89.61 L 73.56 93.42 L 71.279 94.582 L 68.765 91.56 L 66.118 92.656 L 66.478 96.571 L 64.043 97.362 L 62.033 93.984 L 59.247 94.653 L 58.99 98.575 L 56.461 98.976 L 55.004 95.325 L 52.148 95.549 L 51.28 99.383 L 48.72 99.383 L 47.852 95.549 L 44.996 95.325 L 43.539 98.976 L 41.01 98.575 L 40.753 94.653 L 37.967 93.984 L 35.957 97.362 L 33.522 96.571 L 33.882 92.656 L 31.235 91.56 L 28.721 94.582 L 26.44 93.42 L 27.407 89.61 L 24.965 88.113 L 22.009 90.705 L 19.937 89.2 L 21.489 85.588 L 19.311 83.727 L 15.986 85.825 L 14.175 84.014 L 16.273 80.689 L 14.412 78.511 L 10.8 80.063 L 9.295 77.991 L 11.887 75.035 L 10.39 72.593 L 6.58 73.56 L 5.418 71.279 L 8.44 68.765 L 7.344 66.118 L 3.429 66.478 L 2.638 64.043 L 6.016 62.033 L 5.347 59.247 L 1.425 58.99 L 1.024 56.461 L 4.675 55.004 L 4.451 52.148 L 0.617 51.28 L 0.617 48.72 L 4.451 47.852 L 4.675 44.996 L 1.024 43.539 L 1.425 41.01 L 5.347 40.753 L 6.016 37.967 L 2.638 35.957 L 3.429 33.522 L 7.344 33.882 L 8.44 31.235 L 5.418 28.721 L 6.58 26.44 L 10.39 27.407 L 11.887 24.965 L 9.295 22.009 L 10.8 19.937 L 14.412 21.489 L 16.273 19.311 L 14.175 15.986 L 15.986 14.175 L 19.311 16.273 L 21.489 14.412 L 19.937 10.8 L 22.009 9.295 L 24.965 11.887 L 27.407 10.39 L 26.44 6.58 L 28.721 5.418 L 31.235 8.44 L 33.882 7.344 L 33.522 3.429 L 35.957 2.638 L 37.967 6.016 L 40.753 5.347 L 41.01 1.425 L 43.539 1.024 L 44.996 4.675 Z M 90.2 50 A 40.2 40.2 0 1 0 9.8 50 A 40.2 40.2 0 1 0 90.2 50 Z" fill="url(#blueGrad)" fill-rule="evenodd"/>
@@ -394,41 +402,66 @@
                 <path d="M 21.157 22.621 C 21.759 25.124 19.957 26.431 18.785 25.448 C 17.613 24.464 18.588 22.463 21.157 22.621 Z"/>
                 <path d="M 32.774 34.972 C 34.999 34.436 36.161 36.038 35.287 37.08 C 34.413 38.122 32.633 37.255 32.774 34.972 Z"/>
                 <path d="M 27.243 16.621 C 28.622 18.073 27.917 19.654 26.745 19.448 C 25.573 19.241 25.451 17.514 27.243 16.621 Z"/>
+                <path d="M 15 37 C 10.484 31.719 13.216 26.364 17.241 27.293 C 21.267 28.222 21.376 34.232 15 37 Z"/>
+                <path d="M 11.5 44.5 C 10.512 39.186 14.435 36.642 16.784 38.834 C 19.135 41.024 16.871 45.115 11.5 44.5 Z"/>
+                <path d="M 17.5 47.5 C 18.615 44.346 21.506 44.196 22.087 46.098 C 22.669 48 20.189 49.492 17.5 47.5 Z"/>
+                <path d="M 13.5 18 C 14.72 20.555 13.08 22.374 11.595 21.583 C 10.108 20.794 10.699 18.417 13.5 18 Z"/>
+                <path d="M 20 9.5 C 19.82 11.809 17.913 12.427 17.184 11.26 C 16.454 10.092 17.845 8.65 20 9.5 Z"/>
+                <path d="M 30.5 5.5 C 29.043 7.622 26.866 7.158 26.813 5.629 C 26.759 4.1 28.899 3.484 30.5 5.5 Z"/>
+                <path d="M 42.5 4.5 C 40.642 5.387 39.319 4.195 39.894 3.114 C 40.468 2.033 42.197 2.463 42.5 4.5 Z"/>
+                <path d="M 9.5 26.5 C 12.49 27.272 12.861 29.918 11.158 30.605 C 9.456 31.293 7.884 29.133 9.5 26.5 Z"/>
+                <path d="M 38.5 27.5 C 40.594 26.004 42.482 27.185 42.009 28.64 C 41.537 30.096 39.315 29.942 38.5 27.5 Z"/>
+                <path d="M 15.5 13 C 16.675 14.154 16.141 15.475 15.171 15.338 C 14.202 15.202 14.052 13.785 15.5 13 Z"/>
             </g>
             <g fill="#0d3a63" fill-rule="evenodd">
-                <path d="M 30.4 47.6 A 1.9 1.9 0 1 0 26.6 47.6 A 1.9 1.9 0 1 0 30.4 47.6 Z"/>
-                <path d="M 29.696 50.12 L 38.696 51.92 A 1.55 1.55 0 0 1 39.304 48.88 L 30.304 47.08 A 1.55 1.55 0 0 1 29.696 50.12 Z"/>
-                <path d="M 39.018 50.874 L 45.518 45.874 A 0.85 0.85 0 0 1 44.482 44.526 L 37.982 49.526 A 0.85 0.85 0 0 1 39.018 50.874 Z"/>
-                <path d="M 31.379 48.753 L 24.879 44.953 A 0.75 0.75 0 0 1 24.121 46.247 L 30.621 50.047 A 0.75 0.75 0 0 1 31.379 48.753 Z"/>
-                <path d="M 36.731 51.653 L 43.731 54.153 A 0.8 0.8 0 0 1 44.269 52.647 L 37.269 50.147 A 0.8 0.8 0 0 1 36.731 51.653 Z"/>
-                <path d="M 35.796 51.034 L 41.796 48.234 A 0.7 0.7 0 0 1 41.204 46.966 L 35.204 49.766 A 0.7 0.7 0 0 1 35.796 51.034 Z"/>
-                <path d="M 16 54.6 C 19.5 52.6 22.5 52.6 26 54.6 C 29.5 56.6 32.5 56.6 36 54.6 C 39.5 52.6 42.5 52.6 46 54.6 L 46 56 C 42.5 54 39.5 54 36 56 C 32.5 58 29.5 58 26 56 C 22.5 54 19.5 54 16 56 Z"/>
-                <path d="M 50.4 62.5 A 5.4 5.4 0 1 0 39.6 62.5 A 5.4 5.4 0 1 0 50.4 62.5 Z M 49.1 62.5 A 4.1 4.1 0 1 0 40.9 62.5 A 4.1 4.1 0 1 0 49.1 62.5 Z"/>
-                <path d="M 66.4 62.5 A 5.4 5.4 0 1 0 55.6 62.5 A 5.4 5.4 0 1 0 66.4 62.5 Z M 65.1 62.5 A 4.1 4.1 0 1 0 56.9 62.5 A 4.1 4.1 0 1 0 65.1 62.5 Z"/>
-                <path d="M 45.451 62.815 L 52.451 52.815 A 0.55 0.55 0 0 1 51.549 52.185 L 44.549 62.185 A 0.55 0.55 0 0 1 45.451 62.815 Z"/>
-                <path d="M 51.591 52.868 L 60.591 62.868 A 0.55 0.55 0 0 1 61.409 62.132 L 52.409 52.132 A 0.55 0.55 0 0 1 51.591 52.868 Z"/>
-                <path d="M 45.403 62.874 L 55.903 51.574 A 0.55 0.55 0 0 1 55.097 50.826 L 44.597 62.126 A 0.55 0.55 0 0 1 45.403 62.874 Z"/>
-                <path d="M 55.308 50.684 L 51.808 51.984 A 0.55 0.55 0 0 1 52.192 53.016 L 55.692 51.716 A 0.55 0.55 0 0 1 55.308 50.684 Z"/>
-                <path d="M 52.376 52.901 L 58.876 46.801 A 0.55 0.55 0 0 1 58.124 45.999 L 51.624 52.099 A 0.55 0.55 0 0 1 52.376 52.901 Z"/>
-                <path d="M 57.957 46.484 L 60.457 62.584 A 0.55 0.55 0 0 1 61.543 62.416 L 59.043 46.316 A 0.55 0.55 0 0 1 57.957 46.484 Z"/>
-                <path d="M 58.598 46.89 L 62.598 46.09 A 0.5 0.5 0 0 1 62.402 45.11 L 58.402 45.91 A 0.5 0.5 0 0 1 58.598 46.89 Z"/>
-                <path d="M 57.6 42.8 A 1.9 1.9 0 1 0 53.8 42.8 A 1.9 1.9 0 1 0 57.6 42.8 Z"/>
-                <path d="M 53.834 44.025 L 50.434 50.925 A 1.3 1.3 0 0 1 52.766 52.075 L 56.166 45.175 A 1.3 1.3 0 0 1 53.834 44.025 Z"/>
-                <path d="M 53.55 47.048 L 60.05 46.548 A 0.65 0.65 0 0 1 59.95 45.252 L 53.45 45.752 A 0.65 0.65 0 0 1 53.55 47.048 Z"/>
-                <path d="M 51.588 53.186 L 57.088 56.486 A 0.8 0.8 0 0 1 57.912 55.114 L 52.412 51.814 A 0.8 0.8 0 0 1 51.588 53.186 Z"/>
-                <path d="M 58.096 55.541 L 56.096 50.941 A 0.65 0.65 0 0 1 54.904 51.459 L 56.904 56.059 A 0.65 0.65 0 0 1 58.096 55.541 Z"/>
-                <path d="M 71.35 42.4 A 1.95 1.95 0 1 0 67.45 42.4 A 1.95 1.95 0 1 0 71.35 42.4 Z"/>
-                <path d="M 67.342 45.206 L 72.742 52.706 A 1.55 1.55 0 0 1 75.258 50.894 L 69.858 43.394 A 1.55 1.55 0 0 1 67.342 45.206 Z"/>
-                <path d="M 72.314 47.081 L 78.814 44.081 A 0.75 0.75 0 0 1 78.186 42.719 L 71.686 45.719 A 0.75 0.75 0 0 1 72.314 47.081 Z"/>
-                <path d="M 70.379 47.18 L 65.079 50.78 A 0.75 0.75 0 0 1 65.921 52.02 L 71.221 48.42 A 0.75 0.75 0 0 1 70.379 47.18 Z"/>
-                <path d="M 74.316 52.589 L 80.316 50.189 A 0.85 0.85 0 0 1 79.684 48.611 L 73.684 51.011 A 0.85 0.85 0 0 1 74.316 52.589 Z"/>
-                <path d="M 79.34 49.167 L 76.94 55.967 A 0.7 0.7 0 0 1 78.26 56.433 L 80.66 49.633 A 0.7 0.7 0 0 1 79.34 49.167 Z"/>
-                <path d="M 72.847 51.856 L 67.847 57.856 A 0.85 0.85 0 0 1 69.153 58.944 L 74.153 52.944 A 0.85 0.85 0 0 1 72.847 51.856 Z"/>
-                <path d="M 68.094 58.97 L 72.594 62.17 A 0.7 0.7 0 0 1 73.406 61.03 L 68.906 57.83 A 0.7 0.7 0 0 1 68.094 58.97 Z"/>
+                <path d="M 17.117 48.227 L 12.251 46.409 A 0.605 0.605 0 0 0 11.709 47.491 L 16.083 50.293 A 1.155 1.155 0 0 0 17.117 48.227 Z"/>
+                <path d="M 15.958 49.356 L 11.989 52.883 A 0.55 0.55 0 0 0 12.631 53.777 L 17.242 51.144 A 1.1 1.1 0 0 0 15.958 49.356 Z"/>
+                <path d="M 25.76 46.314 L 16.397 48.451 A 1.265 1.265 0 0 0 16.803 50.949 L 26.36 50.006 A 1.87 1.87 0 0 0 25.76 46.314 Z"/>
+                <path d="M 27.277 48.279 L 29.155 46.608 A 1.1 1.1 0 0 0 27.805 44.872 L 25.723 46.281 A 1.265 1.265 0 0 0 27.277 48.279 Z"/>
+                <path d="M 25.244 48.872 L 35.555 47.498 A 0.33 0.33 0 0 0 35.485 46.842 L 25.116 47.668 A 0.605 0.605 0 0 0 25.244 48.872 Z"/>
+                <path d="M 31.23 45.19 A 1.65 1.65 0 1 0 27.93 45.19 A 1.65 1.65 0 1 0 31.23 45.19 Z"/>
+                <path d="M 8 55.6 C 11.5 53.6 14.5 53.6 18 55.6 C 21.5 57.6 24.5 57.6 28 55.6 C 31.5 53.6 34.5 53.6 38 55.6 L 38 57 C 34.5 55 31.5 55 28 57 C 24.5 59 21.5 59 18 57 C 14.5 55 11.5 55 8 57 Z"/>
+                <path d="M 47.03 61 A 4.83 4.83 0 1 0 37.37 61 A 4.83 4.83 0 1 0 47.03 61 Z M 45.928 61 A 3.728 3.728 0 1 0 38.473 61 A 3.728 3.728 0 1 0 45.928 61 Z"/>
+                <path d="M 63.83 61 A 4.83 4.83 0 1 0 54.17 61 A 4.83 4.83 0 1 0 63.83 61 Z M 62.728 61 A 3.728 3.728 0 1 0 55.273 61 A 3.728 3.728 0 1 0 62.728 61 Z"/>
+                <path d="M 42.778 61 A 0.578 0.578 0 1 0 41.623 61 A 0.578 0.578 0 1 0 42.778 61 Z"/>
+                <path d="M 59.578 61 A 0.578 0.578 0 1 0 58.423 61 A 0.578 0.578 0 1 0 59.578 61 Z"/>
+                <path d="M 38 61.231 L 46.4 61.231 A 0.231 0.231 0 0 0 46.4 60.769 L 38 60.769 A 0.231 0.231 0 0 0 38 61.231 Z"/>
+                <path d="M 39.9 57.478 L 44.1 64.753 A 0.231 0.231 0 0 0 44.5 64.522 L 40.3 57.247 A 0.231 0.231 0 0 0 39.9 57.478 Z"/>
+                <path d="M 44.1 57.247 L 39.9 64.522 A 0.231 0.231 0 0 0 40.3 64.753 L 44.5 57.478 A 0.231 0.231 0 0 0 44.1 57.247 Z"/>
+                <path d="M 54.8 61.231 L 63.2 61.231 A 0.231 0.231 0 0 0 63.2 60.769 L 54.8 60.769 A 0.231 0.231 0 0 0 54.8 61.231 Z"/>
+                <path d="M 56.7 57.478 L 60.9 64.753 A 0.231 0.231 0 0 0 61.3 64.522 L 57.1 57.247 A 0.231 0.231 0 0 0 56.7 57.478 Z"/>
+                <path d="M 60.9 57.247 L 56.7 64.522 A 0.231 0.231 0 0 0 57.1 64.753 L 61.3 57.478 A 0.231 0.231 0 0 0 60.9 57.247 Z"/>
+                <path d="M 47.846 61.421 L 56.663 52.906 A 0.42 0.42 0 0 0 56.087 52.294 L 47.054 60.579 A 0.578 0.578 0 0 0 47.846 61.421 Z"/>
+                <path d="M 55.974 52.725 L 58.449 61.172 A 0.578 0.578 0 0 0 59.551 60.828 L 56.776 52.475 A 0.42 0.42 0 0 0 55.974 52.725 Z"/>
+                <path d="M 42.636 61.292 L 49.33 51.02 A 0.368 0.368 0 0 0 48.72 50.61 L 41.764 60.708 A 0.525 0.525 0 0 0 42.636 61.292 Z"/>
+                <path d="M 47.969 61.08 L 49.388 50.871 A 0.368 0.368 0 0 0 48.662 50.759 L 46.931 60.92 A 0.525 0.525 0 0 0 47.969 61.08 Z"/>
+                <path d="M 48.973 51.179 L 56.327 52.198 A 0.336 0.336 0 0 0 56.423 51.532 L 49.077 50.451 A 0.368 0.368 0 0 0 48.973 51.179 Z"/>
+                <path d="M 56.408 52.178 L 63.436 51.381 A 0.252 0.252 0 0 0 63.384 50.879 L 56.342 51.552 A 0.315 0.315 0 0 0 56.408 52.178 Z"/>
+                <path d="M 47.445 50.614 L 51.036 58.527 A 0.997 0.997 0 0 0 52.894 57.803 L 50.185 49.546 A 1.47 1.47 0 0 0 47.445 50.614 Z"/>
+                <path d="M 51.163 57.571 L 47.259 63.46 A 0.63 0.63 0 0 0 48.271 64.21 L 52.767 58.759 A 0.997 0.997 0 0 0 51.163 57.571 Z"/>
+                <path d="M 48.058 51.426 L 54.305 55.023 A 0.893 0.893 0 0 0 55.295 53.537 L 49.572 49.154 A 1.365 1.365 0 0 0 48.058 51.426 Z"/>
+                <path d="M 54.272 53.56 L 48.158 58.434 A 0.578 0.578 0 0 0 48.842 59.366 L 55.328 55 A 0.893 0.893 0 0 0 54.272 53.56 Z"/>
+                <path d="M 47.684 64.46 L 50.128 64.546 A 0.399 0.399 0 0 0 50.232 63.754 L 47.846 63.21 A 0.63 0.63 0 0 0 47.684 64.46 Z"/>
+                <path d="M 48.422 59.472 L 50.759 59.59 A 0.378 0.378 0 0 0 50.861 58.84 L 48.578 58.328 A 0.578 0.578 0 0 0 48.422 59.472 Z"/>
+                <path d="M 49.503 51.115 L 58.618 46.835 A 1.155 1.155 0 0 0 57.702 44.715 L 48.337 48.415 A 1.47 1.47 0 0 0 49.503 51.115 Z"/>
+                <path d="M 46.222 51.989 L 49.468 50.64 A 0.473 0.473 0 0 0 49.212 49.73 L 45.738 50.271 A 0.893 0.893 0 0 0 46.222 51.989 Z"/>
+                <path d="M 56.796 47.274 L 60.228 49.813 A 0.651 0.651 0 0 0 61.132 48.877 L 58.474 45.536 A 1.208 1.208 0 0 0 56.796 47.274 Z"/>
+                <path d="M 60.51 49.973 L 64.45 50.821 A 0.441 0.441 0 0 0 64.68 49.969 L 60.85 48.717 A 0.651 0.651 0 0 0 60.51 49.973 Z"/>
+                <path d="M 62.15 44.725 A 1.68 1.68 0 1 0 58.79 44.725 A 1.68 1.68 0 1 0 62.15 44.725 Z"/>
+                <path d="M 74.472 52.586 L 70.72 56.624 A 0.75 0.75 0 0 0 71.68 57.776 L 76.328 54.814 A 1.45 1.45 0 0 0 74.472 52.586 Z"/>
+                <path d="M 70.646 56.694 L 67.631 60.363 A 0.5 0.5 0 0 0 68.369 61.037 L 71.754 57.706 A 0.75 0.75 0 0 0 70.646 56.694 Z"/>
+                <path d="M 76.236 55.259 L 80.66 52.47 A 0.85 0.85 0 0 0 79.94 50.93 L 74.964 52.541 A 1.5 1.5 0 0 0 76.236 55.259 Z"/>
+                <path d="M 79.461 51.564 L 78.557 59.012 A 0.55 0.55 0 0 0 79.643 59.188 L 81.139 51.836 A 0.85 0.85 0 0 0 79.461 51.564 Z"/>
+                <path d="M 77.639 45.238 L 74.603 48.65 A 0.6 0.6 0 0 0 75.397 49.55 L 79.161 46.962 A 1.15 1.15 0 0 0 77.639 45.238 Z"/>
+                <path d="M 74.493 48.779 L 72.745 51.875 A 0.42 0.42 0 0 0 73.455 52.325 L 75.507 49.421 A 0.6 0.6 0 0 0 74.493 48.779 Z"/>
+                <path d="M 77.242 45.391 L 74.383 53.444 A 1.3 1.3 0 0 0 76.817 54.356 L 79.958 46.409 A 1.45 1.45 0 0 0 77.242 45.391 Z"/>
+                <path d="M 78.507 47.545 L 81.654 46.677 A 0.58 0.58 0 0 0 81.546 45.523 L 78.293 45.255 A 1.15 1.15 0 0 0 78.507 47.545 Z"/>
+                <path d="M 81.846 46.625 L 84.978 44.98 A 0.42 0.42 0 0 0 84.622 44.22 L 81.354 45.575 A 0.58 0.58 0 0 0 81.846 46.625 Z"/>
+                <path d="M 80 43.2 A 1.6 1.6 0 1 0 76.8 43.2 A 1.6 1.6 0 1 0 80 43.2 Z"/>
             </g>
             <circle cx="50" cy="50" r="49.4" fill="url(#glossGrad)"/>
             <circle cx="50" cy="50" r="49" fill="none" stroke="url(#rimGrad)" stroke-width="1.4"/>
-            <text font-family="Inter, sans-serif" font-weight="800" font-size="4.4" letter-spacing=".04em" fill="#9adb4b">
+            <text font-family="Inter, sans-serif" font-weight="800" font-size="4.4" letter-spacing=".04em" fill="url(#ringTextGrad)">
                 <textPath href="#ringTextPath" startOffset="1.2%">SWIM &#8226; BIKE &#8226; RUN &#8226; EAT &#8226; SLEEP &#8226; REPEAT &#8226;</textPath>
             </text>
         </svg>
@@ -567,41 +600,66 @@ const LOGO_SVG = `
   <path data-layer="rivet" d="M 29.6 12.848 A 1.05 1.05 0 1 0 27.5 12.848 A 1.05 1.05 0 1 0 29.6 12.848 Z" fill="#aebccb" />
   <circle data-layer="whiteDisc" cx="50" cy="50" r="39.6" fill="#6f7d93" />
   <path data-layer="greenSwoosh" d="M 50 10.4 A 39.6 39.6 0 0 0 50 89.6 A 19.8 19.8 0 0 0 50 50 A 19.8 19.8 0 0 1 50 10.4 Z" fill="#7CB342" />
-  <path data-layer="droplet" d="M 30.252 24.479 C 34.937 26.611 34.779 31.061 31.786 31.697 C 28.793 32.334 26.838 28.333 30.252 24.479 Z" fill="#5f9fd4" />
-  <path data-layer="droplet" d="M 24.803 31.527 C 26.964 34.553 25.258 37.279 23.156 36.596 C 21.055 35.913 21.277 32.705 24.803 31.527 Z" fill="#5f9fd4" />
-  <path data-layer="droplet" d="M 36.85 18.008 C 40.118 18.379 40.901 21.114 39.208 22.091 C 37.514 23.069 35.537 21.024 36.85 18.008 Z" fill="#5f9fd4" />
-  <path data-layer="droplet" d="M 21.157 22.621 C 21.759 25.124 19.957 26.431 18.785 25.448 C 17.613 24.464 18.588 22.463 21.157 22.621 Z" fill="#5f9fd4" />
-  <path data-layer="droplet" d="M 32.774 34.972 C 34.999 34.436 36.161 36.038 35.287 37.08 C 34.413 38.122 32.633 37.255 32.774 34.972 Z" fill="#5f9fd4" />
-  <path data-layer="droplet" d="M 27.243 16.621 C 28.622 18.073 27.917 19.654 26.745 19.448 C 25.573 19.241 25.451 17.514 27.243 16.621 Z" fill="#5f9fd4" />
-  <path data-layer="pictogram" d="M 30.4 47.6 A 1.9 1.9 0 1 0 26.6 47.6 A 1.9 1.9 0 1 0 30.4 47.6 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 29.696 50.12 L 38.696 51.92 A 1.55 1.55 0 0 1 39.304 48.88 L 30.304 47.08 A 1.55 1.55 0 0 1 29.696 50.12 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 39.018 50.874 L 45.518 45.874 A 0.85 0.85 0 0 1 44.482 44.526 L 37.982 49.526 A 0.85 0.85 0 0 1 39.018 50.874 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 31.379 48.753 L 24.879 44.953 A 0.75 0.75 0 0 1 24.121 46.247 L 30.621 50.047 A 0.75 0.75 0 0 1 31.379 48.753 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 36.731 51.653 L 43.731 54.153 A 0.8 0.8 0 0 1 44.269 52.647 L 37.269 50.147 A 0.8 0.8 0 0 1 36.731 51.653 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 35.796 51.034 L 41.796 48.234 A 0.7 0.7 0 0 1 41.204 46.966 L 35.204 49.766 A 0.7 0.7 0 0 1 35.796 51.034 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 16 54.6 C 19.5 52.6 22.5 52.6 26 54.6 C 29.5 56.6 32.5 56.6 36 54.6 C 39.5 52.6 42.5 52.6 46 54.6 L 46 56 C 42.5 54 39.5 54 36 56 C 32.5 58 29.5 58 26 56 C 22.5 54 19.5 54 16 56 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 50.4 62.5 A 5.4 5.4 0 1 0 39.6 62.5 A 5.4 5.4 0 1 0 50.4 62.5 Z M 49.1 62.5 A 4.1 4.1 0 1 0 40.9 62.5 A 4.1 4.1 0 1 0 49.1 62.5 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 66.4 62.5 A 5.4 5.4 0 1 0 55.6 62.5 A 5.4 5.4 0 1 0 66.4 62.5 Z M 65.1 62.5 A 4.1 4.1 0 1 0 56.9 62.5 A 4.1 4.1 0 1 0 65.1 62.5 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 45.451 62.815 L 52.451 52.815 A 0.55 0.55 0 0 1 51.549 52.185 L 44.549 62.185 A 0.55 0.55 0 0 1 45.451 62.815 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 51.591 52.868 L 60.591 62.868 A 0.55 0.55 0 0 1 61.409 62.132 L 52.409 52.132 A 0.55 0.55 0 0 1 51.591 52.868 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 45.403 62.874 L 55.903 51.574 A 0.55 0.55 0 0 1 55.097 50.826 L 44.597 62.126 A 0.55 0.55 0 0 1 45.403 62.874 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 55.308 50.684 L 51.808 51.984 A 0.55 0.55 0 0 1 52.192 53.016 L 55.692 51.716 A 0.55 0.55 0 0 1 55.308 50.684 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 52.376 52.901 L 58.876 46.801 A 0.55 0.55 0 0 1 58.124 45.999 L 51.624 52.099 A 0.55 0.55 0 0 1 52.376 52.901 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 57.957 46.484 L 60.457 62.584 A 0.55 0.55 0 0 1 61.543 62.416 L 59.043 46.316 A 0.55 0.55 0 0 1 57.957 46.484 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 58.598 46.89 L 62.598 46.09 A 0.5 0.5 0 0 1 62.402 45.11 L 58.402 45.91 A 0.5 0.5 0 0 1 58.598 46.89 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 57.6 42.8 A 1.9 1.9 0 1 0 53.8 42.8 A 1.9 1.9 0 1 0 57.6 42.8 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 53.834 44.025 L 50.434 50.925 A 1.3 1.3 0 0 1 52.766 52.075 L 56.166 45.175 A 1.3 1.3 0 0 1 53.834 44.025 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 53.55 47.048 L 60.05 46.548 A 0.65 0.65 0 0 1 59.95 45.252 L 53.45 45.752 A 0.65 0.65 0 0 1 53.55 47.048 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 51.588 53.186 L 57.088 56.486 A 0.8 0.8 0 0 1 57.912 55.114 L 52.412 51.814 A 0.8 0.8 0 0 1 51.588 53.186 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 58.096 55.541 L 56.096 50.941 A 0.65 0.65 0 0 1 54.904 51.459 L 56.904 56.059 A 0.65 0.65 0 0 1 58.096 55.541 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 71.35 42.4 A 1.95 1.95 0 1 0 67.45 42.4 A 1.95 1.95 0 1 0 71.35 42.4 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 67.342 45.206 L 72.742 52.706 A 1.55 1.55 0 0 1 75.258 50.894 L 69.858 43.394 A 1.55 1.55 0 0 1 67.342 45.206 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 72.314 47.081 L 78.814 44.081 A 0.75 0.75 0 0 1 78.186 42.719 L 71.686 45.719 A 0.75 0.75 0 0 1 72.314 47.081 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 70.379 47.18 L 65.079 50.78 A 0.75 0.75 0 0 1 65.921 52.02 L 71.221 48.42 A 0.75 0.75 0 0 1 70.379 47.18 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 74.316 52.589 L 80.316 50.189 A 0.85 0.85 0 0 1 79.684 48.611 L 73.684 51.011 A 0.85 0.85 0 0 1 74.316 52.589 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 79.34 49.167 L 76.94 55.967 A 0.7 0.7 0 0 1 78.26 56.433 L 80.66 49.633 A 0.7 0.7 0 0 1 79.34 49.167 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 72.847 51.856 L 67.847 57.856 A 0.85 0.85 0 0 1 69.153 58.944 L 74.153 52.944 A 0.85 0.85 0 0 1 72.847 51.856 Z" fill="#0d3a63" fill-rule="evenodd" />
-  <path data-layer="pictogram" d="M 68.094 58.97 L 72.594 62.17 A 0.7 0.7 0 0 1 73.406 61.03 L 68.906 57.83 A 0.7 0.7 0 0 1 68.094 58.97 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="droplet" d="M 30.252 24.479 C 34.937 26.611 34.779 31.061 31.786 31.697 C 28.793 32.334 26.838 28.333 30.252 24.479 Z" fill="#c7d6e3" />
+  <path data-layer="droplet" d="M 24.803 31.527 C 26.964 34.553 25.258 37.279 23.156 36.596 C 21.055 35.913 21.277 32.705 24.803 31.527 Z" fill="#c7d6e3" />
+  <path data-layer="droplet" d="M 36.85 18.008 C 40.118 18.379 40.901 21.114 39.208 22.091 C 37.514 23.069 35.537 21.024 36.85 18.008 Z" fill="#c7d6e3" />
+  <path data-layer="droplet" d="M 21.157 22.621 C 21.759 25.124 19.957 26.431 18.785 25.448 C 17.613 24.464 18.588 22.463 21.157 22.621 Z" fill="#c7d6e3" />
+  <path data-layer="droplet" d="M 32.774 34.972 C 34.999 34.436 36.161 36.038 35.287 37.08 C 34.413 38.122 32.633 37.255 32.774 34.972 Z" fill="#c7d6e3" />
+  <path data-layer="droplet" d="M 27.243 16.621 C 28.622 18.073 27.917 19.654 26.745 19.448 C 25.573 19.241 25.451 17.514 27.243 16.621 Z" fill="#c7d6e3" />
+  <path data-layer="droplet" d="M 15 37 C 10.484 31.719 13.216 26.364 17.241 27.293 C 21.267 28.222 21.376 34.232 15 37 Z" fill="#c7d6e3" />
+  <path data-layer="droplet" d="M 11.5 44.5 C 10.512 39.186 14.435 36.642 16.784 38.834 C 19.135 41.024 16.871 45.115 11.5 44.5 Z" fill="#c7d6e3" />
+  <path data-layer="droplet" d="M 17.5 47.5 C 18.615 44.346 21.506 44.196 22.087 46.098 C 22.669 48 20.189 49.492 17.5 47.5 Z" fill="#c7d6e3" />
+  <path data-layer="droplet" d="M 13.5 18 C 14.72 20.555 13.08 22.374 11.595 21.583 C 10.108 20.794 10.699 18.417 13.5 18 Z" fill="#c7d6e3" />
+  <path data-layer="droplet" d="M 20 9.5 C 19.82 11.809 17.913 12.427 17.184 11.26 C 16.454 10.092 17.845 8.65 20 9.5 Z" fill="#c7d6e3" />
+  <path data-layer="droplet" d="M 30.5 5.5 C 29.043 7.622 26.866 7.158 26.813 5.629 C 26.759 4.1 28.899 3.484 30.5 5.5 Z" fill="#c7d6e3" />
+  <path data-layer="droplet" d="M 42.5 4.5 C 40.642 5.387 39.319 4.195 39.894 3.114 C 40.468 2.033 42.197 2.463 42.5 4.5 Z" fill="#c7d6e3" />
+  <path data-layer="droplet" d="M 9.5 26.5 C 12.49 27.272 12.861 29.918 11.158 30.605 C 9.456 31.293 7.884 29.133 9.5 26.5 Z" fill="#c7d6e3" />
+  <path data-layer="droplet" d="M 38.5 27.5 C 40.594 26.004 42.482 27.185 42.009 28.64 C 41.537 30.096 39.315 29.942 38.5 27.5 Z" fill="#c7d6e3" />
+  <path data-layer="droplet" d="M 15.5 13 C 16.675 14.154 16.141 15.475 15.171 15.338 C 14.202 15.202 14.052 13.785 15.5 13 Z" fill="#c7d6e3" />
+  <path data-layer="pictogram" d="M 17.117 48.227 L 12.251 46.409 A 0.605 0.605 0 0 0 11.709 47.491 L 16.083 50.293 A 1.155 1.155 0 0 0 17.117 48.227 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 15.958 49.356 L 11.989 52.883 A 0.55 0.55 0 0 0 12.631 53.777 L 17.242 51.144 A 1.1 1.1 0 0 0 15.958 49.356 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 25.76 46.314 L 16.397 48.451 A 1.265 1.265 0 0 0 16.803 50.949 L 26.36 50.006 A 1.87 1.87 0 0 0 25.76 46.314 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 27.277 48.279 L 29.155 46.608 A 1.1 1.1 0 0 0 27.805 44.872 L 25.723 46.281 A 1.265 1.265 0 0 0 27.277 48.279 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 25.244 48.872 L 35.555 47.498 A 0.33 0.33 0 0 0 35.485 46.842 L 25.116 47.668 A 0.605 0.605 0 0 0 25.244 48.872 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 31.23 45.19 A 1.65 1.65 0 1 0 27.93 45.19 A 1.65 1.65 0 1 0 31.23 45.19 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 8 55.6 C 11.5 53.6 14.5 53.6 18 55.6 C 21.5 57.6 24.5 57.6 28 55.6 C 31.5 53.6 34.5 53.6 38 55.6 L 38 57 C 34.5 55 31.5 55 28 57 C 24.5 59 21.5 59 18 57 C 14.5 55 11.5 55 8 57 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 47.03 61 A 4.83 4.83 0 1 0 37.37 61 A 4.83 4.83 0 1 0 47.03 61 Z M 45.928 61 A 3.728 3.728 0 1 0 38.473 61 A 3.728 3.728 0 1 0 45.928 61 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 63.83 61 A 4.83 4.83 0 1 0 54.17 61 A 4.83 4.83 0 1 0 63.83 61 Z M 62.728 61 A 3.728 3.728 0 1 0 55.273 61 A 3.728 3.728 0 1 0 62.728 61 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 42.778 61 A 0.578 0.578 0 1 0 41.623 61 A 0.578 0.578 0 1 0 42.778 61 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 59.578 61 A 0.578 0.578 0 1 0 58.423 61 A 0.578 0.578 0 1 0 59.578 61 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 38 61.231 L 46.4 61.231 A 0.231 0.231 0 0 0 46.4 60.769 L 38 60.769 A 0.231 0.231 0 0 0 38 61.231 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 39.9 57.478 L 44.1 64.753 A 0.231 0.231 0 0 0 44.5 64.522 L 40.3 57.247 A 0.231 0.231 0 0 0 39.9 57.478 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 44.1 57.247 L 39.9 64.522 A 0.231 0.231 0 0 0 40.3 64.753 L 44.5 57.478 A 0.231 0.231 0 0 0 44.1 57.247 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 54.8 61.231 L 63.2 61.231 A 0.231 0.231 0 0 0 63.2 60.769 L 54.8 60.769 A 0.231 0.231 0 0 0 54.8 61.231 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 56.7 57.478 L 60.9 64.753 A 0.231 0.231 0 0 0 61.3 64.522 L 57.1 57.247 A 0.231 0.231 0 0 0 56.7 57.478 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 60.9 57.247 L 56.7 64.522 A 0.231 0.231 0 0 0 57.1 64.753 L 61.3 57.478 A 0.231 0.231 0 0 0 60.9 57.247 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 47.846 61.421 L 56.663 52.906 A 0.42 0.42 0 0 0 56.087 52.294 L 47.054 60.579 A 0.578 0.578 0 0 0 47.846 61.421 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 55.974 52.725 L 58.449 61.172 A 0.578 0.578 0 0 0 59.551 60.828 L 56.776 52.475 A 0.42 0.42 0 0 0 55.974 52.725 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 42.636 61.292 L 49.33 51.02 A 0.368 0.368 0 0 0 48.72 50.61 L 41.764 60.708 A 0.525 0.525 0 0 0 42.636 61.292 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 47.969 61.08 L 49.388 50.871 A 0.368 0.368 0 0 0 48.662 50.759 L 46.931 60.92 A 0.525 0.525 0 0 0 47.969 61.08 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 48.973 51.179 L 56.327 52.198 A 0.336 0.336 0 0 0 56.423 51.532 L 49.077 50.451 A 0.368 0.368 0 0 0 48.973 51.179 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 56.408 52.178 L 63.436 51.381 A 0.252 0.252 0 0 0 63.384 50.879 L 56.342 51.552 A 0.315 0.315 0 0 0 56.408 52.178 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 47.445 50.614 L 51.036 58.527 A 0.997 0.997 0 0 0 52.894 57.803 L 50.185 49.546 A 1.47 1.47 0 0 0 47.445 50.614 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 51.163 57.571 L 47.259 63.46 A 0.63 0.63 0 0 0 48.271 64.21 L 52.767 58.759 A 0.997 0.997 0 0 0 51.163 57.571 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 48.058 51.426 L 54.305 55.023 A 0.893 0.893 0 0 0 55.295 53.537 L 49.572 49.154 A 1.365 1.365 0 0 0 48.058 51.426 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 54.272 53.56 L 48.158 58.434 A 0.578 0.578 0 0 0 48.842 59.366 L 55.328 55 A 0.893 0.893 0 0 0 54.272 53.56 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 47.684 64.46 L 50.128 64.546 A 0.399 0.399 0 0 0 50.232 63.754 L 47.846 63.21 A 0.63 0.63 0 0 0 47.684 64.46 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 48.422 59.472 L 50.759 59.59 A 0.378 0.378 0 0 0 50.861 58.84 L 48.578 58.328 A 0.578 0.578 0 0 0 48.422 59.472 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 49.503 51.115 L 58.618 46.835 A 1.155 1.155 0 0 0 57.702 44.715 L 48.337 48.415 A 1.47 1.47 0 0 0 49.503 51.115 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 46.222 51.989 L 49.468 50.64 A 0.473 0.473 0 0 0 49.212 49.73 L 45.738 50.271 A 0.893 0.893 0 0 0 46.222 51.989 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 56.796 47.274 L 60.228 49.813 A 0.651 0.651 0 0 0 61.132 48.877 L 58.474 45.536 A 1.208 1.208 0 0 0 56.796 47.274 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 60.51 49.973 L 64.45 50.821 A 0.441 0.441 0 0 0 64.68 49.969 L 60.85 48.717 A 0.651 0.651 0 0 0 60.51 49.973 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 62.15 44.725 A 1.68 1.68 0 1 0 58.79 44.725 A 1.68 1.68 0 1 0 62.15 44.725 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 74.472 52.586 L 70.72 56.624 A 0.75 0.75 0 0 0 71.68 57.776 L 76.328 54.814 A 1.45 1.45 0 0 0 74.472 52.586 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 70.646 56.694 L 67.631 60.363 A 0.5 0.5 0 0 0 68.369 61.037 L 71.754 57.706 A 0.75 0.75 0 0 0 70.646 56.694 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 76.236 55.259 L 80.66 52.47 A 0.85 0.85 0 0 0 79.94 50.93 L 74.964 52.541 A 1.5 1.5 0 0 0 76.236 55.259 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 79.461 51.564 L 78.557 59.012 A 0.55 0.55 0 0 0 79.643 59.188 L 81.139 51.836 A 0.85 0.85 0 0 0 79.461 51.564 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 77.639 45.238 L 74.603 48.65 A 0.6 0.6 0 0 0 75.397 49.55 L 79.161 46.962 A 1.15 1.15 0 0 0 77.639 45.238 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 74.493 48.779 L 72.745 51.875 A 0.42 0.42 0 0 0 73.455 52.325 L 75.507 49.421 A 0.6 0.6 0 0 0 74.493 48.779 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 77.242 45.391 L 74.383 53.444 A 1.3 1.3 0 0 0 76.817 54.356 L 79.958 46.409 A 1.45 1.45 0 0 0 77.242 45.391 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 78.507 47.545 L 81.654 46.677 A 0.58 0.58 0 0 0 81.546 45.523 L 78.293 45.255 A 1.15 1.15 0 0 0 78.507 47.545 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 81.846 46.625 L 84.978 44.98 A 0.42 0.42 0 0 0 84.622 44.22 L 81.354 45.575 A 0.58 0.58 0 0 0 81.846 46.625 Z" fill="#0d3a63" fill-rule="evenodd" />
+  <path data-layer="pictogram" d="M 80 43.2 A 1.6 1.6 0 1 0 76.8 43.2 A 1.6 1.6 0 1 0 80 43.2 Z" fill="#0d3a63" fill-rule="evenodd" />
 </svg>`;
 
 /* Each SVG element carries a data-layer tag naming its slab. Stacking those
@@ -616,7 +674,11 @@ const LAYERS = {
     droplet:     { depth: 18, front: 11.6, bevelThickness: 0.22, bevelSize: 0.18, curveSegments: 12 },
     pictogram:   { depth: 19, front: 12.8, bevelThickness: 0.4,  bevelSize: 0.34, curveSegments: 10 }
 };
-const RING_TEXT_RADIUS = 46;   // svg units — sits between the rivets and the tips of the gear teeth
+const RING_TEXT_RADIUS = 42.6; // svg units — inside the rivet ring, on the solid backing plate, clear of the gear teeth (which start at r≈45.6)
+
+// Droplets always read as polished liquid mercury — beaded, mirror-bright
+// metal — regardless of which finish tab is selected; see buildLogo/applyFinish.
+const LIQUID_MERCURY = { metalness: 1, roughness: 0.06, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 1.6, iridescence: 0, transmission: 0, reflectivity: 0.85 };
 
 const FINISHES = {
     enamel: {
@@ -652,6 +714,8 @@ const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').match
 let renderer, scene, camera, controls, composer, bloomPass;
 let logoGroup, logoPivot, lightRig, starField, halo, ringGroup;
 let materials = [];
+let ringWords = [];
+let ringWordFrame = 0;
 let currentFinish = 'enamel';
 let autoSpin = !reduceMotion;
 let shineScale = 0.62;
@@ -873,13 +937,21 @@ function buildLogo() {
         const key = path.userData.node.getAttribute('data-layer') || 'pictogram';
         const layer = LAYERS[key] || LAYERS.pictogram;
         const shapes = path.toShapes();
+        const isDroplet = key === 'droplet';
 
         const material = new THREE.MeshPhysicalMaterial({
             color: new THREE.Color(path.color),
             side: THREE.DoubleSide,   // the y-flip below reverses winding
-            ...FINISHES[currentFinish].params
+            ...(isDroplet ? LIQUID_MERCURY : FINISHES[currentFinish].params)
         });
         material.userData.baseColor = new THREE.Color(path.color);
+        if (isDroplet) {
+            // Beaded mercury reads as a near-white mirror, not the brand blue
+            // tint the flat artwork uses — and it stays this way regardless
+            // of the finish tab (see the skip in applyFinish).
+            material.color.set('#dce7f2');
+            material.userData.liquidMercury = true;
+        }
         materials.push(material);
 
         shapes.forEach((shape) => {
@@ -914,7 +986,10 @@ function buildLogo() {
    extruded — SVGLoader has no notion of <text>, and curved 3D letterforms
    are not worth the weight here. Each word is its own canvas-texture plane,
    parented to logoPivot (not the y-flipped logoGroup) so ordinary screen-
-   space angles place them, and it spins with the medallion regardless. */
+   space angles place them, and it spins with the medallion regardless.
+   Each also gets a metallic brand-colour sweep plus a moving specular band
+   repainted every frame (see paintRingWord/animate), so the type shines and
+   glimmers the same way the wordmark below the medallion does. */
 function buildRingText() {
     const s = (LOGO_RADIUS * 2) / 100;
     const worldRadius = RING_TEXT_RADIUS * s;
@@ -922,6 +997,7 @@ function buildRingText() {
     // roughly `bevelThickness`; clear that or the words sit behind the teeth.
     const worldZ = (LAYERS.gearRing.front + LAYERS.gearRing.bevelThickness) * s + 0.12;
     const words = ['SWIM', 'BIKE', 'RUN', 'EAT', 'SLEEP', 'REPEAT'];
+    ringWords = [];
 
     words.forEach((word, i) => {
         const canvas = document.createElement('canvas');
@@ -931,17 +1007,13 @@ function buildRingText() {
         canvas.width = Math.ceil(textWidth + 40);
         canvas.height = 128;
 
-        ctx.font = '800 84px Inter, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#9adb4b';
-        ctx.fillText(word, canvas.width / 2, canvas.height / 2 + 4);
-
         const texture = new THREE.CanvasTexture(canvas);
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
-        const planeHeight = 0.62;
+        // Kept small enough to sit on the gear's solid backing plate, clear
+        // of the tooth notches that start around r≈45.6 svg units.
+        const planeHeight = 0.56;
         const planeWidth = planeHeight * (canvas.width / canvas.height);
         const mesh = new THREE.Mesh(
             new THREE.PlaneGeometry(planeWidth, planeHeight),
@@ -953,7 +1025,48 @@ function buildRingText() {
         mesh.position.set(worldRadius * Math.cos(angle), worldRadius * Math.sin(angle), worldZ);
         mesh.rotation.z = angle - Math.PI / 2;
         logoPivot.add(mesh);
+
+        const rw = { canvas, ctx, word, texture, phase: i * 0.61 };
+        paintRingWord(rw, 0);
+        ringWords.push(rw);
     });
+}
+
+// Repaints one ring word: a fixed blue/white/green metal sweep (matching the
+// wordmark's CSS gradient) plus a specular band that travels across the
+// letterforms over time, composited with 'source-atop' so it never leaks
+// past the glyph outlines.
+function paintRingWord(rw, t) {
+    const { canvas, ctx, word } = rw;
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.font = '800 84px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const base = ctx.createLinearGradient(0, 0, w, 0);
+    base.addColorStop(0.00, '#5f97cc');
+    base.addColorStop(0.26, '#eaf2ff');
+    base.addColorStop(0.52, '#9fd06a');
+    base.addColorStop(0.74, '#eaf2ff');
+    base.addColorStop(1.00, '#6ea8dc');
+    ctx.fillStyle = base;
+    ctx.fillText(word, w / 2, h / 2 + 4);
+
+    if (!reduceMotion) {
+        ctx.globalCompositeOperation = 'source-atop';
+        const sweep = ((t * 0.16 + rw.phase) % 1 + 1) % 1;
+        const cx = -w * 0.4 + sweep * w * 1.8;
+        const band = ctx.createLinearGradient(cx - w * 0.22, 0, cx + w * 0.22, 0);
+        band.addColorStop(0, 'rgba(255,255,255,0)');
+        band.addColorStop(0.5, 'rgba(255,255,255,0.95)');
+        band.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = band;
+        ctx.fillRect(0, 0, w, h);
+        ctx.globalCompositeOperation = 'source-over';
+    }
+
+    rw.texture.needsUpdate = true;
 }
 
 function buildComposer() {
@@ -1027,6 +1140,10 @@ function applyFinish(key) {
     currentFinish = key;
 
     materials.forEach((material) => {
+        // Droplets are always polished liquid mercury, independent of the
+        // selected finish — see the LIQUID_MERCURY override in buildLogo.
+        if (material.userData.liquidMercury) return;
+
         // Reset the properties a previous finish may have set, so switching
         // back and forth cannot accumulate leftovers.
         material.iridescence = 0;
@@ -1158,6 +1275,13 @@ function animate() {
     if (halo) {
         halo.material.opacity = 0.24 + Math.sin(t * 0.7) * 0.05 + flash * 0.3;
         halo.rotation.z = t * 0.04;
+    }
+
+    // Repainted every other frame — plenty smooth for a slow specular sweep,
+    // at half the canvas-text cost of doing it every frame.
+    if (ringWords.length && !reduceMotion) {
+        ringWordFrame++;
+        if (ringWordFrame % 2 === 0) ringWords.forEach((rw) => paintRingWord(rw, t));
     }
 
     if (flash > 0.001) {

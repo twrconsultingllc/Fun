@@ -35,7 +35,22 @@ not be loaded — so this drops straight into CI or a pre-push hook.
 
 ## What is covered
 
-588 assertions across eight suites.
+605 assertions across nine suites.
+
+### `fullcircle.html`
+
+| Suite | File | Covers |
+|---|---|---|
+| `fullcircle-core` | `fullcircle.core.test.mjs` | Structural regressions in the medallion artwork: the ring words (SWIM/BIKE/RUN/…) staying on the gear's solid backing plate instead of drifting onto the teeth, the ring text keeping its metal-sweep gradient and animated specular sweep, the water droplets staying at their expanded count and always rendering as liquid mercury regardless of the selected finish, and the static `<svg>` mark staying in sync with the 3D `LOGO_SVG` source for both the droplets and the swimmer/cyclist/runner pictograms. |
+
+Like `battle-bots-V2`, this page has no `window.__pagename` hook and its
+`paintIdleArena`-style WebGL setup can't run under jsdom (no `chromium-cli`,
+no local `canvas` package — see that section below). Rather than fight that,
+this suite works directly on the page's HTML/JS text: it doesn't check that
+the artwork looks right (that was judged by rendering it), only that the
+specific things a later edit could silently regress — text riding onto the
+gear teeth again, droplets shrinking back down, the two SVG copies drifting
+apart — stay pinned.
 
 ### `tricalc.html`
 
