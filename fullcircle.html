@@ -242,8 +242,14 @@
 
     @media (max-width: 560px) {
         .hud-tag { font-size: 9px; letter-spacing: .08em; }
-        .dock { gap: 8px 10px; padding: 9px 11px; }
+        .hud-tag .tag-long { display: none; }
         .readout { display: none; }
+        .divider { display: none; }
+        /* Let every control group wrap rather than push the dock off-screen. */
+        .dock.live { width: 100%; gap: 8px; padding: 9px 10px; justify-content: center; }
+        .seg { flex-wrap: wrap; justify-content: center; }
+        .seg button { padding: 7px 9px; font-size: 10px; }
+        .slider-wrap { flex: 1 1 auto; justify-content: center; }
     }
 
     /* ---------- static mark ----------
@@ -374,7 +380,7 @@
 
 <div class="hud">
     <a class="backlink mono" href="index.html">&larr; Index</a>
-    <div class="hud-tag mono">Full Circle <b>/ the mark</b> &nbsp;·&nbsp; <b id="buildTag">BUILD 5</b></div>
+    <div class="hud-tag mono"><span class="tag-long">Full Circle <b>/ the mark</b> &nbsp;·&nbsp; </span><b id="buildTag">BUILD 11</b></div>
 </div>
 
 <div class="stage-foot">
@@ -504,32 +510,32 @@ const LAYERS = [
 const FINISHES = {
     enamel: {
         label: 'Enamel',
-        params: { metalness: 0.28, roughness: 0.16, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.5, iridescence: 0, transmission: 0, reflectivity: 0.6 },
-        lift: 0.05, bloom: 0.5
+        params: { metalness: 0.0, roughness: 0.33, clearcoat: 0.55, clearcoatRoughness: 0.12, envMapIntensity: 0.32, iridescence: 0, transmission: 0, reflectivity: 0.45 },
+        lift: 0, bloom: 0.3
     },
     chrome: {
         label: 'Chrome',
-        params: { metalness: 1, roughness: 0.085, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 2.6, iridescence: 0, transmission: 0, reflectivity: 0.6 },
-        lift: 0.52, bloom: 0.62
+        params: { metalness: 1, roughness: 0.14, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 1.35, iridescence: 0, transmission: 0, reflectivity: 0.6 },
+        lift: 0.26, bloom: 0.4
     },
     oilslick: {
         label: 'Oil Slick',
-        params: { metalness: 1, roughness: 0.035, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 2.1, iridescence: 1, iridescenceIOR: 1.8, transmission: 0, reflectivity: 0.7 },
-        lift: 0.22, bloom: 0.8
+        params: { metalness: 1, roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.5, iridescence: 1, iridescenceIOR: 1.8, transmission: 0, reflectivity: 0.7 },
+        lift: 0.1, bloom: 0.5
     },
     glass: {
         label: 'Glass',
-        params: { metalness: 0, roughness: 0.05, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 2.4, iridescence: 0, transmission: 1, thickness: 5.5, ior: 1.52, reflectivity: 0.9 },
-        lift: 0.5, bloom: 0.7
+        params: { metalness: 0, roughness: 0.06, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 1.5, iridescence: 0, transmission: 1, thickness: 5.5, ior: 1.52, reflectivity: 0.9 },
+        lift: 0.18, bloom: 0.45
     }
 };
 
 const BRAND = { blue: '#1976D2', green: '#7CB342' };
 const LOGO_RADIUS = 5.4;            // the medallion itself, in world units
-const RING_RADIUS = 6.1;            // accent rings; allowed to bleed off-frame
+const RING_RADIUS = 6.35;           // accent rings; kept clear of the disc face
 const FRAME_RADIUS = 5.6;           // frame the medallion, not the rings
 // Barely any breathing room: the mark should dominate the page.
-const FRAME_MARGIN = { landscape: 1.12, portrait: 1.04 };
+const FRAME_MARGIN = { landscape: 1.22, portrait: 1.08 };
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let renderer, scene, camera, controls, composer, bloomPass;
@@ -537,7 +543,7 @@ let logoGroup, logoPivot, lightRig, starField, halo, ringGroup;
 let materials = [];
 let currentFinish = 'enamel';
 let autoSpin = !reduceMotion;
-let shineScale = 0.7;
+let shineScale = 0.62;
 let flash = 0;
 let spinImpulse = 0;
 
@@ -569,8 +575,8 @@ function init() {
 
     renderer.setPixelRatio(pixelRatioCap());
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.42;
+    renderer.toneMapping = THREE.NeutralToneMapping;   // preserves brand hue; ACES washed it out
+    renderer.toneMappingExposure = 0.82;
 
     scene = new THREE.Scene();
 
@@ -583,12 +589,14 @@ function init() {
     scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     pmrem.dispose();
 
+    // Order matters: buildComposer creates bloomPass, and buildLogo ends by
+    // calling applyFinish, which sets bloom strength. Composer goes first.
+    buildComposer();
     buildLights();
     buildStars();
     buildHalo();
     buildLogo();
     buildRings();
-    buildComposer();
     buildControls();
     buildUI();
 
@@ -611,30 +619,30 @@ function init() {
 }
 
 function buildLights() {
-    scene.add(new THREE.AmbientLight(0x93a6c8, 0.7));
+    scene.add(new THREE.AmbientLight(0x8fa2c4, 0.16));
 
     // The rig rotates as a unit, so highlights sweep across the bevels
     // instead of sitting still — that travelling glint is most of the "shine".
     lightRig = new THREE.Group();
     scene.add(lightRig);
 
-    const key = new THREE.DirectionalLight(0xffffff, 2.6);
-    key.position.set(6, 9, 11);
+    const key = new THREE.DirectionalLight(0xffffff, 0.62);
+    key.position.set(-7, 7, 13);
     lightRig.add(key);
 
-    const cyan = new THREE.PointLight(0x22d3ee, 260, 70, 2);
+    const cyan = new THREE.PointLight(0x22d3ee, 80, 70, 2);
     cyan.position.set(-11, -5, 9);
     lightRig.add(cyan);
 
-    const violet = new THREE.PointLight(0xa855f7, 210, 70, 2);
+    const violet = new THREE.PointLight(0xa855f7, 62, 70, 2);
     violet.position.set(12, -8, 5);
     lightRig.add(violet);
 
-    const lime = new THREE.PointLight(0x9fd06a, 180, 70, 2);
+    const lime = new THREE.PointLight(0x9fd06a, 55, 70, 2);
     lime.position.set(-4, 12, -6);
     lightRig.add(lime);
 
-    const backGlow = new THREE.PointLight(0x1976D2, 220, 80, 2);
+    const backGlow = new THREE.PointLight(0x1976D2, 70, 80, 2);
     backGlow.position.set(0, 0, -16);
     scene.add(backGlow);
 }
@@ -682,9 +690,9 @@ function buildHalo() {
     c.width = c.height = 512;
     const ctx = c.getContext('2d');
     const g = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
-    g.addColorStop(0.00, 'rgba(150, 205, 255, 0.95)');
-    g.addColorStop(0.22, 'rgba(25, 118, 210, 0.52)');
-    g.addColorStop(0.52, 'rgba(124, 179, 66, 0.22)');
+    g.addColorStop(0.00, 'rgba(96, 156, 230, 0.55)');
+    g.addColorStop(0.28, 'rgba(25, 118, 210, 0.3)');
+    g.addColorStop(0.58, 'rgba(124, 179, 66, 0.14)');
     g.addColorStop(1.00, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 512, 512);
@@ -693,16 +701,16 @@ function buildHalo() {
     texture.colorSpace = THREE.SRGBColorSpace;
 
     halo = new THREE.Mesh(
-        new THREE.PlaneGeometry(42, 42),
+        new THREE.PlaneGeometry(30, 30),
         new THREE.MeshBasicMaterial({
             map: texture,
             transparent: true,
             depthWrite: false,
             blending: THREE.AdditiveBlending,
-            opacity: 0.8
+            opacity: 0.26
         })
     );
-    halo.position.z = -15;
+    halo.position.z = -19;
     scene.add(halo);
 }
 
@@ -715,13 +723,13 @@ function buildRings() {
     const ringMaterial = new THREE.MeshPhysicalMaterial({
         color: new THREE.Color('#dfe9f7'),
         metalness: 1,
-        roughness: 0.12,
+        roughness: 0.2,
         clearcoat: 1,
-        envMapIntensity: 2.4
+        envMapIntensity: 1.1
     });
 
     const outer = new THREE.Mesh(new THREE.TorusGeometry(RING_RADIUS, 0.075, 16, 220), ringMaterial);
-    outer.rotation.x = 0.42;
+    outer.rotation.x = 0.16;
     ringGroup.add(outer);
 
     const inner = new THREE.Mesh(
@@ -729,12 +737,12 @@ function buildRings() {
         new THREE.MeshPhysicalMaterial({
             color: new THREE.Color(BRAND.green),
             metalness: 1,
-            roughness: 0.18,
-            envMapIntensity: 2.0
+            roughness: 0.26,
+            envMapIntensity: 0.9
         })
     );
-    inner.rotation.x = -0.55;
-    inner.rotation.y = 0.3;
+    inner.rotation.x = -0.13;
+    inner.rotation.y = 0.17;
     ringGroup.add(inner);
 }
 
@@ -795,7 +803,7 @@ function buildComposer() {
 
     bloomPass = new UnrealBloomPass(
         new THREE.Vector2(window.innerWidth, window.innerHeight),
-        FINISHES[currentFinish].bloom, 0.62, 0.78
+        FINISHES[currentFinish].bloom, 0.5, 0.92
     );
     composer.addPass(bloomPass);
     composer.addPass(new OutputPass());
@@ -806,7 +814,7 @@ function buildControls() {
     controls.enableDamping = true;
     controls.dampingFactor = 0.07;
     controls.enablePan = false;
-    controls.target.set(0, -0.75, 0);
+    controls.target.set(0, -0.7, 0);
     controls.minDistance = 8;
     controls.maxDistance = 60;
     controls.rotateSpeed = 0.75;
@@ -832,7 +840,7 @@ function buildUI() {
     const shine = document.getElementById('shine');
     shine.addEventListener('input', () => {
         shineScale = Number(shine.value) / 100;
-        bloomPass.strength = FINISHES[currentFinish].bloom * shineScale / 0.62;
+        setBloom();
     });
 
     const spinBtn = document.getElementById('spinBtn');
@@ -844,6 +852,14 @@ function buildUI() {
     });
 
     document.getElementById('resetBtn').addEventListener('click', resetView);
+}
+
+// Single place that writes bloom strength, and the only one that has to know
+// whether the composer exists yet.
+function setBloom(extra) {
+    if (!bloomPass) return;
+    const base = (FINISHES[currentFinish] || FINISHES.enamel).bloom;
+    bloomPass.strength = (base * shineScale / 0.62) + (extra || 0);
 }
 
 function applyFinish(key) {
@@ -867,7 +883,7 @@ function applyFinish(key) {
         material.needsUpdate = true;
     });
 
-    bloomPass.strength = finish.bloom * shineScale / 0.62;
+    setBloom();
 
     document.querySelectorAll('#finishSeg button').forEach((b) =>
         b.setAttribute('aria-pressed', String(b.dataset.finish === key)));
@@ -981,13 +997,13 @@ function animate() {
     }
 
     if (halo) {
-        halo.material.opacity = 0.62 + Math.sin(t * 0.7) * 0.12 + flash * 0.5;
+        halo.material.opacity = 0.24 + Math.sin(t * 0.7) * 0.05 + flash * 0.3;
         halo.rotation.z = t * 0.04;
     }
 
     if (flash > 0.001) {
         flash *= 0.9;
-        bloomPass.strength = (FINISHES[currentFinish].bloom * shineScale / 0.62) + flash * 1.5;
+        setBloom(flash * 1.5);
     }
 
     controls.update();
