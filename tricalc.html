@@ -1267,7 +1267,8 @@ function applyParams(params) {
 }
 
 function sharePlan() {
-    var url = location.origin + location.pathname + '?' + planToParams().toString();
+    // location.origin is the string "null" under file://, so build from href.
+    var url = location.href.split('?')[0].split('#')[0] + '?' + planToParams().toString();
     copyText(url, 'Shareable link copied');
     try { history.replaceState(null, '', '?' + planToParams().toString()); } catch (e) { /* file:// */ }
 }

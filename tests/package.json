@@ -1,0 +1,14 @@
+{
+  "name": "fun-tests",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Regression tests for the single-file pages in this repo.",
+  "type": "module",
+  "scripts": {
+    "test": "node run.mjs",
+    "test:live": "node run.mjs --target=https://twrconsultingllc.github.io/Fun/tricalc.html"
+  },
+  "devDependencies": {
+    "jsdom": "^27.0.0"
+  }
+}
