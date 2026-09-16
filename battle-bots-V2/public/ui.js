@@ -229,6 +229,7 @@ export function renderStats() {
         const color = TEAMS[b.team].color;
         return `<tr${b.dead ? ' class="stat-dead"' : ''}>
             <td style="color:${color}">${b.id}</td>
+            <td>${escapeHtml(b.weapon.label)}</td>
             <td>${Math.max(0, Math.round(b.hp))}</td>
             <td>${Math.round(b.damageDealtTotal)}</td>
             <td>${Math.round(b.damageTakenTotal)}</td>
@@ -241,7 +242,7 @@ export function renderStats() {
         <div class="stat-timer">MATCH TIME ${formatClock(match.elapsed)}</div>
         <div class="table-scroll">
             <table class="stat-table">
-                <thead><tr><th>BOT</th><th>HP</th><th>OUT</th><th>IN</th><th>ACC</th><th>TOP SKILL</th></tr></thead>
+                <thead><tr><th>BOT</th><th>WPN</th><th>HP</th><th>OUT</th><th>IN</th><th>ACC</th><th>TOP SKILL</th></tr></thead>
                 <tbody>${rows}</tbody>
             </table>
         </div>`;

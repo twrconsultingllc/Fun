@@ -408,7 +408,7 @@
 <header class="masthead">
   <div class="masthead-inner">
     <a class="backlink" href="index.html">&larr; Back to the arena</a>
-    <p class="eyebrow">Operator's Manual · Rev. Phase 4</p>
+    <p class="eyebrow">Operator's Manual · Rev. Phase 4 · updated 2026-09-16</p>
     <h1>Battle Bots <span class="v2">V2</span></h1>
     <p class="standfirst">A browser auto-battler where you never touch the bots. You write the doctrine, pick the model, and a language model calls the tactics live while a 60&nbsp;fps engine does the shooting.</p>
     <div class="masthead-facts">
@@ -482,7 +482,7 @@
       <div class="defrow"><dt>Model</dt><dd>Any model in the live catalog that supports <code>generateContent</code>. Every team defaults to <code>gemini-3.5-flash-lite</code>. Point two teams at different models and the match becomes a head-to-head.</dd></div>
       <div class="defrow"><dt>Weapon</dt><dd>Rapid, Shotgun, Railgun or Homing — fixed for the match, chosen by you, not the model.</dd></div>
       <div class="defrow"><dt>Base HP</dt><dd>50–600, default 225.</dd></div>
-      <div class="defrow"><dt>Base Speed</dt><dd>30–250, default 125. Skills and the speed pickup multiply this.</dd></div>
+      <div class="defrow"><dt>Base Speed</dt><dd>25–250, default 25 — a deliberately slow starting point (20% of the old 125 default) so rounds run longer. Skills and the speed pickup multiply this.</dd></div>
     </dl>
 
     <h3>Arena &amp; cadence</h3>
@@ -492,7 +492,7 @@
     </dl>
 
     <h3>Readouts</h3>
-    <p><strong>Live AI telemetry</strong> keeps the last 14 lines: <span class="mono">SENT</span> per tick with each team's model, <span class="mono">RECV</span> per bot with its chosen skill and the model's own one-line reasoning, and <span class="mono">ERROR</span> for anything that failed. <strong>Match stats</strong> refresh about twice a second with HP, damage out, damage in, accuracy and each bot's most-used skill. <strong>Round history</strong> keeps the last five completed matches — winner, mode, winning model, winning strategy — in browser storage, so it survives a reload.</p>
+    <p><strong>Live AI telemetry</strong> keeps the last 14 lines: <span class="mono">SENT</span> per tick with each team's model, <span class="mono">RECV</span> per bot with its chosen skill and the model's own one-line reasoning, and <span class="mono">ERROR</span> for anything that failed. <strong>Match stats</strong> refresh about twice a second with each bot's equipped weapon, HP, damage out, damage in, accuracy and its most-used skill. <strong>Round history</strong> keeps the last five completed matches — winner, mode, winning model, winning strategy — in browser storage, so it survives a reload.</p>
   </section>
 
   <section id="brain">
@@ -564,7 +564,7 @@
           <tr>
             <td>Aggressive Charge<span class="skillname">CHARGE_BEAM</span></td>
             <td class="nowrap">4.0 s</td>
-            <td>Holds fire for 1.2 s while closing at 1.5× speed, then releases one white piercing beam: 55 damage, 950 px/s, passes through bots. Wants to be 40 px away, and will blind-fire afterwards.</td>
+            <td>Holds fire for 1.2 s while closing at 1.5× speed, then releases one heavy shot from the bot's <strong>own</strong> weapon — 6× its damage at 1.4× its speed, always piercing and colour-matched to the team. On Rapid that's 54 dmg at 602 px/s; on Railgun, 270 dmg at 1260 px/s. Wants to be 40 px away, and will blind-fire afterwards.</td>
             <td>100</td>
           </tr>
           <tr>
@@ -592,14 +592,14 @@
       <table>
         <thead><tr><th>Weapon</th><th>Damage</th><th>Rate</th><th>Shot speed</th><th>Character</th></tr></thead>
         <tbody>
-          <tr><td>Rapid</td><td>9</td><td>4.0/s</td><td>430</td><td>The default. Steady chip damage, forgiving spread.</td></tr>
-          <tr><td>Shotgun</td><td>7 × 5</td><td>1.1/s</td><td>380</td><td>Five pellets at wide spread — brutal point-blank, near useless across the arena.</td></tr>
-          <tr><td>Railgun</td><td>45</td><td>0.7/s</td><td>900</td><td>Pierces bots, near-perfect accuracy. One shot every 1.4 s, so a miss hurts.</td></tr>
-          <tr><td>Homing</td><td>12</td><td>1.6/s</td><td>260</td><td>Slow rounds that steer toward the nearest enemy at 2.6 rad/s. Punishes anyone standing still.</td></tr>
+          <tr><td>Rapid</td><td>9</td><td>0.8/s</td><td>430</td><td>The default. Steady chip damage, forgiving spread.</td></tr>
+          <tr><td>Shotgun</td><td>7 × 5</td><td>0.22/s</td><td>380</td><td>Five pellets at wide spread — brutal point-blank, near useless across the arena.</td></tr>
+          <tr><td>Railgun</td><td>45</td><td>0.14/s</td><td>900</td><td>Pierces bots, near-perfect accuracy. One shot every ~7.1 s, so a miss really hurts.</td></tr>
+          <tr><td>Homing</td><td>12</td><td>0.32/s</td><td>260</td><td>Slow rounds that steer toward the nearest enemy at 2.6 rad/s. Punishes anyone standing still.</td></tr>
         </tbody>
       </table>
     </div>
-    <p>Skill modifiers stack on top of the weapon: Snipe's doubled damage turns a railgun round into 90, and its halved rate stretches the reload to 2.9 s.</p>
+    <p>All four fire rates were cut to 20% of their original values (rounds used to run short) — reload times are roughly 5× longer than they look at a glance. Skill modifiers still stack on top: Snipe's doubled damage turns a railgun round into 90, and its halved rate stretches the reload to ~14.3 s.</p>
 
     <h3>Pickups — contested, first-come</h3>
     <p>One spawns 6 s into the match and roughly every 11 s after, up to three on the floor at once, always clear of cover and at least 70 px from any bot. Each lives 22 s and blinks out over its last 4. Anyone who touches one takes it, and <strong>everybody is told who got it</strong> on the next tick.</p>
@@ -635,6 +635,7 @@
     <p class="lede">Almost everything the AI is doing is drawn on the arena itself, so you can follow a match without reading the log.</p>
     <dl class="deflist">
       <div class="defrow"><dt>Text above a bot</dt><dd>The active skill in team colour, and above it, in grey, the model's own reasoning for picking it — clipped to about 32 characters.</dd></div>
+      <div class="defrow"><dt>Faint text below a bot</dt><dd>Its actual equipped weapon, always shown. Skills can make a shot look very different (see Aggressive Charge) without ever changing this — if it still reads the weapon you picked, the weapon didn't change; a skill just did.</dd></div>
       <div class="defrow"><dt>Pulsing dots</dt><dd>That team has a model call in flight right now.</dd></div>
       <div class="defrow"><dt>Expanding ring</dt><dd>New orders just landed and the skill actually changed.</dd></div>
       <div class="defrow"><dt>Violet arc</dt><dd>An active shield. The arc shortens as the pool is eaten.</dd></div>

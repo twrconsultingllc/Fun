@@ -27,8 +27,8 @@ export const SKILL_CATALOG = {
     },
     CHARGE_BEAM: {
         action: 'Aggressive Charge',
-        description: 'Wind up briefly, then fire one piercing beam, while closing fast.',
-        effect: 'charge', chargeTime: 1.2, beamDamage: 55,
+        description: 'Wind up briefly, then fire one heavy piercing shot from your own weapon, while closing fast.',
+        effect: 'charge', chargeTime: 1.2, chargeDamageMultiplier: 6, chargeSpeedMultiplier: 1.4,
         aggression: 100, speedModifier: 1.5, duration: 4.0,
         damageMultiplier: 1.0, fireRateModifier: 1.0, accuracyMultiplier: 1.0
     },

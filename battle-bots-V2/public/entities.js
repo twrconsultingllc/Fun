@@ -262,11 +262,15 @@ export class Bot {
     }
 
     fireBeam() {
+        // The charge is a boosted shot from the bot's OWN weapon, not a generic
+        // attack — otherwise it looks like the bot swapped weapons mid-fight.
+        const w = this.weapon;
         world.bullets.push(new Bullet(
             this.x + Math.cos(this.angle) * 20, this.y + Math.sin(this.angle) * 20, this.angle,
-            { color: '#ffffff', team: this.team, ownerId: this.id,
-              damage: this.skill.beamDamage * this.damageBuff, speed: 950,
-              pierce: true, homing: 0, length: 30, width: 5 }
+            { color: this.color, team: this.team, ownerId: this.id,
+              damage: w.damage * this.skill.chargeDamageMultiplier * this.damageBuff,
+              speed: w.speed * this.skill.chargeSpeedMultiplier,
+              pierce: true, homing: w.homing || 0, length: 30, width: 5 }
         ));
         playShot(this.team);
         this.muzzleFlash = 0.14;
@@ -370,6 +374,13 @@ export class Bot {
     // Skill and the model's own reasoning, right above the bot.
     drawHud(ctx) {
         ctx.textAlign = 'center';
+
+        // Always-on readout of the bot's actual equipped weapon, drawn below the
+        // chassis so it never gets confused with the active-skill label above it —
+        // a skill can make a shot look very different without changing this.
+        ctx.font = '9px monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.fillText(this.weapon.label.toUpperCase(), this.x, this.y + 44);
 
         if (thinking[this.team]) {
             ctx.fillStyle = 'rgba(255,255,255,0.8)';

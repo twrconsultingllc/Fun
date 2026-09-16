@@ -20,13 +20,25 @@ This rule exists because a user-guide page was once committed into
 link — the commit had never been pushed. GitHub Pages usually takes under a
 minute; poll the URL rather than assuming.
 
-One mapping trap: `index.html` links "AI Battle Bots" to
-`fun-xi-rouge.vercel.app`, and that URL serves the older `battle-bots` V1
-directory. The live V2 app is a separate deployment that nothing in this repo
-references. Fetching the landing page's link and finding V1 does **not** mean V2
-is unpublished. Ask which URL is current rather than inferring it from what the
-repo links to — a Vercel project's root directory is a dashboard setting, not a
-file in the repo.
+One mapping trap: `index.html` used to link "AI Battle Bots" to
+`fun-xi-rouge.vercel.app`, which actually served the older `battle-bots` V1
+directory — the live V2 app was a separate Vercel deployment that nothing in
+this repo referenced. As of 2026-09-16 the link points at `funv2.vercel.app`
+(confirmed serving the V2 build). The general lesson still holds: a Vercel
+project's root directory is a dashboard setting, not a file in this repo, so
+fetching the landing page's link and finding the wrong version doesn't mean
+the right one is unpublished — ask which URL is current rather than inferring
+it from what the repo links to, and re-verify if this link is ever changed
+again.
+
+## Keep each app's user guide in sync
+
+Some apps ship their own user-facing guide (e.g. `battle-bots-V2/public/guide.html`).
+When you change that app's behavior — a default value, a formula, a skill or
+weapon's effect, a new HUD element — update its guide in the same piece of
+work, not as a follow-up. A guide that states the old numbers or describes
+removed behavior is worse than no guide, because it reads as authoritative.
+Treat this as part of the task, not an extra to ask permission for.
 
 ## Tests belong in the repo
 
