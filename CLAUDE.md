@@ -98,6 +98,34 @@ that it's worth knowing before reaching for `chromium-cli` or a real browser:
   first, since Node's loader can't resolve one module's relative import of
   another against an `https:` URL.
 
+### Recycling scenery in race-day.html
+
+`race-day.html`'s world scrolls by jumping fixed props forward once they fall
+behind the athlete (`recycle()`/`recycleGroup()`). For a *tiled* group (palms,
+dashes, skyline) almost any margin works, because neighbouring tiles cover the
+seam. A *single* recycled object with no neighbour — like the road deck — only
+gets a gapless jump if the margin equals exactly half its span; anything else
+opens a real gap at every recycle, and increasing the margin makes a
+too-small gap *worse*, not better, since it's the wrong direction. This is
+easy to get backwards by intuition (as happened once already) — simulate the
+actual `recycle()` math in Node against a few margins before changing one,
+rather than reasoning about it in the abstract.
+
+## No browser or WebGL rendering in this environment
+
+There is no puppeteer, chromium-cli, or connected claude-in-chrome browser in
+this sandbox — nothing that can load a page and take a real screenshot. This
+is the same root cause already noted under battle-bots-V2 (`getContext('2d')`
+returns null in jsdom), but it's an environment-wide fact, not specific to
+that app: it applies to every three.js/WebGL page in this repo (race-day.html
+included). Visual changes to a 3D scene can't be screenshotted here — verify
+them by running the no-WebGL test suite (these pages are built to degrade to
+a DOM-only quiz/UI with no renderer, which is exactly what jsdom exercises)
+and, for anything geometry/timing-related, by simulating the actual math in
+Node rather than eyeballing it. Say so explicitly rather than claiming a
+visual check that didn't happen, and ask the user to eyeball the real result
+once it's deployed.
+
 ## Do not judge third-party model IDs from memory
 
 An unfamiliar model ID is far more likely to be newer than the training cutoff
