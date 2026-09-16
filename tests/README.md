@@ -143,6 +143,33 @@ exports `name` and a default `run(harness, page)` function, then add one line to
 `SUITES` in `run.mjs`. The harness API is `t.section()`, `t.eq()`, `t.near()`,
 `t.ok()` and `t.note()`.
 
+### Opening a page in jsdom
+
+Always go through `openDom(html, url, opts)` from `lib/page.mjs` rather than
+constructing a `JSDOM` yourself. It waits for `load`, collects real page errors
+while filtering the CDN noise jsdom always produces, and — the part that matters
+— registers the window so it gets closed.
+
+```js
+const { window, document, errors, close } = await openDom(page.html, page.url);
+// … assertions …
+close();
+```
+
+`opts` takes `collectErrors` (default true), `ignore` (an extra `RegExp` of
+error messages to treat as noise) and `beforeParse(window)` (jsdom's own hook,
+which is how `ai-swarm.dom.test.mjs` injects its three.js stub before the page
+script runs).
+
+**Close the window.** `openDom` sets `pretendToBeVisual: true`, which gives
+jsdom a real ~16ms `requestAnimationFrame` timer. `race-day.html` and
+`ai-swarm.html` both run a self-scheduling rAF loop, so that timer never stops
+on its own: Node's event loop never drains and the process hangs forever, with
+any buffered output stuck in the pipe. `run.mjs` calls `closeAllDoms()` after
+every suite, so a suite that forgets cannot hang the runner — but an ad-hoc
+script that imports this module and skips `close()` will hang outright. One did,
+for over an hour, which is why this is written down.
+
 ## Note on expected values
 
 Every hard-coded expectation was derived independently of the page's own code

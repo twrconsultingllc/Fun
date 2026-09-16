@@ -15,7 +15,7 @@
  */
 
 import { createHarness } from './lib/harness.mjs';
-import { loadPage } from './lib/page.mjs';
+import { loadPage, closeAllDoms } from './lib/page.mjs';
 
 const SUITES = [
     { id: 'core', page: 'tricalc.html', file: './tricalc.core.test.mjs' },
@@ -102,6 +102,13 @@ for (const suite of selected) {
         crashed++;
         console.log(`  ${RED}CRASH${OFF} ${suite.id}: ${error.message}`);
         if (process.env.VERBOSE) console.log(error.stack);
+    } finally {
+        /* Close any window the suite left open. A page with a requestAnimationFrame
+           loop holds jsdom's frame timer, and therefore Node's event loop, open
+           for good; without this the run only ends because of the process.exit
+           below, and every later suite competes with a dead page's timers. */
+        const leaked = closeAllDoms();
+        if (leaked && process.env.VERBOSE) console.log(`  ${DIM}closed ${leaked} window(s)${OFF}`);
     }
 }
 

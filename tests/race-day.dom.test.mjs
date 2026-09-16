@@ -12,24 +12,14 @@
  * questions instead of sleeping through it; nothing on the page reads it.
  */
 
-import { requireJsdom } from './lib/page.mjs';
+import { openDom } from './lib/page.mjs';
 
 export const name = 'Race Day — page behaviour';
 
-async function open(html, url) {
-    const { JSDOM, VirtualConsole } = await requireJsdom();
-    const errors = [];
-    const virtualConsole = new VirtualConsole();
-    virtualConsole.on('jsdomError', (e) => {
-        if (/Could not load|Not implemented|Failed to fetch/i.test(e.message)) return;
-        errors.push(e.message);
-    });
-    const dom = new JSDOM(html, { runScripts: 'dangerously', url, virtualConsole, pretendToBeVisual: true });
-    if (dom.window.document.readyState !== 'complete') {
-        await new Promise((r) => dom.window.addEventListener('load', r));
-    }
-    return { dom, window: dom.window, document: dom.window.document, errors };
-}
+/* Opened through the shared helper so the window is tracked and closed. This
+   page runs a self-scheduling requestAnimationFrame loop, which keeps jsdom's
+   frame timer — and therefore the whole Node process — alive until it is. */
+const open = (html, url) => openDom(html, url);
 
 export default async function run(t, page) {
     let env;
