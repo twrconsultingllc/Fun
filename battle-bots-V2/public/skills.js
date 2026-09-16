@@ -51,10 +51,10 @@ export const SKILL_CATALOG = {
 export const DEFAULT_SKILL = 'SNIPE_STANCE';
 
 export const WEAPONS = {
-    rapid:   { label: 'Rapid',   fireRate: 4.0, damage: 9,  speed: 430, spread: 0.09, pellets: 1 },
-    shotgun: { label: 'Shotgun', fireRate: 1.1, damage: 7,  speed: 380, spread: 0.30, pellets: 5 },
-    railgun: { label: 'Railgun', fireRate: 0.7, damage: 45, speed: 900, spread: 0.02, pellets: 1, pierce: true },
-    homing:  { label: 'Homing',  fireRate: 1.6, damage: 12, speed: 260, spread: 0.05, pellets: 1, homing: 2.6 }
+    rapid:   { label: 'Rapid',   fireRate: 0.8,  damage: 9,  speed: 430, spread: 0.09, pellets: 1 },
+    shotgun: { label: 'Shotgun', fireRate: 0.22, damage: 7,  speed: 380, spread: 0.30, pellets: 5 },
+    railgun: { label: 'Railgun', fireRate: 0.14, damage: 45, speed: 900, spread: 0.02, pellets: 1, pierce: true },
+    homing:  { label: 'Homing',  fireRate: 0.32, damage: 12, speed: 260, spread: 0.05, pellets: 1, homing: 2.6 }
 };
 
 export const DEFAULT_WEAPON = 'rapid';

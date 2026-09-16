@@ -29,7 +29,7 @@ const DEFAULT_PROMPTS = {
 // Survives panel re-renders when the mode changes.
 const teamConfig = {};
 for (const id of Object.keys(TEAMS)) {
-    teamConfig[id] = { prompt: DEFAULT_PROMPTS[id], hp: 225, speed: 125, model: '', weapon: DEFAULT_WEAPON };
+    teamConfig[id] = { prompt: DEFAULT_PROMPTS[id], hp: 225, speed: 25, model: '', weapon: DEFAULT_WEAPON };
 }
 
 // Preferred default for every team. Resolved against the live catalog at
@@ -131,7 +131,7 @@ function panelHtml(team) {
 
         <div class="slider-group">
             <div class="slider-label"><span>Base Speed</span><span id="val-${team}-spd">${c.speed}</span></div>
-            <input type="range" id="cfg-${team}-spd" class="slider-${team}" min="30" max="250" value="${c.speed}" step="5">
+            <input type="range" id="cfg-${team}-spd" class="slider-${team}" min="25" max="250" value="${c.speed}" step="5">
         </div>
     </div>`;
 }
