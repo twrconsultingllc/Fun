@@ -35,7 +35,7 @@ not be loaded — so this drops straight into CI or a pre-push hook.
 
 ## What is covered
 
-294 assertions across four suites.
+332 assertions across four suites.
 
 ### `tricalc.html`
 
@@ -49,7 +49,16 @@ not be loaded — so this drops straight into CI or a pre-push hook.
 | Suite | File | Covers |
 |---|---|---|
 | `swarm-core` | `ai-swarm.core.test.mjs` | The layout contract (strongest at the core, weakest at the rim), direction vectors, token/price/date formatting, and the integrity of the ~105-model catalogue: unique ids, resolvable and acyclic lineage, no model descended from a later release, no half-priced entries. Also pins the Anthropic figures against the published model catalogue. |
-| `swarm-dom` | `ai-swarm.dom.test.mjs` | The page in jsdom against a small three.js stub, so the whole interaction layer really runs: legend and status filters, search, the timeline scrubber, the detail panel, lineage links, deep links. Plus the no-WebGL path. |
+| `swarm-dom` | `ai-swarm.dom.test.mjs` | The page in jsdom against a small three.js stub, so the whole interaction layer really runs: legend and status filters, search, the timeline scrubber, the detail panel, lineage links, deep links. Then the navigation layer — stepped zoom and its limits, the range slider, camera presets, fly-to-lab, the top-down map, WASD flight and its bounds, and the nearby-models list. Plus the no-WebGL path. |
+
+The page exposes `window.__swarm` (camera state, filter state, nodes, and the
+camera helpers) purely so the suite can drive navigation the way a person does
+and then check where the camera actually ended up. Nothing on the page reads it.
+
+The nearby-list throttle bug — comparing a seconds-based clock against a
+millisecond threshold, so the list refreshed about once every four minutes —
+was caught by *"it appears once you are inside the cloud"*. That assertion is
+worth keeping for exactly that reason.
 
 #### Why the swarm suite stubs three.js
 

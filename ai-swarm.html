@@ -289,12 +289,120 @@ html, body {
 }
 #backlink:hover { color: var(--ink); border-color: var(--edge-hot); }
 
+/* ---------- navigator: minimap, zoom, presets ---------- */
+#navigator {
+    left: 20px; bottom: 124px; width: 262px; padding-bottom: 11px;
+}
+#nav-head {
+    display: flex; align-items: center; cursor: pointer; user-select: none;
+}
+#nav-head h2 { flex: 1; }
+#nav-fold {
+    font-size: 0.7rem; color: var(--ink-faint); padding: 0 13px 8px 0;
+    transition: transform 0.2s;
+}
+#navigator.folded #nav-fold { transform: rotate(-90deg); }
+#navigator.folded #nav-body { display: none; }
+
+#nav-body { padding: 0 13px; }
+
+#minimap {
+    display: block; width: 100%; height: 176px; border-radius: 9px;
+    background: rgba(0, 0, 0, 0.35); border: 1px solid var(--edge);
+    cursor: crosshair; touch-action: none;
+}
+#map-hint {
+    font-size: 0.56rem; color: var(--ink-faint); letter-spacing: 0.06em;
+    text-align: center; margin-top: 5px;
+}
+
+.nav-controls { display: flex; align-items: center; gap: 7px; margin-top: 9px; }
+.nav-btn {
+    font: inherit; font-size: 0.78rem; font-weight: 700; line-height: 1;
+    width: 26px; height: 26px; flex: none; border-radius: 7px; cursor: pointer;
+    background: rgba(255,255,255,0.06); color: var(--ink-dim);
+    border: 1px solid var(--edge); display: grid; place-items: center;
+    transition: all 0.12s;
+}
+.nav-btn:hover { background: rgba(255,255,255,0.13); color: var(--ink); border-color: var(--edge-hot); }
+.nav-btn.wide { width: auto; padding: 0 10px; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; }
+
+#range {
+    flex: 1; -webkit-appearance: none; appearance: none; height: 3px; border-radius: 2px;
+    background: rgba(255,255,255,0.14); outline: none; cursor: pointer; min-width: 0;
+}
+#range::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%;
+    background: var(--accent); cursor: grab; box-shadow: 0 0 8px rgba(0,212,255,0.6);
+}
+#range::-moz-range-thumb { width: 12px; height: 12px; border: none; border-radius: 50%; background: var(--accent); }
+
+.nav-presets { display: flex; gap: 5px; margin-top: 9px; }
+.nav-presets .chip { flex: 1; text-align: center; padding: 4px 0; }
+
+#range-label {
+    font-size: 0.56rem; color: var(--ink-faint); letter-spacing: 0.08em;
+    text-transform: uppercase; margin-top: 7px; display: flex; justify-content: space-between;
+}
+
+/* ---------- nearby list, in the left rail ---------- */
+#nearby { margin-top: 10px; flex: none; display: none; }
+#nearby.on { display: block; }
+#near-rows { padding-bottom: 7px; max-height: 148px; overflow-y: auto; }
+#near-rows::-webkit-scrollbar { width: 5px; }
+#near-rows::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.13); border-radius: 3px; }
+.near-row {
+    display: flex; align-items: center; gap: 8px; padding: 5px 10px; margin: 0 3px;
+    cursor: pointer; border-radius: 7px; border: 1px solid transparent;
+}
+.near-row:hover { background: rgba(255,255,255,0.06); border-color: var(--edge); }
+.near-row.on { background: rgba(0,212,255,0.11); border-color: rgba(0,212,255,0.4); }
+.near-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.near-name { font-size: 0.73rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.near-d { margin-left: auto; font-size: 0.6rem; color: var(--ink-faint); font-variant-numeric: tabular-nums; flex: none; }
+
+/* ---------- fly-to buttons on the legend ---------- */
+.leg-go {
+    flex: none; width: 17px; height: 17px; border-radius: 5px; margin-left: 2px;
+    display: grid; place-items: center; font-size: 0.62rem; line-height: 1;
+    color: var(--ink-faint); border: 1px solid transparent;
+}
+.leg-go:hover { color: var(--accent); border-color: rgba(0,212,255,0.4); background: rgba(0,212,255,0.1); }
+
+/* ---------- help popover ---------- */
+#helpbtn {
+    position: fixed; z-index: 9; top: 18px; right: 244px;
+    width: 27px; height: 27px; border-radius: 50%; cursor: pointer;
+    background: var(--panel); border: 1px solid var(--edge); color: var(--ink-dim);
+    font: inherit; font-size: 0.78rem; font-weight: 700; display: grid; place-items: center;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+}
+#helpbtn:hover { color: var(--ink); border-color: var(--edge-hot); }
+
+#helppop {
+    position: fixed; z-index: 9; top: 54px; right: 244px; width: 320px; max-width: 88vw;
+    padding: 15px 17px 17px; display: none; font-size: 0.72rem; line-height: 1.75;
+    color: var(--ink-dim);
+}
+#helppop.on { display: block; }
+#helppop h3 {
+    font-size: 0.58rem; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 14px 0 6px;
+}
+#helppop h3:first-child { margin-top: 0; }
+#helppop kbd {
+    font-family: inherit; font-size: 0.64rem; padding: 1px 5px; border-radius: 4px;
+    border: 1px solid var(--edge); background: rgba(255,255,255,0.06); color: var(--ink); white-space: nowrap;
+}
+#helppop .prov { font-size: 0.64rem; color: var(--ink-faint); line-height: 1.65; }
+
 @media (max-width: 1180px) {
     #rail { display: none; }
-    #help { display: none; }
+    #navigator { display: none; }
 }
 @media (max-width: 860px) {
-    #right-rail, #provenance { display: none; }
+    #right-rail { display: none; }
+    #helpbtn, #helppop { right: 20px; }
     #title { max-width: 60vw; }
     #timeline { height: 88px; padding: 9px 12px 11px; }
     #detail { width: 100%; }
@@ -312,12 +420,38 @@ html, body {
 <div id="title" class="hud">
     <h1>AI Model Swarm</h1>
     <p><span class="count" id="visible-count">—</span> models from 2018 to today. The strongest sit at
-       the core; capability falls away toward the rim. Drag to orbit, scroll to fly in, click any node.</p>
+       the core; capability falls away toward the rim. Use the map and the navigator bottom-left to get
+       around — or press <b>?</b> for every control.</p>
 </div>
 
 <div id="rail" class="hud">
     <input id="search" type="text" placeholder="Search models, labs, API ids…" autocomplete="off" spellcheck="false">
+    <div id="nearby" class="card">
+        <h2>Nearest to you</h2>
+        <div id="near-rows"></div>
+    </div>
     <div id="ranked" class="card"></div>
+</div>
+
+<div id="navigator" class="hud card">
+    <div id="nav-head"><h2>Navigator</h2><span id="nav-fold">▾</span></div>
+    <div id="nav-body">
+        <canvas id="minimap"></canvas>
+        <div id="map-hint">click the map to fly · click a dot to open it</div>
+        <div class="nav-controls">
+            <button class="nav-btn" id="zoom-out" title="Zoom out">−</button>
+            <input id="range" type="range" min="0" max="100" value="60" step="1" aria-label="Camera range">
+            <button class="nav-btn" id="zoom-in" title="Zoom in">+</button>
+            <button class="nav-btn wide" id="fit" title="Frame the whole swarm">Fit</button>
+        </div>
+        <div id="range-label"><span>Core</span><span id="range-read">—</span><span>Rim</span></div>
+        <div class="nav-presets">
+            <span class="chip" data-preset="iso">Iso</span>
+            <span class="chip" data-preset="top">Top</span>
+            <span class="chip" data-preset="side">Side</span>
+            <span class="chip" data-preset="frame">Frame</span>
+        </div>
+    </div>
 </div>
 
 <div id="right-rail" class="hud">
@@ -346,14 +480,27 @@ html, body {
     <div id="ticks"></div>
 </div>
 
-<div id="help" class="hud">
-    <div><kbd>drag</kbd> orbit &nbsp; <kbd>scroll</kbd> zoom &nbsp; <kbd>right-drag</kbd> pan</div>
-    <div><kbd>←</kbd> <kbd>→</kbd> step through the ranking &nbsp; <kbd>esc</kbd> close &nbsp; <kbd>R</kbd> reset view</div>
-</div>
-
-<div id="provenance" class="hud">
-    Anthropic figures from the bundled Claude model catalog; other labs from public
-    pricing pages as of Sept 2026. Dates marked <b>≈</b> are approximate.
+<button id="helpbtn" title="Controls and data notes">?</button>
+<div id="helppop" class="card">
+    <h3>Moving around</h3>
+    <div>
+        <kbd>drag</kbd> orbit · <kbd>scroll</kbd> zoom · <kbd>right-drag</kbd> pan<br>
+        <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> fly · <kbd>Q</kbd><kbd>E</kbd> up and down · <kbd>shift</kbd> faster<br>
+        <kbd>double-click</kbd> a node to dive in, empty space to pull back
+    </div>
+    <h3>Finding things</h3>
+    <div>
+        <kbd>←</kbd><kbd>→</kbd> step the ranking · <kbd>/</kbd> search · <kbd>F</kbd> frame the selection<br>
+        <kbd>R</kbd> reset the view · <kbd>esc</kbd> close the panel<br>
+        Alt-click a lab in the legend to isolate it; ⌖ flies to its arm.
+    </div>
+    <h3>Where the numbers come from</h3>
+    <div class="prov">
+        Anthropic figures come from the published Claude model catalogue. Other labs are
+        from public pricing pages as of September 2026. Dates marked <b>≈</b> are accurate
+        to the month at best. The 0–100 standing score that sets each model's distance
+        from the core is an editorial judgement, not a benchmark.
+    </div>
 </div>
 
 <div id="tip"></div>
@@ -1172,7 +1319,7 @@ var VIEW_OPTIONS = [
     { id: 'lineage', label: 'Lineage', on: true },
     { id: 'labels', label: 'All labels', on: false },
     { id: 'dust', label: 'Dust', on: true },
-    { id: 'spin', label: 'Auto-spin', on: true }
+    { id: 'spin', label: 'Auto-spin', on: false }
 ];
 
 var state = {
@@ -1359,6 +1506,7 @@ function applyCamera() {
         view.target.z + view.dist * sp * Math.cos(view.theta)
     );
     camera.lookAt(view.target);
+    camera.updateMatrix();
 }
 
 function resetView() {
@@ -1644,7 +1792,12 @@ var legendRows = {};
         var row = document.createElement('div');
         row.className = 'leg-row';
         row.innerHTML = '<span class="leg-swatch" style="background:' + PROVIDERS[key].color + '"></span>' +
-                        '<span>' + PROVIDERS[key].label + '</span><span class="leg-n"></span>';
+                        '<span>' + PROVIDERS[key].label + '</span><span class="leg-n"></span>' +
+                        '<span class="leg-go" title="Fly to this lab\u2019s arm">\u2316</span>';
+        row.querySelector('.leg-go').addEventListener('click', function (e) {
+            e.stopPropagation();
+            flyToArm(key);
+        });
         row.addEventListener('click', function (e) {
             if (e.altKey || e.metaKey) {
                 /* alt-click isolates one lab */
@@ -1878,6 +2031,251 @@ function updateLabels() {
 }
 
 /* ---------------------------------------------------------------------------
+   NAVIGATION
+   A cluster this size is easy to get lost in, so orbiting is only one of the
+   ways around it: there is a top-down map, stepped zoom, camera presets, a
+   list of whatever is nearest the camera, and WASD flight for when you are
+   actually inside the cloud.
+--------------------------------------------------------------------------- */
+
+var RANGE_MAX = 520;   /* the far end of the range slider: the whole swarm in frame */
+
+function clampDist(d) { return Math.max(DIST_MIN, Math.min(DIST_MAX, d)); }
+function distToRange(d) { return Math.round(Math.sqrt(Math.max(0, d - DIST_MIN) / (RANGE_MAX - DIST_MIN)) * 100); }
+function rangeToDist(v) { var t = Math.max(0, Math.min(100, v)) / 100; return DIST_MIN + t * t * (RANGE_MAX - DIST_MIN); }
+
+function zoomBy(factor) { goal.dist = clampDist(goal.dist * factor); }
+
+/* Point the camera down a lab's arm, from outside it, looking back at the core. */
+function flyToArm(key) {
+    var arm = LAYOUT.arms[key];
+    if (!arm) return;
+    goal.target.set(arm.x * 56, arm.y * 56 * 0.72, arm.z * 56);
+    goal.theta = Math.atan2(arm.x, arm.z);
+    goal.phi = Math.max(PHI_MIN, Math.min(PHI_MAX, Math.acos(Math.max(-1, Math.min(1, arm.y)))));
+    goal.dist = 135;
+}
+
+function applyPreset(name) {
+    if (name === 'iso') { goal.theta = VIEW_HOME.theta; goal.phi = VIEW_HOME.phi; }
+    else if (name === 'top') { goal.phi = PHI_MIN + 0.04; }
+    else if (name === 'side') { goal.phi = Math.PI / 2; }
+    else if (name === 'frame') { if (state.selected) flyTo(state.selected); else resetView(); }
+}
+
+$('zoom-in').addEventListener('click', function () { zoomBy(0.68); });
+$('zoom-out').addEventListener('click', function () { zoomBy(1.45); });
+$('fit').addEventListener('click', resetView);
+
+var rangeEl = $('range');
+var rangeHeld = false;
+rangeEl.addEventListener('input', function () { goal.dist = clampDist(rangeToDist(parseInt(rangeEl.value, 10))); });
+rangeEl.addEventListener('pointerdown', function () { rangeHeld = true; });
+window.addEventListener('pointerup', function () { rangeHeld = false; });
+
+Array.prototype.forEach.call(document.querySelectorAll('[data-preset]'), function (chip) {
+    chip.addEventListener('click', function () { applyPreset(chip.getAttribute('data-preset')); });
+});
+
+$('nav-head').addEventListener('click', function () {
+    $('navigator').classList.toggle('folded');
+    layoutRail();
+});
+
+$('helpbtn').addEventListener('click', function (e) {
+    e.stopPropagation();
+    $('helppop').classList.toggle('on');
+});
+document.addEventListener('click', function (e) {
+    if (!$('helppop').contains(e.target) && e.target !== $('helpbtn')) $('helppop').classList.remove('on');
+});
+
+/* The rail has to stop above the navigator, whose height changes when it folds. */
+function layoutRail() {
+    var nav = $('navigator');
+    var h = nav && !nav.classList.contains('folded') ? nav.offsetHeight : (nav ? nav.offsetHeight : 0);
+    $('rail').style.bottom = (124 + h + 12) + 'px';
+}
+
+/* ---------- top-down map ---------- */
+var mapEl = $('minimap');
+var mctx = mapEl.getContext('2d');
+var mapW = 0, mapH = 0, mapScale = 1;
+
+function sizeMinimap() {
+    var rect = mapEl.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    mapW = rect.width; mapH = rect.height;
+    mapEl.width = Math.round(mapW * dpr);
+    mapEl.height = Math.round(mapH * dpr);
+    if (mctx.setTransform) mctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    mapScale = (Math.min(mapW, mapH) / 2 - 7) / R_RIM;
+}
+
+function drawMinimap() {
+    if (!mapW || !mctx.clearRect) return;
+    var cx = mapW / 2, cy = mapH / 2;
+    mctx.clearRect(0, 0, mapW, mapH);
+
+    /* capability shells */
+    mctx.lineWidth = 1;
+    [0.25, 0.5, 0.75, 1].forEach(function (f) {
+        mctx.beginPath();
+        mctx.strokeStyle = f === 1 ? 'rgba(255,255,255,0.13)' : 'rgba(255,255,255,0.06)';
+        mctx.arc(cx, cy, R_RIM * f * mapScale, 0, Math.PI * 2);
+        mctx.stroke();
+    });
+
+    /* every visible model, seen from above */
+    for (var i = 0; i < NODES.length; i++) {
+        var n = NODES[i];
+        if (!n.shown) continue;
+        var x = cx + n.base.x * mapScale;
+        var y = cy + n.base.z * mapScale;
+        mctx.globalAlpha = 0.3 + 0.7 * (n.model.power / 100);
+        mctx.fillStyle = PROVIDERS[n.model.p].color;
+        mctx.beginPath();
+        mctx.arc(x, y, 1 + n.size * 0.5, 0, Math.PI * 2);
+        mctx.fill();
+    }
+    mctx.globalAlpha = 1;
+
+    if (state.selected && state.selected.shown) {
+        var sx = cx + state.selected.base.x * mapScale;
+        var sy = cy + state.selected.base.z * mapScale;
+        mctx.strokeStyle = '#ffffff';
+        mctx.lineWidth = 1.4;
+        mctx.beginPath();
+        mctx.arc(sx, sy, 5.5, 0, Math.PI * 2);
+        mctx.stroke();
+    }
+
+    /* where you are, and what you are looking at */
+    var tx = cx + view.target.x * mapScale, ty = cy + view.target.z * mapScale;
+    var px = cx + camera.position.x * mapScale, py = cy + camera.position.z * mapScale;
+
+    mctx.strokeStyle = 'rgba(0,212,255,0.45)';
+    mctx.lineWidth = 1;
+    mctx.beginPath();
+    mctx.moveTo(px, py);
+    mctx.lineTo(tx, ty);
+    mctx.stroke();
+
+    mctx.fillStyle = 'rgba(0,212,255,0.28)';
+    mctx.beginPath();
+    mctx.arc(tx, ty, 3, 0, Math.PI * 2);
+    mctx.fill();
+
+    mctx.fillStyle = '#00d4ff';
+    mctx.beginPath();
+    mctx.arc(px, py, 3.2, 0, Math.PI * 2);
+    mctx.fill();
+}
+
+mapEl.addEventListener('pointerdown', function (e) {
+    var rect = mapEl.getBoundingClientRect();
+    if (!rect.width) return;
+    var wx = (e.clientX - rect.left - mapW / 2) / mapScale;
+    var wz = (e.clientY - rect.top - mapH / 2) / mapScale;
+
+    var best = null, bestD = Infinity;
+    for (var i = 0; i < NODES.length; i++) {
+        var n = NODES[i];
+        if (!n.shown) continue;
+        var d = Math.sqrt(Math.pow(n.base.x - wx, 2) + Math.pow(n.base.z - wz, 2));
+        if (d < bestD) { bestD = d; best = n; }
+    }
+
+    /* a dot under the cursor opens that model; bare map flies the camera there */
+    if (best && bestD * mapScale < 9) select(best.model.id, true);
+    else goal.target.set(wx, view.target.y, wz);
+});
+
+/* ---------- what is nearest the camera ---------- */
+var nearbyEl = $('nearby');
+var nearRowsEl = $('near-rows');
+var nearbyAt = 0;
+var nearbyIds = '';
+
+/* `seconds` is the clock's elapsed time, not milliseconds — the throttle has to
+   be in the same unit or the list effectively never refreshes. */
+function updateNearby(seconds) {
+    if (seconds - nearbyAt < 0.22) return;
+    nearbyAt = seconds;
+
+    var close = view.dist < 160;
+    nearbyEl.classList.toggle('on', close);
+    if (!close) { nearbyIds = ''; return; }
+
+    var list = [];
+    for (var i = 0; i < NODES.length; i++) {
+        var n = NODES[i];
+        if (!n.shown) continue;
+        var dx = n.base.x - camera.position.x;
+        var dy = n.base.y - camera.position.y;
+        var dz = n.base.z - camera.position.z;
+        list.push({ n: n, d: Math.sqrt(dx * dx + dy * dy + dz * dz) });
+    }
+    list.sort(function (a, b) { return a.d - b.d; });
+    list.length = Math.min(list.length, 6);
+
+    var key = list.map(function (e) { return e.n.model.id; }).join(',');
+    if (key === nearbyIds) return;
+    nearbyIds = key;
+
+    nearRowsEl.innerHTML = list.map(function (e) {
+        var sel = state.selected === e.n ? ' on' : '';
+        return '<div class="near-row' + sel + '" data-id="' + e.n.model.id + '">' +
+            '<span class="near-dot" style="background:' + PROVIDERS[e.n.model.p].color + '"></span>' +
+            '<span class="near-name">' + esc(e.n.model.name) + '</span>' +
+            '<span class="near-d">' + Math.round(e.d) + 'u</span></div>';
+    }).join('');
+
+    Array.prototype.forEach.call(nearRowsEl.querySelectorAll('.near-row'), function (row) {
+        row.addEventListener('click', function () { select(row.getAttribute('data-id'), true); });
+    });
+}
+
+/* ---------- flying, for when you are inside the cloud ---------- */
+var held = {};
+var FLY_KEYS = { w: 1, a: 1, s: 1, d: 1, q: 1, e: 1 };
+
+function flying() {
+    return held.w || held.a || held.s || held.d || held.q || held.e;
+}
+
+function applyFlight(dt) {
+    if (!flying()) return;
+    var speed = dt * Math.max(16, goal.dist * 0.6) * (held.shift ? 3 : 1);
+
+    var right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0);
+    var up = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1);
+    var fwd = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 2).multiplyScalar(-1);
+
+    goal.target.addScaledVector(right, ((held.d ? 1 : 0) - (held.a ? 1 : 0)) * speed);
+    goal.target.addScaledVector(fwd, ((held.w ? 1 : 0) - (held.s ? 1 : 0)) * speed);
+    goal.target.addScaledVector(up, ((held.e ? 1 : 0) - (held.q ? 1 : 0)) * speed);
+
+    /* stay in the neighbourhood of the swarm rather than drifting into nothing */
+    var lim = R_RIM * 1.45;
+    goal.target.x = Math.max(-lim, Math.min(lim, goal.target.x));
+    goal.target.y = Math.max(-lim, Math.min(lim, goal.target.y));
+    goal.target.z = Math.max(-lim, Math.min(lim, goal.target.z));
+}
+
+canvas.addEventListener('dblclick', function () {
+    var hit = pickNode();
+    if (hit) {
+        select(hit.model.id, false);
+        goal.target.copy(hit.base);
+        goal.dist = clampDist(hit.size * 6 + 9);
+    } else {
+        goal.dist = clampDist(goal.dist * 1.9);
+    }
+});
+
+/* ---------------------------------------------------------------------------
    KEYBOARD
 --------------------------------------------------------------------------- */
 window.addEventListener('keydown', function (e) {
@@ -1885,12 +2283,26 @@ window.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') { e.target.blur(); }
         return;
     }
-    if (e.key === 'Escape') { deselect(); stopPlaying(); }
+    var k = e.key.toLowerCase();
+    if (FLY_KEYS[k] || k === 'shift') held[k] = true;
+
+    if (e.key === 'Escape') { deselect(); stopPlaying(); $('helppop').classList.remove('on'); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
-    else if (e.key === 'r' || e.key === 'R') { resetView(); }
+    else if (k === 'r') { resetView(); }
+    else if (k === 'f') { applyPreset('frame'); }
+    else if (e.key === '+' || e.key === '=') { zoomBy(0.68); }
+    else if (e.key === '-' || e.key === '_') { zoomBy(1.45); }
     else if (e.key === '/') { e.preventDefault(); $('search').focus(); }
 });
+
+window.addEventListener('keyup', function (e) {
+    var k = e.key.toLowerCase();
+    if (FLY_KEYS[k] || k === 'shift') held[k] = false;
+});
+
+/* A key held down while the window loses focus would otherwise fly forever. */
+window.addEventListener('blur', function () { held = {}; });
 
 /* ---------------------------------------------------------------------------
    RESIZE + FRAME LOOP
@@ -1900,6 +2312,8 @@ function resize() {
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    sizeMinimap();
+    layoutRail();
 }
 window.addEventListener('resize', resize);
 resize();
@@ -1918,8 +2332,9 @@ function frame() {
     view.dist += (goal.dist - view.dist) * k;
     view.target.lerp(goal.target, k);
 
-    if (state.view.spin && !pointer.down) goal.theta += dt * 0.024;
+    if (state.view.spin && !pointer.down && !flying()) goal.theta += dt * 0.024;
 
+    applyFlight(dt);
     applyCamera();
 
     /* node bob + hover/selection emphasis */
@@ -1945,6 +2360,12 @@ function frame() {
     if (dust) dust.rotation.y += dt * 0.008;
     updateHover();
     updateLabels();
+
+    drawMinimap();
+    updateNearby(t);
+    if (!rangeHeld) rangeEl.value = String(distToRange(view.dist));
+    $('range-read').textContent = Math.round(view.dist) + 'u';
+
     renderer.render(scene, camera);
 }
 
@@ -1955,7 +2376,16 @@ syncViewChips();
 applyFilters();
 markRanked();
 resetView();
+sizeMinimap();
+layoutRail();
 frame();
+
+/* A small read-only window onto the camera and filter state, so the test suite
+   can drive navigation the way a person does and check where it ended up. */
+window.__swarm = {
+    view: view, goal: goal, state: state, nodes: NODES, layout: LAYOUT,
+    zoomBy: zoomBy, flyToArm: flyToArm, applyPreset: applyPreset, resetView: resetView
+};
 
 var deepLink = (location.hash || '').replace('#', '');
 if (deepLink && BY_ID[deepLink]) {

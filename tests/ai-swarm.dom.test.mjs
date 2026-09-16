@@ -27,6 +27,7 @@ function makeThreeStub() {
         clone() { return new Vec3(this.x, this.y, this.z); }
         lerp(v, a) { this.x += (v.x - this.x) * a; this.y += (v.y - this.y) * a; this.z += (v.z - this.z) * a; return this; }
         addScaledVector(v, s) { this.x += v.x * s; this.y += v.y * s; this.z += v.z * s; return this; }
+        multiplyScalar(s) { return this.set(this.x * s, this.y * s, this.z * s); }
         setFromMatrixColumn() { return this.set(1, 0, 0); }
         project() { return this.set(this.x / 200, this.y / 200, 0.5); }
     }
@@ -43,6 +44,7 @@ function makeThreeStub() {
         }
         add(child) { this.children.push(child); return this; }
         lookAt() {}
+        updateMatrix() {}
         updateProjectionMatrix() {}
     }
 
@@ -106,12 +108,14 @@ function makeThreeStub() {
 /* jsdom's canvas has no 2D context unless the optional `canvas` package is
    installed, and the page builds its glow sprites on one. */
 function stubCanvas(window) {
+    const noop = () => {};
     window.HTMLCanvasElement.prototype.getContext = function () {
         return {
-            createRadialGradient: () => ({ addColorStop: () => {} }),
-            fillRect: () => {},
-            set fillStyle(v) {},
-            get fillStyle() { return ''; }
+            createRadialGradient: () => ({ addColorStop: noop }),
+            fillRect: noop, clearRect: noop, beginPath: noop, closePath: noop,
+            arc: noop, fill: noop, stroke: noop, moveTo: noop, lineTo: noop,
+            save: noop, restore: noop, setTransform: noop, setLineDash: noop, fillText: noop,
+            fillStyle: '', strokeStyle: '', lineWidth: 1, globalAlpha: 1, font: ''
         };
     };
 }
@@ -309,6 +313,165 @@ export default async function run(t, page) {
     t.ok('turning lineage off dims its chip', lineageChip.classList.contains('off'));
     click(lineageChip);
     t.ok('and turning it back on restores it', !lineageChip.classList.contains('off'));
+
+    /* ------------------------------------------------------------------ */
+    t.section('Navigation');
+
+    const swarm = window.__swarm;
+    t.ok('the page exposes its camera state for driving', !!swarm && !!swarm.goal && !!swarm.view);
+
+    t.ok('the navigator panel is on screen', !!$('navigator'));
+    t.ok('with a top-down map', !!$('minimap'));
+
+    const before = swarm.goal.dist;
+    click($('zoom-in'));
+    t.ok(`zoom in pulls the camera closer (${Math.round(before)} \u2192 ${Math.round(swarm.goal.dist)})`, swarm.goal.dist < before);
+    const closer = swarm.goal.dist;
+    click($('zoom-out'));
+    t.ok('zoom out pushes it back', swarm.goal.dist > closer);
+
+    /* Zoom must not be able to leave the model behind or bury the camera in it. */
+    for (let i = 0; i < 40; i++) click($('zoom-in'));
+    t.ok('zooming all the way in stops at the near limit', swarm.goal.dist >= 11);
+    for (let i = 0; i < 60; i++) click($('zoom-out'));
+    t.ok('zooming all the way out stops at the far limit', swarm.goal.dist <= 1000);
+
+    click($('fit'));
+    t.ok('"Fit" frames the whole swarm again', swarm.goal.dist > 200 && swarm.goal.dist < 500);
+    t.near('and recentres on the core', Math.abs(swarm.goal.target.x) + Math.abs(swarm.goal.target.z), 0, 1e-9);
+
+    const range = $('range');
+    range.value = '10';
+    range.dispatchEvent(new window.Event('input', { bubbles: true }));
+    const nearDist = swarm.goal.dist;
+    range.value = '95';
+    range.dispatchEvent(new window.Event('input', { bubbles: true }));
+    t.ok('the range slider drives the camera from core to rim', swarm.goal.dist > nearDist);
+    t.ok('and its low end puts you inside the cloud', nearDist < 60);
+
+    const presets = [...document.querySelectorAll('[data-preset]')];
+    t.eq('there are four camera presets', presets.length, 4);
+    click(presets.find((c) => c.getAttribute('data-preset') === 'top'));
+    const topPhi = swarm.goal.phi;
+    click(presets.find((c) => c.getAttribute('data-preset') === 'side'));
+    t.ok('"Top" looks down and "Side" looks along the equator', topPhi < swarm.goal.phi);
+    t.near('"Side" sits exactly on the equator', swarm.goal.phi, Math.PI / 2, 1e-9);
+
+    /* Flying to a lab arm should leave the origin and head that lab's way. */
+    swarm.resetView();
+    swarm.flyToArm('anthropic');
+    const arm = swarm.layout.arms.anthropic;
+    const tgt = swarm.goal.target;
+    const reach = Math.hypot(tgt.x, tgt.y, tgt.z);
+    t.ok('flying to a lab leaves the core behind', reach > 30);
+    const dot = (tgt.x * arm.x + tgt.y * arm.y + tgt.z * arm.z) / (reach || 1);
+    t.ok('and heads down that lab\u2019s arm', dot > 0.9);
+
+    const goBtn = anthropicRow.querySelector('.leg-go');
+    t.ok('every legend row has a fly-to control', !!goBtn);
+    swarm.resetView();
+    click(goBtn);
+    t.ok('clicking it flies to that arm', Math.hypot(swarm.goal.target.x, swarm.goal.target.z) > 10);
+    t.eq('without toggling the lab off', anthropicRow.classList.contains('off'), false);
+
+    /* ------------------------------------------------------------------ */
+    t.section('The map');
+
+    /* jsdom reports a zero-sized box for everything, so give the map one. */
+    const MAP_W = 236, MAP_H = 176;
+    $('minimap').getBoundingClientRect = () => ({ left: 0, top: 0, width: MAP_W, height: MAP_H, right: MAP_W, bottom: MAP_H });
+    window.dispatchEvent(new window.Event('resize'));
+
+    const mapScale = (Math.min(MAP_W, MAP_H) / 2 - 7) / 118;
+    const mapClick = (x, y) => $('minimap').dispatchEvent(
+        new window.MouseEvent('pointerdown', { bubbles: true, clientX: x, clientY: y }));
+
+    /* A dot on the map is a model; clicking it should open that model. */
+    const target = swarm.nodes[0];
+    mapClick(MAP_W / 2 + target.base.x * mapScale, MAP_H / 2 + target.base.z * mapScale);
+    t.eq('clicking a dot on the map opens that model', $('d-name').textContent, target.model.name);
+
+    /* Empty map space is a destination, not a model. */
+    click($('d-close'));
+    swarm.resetView();
+    mapClick(8, 8);
+    t.ok('clicking empty map space flies the camera there',
+        Math.hypot(swarm.goal.target.x, swarm.goal.target.z) > 50);
+    t.ok('and does not open a model', !$('detail').classList.contains('open'));
+
+    /* ------------------------------------------------------------------ */
+    t.section('Flying with the keyboard');
+
+    const nextFrame = () => new Promise((r) => window.requestAnimationFrame(() => window.requestAnimationFrame(r)));
+    const key = (type, k) => window.dispatchEvent(new window.KeyboardEvent(type, { key: k, bubbles: true }));
+
+    swarm.resetView();
+    await nextFrame();
+    const start = { x: swarm.goal.target.x, y: swarm.goal.target.y, z: swarm.goal.target.z };
+
+    key('keydown', 'w');
+    await nextFrame();
+    key('keyup', 'w');
+    const moved = Math.hypot(swarm.goal.target.x - start.x, swarm.goal.target.y - start.y, swarm.goal.target.z - start.z);
+    t.ok(`holding W moves the camera through the cloud (${moved.toFixed(1)}u)`, moved > 0);
+
+    const afterRelease = { x: swarm.goal.target.x, z: swarm.goal.target.z };
+    await nextFrame();
+    t.near('releasing it stops the drift', Math.hypot(swarm.goal.target.x - afterRelease.x, swarm.goal.target.z - afterRelease.z), 0, 1e-9);
+
+    /* A key held while the window loses focus must not fly forever. */
+    key('keydown', 'w');
+    window.dispatchEvent(new window.Event('blur'));
+    const parked = { x: swarm.goal.target.x, z: swarm.goal.target.z };
+    await nextFrame();
+    t.near('losing focus releases a held key', Math.hypot(swarm.goal.target.x - parked.x, swarm.goal.target.z - parked.z), 0, 1e-9);
+
+    /* Flight must stay near the swarm rather than drifting off into nothing. */
+    swarm.goal.target.set(9999, 9999, 9999);
+    key('keydown', 'd');
+    await nextFrame();
+    key('keyup', 'd');
+    t.ok('flight is bounded to the neighbourhood of the swarm',
+        Math.abs(swarm.goal.target.x) <= 118 * 1.45 + 0.001);
+
+    /* ------------------------------------------------------------------ */
+    t.section('Nearby models');
+
+    swarm.resetView();
+    t.ok('the nearby list is hidden when the whole swarm is in frame', !$('nearby').classList.contains('on'));
+
+    range.value = '5';
+    range.dispatchEvent(new window.Event('input', { bubbles: true }));
+    for (let i = 0; i < 30; i++) await nextFrame();
+
+    t.ok('it appears once you are inside the cloud', $('nearby').classList.contains('on'));
+    const nearRows = document.querySelectorAll('#near-rows .near-row');
+    t.ok(`and lists what is closest (${nearRows.length} rows)`, nearRows.length > 0 && nearRows.length <= 6);
+
+    if (nearRows.length) {
+        const nearName = nearRows[0].querySelector('.near-name').textContent;
+        click(nearRows[0]);
+        t.eq('clicking a nearby model opens it', $('d-name').textContent, nearName);
+        click($('d-close'));
+    }
+
+    /* ------------------------------------------------------------------ */
+    t.section('Panels and help');
+
+    t.ok('the help popover starts closed', !$('helppop').classList.contains('on'));
+    click($('helpbtn'));
+    t.ok('the ? button opens it', $('helppop').classList.contains('on'));
+    t.ok('it documents the flight keys', /WASD|W<\/kbd>/i.test($('helppop').innerHTML));
+    t.ok('and still carries the data provenance note', /September 2026/.test($('helppop').textContent));
+    click($('helpbtn'));
+    t.ok('clicking it again closes it', !$('helppop').classList.contains('on'));
+
+    const nav = $('navigator');
+    t.ok('the navigator starts open', !nav.classList.contains('folded'));
+    click($('nav-head'));
+    t.ok('its header folds it away to reclaim space', nav.classList.contains('folded'));
+    click($('nav-head'));
+    t.ok('and unfolds it again', !nav.classList.contains('folded'));
 
     t.eq('no uncaught errors after driving the whole HUD', app.errors.join(' | ') || 'none', 'none');
     app.window.close();
