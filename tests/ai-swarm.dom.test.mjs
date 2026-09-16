@@ -28,7 +28,11 @@ function makeThreeStub() {
         lerp(v, a) { this.x += (v.x - this.x) * a; this.y += (v.y - this.y) * a; this.z += (v.z - this.z) * a; return this; }
         addScaledVector(v, s) { this.x += v.x * s; this.y += v.y * s; this.z += v.z * s; return this; }
         multiplyScalar(s) { return this.set(this.x * s, this.y * s, this.z * s); }
-        setFromMatrixColumn() { return this.set(1, 0, 0); }
+        setFromMatrixColumn(m, i) {
+            /* The camera's own axes. The stub keeps them world-aligned, which is
+               enough to tell right from up from forward. */
+            return this.set(i === 0 ? 1 : 0, i === 1 ? 1 : 0, i === 2 ? 1 : 0);
+        }
         project() { return this.set(this.x / 200, this.y / 200, 0.5); }
     }
 
@@ -336,9 +340,69 @@ export default async function run(t, page) {
     for (let i = 0; i < 60; i++) click($('zoom-out'));
     t.ok('zooming all the way out stops at the far limit', swarm.goal.dist <= 1000);
 
+    /* Fit frames the models themselves. The expected centre is the mean
+       position of every visible node, worked out here from the layout rather
+       than read back off the page, and the expected distance is the one at
+       which a sphere of that extent subtends the narrower field of view. */
+    const shown = swarm.nodes.filter((n) => n.shown);
+    const mean = (axis) => shown.reduce((a, n) => a + n.base[axis], 0) / shown.length;
+    const centre = { x: mean('x'), y: mean('y'), z: mean('z') };
+    const extent = Math.max(...shown.map((n) => {
+        const dx = n.base.x - centre.x, dy = n.base.y - centre.y, dz = n.base.z - centre.z;
+        return Math.sqrt(dx * dx + dy * dy + dz * dz) + n.size * 2.2;
+    }));
+
+    const vFov = (52 * Math.PI) / 180;
+    const hFov = 2 * Math.atan(Math.tan(vFov / 2) * (window.innerWidth / window.innerHeight));
+    const fitDist = (extent * 1.14) / Math.sin(Math.min(vFov, hFov) / 2);
+
     click($('fit'));
-    t.ok('"Fit" frames the whole swarm again', swarm.goal.dist > 200 && swarm.goal.dist < 500);
-    t.near('and recentres on the core', Math.abs(swarm.goal.target.x) + Math.abs(swarm.goal.target.z), 0, 1e-9);
+    t.near('"Fit" backs off far enough to hold the whole swarm', swarm.goal.dist, fitDist, 0.5);
+    t.near('and centres on the models, not on the origin', swarm.goal.target.x, centre.x, 1e-9);
+    t.near('on every axis', swarm.goal.target.y + swarm.goal.target.z, centre.y + centre.z, 1e-9);
+
+    /* ------------------------------------------------------------------ */
+    t.section('The pan pad');
+
+    const pan = (dir) => $('pan-pad-' + dir);
+    const press = (el, type) => el.dispatchEvent(new window.MouseEvent(type, { bubbles: true }));
+
+    t.ok('every direction has a button', ['up', 'down', 'left', 'right'].every((d) => !!pan(d)));
+
+    const fromX = swarm.goal.target.x;
+    press(pan('right'), 'pointerdown');
+    press(window, 'pointerup');
+    t.ok(`tapping right slides the view sideways (${Math.round(swarm.goal.target.x - fromX)}u)`,
+        swarm.goal.target.x > fromX);
+
+    press(pan('left'), 'pointerdown');
+    press(window, 'pointerup');
+    t.near('tapping left brings it back by the same step', swarm.goal.target.x, fromX, 1e-9);
+
+    /* Up and down have to move the view, which orbit and zoom cannot do at
+       all — this is the axis that was unreachable without a mouse. */
+    const fromY = swarm.goal.target.y;
+    press(pan('up'), 'pointerdown');
+    press(window, 'pointerup');
+    t.ok('tapping up moves the view vertically', Math.abs(swarm.goal.target.y - fromY) > 0.5);
+
+    /* A button left pressed must not keep sliding once the pointer is gone. */
+    press(pan('down'), 'pointerdown');
+    t.ok('a held button reads as held', pan('down').classList.contains('on'));
+    window.dispatchEvent(new window.Event('blur'));
+    t.ok('losing focus releases it', !pan('down').classList.contains('on'));
+    press(pan('down'), 'pointerdown');
+    press(pan('down'), 'pointerleave');
+    t.ok('and so does sliding a finger off it', !pan('down').classList.contains('on'));
+
+    click(pan('centre'));
+    t.near('the centre button puts the swarm back in the middle', swarm.goal.target.x, centre.x, 1e-9);
+
+    /* Panning cannot wander off into empty space. */
+    for (let i = 0; i < 60; i++) { press(pan('right'), 'pointerdown'); press(window, 'pointerup'); }
+    t.ok('panning is bounded to the neighbourhood of the swarm',
+        Math.abs(swarm.goal.target.x) <= 118 * 1.45 + 1e-9);
+    click(pan('centre'));
 
     const range = $('range');
     range.value = '10';
