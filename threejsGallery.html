@@ -3,429 +3,714 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Three.js Unique Geometries Gallery</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <title>Procedural Geometry Gallery</title>
+    <meta name="description" content="Nine animated Three.js geometries — mathematical surfaces, fractals and particle systems — drawn by a single shared WebGL context.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            background-color: #050508;
-            color: #ffffff;
-            font-family: 'Inter', sans-serif;
-            padding: 2rem 1rem;
+        :root {
+            --page:     #06070d;
+            --card:     #0c0e16;
+            --media:    #080a11;
+            --hairline: #1b2130;
+            --hairline-strong: #2b3446;
+            --text:     #e8ecf4;
+            --text-dim: #8d97ab;
+            --text-faint: #5b6577;
         }
-        h1 {
-            text-align: center;
-            font-size: clamp(2rem, 4vw, 3.5rem);
-            font-weight: 900;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(90deg, #ff007f, #00ffff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        p.subtitle { text-align: center; color: #888899; margin-bottom: 3rem; }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        .card {
-            background: #0d0d14;
-            border: 1px solid #1a1a28;
-            border-radius: 12px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        .canvas-container {
-            width: 100%;
-            height: 260px;
-            position: relative;
-            background: transparent;
-        }
-        .info { padding: 1rem; }
-        .info h3 { font-size: 1.1rem; color: #ff007f; margin-bottom: 0.3rem; }
-        .info p { font-size: 0.85rem; color: #aaaabb; line-height: 1.4; }
 
-        /* The single global canvas that draws everything */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--page);
+            color: var(--text);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-size: 15px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            padding: 0 20px 72px;
+        }
+
+        /* The one canvas that draws every scene, parked behind the page furniture.
+           It sits above card backgrounds and below each card's frame overlay. */
         #gl-canvas {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 1; /* Renders above the body background, but inside the transparent containers */
-            pointer-events: none; /* Allows scrolling */
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .wrap { max-width: 1320px; margin: 0 auto; }
+
+        /* ---------- masthead ---------- */
+
+        header { padding-block: 56px 44px; max-width: 760px; }
+
+        .backlink {
+            display: inline-block;
+            font-family: 'IBM Plex Mono', ui-monospace, monospace;
+            font-size: 11px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: var(--text-faint);
+            text-decoration: none;
+            margin-bottom: 26px;
+        }
+        .backlink:hover { color: #22d3ee; }
+
+        .eyebrow {
+            font-family: 'IBM Plex Mono', ui-monospace, monospace;
+            font-size: 11px;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: var(--text-faint);
+            margin-bottom: 14px;
+        }
+
+        h1 {
+            font-size: clamp(2.2rem, 5.5vw, 3.6rem);
+            font-weight: 800;
+            letter-spacing: -.03em;
+            line-height: 1.02;
+            margin-bottom: 16px;
+            text-wrap: balance;
+            color: var(--text);
+            background: linear-gradient(96deg, #ff2d78 0%, #a855f7 42%, #22d3ee 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle { color: var(--text-dim); max-width: 60ch; }
+
+        .specs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 26px;
+            margin-top: 26px;
+            padding-top: 18px;
+            border-top: 1px solid var(--hairline);
+            font-family: 'IBM Plex Mono', ui-monospace, monospace;
+            font-size: 11.5px;
+            color: var(--text-faint);
+        }
+        .specs b { color: var(--text-dim); font-weight: 500; }
+
+        /* ---------- grid ---------- */
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+            gap: 20px;
+        }
+
+        /* NOTE: no transform, filter or opacity on .card — any of them would make it
+           a stacking context and drop .media::after below the shared GL canvas,
+           which is exactly what used to chew up the rounded corners. */
+        .card {
+            position: relative;
+            background: var(--card);
+            border: 1px solid var(--hairline);
+            border-radius: 18px;
+            padding: 14px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+        .card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
+                        0 18px 40px -24px var(--accent);
+        }
+
+        .media {
+            position: relative;
+            height: 248px;
+            border-radius: 11px;
+            /* Shows through wherever the scene leaves the buffer transparent. */
+            background:
+                radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--accent) 13%, transparent) 0%, transparent 62%),
+                var(--media);
+        }
+
+        /* The frame: a hairline border plus a ring of card colour that masks the
+           square corners of the WebGL scissor rectangle underneath. */
+        .media::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            border-radius: 11px;
+            box-shadow: 0 0 0 16px var(--card), inset 0 0 0 1px var(--hairline-strong);
+            pointer-events: none;
+        }
+
+        .idx {
+            position: absolute;
+            z-index: 3;
+            top: 10px;
+            left: 10px;
+            font-family: 'IBM Plex Mono', ui-monospace, monospace;
+            font-size: 10.5px;
+            font-weight: 500;
+            letter-spacing: .12em;
+            color: var(--accent);
+            background: rgba(6, 7, 13, 0.72);
+            border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+            border-radius: 5px;
+            padding: 3px 8px;
+        }
+
+        .info { padding: 16px 4px 4px; }
+        .info h3 {
+            font-size: 1.02rem;
+            font-weight: 600;
+            letter-spacing: -.01em;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+        .info p {
+            font-size: 0.86rem;
+            color: var(--text-dim);
+            line-height: 1.5;
+        }
+        .meta {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid var(--hairline);
+            font-family: 'IBM Plex Mono', ui-monospace, monospace;
+            font-size: 10.5px !important;
+            letter-spacing: .02em;
+            color: var(--text-faint) !important;
+            overflow-x: auto;
+            white-space: nowrap;
+            scrollbar-width: none;
+        }
+        .meta::-webkit-scrollbar { display: none; }
+
+        footer {
+            max-width: 1320px;
+            margin: 56px auto 0;
+            padding-top: 20px;
+            border-top: 1px solid var(--hairline);
+            font-family: 'IBM Plex Mono', ui-monospace, monospace;
+            font-size: 11px;
+            letter-spacing: .06em;
+            color: var(--text-faint);
+        }
+
+        .fallback {
+            display: none;
+            margin: 0 auto 28px;
+            max-width: 1320px;
+            border: 1px solid #4a2230;
+            border-radius: 10px;
+            background: #1a0d14;
+            padding: 14px 16px;
+            color: #ffb4c6;
+            font-size: 13px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
         }
     </style>
 </head>
 <body>
-    <canvas id="gl-canvas"></canvas>
+    <canvas id="gl-canvas" aria-hidden="true"></canvas>
 
-    <h1>Three.js Advanced Shapes Gallery</h1>
-    <p class="subtitle">9 Interactive Procedural and Mathematical 3D Demos</p>
+    <div class="wrap">
+        <header>
+            <a class="backlink" href="index.html">&larr; Back to the index</a>
+            <p class="eyebrow">WebGL · Three.js r128 · one context, nine viewports</p>
+            <h1>Procedural Geometry Gallery</h1>
+            <p class="subtitle">
+                Nine mathematical surfaces, fractals and particle systems, each animated per frame.
+                A single WebGL renderer draws all of them, scissoring one viewport per card, so the
+                page costs one context instead of nine.
+            </p>
+            <div class="specs">
+                <span><b>9</b> scenes</span>
+                <span><b>1</b> renderer</span>
+                <span><b>~2,400</b> morphed vertices in the noise blob</span>
+                <span><b>2,000</b> orbiting particles</span>
+                <span>Offscreen cards skip rendering</span>
+            </div>
+        </header>
 
-    <div class="grid">
-        <div class="card">
-            <div class="canvas-container" id="canvas-torus-knot"></div>
-            <div class="info">
-                <h3>1.1 Torus Knot Loop</h3>
-                <p>A continuous mathematical knot geometry woven around an invisible torus surface.</p>
-            </div>
+        <div id="gl-fallback" class="fallback">
+            WebGL isn't available in this browser, so the nine scenes can't be drawn. The captions below still describe each one.
         </div>
-        <div class="card">
-            <div class="canvas-container" id="canvas-mobius-strip"></div>
-            <div class="info">
-                <h3>1.2 Möbius Strip</h3>
-                <p>A non-orientable mathematical ribbon possessing only a single side and edge.</p>
-            </div>
+
+        <div class="grid">
+            <article class="card" style="--accent:#ff2d78">
+                <div class="media" id="canvas-torus-knot"><span class="idx">1.1</span></div>
+                <div class="info">
+                    <h3>Torus Knot Loop</h3>
+                    <p>A continuous (2,3) knot woven around an invisible torus, so the tube never intersects itself however far it winds.</p>
+                    <p class="meta">TorusKnotGeometry(1, 0.35, 160, 24) · wireframe</p>
+                </div>
+            </article>
+
+            <article class="card" style="--accent:#22d3ee">
+                <div class="media" id="canvas-mobius-strip"><span class="idx">1.2</span></div>
+                <div class="info">
+                    <h3>Möbius Strip</h3>
+                    <p>A ribbon given a half twist before its ends are joined, leaving it with one continuous side and one edge.</p>
+                    <p class="meta">BufferGeometry · 48 × 24 parametric grid · DoubleSide</p>
+                </div>
+            </article>
+
+            <article class="card" style="--accent:#fbbf24">
+                <div class="media" id="canvas-superquadric"><span class="idx">1.3</span></div>
+                <div class="info">
+                    <h3>Superquadric Morph</h3>
+                    <p>One radial equation swept through its exponent: below 2 it pinches into a star, at exactly 2 it is a sphere, above it swells toward a cube.</p>
+                    <p class="meta">|x|ᵉ + |y|ᵉ + |z|ᵉ = 1 · e swept 0.7 → 5.0</p>
+                </div>
+            </article>
+
+            <article class="card" style="--accent:#a855f7">
+                <div class="media" id="canvas-polyhedra"><span class="idx">2.1</span></div>
+                <div class="info">
+                    <h3>Polyhedra Cluster</h3>
+                    <p>A wireframe dodecahedron turning around a solid octahedron on its own axis, the two rotations deliberately out of phase.</p>
+                    <p class="meta">DodecahedronGeometry(1.4) + OctahedronGeometry(0.78)</p>
+                </div>
+            </article>
+
+            <article class="card" style="--accent:#38bdf8">
+                <div class="media" id="canvas-buckyball"><span class="idx">2.2</span></div>
+                <div class="info">
+                    <h3>Geodesic Buckyball</h3>
+                    <p>An icosahedron subdivided twice and pushed back onto the sphere — the triangulation behind geodesic domes and C₆₀.</p>
+                    <p class="meta">IcosahedronGeometry(1.5, detail 2) · 320 faces</p>
+                </div>
+            </article>
+
+            <article class="card" style="--accent:#fb7185">
+                <div class="media" id="canvas-sierpinski"><span class="idx">2.3</span></div>
+                <div class="info">
+                    <h3>Sierpiński Tetrahedron</h3>
+                    <p>Each tetrahedron replaced by four half-scale copies, three levels deep. Volume falls to zero while surface area holds.</p>
+                    <p class="meta">Recursive build · depth 3 · 64 tetrahedra</p>
+                </div>
+            </article>
+
+            <article class="card" style="--accent:#f472b6">
+                <div class="media" id="canvas-organic-blob"><span class="idx">3.1</span></div>
+                <div class="info">
+                    <h3>Organic Noise Blob</h3>
+                    <p>A sphere whose every vertex is pushed along its own normal by 3D gradient noise, re-evaluated and re-shaded each frame.</p>
+                    <p class="meta">SphereGeometry(1.2, 48, 48) · Perlin 3D · MeshStandardMaterial</p>
+                </div>
+            </article>
+
+            <article class="card" style="--accent:#2dd4bf">
+                <div class="media" id="canvas-audio-spike"><span class="idx">3.2</span></div>
+                <div class="info">
+                    <h3>Harmonic Spike Sphere</h3>
+                    <p>Spherical harmonics drive the displacement, so the spikes sit in a standing-wave pattern that breathes rather than flickers.</p>
+                    <p class="meta">r = 1.2 + 0.45 · sin(6θ) · sin(5φ) · pulse(t)</p>
+                </div>
+            </article>
+
+            <article class="card" style="--accent:#facc15">
+                <div class="media" id="canvas-particle-swarm"><span class="idx">3.3</span></div>
+                <div class="info">
+                    <h3>Particle Swarm Core</h3>
+                    <p>Two thousand points on independent orbits, each with its own radius, inclination and speed, breathing in and out of the core.</p>
+                    <p class="meta">Points · 2,000 vertices · additive blending</p>
+                </div>
+            </article>
         </div>
-        <div class="card">
-            <div class="canvas-container" id="canvas-superquadric"></div>
-            <div class="info">
-                <h3>1.3 Superquadric Ellipsoid</h3>
-                <p>A trigonometric shape morphing dynamically between a sphere, cube, and starburst.</p>
-            </div>
-        </div>
-        <div class="card">
-            <div class="canvas-container" id="canvas-polyhedra"></div>
-            <div class="info">
-                <h3>2.1 Polyhedra Cluster</h3>
-                <p>Nested wireframe Dodecahedrons and Octahedrons forming crystalline lattices.</p>
-            </div>
-        </div>
-        <div class="card">
-            <div class="canvas-container" id="canvas-buckyball"></div>
-            <div class="info">
-                <h3>2.2 Geodesic Buckyball</h3>
-                <p>Subdivided icosahedral mesh forming spherical carbon molecule geometry (C60).</p>
-            </div>
-        </div>
-        <div class="card">
-            <div class="canvas-container" id="canvas-sierpinski"></div>
-            <div class="info">
-                <h3>2.3 Recursive Sierpinski Pyramid</h3>
-                <p>A 3D fractal constructed by recursively placing nested tetrahedrons.</p>
-            </div>
-        </div>
-        <div class="card">
-            <div class="canvas-container" id="canvas-organic-blob"></div>
-            <div class="info">
-                <h3>3.1 Organic Noise Blob</h3>
-                <p>A sphere dynamically morphed in real-time via 3D Perlin noise equations.</p>
-            </div>
-        </div>
-        <div class="card">
-            <div class="canvas-container" id="canvas-audio-spike"></div>
-            <div class="info">
-                <h3>3.2 Audio-Reactive Spiked Sphere</h3>
-                <p>Extruded wireframe vertices expanding procedural frequency spikes along normals.</p>
-            </div>
-        </div>
-        <div class="card">
-            <div class="canvas-container" id="canvas-particle-swarm"></div>
-            <div class="info">
-                <h3>3.3 Particle Swarm Core</h3>
-                <p>Thousands of individual particle points orbiting dynamically around a magnetic center.</p>
-            </div>
-        </div>
+
+        <footer>Nine scenes · one WebGL context · scissored viewports keep each card isolated</footer>
     </div>
 
     <script>
-        window.addEventListener('load', () => {
-            const canvas = document.getElementById('gl-canvas');
-            const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    (function () {
+        const canvas = document.getElementById('gl-canvas');
+
+        if (!window.THREE) {
+            document.getElementById('gl-fallback').style.display = 'block';
+            return;
+        }
+
+        let renderer;
+        try {
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+        } catch (e) {
+            document.getElementById('gl-fallback').style.display = 'block';
+            return;
+        }
+
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.autoClear = false;   // we clear once per frame, then per-scene depth only
+
+        const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const MOTION = REDUCED ? 0.15 : 1;
+
+        const scenes = [];
+        const scratch = new THREE.Vector3();
+
+        function createScene(containerId, accent) {
+            const element = document.getElementById(containerId);
+            if (!element) return null;
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+            camera.position.z = 5;
+
+            // A cool ambient plus a warm key in the card's own accent, so the lit
+            // materials pick up the colour the card is labelled with.
+            scene.add(new THREE.AmbientLight(0x8899bb, 0.55));
+            const key = new THREE.PointLight(accent, 2.2, 60);
+            key.position.set(4, 5, 6);
+            const rim = new THREE.PointLight(0x2244ff, 1.1, 60);
+            rim.position.set(-5, -3, -4);
+            scene.add(key, rim);
+
+            const info = { scene, camera, element, update: null, tiltX: 0, tiltY: 0, targetX: 0, targetY: 0 };
+
+            // Hovering tips the scene toward the pointer. The canvas ignores pointer
+            // events, so the card element is what listens.
+            const card = element.closest('.card');
+            if (card && !REDUCED) {
+                card.addEventListener('pointermove', (ev) => {
+                    const r = element.getBoundingClientRect();
+                    info.targetY = ((ev.clientX - r.left) / r.width - 0.5) * 0.6;
+                    info.targetX = ((ev.clientY - r.top) / r.height - 0.5) * 0.6;
+                });
+                card.addEventListener('pointerleave', () => { info.targetX = 0; info.targetY = 0; });
+            }
+
+            scenes.push(info);
+            return info;
+        }
+
+        // --- 3D gradient noise (Perlin's improved noise) --------------------
+        const perlin = (function () {
+            const p = new Uint8Array(512);
+            const source = new Uint8Array(256);
+            for (let i = 0; i < 256; i++) source[i] = i;
+            for (let i = 255; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const t = source[i]; source[i] = source[j]; source[j] = t;
+            }
+            for (let i = 0; i < 512; i++) p[i] = source[i & 255];
+
+            const fade = (t) => t * t * t * (t * (t * 6 - 15) + 10);
+            const lerp = (a, b, t) => a + t * (b - a);
+            function grad(hash, x, y, z) {
+                const h = hash & 15;
+                const u = h < 8 ? x : y;
+                const v = h < 4 ? y : (h === 12 || h === 14 ? x : z);
+                return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+            }
+
+            return function noise3D(x, y, z) {
+                const X = Math.floor(x) & 255, Y = Math.floor(y) & 255, Z = Math.floor(z) & 255;
+                x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
+                const u = fade(x), v = fade(y), w = fade(z);
+                const A = p[X] + Y, AA = p[A] + Z, AB = p[A + 1] + Z;
+                const B = p[X + 1] + Y, BA = p[B] + Z, BB = p[B + 1] + Z;
+                return lerp(
+                    lerp(
+                        lerp(grad(p[AA], x, y, z), grad(p[BA], x - 1, y, z), u),
+                        lerp(grad(p[AB], x, y - 1, z), grad(p[BB], x - 1, y - 1, z), u), v),
+                    lerp(
+                        lerp(grad(p[AA + 1], x, y, z - 1), grad(p[BA + 1], x - 1, y, z - 1), u),
+                        lerp(grad(p[AB + 1], x, y - 1, z - 1), grad(p[BB + 1], x - 1, y - 1, z - 1), u), v),
+                    w);
+            };
+        })();
+
+        // --- 1.1 torus knot -------------------------------------------------
+        (function () {
+            const info = createScene('canvas-torus-knot', 0xff2d78);
+            if (!info) return;
+            const mesh = new THREE.Mesh(
+                new THREE.TorusKnotGeometry(1, 0.35, 160, 24),
+                new THREE.MeshBasicMaterial({ color: 0xff2d78, wireframe: true })
+            );
+            info.scene.add(mesh);
+            info.update = (t) => { mesh.rotation.x = t * 0.4; mesh.rotation.y = t * 0.3; };
+        })();
+
+        // --- 1.2 Möbius strip -----------------------------------------------
+        (function () {
+            const info = createScene('canvas-mobius-strip', 0x22d3ee);
+            if (!info) return;
+            const U = 48, V = 24;
+            const positions = [], indices = [];
+            for (let i = 0; i <= U; i++) {
+                const u = (i / U) * Math.PI * 2;
+                for (let j = 0; j <= V; j++) {
+                    const v = (j / V) * 0.8 - 0.4;
+                    positions.push(
+                        Math.cos(u) * (1 + (v / 2) * Math.cos(u / 2)) * 1.5,
+                        Math.sin(u) * (1 + (v / 2) * Math.cos(u / 2)) * 1.5,
+                        (v / 2) * Math.sin(u / 2) * 1.5
+                    );
+                }
+            }
+            for (let i = 0; i < U; i++) {
+                for (let j = 0; j < V; j++) {
+                    const a = i * (V + 1) + j, b = a + V + 1;
+                    indices.push(a, b, a + 1, b, b + 1, a + 1);
+                }
+            }
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setIndex(indices);
+            const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
+                color: 0x22d3ee, wireframe: true, side: THREE.DoubleSide
+            }));
+            info.scene.add(mesh);
+            info.update = (t) => { mesh.rotation.x = t * 0.4; mesh.rotation.z = t * 0.2; };
+        })();
+
+        // --- 1.3 superquadric ------------------------------------------------
+        (function () {
+            const info = createScene('canvas-superquadric', 0xfbbf24);
+            if (!info) return;
+            const geometry = new THREE.SphereGeometry(1, 48, 32);
+            const base = geometry.attributes.position.clone();
+            const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xfbbf24, wireframe: true }));
+            info.scene.add(mesh);
+
+            info.update = (t) => {
+                const pos = geometry.attributes.position;
+                // The superquadric radial function: e = 2 is exactly a sphere,
+                // larger squares it off, smaller pinches it into a star.
+                const e = 2.85 + 2.15 * Math.sin(t * 0.5);
+                const R = 1.45;
+                for (let i = 0; i < pos.count; i++) {
+                    scratch.set(base.getX(i), base.getY(i), base.getZ(i)).normalize();
+                    const denom = Math.pow(
+                        Math.pow(Math.abs(scratch.x), e) +
+                        Math.pow(Math.abs(scratch.y), e) +
+                        Math.pow(Math.abs(scratch.z), e), -1 / e);
+                    pos.setXYZ(i, scratch.x * denom * R, scratch.y * denom * R, scratch.z * denom * R);
+                }
+                pos.needsUpdate = true;
+                mesh.rotation.y = t * 0.45;
+                mesh.rotation.x = t * 0.15;
+            };
+        })();
+
+        // --- 2.1 polyhedra ----------------------------------------------------
+        (function () {
+            const info = createScene('canvas-polyhedra', 0xa855f7);
+            if (!info) return;
+            const shell = new THREE.Mesh(
+                new THREE.DodecahedronGeometry(1.4),
+                new THREE.MeshBasicMaterial({ color: 0xa855f7, wireframe: true })
+            );
+            const core = new THREE.Mesh(
+                new THREE.OctahedronGeometry(0.78),
+                new THREE.MeshStandardMaterial({ color: 0xc4b5fd, roughness: 0.25, metalness: 0.7, flatShading: true })
+            );
+            info.scene.add(shell, core);
+            info.update = (t) => {
+                shell.rotation.x = t * 0.3; shell.rotation.y = t * 0.5;
+                core.rotation.x = -t * 0.6; core.rotation.z = t * 0.4;
+            };
+        })();
+
+        // --- 2.2 buckyball ----------------------------------------------------
+        (function () {
+            const info = createScene('canvas-buckyball', 0x38bdf8);
+            if (!info) return;
+            const mesh = new THREE.Mesh(
+                new THREE.IcosahedronGeometry(1.5, 2),
+                new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true })
+            );
+            info.scene.add(mesh);
+            info.update = (t) => { mesh.rotation.x = t * 0.2; mesh.rotation.y = t * 0.4; };
+        })();
+
+        // --- 2.3 Sierpiński tetrahedron ---------------------------------------
+        (function () {
+            const info = createScene('canvas-sierpinski', 0xfb7185);
+            if (!info) return;
+            const group = new THREE.Group();
+            const material = new THREE.MeshBasicMaterial({ color: 0xfb7185, wireframe: true });
+            const unit = new THREE.TetrahedronGeometry(1);   // one geometry, 64 instances of it
+
+            (function build(x, y, z, size, depth) {
+                if (depth === 0) {
+                    const mesh = new THREE.Mesh(unit, material);
+                    mesh.position.set(x, y, z);
+                    mesh.scale.setScalar(size);
+                    group.add(mesh);
+                    return;
+                }
+                const s = size / 2;
+                build(x, y + s / 2, z, s, depth - 1);
+                build(x - s, y - s / 2, z + s, s, depth - 1);
+                build(x + s, y - s / 2, z + s, s, depth - 1);
+                build(x, y - s / 2, z - s, s, depth - 1);
+            })(0, 0, 0, 1.6, 3);
+
+            info.scene.add(group);
+            info.update = (t) => { group.rotation.y = t * 0.4; group.rotation.x = 0.22; };
+        })();
+
+        // --- 3.1 organic noise blob -------------------------------------------
+        (function () {
+            const info = createScene('canvas-organic-blob', 0xf472b6);
+            if (!info) return;
+            const geometry = new THREE.SphereGeometry(1.2, 48, 48);
+            const base = geometry.attributes.position.clone();
+            const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+                color: 0xf472b6, roughness: 0.18, metalness: 0.75, flatShading: false
+            }));
+            info.scene.add(mesh);
+
+            info.update = (t) => {
+                const pos = geometry.attributes.position;
+                for (let i = 0; i < pos.count; i++) {
+                    scratch.set(base.getX(i), base.getY(i), base.getZ(i)).normalize();
+                    const n = perlin(scratch.x * 1.6 + t * 0.55, scratch.y * 1.6, scratch.z * 1.6 + t * 0.35);
+                    scratch.multiplyScalar(1.2 + n * 0.42);
+                    pos.setXYZ(i, scratch.x, scratch.y, scratch.z);
+                }
+                pos.needsUpdate = true;
+                geometry.computeVertexNormals();
+                mesh.rotation.y = t * 0.22;
+            };
+        })();
+
+        // --- 3.2 harmonic spike sphere ----------------------------------------
+        (function () {
+            const info = createScene('canvas-audio-spike', 0x2dd4bf);
+            if (!info) return;
+            const geometry = new THREE.SphereGeometry(1.2, 64, 48);
+            const base = geometry.attributes.position.clone();
+            const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0x2dd4bf, wireframe: true }));
+            info.scene.add(mesh);
+
+            info.update = (t) => {
+                const pos = geometry.attributes.position;
+                const pulse = 0.35 + 0.65 * Math.abs(Math.sin(t * 1.6));
+                for (let i = 0; i < pos.count; i++) {
+                    scratch.set(base.getX(i), base.getY(i), base.getZ(i)).normalize();
+                    // Standing wave over the sphere, so spikes hold their places.
+                    const theta = Math.atan2(scratch.z, scratch.x);
+                    const phi = Math.acos(Math.min(1, Math.max(-1, scratch.y)));
+                    const spike = Math.sin(theta * 6) * Math.sin(phi * 5);
+                    scratch.multiplyScalar(1.2 + spike * 0.45 * pulse);
+                    pos.setXYZ(i, scratch.x, scratch.y, scratch.z);
+                }
+                pos.needsUpdate = true;
+                mesh.rotation.y = t * 0.35;
+                mesh.rotation.x = t * 0.12;
+            };
+        })();
+
+        // --- 3.3 particle swarm -----------------------------------------------
+        (function () {
+            const info = createScene('canvas-particle-swarm', 0xfacc15);
+            if (!info) return;
+            const COUNT = 2000;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(COUNT * 3);
+            const orbits = new Array(COUNT);
+
+            for (let i = 0; i < COUNT; i++) {
+                orbits[i] = {
+                    r: 1.1 + Math.random() * 0.7,
+                    theta: Math.random() * Math.PI * 2,
+                    phi: Math.acos(2 * Math.random() - 1),      // even spread over the sphere
+                    speed: 0.35 + Math.random() * 0.9,
+                    phase: Math.random() * Math.PI * 2
+                };
+            }
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            const points = new THREE.Points(geometry, new THREE.PointsMaterial({
+                color: 0xfacc15, size: 0.035, transparent: true, opacity: 0.9,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            }));
+            info.scene.add(points);
+
+            info.update = (t) => {
+                const pos = geometry.attributes.position;
+                for (let i = 0; i < COUNT; i++) {
+                    const o = orbits[i];
+                    const angle = o.theta + t * o.speed * 0.6;
+                    const r = o.r * (1 + Math.sin(t * 1.1 + o.phase) * 0.16);   // breathing
+                    const sinPhi = Math.sin(o.phi);
+                    pos.setXYZ(i, r * sinPhi * Math.cos(angle), r * Math.cos(o.phi), r * sinPhi * Math.sin(angle));
+                }
+                pos.needsUpdate = true;
+                points.rotation.y = t * 0.1;
+            };
+        })();
+
+        // --- render loop --------------------------------------------------------
+        const clock = new THREE.Clock();
+        let sizeW = 0, sizeH = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (document.hidden) return;
+
+            const width = window.innerWidth, height = window.innerHeight;
+            if (width !== sizeW || height !== sizeH) {
+                sizeW = width; sizeH = height;
+                renderer.setSize(width, height);   // keeps the CSS size exact, so no half-pixel drift
+            }
+
+            const t = clock.getElapsedTime() * MOTION;
+
+            renderer.setScissorTest(false);
+            renderer.setClearColor(0x000000, 0);
+            renderer.clear(true, true, false);
             renderer.setScissorTest(true);
 
-            const scenesInfo = [];
+            for (const info of scenes) {
+                const rect = info.element.getBoundingClientRect();
+                if (rect.bottom <= 0 || rect.top >= height || rect.right <= 0 || rect.left >= width) continue;
 
-            function createSceneInfo(containerId) {
-                const container = document.getElementById(containerId);
-                const scene = new THREE.Scene();
-                
-                const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-                camera.position.z = 5;
+                if (info.update) info.update(t);
 
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-                const pointLight = new THREE.PointLight(0x00ffff, 2, 50);
-                pointLight.position.set(5, 5, 5);
-                scene.add(ambientLight, pointLight);
+                // Whole pixels, inset by one, so a fractional rect can never spill
+                // over the card's hairline frame or the caption underneath it.
+                const left = Math.round(rect.left) + 1;
+                const bottom = Math.round(height - rect.bottom) + 1;
+                const w = Math.round(rect.width) - 2;
+                const h = Math.round(rect.height) - 2;
+                if (w <= 0 || h <= 0) continue;
 
-                const info = { scene, camera, element: container, update: null };
-                scenesInfo.push(info);
-                return info;
+                renderer.setViewport(left, bottom, w, h);
+                renderer.setScissor(left, bottom, w, h);
+                renderer.clearDepth();
+
+                info.tiltX += (info.targetX - info.tiltX) * 0.09;
+                info.tiltY += (info.targetY - info.tiltY) * 0.09;
+                info.camera.position.x = info.tiltY * 3;
+                info.camera.position.y = -info.tiltX * 3;
+                info.camera.position.z = 5;
+                info.camera.lookAt(0, 0, 0);
+
+                info.camera.aspect = w / h;
+                info.camera.updateProjectionMatrix();
+
+                renderer.render(info.scene, info.camera);
             }
+        }
 
-            const SimplexNoise = function() {
-                var F3 = 1.0/3.0, G3 = 1.0/6.0;
-                var p = new Uint8Array(256);
-                for (var i=0; i<256; i++) p[i] = Math.floor(Math.random()*256);
-                var perm = new Uint8Array(512);
-                for (var i=0; i<512; i++) perm[i] = p[i & 255];
-                return {
-                    noise3D: function(xin, yin, zin) {
-                        var n0, n1, n2, n3;
-                        var s = (xin+yin+zin)*F3;
-                        var i = Math.floor(xin+s), j = Math.floor(yin+s), k = Math.floor(zin+s);
-                        var t = (i+j+k)*G3;
-                        var x0 = xin-(i-t), y0 = yin-(j-t), z0 = zin-(k-t);
-                        var i1, j1, k1, i2, j2, k2;
-                        if(x0>=y0) {
-                            if(y0>=z0) { i1=1; j1=0; k1=0; i2=1; j2=1; k2=0; }
-                            else if(x0>=z0) { i1=1; j1=0; k1=0; i2=1; j2=0; k2=1; }
-                            else { i1=0; j1=0; k1=1; i2=1; j2=0; k2=1; }
-                        } else {
-                            if(y0<z0) { i1=0; j1=0; k1=1; i2=0; j2=1; k2=1; }
-                            else if(x0<z0) { i1=0; j1=1; k1=0; i2=0; j2=1; k2=1; }
-                            else { i1=0; j1=1; k1=0; i2=1; j2=1; k2=0; }
-                        }
-                        var x1 = x0 - i1 + G3, y1 = y0 - j1 + G3, z1 = z0 - k1 + G3;
-                        var x2 = x0 - i2 + 2.0*G3, y2 = y0 - j2 + 2.0*G3, z2 = z0 - k2 + 2.0*G3;
-                        var x3 = x0 - 1.0 + 3.0*G3, y3 = y0 - 1.0 + 3.0*G3, z3 = z0 - 1.0 + 3.0*G3;
-                        var t0 = 0.6 - x0*x0-y0*y0-z0*z0; n0 = t0>0 ? Math.pow(t0, 4) * (x0+y0) : 0;
-                        var t1 = 0.6 - x1*x1-y1*y1-z1*z1; n1 = t1>0 ? Math.pow(t1, 4) * (x1+y1) : 0;
-                        var t2 = 0.6 - x2*x2-y2*y2-z2*z2; n2 = t2>0 ? Math.pow(t2, 4) * (x2+y2) : 0;
-                        var t3 = 0.6 - x3*x3-y3*y3-z3*z3; n3 = t3>0 ? Math.pow(t3, 4) * (x3+y3) : 0;
-                        return 32.0*(n0 + n1 + n2 + n3);
-                    }
-                };
-            };
-            const simplex = SimplexNoise();
-
-            try {
-                const info = createSceneInfo('canvas-torus-knot');
-                const geometry = new THREE.TorusKnotGeometry(1, 0.35, 100, 16);
-                const mat = new THREE.MeshBasicMaterial({ color: 0xff007f, wireframe: true });
-                const mesh = new THREE.Mesh(geometry, mat);
-                info.scene.add(mesh);
-                info.update = (t) => { mesh.rotation.x = t * 0.4; mesh.rotation.y = t * 0.3; };
-            } catch (e) {}
-
-            try {
-                const info = createSceneInfo('canvas-mobius-strip');
-                const uSegments = 40, vSegments = 20;
-                const positions = [], indices = [];
-                for (let i = 0; i <= uSegments; i++) {
-                    const u = (i / uSegments) * 2 * Math.PI;
-                    for (let j = 0; j <= vSegments; j++) {
-                        const v = (j / vSegments) * 0.8 - 0.4;
-                        const x = Math.cos(u) * (1 + (v / 2) * Math.cos(u / 2));
-                        const y = Math.sin(u) * (1 + (v / 2) * Math.cos(u / 2));
-                        const z = (v / 2) * Math.sin(u / 2);
-                        positions.push(x * 1.5, y * 1.5, z * 1.5);
-                    }
-                }
-                for (let i = 0; i < uSegments; i++) {
-                    for (let j = 0; j < vSegments; j++) {
-                        const a = i * (vSegments + 1) + j;
-                        const b = a + vSegments + 1;
-                        indices.push(a, b, a + 1);
-                        indices.push(b, b + 1, a + 1);
-                    }
-                }
-                const geometry = new THREE.BufferGeometry();
-                geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-                geometry.setIndex(indices);
-                const mat = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, side: THREE.DoubleSide });
-                const mesh = new THREE.Mesh(geometry, mat);
-                info.scene.add(mesh);
-                info.update = (t) => { mesh.rotation.x = t * 0.4; mesh.rotation.z = t * 0.2; };
-            } catch (e) {}
-
-            try {
-                const info = createSceneInfo('canvas-superquadric');
-                const geometry = new THREE.SphereGeometry(1.5, 32, 32);
-                const origPos = geometry.attributes.position.clone();
-                const mat = new THREE.MeshBasicMaterial({ color: 0xffea00, wireframe: true });
-                const mesh = new THREE.Mesh(geometry, mat);
-                info.scene.add(mesh);
-                info.update = (t) => {
-                    const pos = geometry.attributes.position;
-                    const e = Math.abs(Math.sin(t * 1.5)) * 2 + 0.2;
-                    for (let i = 0; i < pos.count; i++) {
-                        let x = origPos.getX(i), y = origPos.getY(i), z = origPos.getZ(i);
-                        pos.setXYZ(i, Math.sign(x) * Math.pow(Math.abs(x), e), Math.sign(y) * Math.pow(Math.abs(y), e), Math.sign(z) * Math.pow(Math.abs(z), e));
-                    }
-                    pos.needsUpdate = true;
-                    mesh.rotation.y = t * 0.5;
-                };
-            } catch (e) {}
-
-            try {
-                const info = createSceneInfo('canvas-polyhedra');
-                const group = new THREE.Group();
-                const ico = new THREE.Mesh(new THREE.DodecahedronGeometry(1.4), new THREE.MeshBasicMaterial({ color: 0xaa00ff, wireframe: true }));
-                const oct = new THREE.Mesh(new THREE.OctahedronGeometry(0.8), new THREE.MeshStandardMaterial({ color: 0x00ff00, wireframe: false }));
-                group.add(ico, oct);
-                info.scene.add(group);
-                info.update = (t) => { ico.rotation.x = t * 0.3; ico.rotation.y = t * 0.5; oct.rotation.x = -t * 0.6; oct.rotation.z = t * 0.4; };
-            } catch (e) {}
-
-            try {
-                const info = createSceneInfo('canvas-buckyball');
-                const geometry = new THREE.IcosahedronGeometry(1.5, 2);
-                const mat = new THREE.MeshBasicMaterial({ color: 0x0088ff, wireframe: true });
-                const mesh = new THREE.Mesh(geometry, mat);
-                info.scene.add(mesh);
-                info.update = (t) => { mesh.rotation.x = t * 0.2; mesh.rotation.y = t * 0.4; };
-            } catch (e) {}
-
-            try {
-                const info = createSceneInfo('canvas-sierpinski');
-                const group = new THREE.Group();
-                const mat = new THREE.MeshBasicMaterial({ color: 0xff2a2a, wireframe: true });
-                function buildPyramid(x, y, z, size, depth) {
-                    if (depth === 0) {
-                        const mesh = new THREE.Mesh(new THREE.TetrahedronGeometry(size), mat);
-                        mesh.position.set(x, y, z);
-                        group.add(mesh);
-                        return;
-                    }
-                    const sub = size / 2;
-                    buildPyramid(x, y + sub/2, z, sub, depth - 1);
-                    buildPyramid(x - sub, y - sub/2, z + sub, sub, depth - 1);
-                    buildPyramid(x + sub, y - sub/2, z + sub, sub, depth - 1);
-                    buildPyramid(x, y - sub/2, z - sub, sub, depth - 1);
-                }
-                buildPyramid(0, 0, 0, 1.6, 3);
-                info.scene.add(group);
-                info.update = (t) => { group.rotation.y = t * 0.4; group.rotation.x = 0.2; };
-            } catch (e) {}
-
-            try {
-                const info = createSceneInfo('canvas-organic-blob');
-                const geometry = new THREE.SphereGeometry(1.2, 48, 48);
-                const origPos = geometry.attributes.position.clone();
-                const mat = new THREE.MeshStandardMaterial({ color: 0xff00ff, roughness: 0.1, metalness: 0.8 });
-                const mesh = new THREE.Mesh(geometry, mat);
-                info.scene.add(mesh);
-                info.update = (t) => {
-                    const pos = geometry.attributes.position;
-                    for (let i = 0; i < pos.count; i++) {
-                        const u = origPos.getX(i), v = origPos.getY(i), w = origPos.getZ(i);
-                        const noise = simplex.noise3D(u * 1.5 + t, v * 1.5 + t, w * 1.5);
-                        const dist = 1.2 + noise * 0.35;
-                        const vec = new THREE.Vector3(u, v, w).normalize().multiplyScalar(dist);
-                        pos.setXYZ(i, vec.x, vec.y, vec.z);
-                    }
-                    geometry.computeVertexNormals();
-                    pos.needsUpdate = true;
-                    mesh.rotation.y = t * 0.2;
-                };
-            } catch (e) {}
-
-            try {
-                const info = createSceneInfo('canvas-audio-spike');
-                const geometry = new THREE.SphereGeometry(1.2, 32, 32);
-                const origPos = geometry.attributes.position.clone();
-                const mat = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true });
-                const mesh = new THREE.Mesh(geometry, mat);
-                info.scene.add(mesh);
-                info.update = (t) => {
-                    const pos = geometry.attributes.position;
-                    const freq = Math.abs(Math.sin(t * 5)) * 0.5 + 0.1;
-                    for (let i = 0; i < pos.count; i++) {
-                        const u = origPos.getX(i), v = origPos.getY(i), w = origPos.getZ(i);
-                        const spike = (i % 5 === 0) ? freq : 0;
-                        const vec = new THREE.Vector3(u, v, w).normalize().multiplyScalar(1.2 + spike);
-                        pos.setXYZ(i, vec.x, vec.y, vec.z);
-                    }
-                    pos.needsUpdate = true;
-                    mesh.rotation.x = t * 0.3; mesh.rotation.y = t * 0.5;
-                };
-            } catch (e) {}
-
-            try {
-                const info = createSceneInfo('canvas-particle-swarm');
-                const count = 2000;
-                const geometry = new THREE.BufferGeometry();
-                const positions = new Float32Array(count * 3);
-                const initialAngles = [];
-                for (let i = 0; i < count; i++) {
-                    const r = 1.2 + Math.random() * 0.6;
-                    const theta = Math.random() * Math.PI * 2;
-                    const phi = Math.random() * Math.PI;
-                    positions[i*3] = r * Math.sin(phi) * Math.cos(theta);
-                    positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
-                    positions[i*3+2] = r * Math.cos(phi);
-                    initialAngles.push({ r, theta, phi, speed: 0.5 + Math.random() });
-                }
-                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                const points = new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0xffea00, size: 0.03 }));
-                info.scene.add(points);
-                info.update = (t) => {
-                    const pos = geometry.attributes.position;
-                    for (let i = 0; i < count; i++) {
-                        const p = initialAngles[i];
-                        p.theta += 0.01 * p.speed;
-                        pos.setXYZ(
-                            i,
-                            p.r * Math.sin(p.phi) * Math.cos(p.theta),
-                            p.r * Math.sin(p.phi) * Math.sin(p.theta),
-                            p.r * Math.cos(p.phi)
-                        );
-                    }
-                    pos.needsUpdate = true;
-                    points.rotation.y = t * 0.1;
-                };
-            } catch (e) {}
-
-            const clock = new THREE.Clock();
-
-            function animate() {
-                requestAnimationFrame(animate);
-                const t = clock.getElapsedTime();
-
-                const width = window.innerWidth;
-                const height = window.innerHeight;
-
-                // Sync global canvas size to screen
-                if (canvas.width !== width || canvas.height !== height) {
-                    renderer.setSize(width, height, false);
-                }
-
-                // Clear the entire overarching canvas to transparent before iterating
-                renderer.setScissorTest(false);
-                renderer.setClearColor(0x000000, 0);
-                renderer.clear();
-                
-                // Re-enable scissor to isolate drawing inside each specific container box
-                renderer.setScissorTest(true);
-
-                scenesInfo.forEach(info => {
-                    if (info.update) info.update(t);
-
-                    const rect = info.element.getBoundingClientRect();
-                    
-                    // Frustum/viewport culling: skip rendering if the card is offscreen
-                    if (rect.bottom < 0 || rect.top > height || rect.right < 0 || rect.left > width) {
-                        return; 
-                    }
-
-                    const rectWidth = rect.right - rect.left;
-                    const rectHeight = rect.bottom - rect.top;
-                    const left = rect.left;
-                    const bottom = height - rect.bottom;
-
-                    // Apply coordinate restrictions for this individual scene
-                    renderer.setViewport(left, bottom, rectWidth, rectHeight);
-                    renderer.setScissor(left, bottom, rectWidth, rectHeight);
-                    
-                    // Clear the background to match original card design (#000000)
-                    renderer.setClearColor(0x000000, 1);
-                    renderer.clearColor();
-
-                    info.camera.aspect = rectWidth / rectHeight;
-                    info.camera.updateProjectionMatrix();
-
-                    renderer.render(info.scene, info.camera);
-                });
-            }
-            animate();
-        });
+        animate();
+    })();
     </script>
 </body>
 </html>
