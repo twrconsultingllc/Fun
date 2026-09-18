@@ -131,6 +131,12 @@
     color: var(--text-dim);
     font-size: 0.9rem;
   }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
   .item-body code {
     background: var(--code-bg);
     color: var(--text);
@@ -260,8 +266,57 @@
         <span class="badge open">Open</span>
       </div>
       <div class="item-body">
-        No <code>vercel.json</code> exists for either battle-bots deployment, so there's no Content-Security-Policy,
-        X-Frame-Options, or similar — everything relies on platform defaults.
+        <p>No <code>vercel.json</code> exists for either battle-bots deployment, and GitHub Pages has no
+        header-config mechanism at all — everything relies on platform defaults. Checked the actual response
+        headers (<code>curl -I</code>) on GitHub Pages, <code>funv2.vercel.app</code>, and
+        <code>fun-xi-rouge.vercel.app</code> to confirm exactly what's really missing rather than guessing:</p>
+
+        <p><b>Not actually missing:</b> <code>Strict-Transport-Security</code> (HSTS) — both GitHub Pages and
+        Vercel send this automatically by default. Nothing to fix there.</p>
+
+        <p><b>Genuinely missing, confirmed on every URL tested:</b> <code>Content-Security-Policy</code>,
+        <code>X-Frame-Options</code> (clickjacking protection), <code>X-Content-Type-Options: nosniff</code>,
+        <code>Permissions-Policy</code>, and a page-wide <code>Referrer-Policy</code> header (distinct from the
+        per-tag <code>referrerpolicy="no-referrer"</code> already added to the CDN <code>&lt;script&gt;</code>
+        tags — that only covers those specific requests, not outbound link clicks).</p>
+
+        <p><b>Scope:</b> this is a hosting-platform gap, not a per-file issue — it affects every single page
+        on the site. All GitHub Pages toys (<code>index.html</code>, <code>new.html</code>,
+        <code>threejsGallery.html</code>, <code>tricalc.html</code>, <code>araknoid.html</code>,
+        <code>pong.html</code>, <code>bots.html</code>, <code>snake.html</code>, <code>fullcircle.html</code>,
+        <code>ai-swarm.html</code>, <code>race-day.html</code>, <code>secret.html</code>, the hash-named ARG
+        page, even this report page), plus both Vercel apps' pages <em>and</em> their <code>/api/get-actions</code>
+        routes.</p>
+
+        <p><b>Options, cheapest to most complete:</b></p>
+        <ul>
+          <li><b>Meta-tag CSP per page (GitHub Pages).</b> The one workaround GitHub Pages allows:
+          <code>&lt;meta http-equiv="Content-Security-Policy" content="..."&gt;</code> in each page's
+          <code>&lt;head&gt;</code>. Covers CSP only — <code>X-Frame-Options</code>,
+          <code>Permissions-Policy</code>, and a real <code>Referrer-Policy</code> have no meta-tag equivalent
+          and simply can't be set this way. Would need adding individually to all 13 pages.</li>
+          <li><b><code>vercel.json</code> for both battle-bots apps.</b> Vercel supports a <code>headers</code>
+          block that can set all of these at once, per app. Not yet done.</li>
+          <li><b>Migrate hosting to Cloudflare Pages or Netlify (free, deploys from this same repo).</b> Both
+          support a <code>_headers</code> file for full site-wide header control. This is a hosting migration,
+          not a code change — URLs would need a custom domain to stay stable either way.</li>
+          <li><b>Accept the gap.</b> No page here has a login, payment flow, or sensitive user data, so this is
+          a defensible low-priority call, not negligence.</li>
+        </ul>
+
+        <p><b>Important caveat on the CSP option specifically:</b> every page in this repo is a single
+        self-contained file with all its JS in one inline <code>&lt;script&gt;</code> block and no build step.
+        A CSP strict enough to actually block inline-script execution (no <code>'unsafe-inline'</code>) would
+        break every page's own game logic — that needs per-script nonces or hashes, which really wants a build
+        pipeline, impractical for a no-build static site edited this often. A CSP that keeps
+        <code>'unsafe-inline'</code> (the realistic option here) would <em>not</em> stop an inline-handler-style
+        injection like the <code>battle-bots</code> V1 bug (e.g. <code>&lt;img onerror="..."&gt;</code>) —
+        <code>'unsafe-inline'</code> explicitly permits that to run. It would still block: loading a
+        <code>&lt;script src="..."&gt;</code> from an unlisted domain, <code>&lt;base&gt;</code>-tag hijacking
+        via <code>base-uri</code>, form-redirection via <code>form-action</code>, and restrict
+        <code>object-src</code>/<code>img-src</code>/<code>style-src</code>/<code>frame-src</code> to known-good
+        origins. So CSP here is real defense-in-depth against <em>other</em> injection patterns, but it is not
+        a substitute for actually escaping output — that's what fixes the V1 bug, and V2 already does it.</p>
       </div>
     </div>
 
