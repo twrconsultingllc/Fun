@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fun repo — security &amp; quality scan report</title>
+<meta name="description" content="Site-wide security and code-quality scan of the Fun repo, with fixed vs. open status for every finding.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+  .fix-note .commit {
+    color: var(--text-dim);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Site-wide security &amp; code-quality scan</h1>
+    <p class="sub">Every finding from the full repo scan, kept up to date as items get fixed.</p>
+    <div class="meta">Scan performed 2026-09-18 · repo: <code>twrconsultingllc/Fun</code></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 14%;"></div></div>
+    <div class="progress-label">2 of 14 actionable findings fixed (1 additional item confirmed clean, not counted)</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No exposed secrets or API keys anywhere</div>
+        <span class="badge fixed">Not an issue</span>
+      </div>
+      <div class="item-body">
+        The Gemini key is read from <code>process.env.GEMINI_API_KEY</code> server-side only in both
+        <code>battle-bots/api/get-actions.js</code> and <code>battle-bots-V2/api/get-actions.js</code>,
+        sent via header, and scrubbed from error messages before they reach the browser. No <code>.env</code>
+        was ever committed, in history or working tree. Confirmed clean — nothing to fix.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Open proxy / cost-abuse risk on the battle-bots API endpoints</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        <code>battle-bots-V2/api/get-actions.js</code> and the V1 equivalent had no rate limiting, auth, or
+        origin check, and accepted an arbitrary client-supplied <code>model</code> name — anyone with the
+        deployed URL could burn the owner's Gemini quota.
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> added three server-side guards to both apps — a client-requested model is only honoured
+        if it's actually in Google's live model catalog (cached 5&nbsp;min); every field that reaches the
+        prompt (<code>gameState</code>, <code>prompt</code>/<code>promptA</code>/<code>promptB</code>,
+        <code>memory</code>) is now size- and shape-checked before use; and requests without a same-host
+        Origin/Referer are rejected with <code>403</code>. Verified live on both
+        <code>funv2.vercel.app</code> and <code>fun-xi-rouge.vercel.app</code> — a spoofed cross-site
+        Origin now returns 403, and malformed payloads return a specific 400 instead of reaching Gemini.
+        <div class="commit">commit 9b582bd — "Harden battle-bots API endpoints against quota abuse"</div>
+        Real rate limiting (a hard cap on requests/minute) is intentionally <em>not</em> included — it needs
+        an external store (e.g. Upstash Redis) and a new dependency, which is a separate decision still
+        pending on the user's side.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Real XSS bug in <code>battle-bots</code> V1</div>
+        <span class="badge open">Open</span>
+      </div>
+      <div class="item-body">
+        <code>battle-bots/public/game.js</code>'s <code>addLog()</code> injects LLM-derived text into
+        <code>innerHTML</code> unescaped, and the server doesn't whitelist the <code>skill</code> field
+        before passing it through. <code>battle-bots-V2</code> already fixed both (an <code>escapeHtml()</code>
+        helper in <code>ui.js</code> and a strict <code>SKILL_CATALOG</code> whitelist server-side). Recommend
+        porting V2's fix back to V1, or retiring V1 in favor of V2.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No Subresource Integrity on pinned CDN scripts</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        three.js, gsap, ScrollTrigger, crypto-js and font-awesome were all loaded from cdnjs at a pinned
+        version but with no <code>integrity</code> attribute — a compromised CDN could have silently served
+        different code.
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> added <code>integrity="sha512-…"</code>, <code>crossorigin="anonymous"</code> and
+        <code>referrerpolicy="no-referrer"</code> to all 10 affected tags across
+        <code>index.html</code>, <code>race-day.html</code>, <code>ai-swarm.html</code>,
+        <code>threejsGallery.html</code>, <code>secret.html</code>,
+        <code>51d6d17b…html</code> and <code>tricalc.html</code>. Hashes were pulled from cdnjs's own
+        published SRI metadata and cross-verified by independently downloading and hashing each file.
+        Verified live on the deployed GitHub Pages site. <code>cdn.tailwindcss.com</code> (in
+        <code>bots.html</code>/<code>tricalc.html</code>) is intentionally left alone — it's a JIT compiler
+        with no fixed file to hash.
+        <div class="commit">commit a10bf6f — "Add Subresource Integrity and no-referrer policy to pinned CDN assets"</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No security headers configured (CSP, X-Frame-Options, etc.)</div>
+        <span class="badge open">Open</span>
+      </div>
+      <div class="item-body">
+        No <code>vercel.json</code> exists for either battle-bots deployment, so there's no Content-Security-Policy,
+        X-Frame-Options, or similar — everything relies on platform defaults.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No root-level <code>.gitignore</code></div>
+        <span class="badge open">Open</span>
+      </div>
+      <div class="item-body">
+        Currently harmless (nothing stray is tracked), but a future root-level <code>node_modules</code> or
+        <code>.env</code> wouldn't be excluded by default. Both <code>battle-bots</code> subdirectories already
+        have correct <code>.gitignore</code> files.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Deprecated Gemini SDK</div>
+        <span class="badge open">Open</span>
+      </div>
+      <div class="item-body">
+        <code>@google/generative-ai</code> (used by both battle-bots apps) is Google's deprecated Gemini SDK,
+        superseded by <code>@google/genai</code>. Not a vulnerability, just worth migrating eventually.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; bugs</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Secret ARG payoff page is broken</div>
+        <span class="badge open">Open</span>
+      </div>
+      <div class="item-body">
+        <code>51d6d17bd7a4fa0103aa27c0ef1ccfddc896f71a66f9fefc66bd58d1f98efbba.html</code> — the file
+        <code>index.html</code>'s puzzle actually redirects solvers to — has its inline <code>&lt;script&gt;</code>
+        truncated mid-statement (<code>const camera = new THREE.Persp</code>), so its WebGL scene never runs.
+        <code>secret.html</code> is a complete, untruncated copy of the same content but is never linked from
+        anywhere in the repo — looks like an orphaned source that got cut off when producing the hash-named file.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>index.html</code> CSS drift — most toy links render top-aligned instead of centered</div>
+        <span class="badge open">Open</span>
+      </div>
+      <div class="item-body">
+        The <code>#section-4, #section-5, #section-6, #section-7 { justify-content: center }</code> rule was
+        written for 4 sections and never extended as more were added. 9 of 15 link sections (Pong, Battle Bots,
+        AI Battle Bots, Snake, Full Circle 3D, AI Model Swarm, Race Day Miami, Secret) fall back to the generic
+        top-aligned rule.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>index.html</code> front-door polish</div>
+        <span class="badge open">Open</span>
+      </div>
+      <div class="item-body">
+        <code>&lt;title&gt;Two-Layer Architecture&lt;/title&gt;</code> is a stale/wrong title for the landing
+        page; no meta description, no favicon (unlike <code>race-day.html</code>, which has both).
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Real restart bug in <code>araknoid.html</code></div>
+        <span class="badge open">Open</span>
+      </div>
+      <div class="item-body">
+        <code>activateFireball()</code>'s two <code>setTimeout</code>s aren't cleared on
+        <code>startGame()</code>/game-over. Restarting mid-fireball can let a stale timer fire the special
+        early or corrupt the cooldown display in the new game.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>new.html</code> has no lose condition</div>
+        <span class="badge open">Open</span>
+      </div>
+      <div class="item-body">
+        No health/lives variable, no alien bullets, no player-collision check anywhere in <code>update()</code>.
+        The horde can descend indefinitely with zero consequence. May be intentional — unconfirmed with the
+        user.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Accessibility gaps, repeated across several pages</div>
+        <span class="badge open">Open</span>
+      </div>
+      <div class="item-body">
+        <code>user-scalable=no</code> blocks pinch-zoom on most pages (<code>race-day.html</code> proves it's
+        unnecessary); no keyboard support at all in <code>new.html</code>/<code>pong.html</code>/<code>araknoid.html</code>;
+        <code>bots.html</code>'s nine sliders have zero <code>aria-label</code>s; <code>ai-swarm.html</code>'s
+        clickable rows are unlabeled divs, not keyboard-operable; <code>index.html</code>'s secret-code input/link
+        can't be triggered by keyboard at all.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>tricalc.html</code> stub CTA and redundant reset logic</div>
+        <span class="badge open">Open</span>
+      </div>
+      <div class="item-body">
+        The "Get Coached" button is still a stub TODO that just scrolls to top instead of linking anywhere
+        real — a visible dead end for real visitors. <code>resetCalculator()</code> also triple-renders and
+        double-persists due to redundant calls.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Minor polish items</div>
+        <span class="badge open">Open</span>
+      </div>
+      <div class="item-body">
+        Repeated sound-envelope boilerplate across several games; hardcoded neon hex colors in
+        <code>index.html</code>/<code>secret.html</code> instead of CSS variables (<code>race-day.html</code>
+        already models the fix); stale <code>README.md</code> claiming test coverage is limited to
+        <code>tricalc.html</code> when 8 suites now exist; unused <code>type</code> param in
+        <code>battle-bots-V2/public/audio.js</code>'s <code>envelope()</code>; an O(n) <code>find()</code> by
+        id on a per-bullet-hit hot path in <code>engine.js</code> (fine at current scale).
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand as each item gets fixed,
+    or ask Claude to re-scan the repo and refresh this page.
+  </footer>
+
+</div>
+</body>
+</html>
