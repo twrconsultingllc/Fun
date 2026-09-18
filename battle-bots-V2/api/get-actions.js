@@ -27,10 +27,25 @@ function safeMessage(error, fallback) {
     return scrubbed.trim() || fallback;
 }
 
+// A request coming from the page's own JS always carries a same-host Origin
+// or Referer (browsers attach Origin to every POST, same-origin or not).
+// A bare curl call can omit both and slip through — this only raises the
+// bar against casual/browser-based abuse, it is not an auth boundary.
+function isSameOriginRequest(req) {
+    const host = req.headers.host;
+    if (!host) return true;
+    const candidate = req.headers.origin || req.headers.referer;
+    if (!candidate) return true;
+    try {
+        return new URL(candidate).host === host;
+    } catch {
+        return false;
+    }
+}
 
 const PREFERRED_MODEL = "gemini-3.5-flash-lite";
 
-async function listModels(apiKey) {
+async function fetchLiveModels(apiKey) {
     const response = await fetch(GEMINI_MODELS_URL, { headers: geminiHeaders(apiKey) });
     const data = await response.json();
     if (!response.ok) {
@@ -43,15 +58,65 @@ async function listModels(apiKey) {
         .map(m => m.name.replace("models/", ""));
 }
 
+// Cached across warm invocations so validating a client-requested model on
+// every tick doesn't double the calls made to Google's own API — the catalog
+// changes rarely enough that a few minutes of staleness is fine.
+let modelCatalogCache = { models: [], fetchedAt: 0 };
+const MODEL_CATALOG_TTL_MS = 5 * 60 * 1000;
+
+async function listModels(apiKey) {
+    const fresh = Date.now() - modelCatalogCache.fetchedAt < MODEL_CATALOG_TTL_MS;
+    if (fresh && modelCatalogCache.models.length) return modelCatalogCache.models;
+    const models = await fetchLiveModels(apiKey);
+    modelCatalogCache = { models, fetchedAt: Date.now() };
+    return models;
+}
+
 // No hardcoded fallback id: an id that does not exist would 404 every call.
-// Resolve against the live catalog instead, preferring a flash model.
+// Resolve against the live catalog instead, preferring a flash model. A
+// client-requested model is only honoured if it is actually in that catalog
+// — otherwise a caller could force an arbitrary (and possibly costly) model.
 async function resolveModel(requested, apiKey) {
-    if (requested) return requested;
     const models = await listModels(apiKey);
+    if (requested && models.includes(requested)) return requested;
     return models.find(m => m === PREFERRED_MODEL)
         || models.find(m => m.includes('flash-lite'))
         || models.find(m => m.includes('flash'))
         || models[0];
+}
+
+const MAX_GAME_STATE_JSON_LENGTH = 20000;
+const MAX_PROMPT_LENGTH = 400;
+const MAX_MEMORY_ENTRIES = 30;
+const MAX_MEMORY_ENTRY_LENGTH = 200;
+
+// Bounds every field that flows into the prompt, so a hostile caller can't
+// inflate token cost (or just crash the handler) with an oversized payload.
+function validationError({ teamId, gameState, prompt, memory }) {
+    if (typeof teamId !== 'string' || teamId.length === 0 || teamId.length > 40) {
+        return 'teamId must be a short string';
+    }
+    if (!gameState || typeof gameState !== 'object') {
+        return 'gameState must be an object';
+    }
+    if (JSON.stringify(gameState).length > MAX_GAME_STATE_JSON_LENGTH) {
+        return 'gameState payload too large';
+    }
+    if (prompt !== undefined && (typeof prompt !== 'string' || prompt.length > MAX_PROMPT_LENGTH)) {
+        return `prompt must be a string under ${MAX_PROMPT_LENGTH} characters`;
+    }
+    if (memory !== undefined) {
+        if (typeof memory !== 'object' || memory === null) return 'memory must be an object';
+        for (const key of ['events', 'history']) {
+            const list = memory[key];
+            if (list === undefined) continue;
+            const ok = Array.isArray(list)
+                && list.length <= MAX_MEMORY_ENTRIES
+                && list.every(e => typeof e === 'string' && e.length <= MAX_MEMORY_ENTRY_LENGTH);
+            if (!ok) return `memory.${key} is malformed or too large`;
+        }
+    }
+    return null;
 }
 
 function buildPrompt({ teamId, prompt, gameState, memory, botIds }) {
@@ -93,6 +158,10 @@ ${botIds.map(id => `    "${id}": { "skill": "SKILL_NAME", "reasoning": "under 12
 }
 
 export default async function handler(req, res) {
+    if (!isSameOriginRequest(req)) {
+        return res.status(403).json({ error: 'Forbidden' });
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (req.method === 'GET') {
@@ -109,8 +178,9 @@ export default async function handler(req, res) {
 
     const { teamId, model: requestedModel, prompt, gameState, memory } = req.body || {};
 
-    if (!teamId || !gameState) {
-        return res.status(400).json({ error: 'teamId and gameState are required' });
+    const badPayload = validationError({ teamId, gameState, prompt, memory });
+    if (badPayload) {
+        return res.status(400).json({ error: badPayload });
     }
 
     const botIds = (gameState.you?.bots || []).map(b => b.id);
