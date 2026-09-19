@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Claude Architect Lab — Study Plan</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --panel-border: #262c38;
+    --text: #e4e7ee;
+    --text-dim: #a2a9b8;
+    --accent: #f2a65a;
+    --accent-2: #7fb9e0;
+    --good: #7bc696;
+    --code-bg: #0b0d12;
+    --table-stripe: #1b202a;
+    --link: #f2a65a;
+    --max-width: 960px;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f7f7f5;
+      --panel: #ffffff;
+      --panel-border: #e3e1da;
+      --text: #24262b;
+      --text-dim: #5b5f6b;
+      --accent: #b8631f;
+      --accent-2: #1b6a94;
+      --good: #217a48;
+      --code-bg: #f1efe8;
+      --table-stripe: #f1f0eb;
+      --link: #b8631f;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    line-height: 1.65;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 220px minmax(0, var(--max-width));
+    gap: 2.5rem;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 6rem;
+  }
+
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: 1fr; }
+    nav.toc { position: static !important; order: 2; }
+  }
+
+  header.masthead {
+    grid-column: 1 / -1;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--panel-border);
+    margin-bottom: 0.5rem;
+  }
+
+  header.masthead .eyebrow {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  header.masthead h1 {
+    font-size: 2.1rem;
+    margin: 0.35rem 0 0.5rem;
+    line-height: 1.2;
+  }
+
+  header.masthead p.tagline {
+    color: var(--text-dim);
+    font-size: 1.05rem;
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  nav.toc {
+    position: sticky;
+    top: 2rem;
+    align-self: start;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.86rem;
+  }
+
+  nav.toc h2 {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin: 0 0 0.6rem;
+  }
+
+  nav.toc ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: toc;
+  }
+
+  nav.toc li {
+    counter-increment: toc;
+    margin-bottom: 0.5rem;
+  }
+
+  nav.toc a {
+    color: var(--text-dim);
+    text-decoration: none;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  nav.toc a::before {
+    content: counter(toc);
+    color: var(--accent);
+    font-weight: 700;
+    min-width: 1.2em;
+  }
+
+  nav.toc a:hover { color: var(--text); }
+
+  main { min-width: 0; }
+
+  section {
+    margin-bottom: 3rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  section:last-of-type { border-bottom: none; }
+
+  h2 {
+    font-size: 1.5rem;
+    margin: 0 0 0.3rem;
+    scroll-margin-top: 1.5rem;
+  }
+
+  h2 .kicker {
+    display: block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent-2);
+    margin-bottom: 0.4rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    margin: 1.6rem 0 0.6rem;
+    color: var(--text);
+  }
+
+  p { margin: 0.8rem 0; }
+
+  a { color: var(--link); }
+
+  code {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    background: var(--code-bg);
+    padding: 0.12em 0.4em;
+    border-radius: 4px;
+    font-size: 0.88em;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    overflow-x: auto;
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: 1em;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.2rem 0;
+    font-size: 0.92rem;
+  }
+
+  caption {
+    text-align: left;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-bottom: 0.4rem;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid var(--panel-border);
+    vertical-align: top;
+  }
+
+  th {
+    background: var(--panel);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+  }
+
+  tbody tr:nth-child(even) { background: var(--table-stripe); }
+
+  .weight {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  ul, ol { padding-left: 1.4rem; }
+  li { margin: 0.35rem 0; }
+
+  .callout {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-left: 4px solid var(--accent-2);
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    margin: 1.2rem 0;
+    font-size: 0.94rem;
+  }
+
+  .callout.decision { border-left-color: var(--good); }
+  .callout strong.label {
+    display: block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 0.35rem;
+  }
+
+  .badge {
+    display: inline-block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.15em 0.55em;
+    border-radius: 999px;
+    background: rgba(123, 198, 150, 0.15);
+    color: var(--good);
+    margin-left: 0.4rem;
+  }
+
+  .badge.risk {
+    background: rgba(242, 166, 90, 0.15);
+    color: var(--accent);
+  }
+
+  footer.page-footer {
+    grid-column: 1 / -1;
+    color: var(--text-dim);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.8rem;
+    text-align: center;
+    padding-top: 1rem;
+  }
+
+  @media print {
+    nav.toc { display: none; }
+    .layout { grid-template-columns: 1fr; }
+    section { break-inside: avoid; border-bottom: none; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <header class="masthead">
+    <span class="eyebrow">Study reference · not a repo toy · not linked from index.html</span>
+    <h1>Claude Architect Lab</h1>
+    <p class="tagline">
+      A hands-on project plan for the <strong>Claude Certified Architect — Foundations</strong>
+      exam: a small local Node project that exercises the agent loop, custom
+      tools, an MCP server, the Claude Agent SDK, structured output, and
+      context management — the things the exam actually tests.
+    </p>
+  </header>
+
+  <nav class="toc" aria-label="Table of contents">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#domains">Exam domains</a></li>
+      <li><a href="#versions">Verified package versions</a></li>
+      <li><a href="#decisions">Decisions already made</a></li>
+      <li><a href="#layout">Directory layout</a></li>
+      <li><a href="#mapping">Exam-domain mapping</a></li>
+      <li><a href="#notes">Implementation notes</a></li>
+      <li><a href="#next">Next-steps checklist</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section id="domains">
+      <h2><span class="kicker">01 · Why this project</span>Exam domains</h2>
+      <p>
+        The exam is almost entirely about building agents, tools, and MCP
+        servers — not about polished chat UIs or web deployment. A browser
+        toy (this repo's usual shape) would be a poor fit, which is why this
+        project is a local Node project instead. Weights below are from
+        public prep sources.
+      </p>
+      <table>
+        <caption>Sources: freeCodeCamp, dev.to, claudecertificationguide.com</caption>
+        <thead>
+          <tr><th>Domain</th><th>Weight</th><th>Covers</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Agentic Architecture &amp; Orchestration</td>
+            <td class="weight">27%</td>
+            <td>The full agent loop: gather context → take action → verify</td>
+          </tr>
+          <tr>
+            <td>Claude Code Configuration &amp; Workflows</td>
+            <td class="weight">20%</td>
+            <td>Local environment setup, the Claude Agent SDK, authentication, multi-agent architectures</td>
+          </tr>
+          <tr>
+            <td>Prompt Engineering &amp; Context Management</td>
+            <td class="weight">20%</td>
+            <td>Structured JSON outputs, error handling, multi-pass review loops, large-context strategies</td>
+          </tr>
+          <tr>
+            <td>Tool Design &amp; Model Context Protocol (MCP)</td>
+            <td class="weight">18%</td>
+            <td>Designing tools, building/consuming MCP servers</td>
+          </tr>
+          <tr>
+            <td>Context Management</td>
+            <td class="weight">15%</td>
+            <td>Token budgets, compaction, prompt caching</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="versions">
+      <h2><span class="kicker">02 · Verified, not recalled</span>Package versions</h2>
+      <p>
+        Third-party package names and API surfaces were checked live
+        (<code>npm view</code>, unpkg file listings, current docs) rather than
+        judged from training-data memory.
+      </p>
+      <table>
+        <thead>
+          <tr><th>Package</th><th>Version</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>@anthropic-ai/sdk</code></td>
+            <td>0.127.0</td>
+            <td><span class="badge">Verified live on npm</span></td>
+          </tr>
+          <tr>
+            <td><code>@anthropic-ai/claude-agent-sdk</code></td>
+            <td>0.3.278</td>
+            <td>
+              <span class="badge">Verified live on npm</span>
+              <span class="badge risk">Ships multiple versions/week — re-check before implementing</span>
+            </td>
+          </tr>
+          <tr>
+            <td><code>@modelcontextprotocol/sdk</code> (v1)</td>
+            <td>1.30.0</td>
+            <td><span class="badge">Verified live — chosen SDK</span></td>
+          </tr>
+          <tr>
+            <td><code>@modelcontextprotocol/server</code> / <code>client</code> (v2)</td>
+            <td>2.0.0</td>
+            <td><span class="badge risk">Exists, GA — API shape not reliably verified this session</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Confirmed Agent SDK config surface</h3>
+      <ul>
+        <li><code>systemPrompt</code> — omit, <code>{ type: "preset", preset: "claude_code", append: "..." }</code>, or a custom string</li>
+        <li><code>allowedTools</code> / <code>disallowedTools</code> — tool names, <code>mcp__server__tool</code> patterns, globs</li>
+        <li><code>permissionMode</code> — six values: <code>default</code>, <code>dontAsk</code>, <code>acceptEdits</code>, <code>bypassPermissions</code>, <code>plan</code>, <code>auto</code></li>
+        <li><code>hooks</code> — 30+ events including <code>PreToolUse</code> / <code>PostToolUse</code>, matcher-based callbacks</li>
+        <li><code>mcpServers</code> — stdio (<code>{command, args, env}</code>), remote (<code>http</code>/<code>sse</code>), or in-process via <code>createSdkMcpServer</code></li>
+        <li><code>agents</code> — subagent definitions (also loadable from <code>.claude/agents/*.md</code>)</li>
+      </ul>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="kicker">03 · Locked in</span>Decisions already made</h2>
+      <div class="callout decision">
+        <strong class="label">Scope &amp; shape</strong>
+        Local Node project, no web/Vercel deployment (the exam doesn't test
+        deployment) · full scope, not a stripped-down subset.
+      </div>
+      <div class="callout decision">
+        <strong class="label">MCP SDK version</strong>
+        <code>@modelcontextprotocol/sdk</code> v1 — stable and fully verified,
+        including an in-memory transport for zero-subprocess tests. v2 exists
+        but its API shape wasn't reliably verifiable this session, so it's
+        deferred rather than guessed at.
+      </div>
+      <div class="callout decision">
+        <strong class="label">Other service</strong>
+        One local MCP server — no external account needed.
+      </div>
+      <div class="callout decision">
+        <strong class="label">Default model for lab runs</strong>
+        Sonnet 5 for day-to-day iteration; swap to Opus 5 for an occasional
+        polished run.
+      </div>
+      <div class="callout decision">
+        <strong class="label">Testing</strong>
+        <code>claude-architect-lab/tests/</code> is a second, independently
+        conventioned <code>tests/</code> directory (plain <code>node:test</code>,
+        no jsdom, no HTML page) — kept unregistered in the root
+        <code>tests/run.mjs</code> <code>SUITES</code> array.
+      </div>
+    </section>
+
+    <section id="layout">
+      <h2><span class="kicker">04 · The project</span>Directory layout</h2>
+      <pre><code>claude-architect-lab/                     — own package; NOT linked from index.html or root tests/
+  package.json                            type:"module"; scripts: test, lab:1..lab:6
+  .env.example                            ANTHROPIC_API_KEY=
+  README.md                               study crib sheet: file → exam domain → weight; setup/run instructions
+
+  src/
+    tools/
+      search-repo-files.mjs               grep *.html in repo root; tight JSON schema; real error handling
+      run-lab-tests.mjs                   shells out to THIS package's own `node --test` (not the root suite)
+    agent-loop.mjs                        hand-rolled gather→act→verify loop, raw @anthropic-ai/sdk, max-turn cap,
+                                           a distinct post-hoc "verify" call against the original task
+    structured-output.mjs                 forces a structured JSON response via `output_config.format`
+                                           (current API, not the deprecated forced-tool_choice trick) + bounded retry
+    review-loop.mjs                       draft → self-critique → revise chain (prompt chaining pattern)
+    context-budget.mjs                    growing-conversation simulation; usage tracking; compaction trigger +
+                                           before/after token counts; PLUS a prompt-caching before/after using one
+                                           cache_control breakpoint; README note on Anthropic's managed alternatives
+                                           (compact-2026-01-12 compaction beta, clear_tool_uses_20250919)
+    orchestrator.mjs                      decomposes a task, dispatches two worker runs of agent-loop.mjs with
+                                           narrower system prompts/tool subsets, merges results
+
+  mcp-server/
+    server.mjs                            @modelcontextprotocol/sdk v1.30.0: McpServer + registerTool +
+                                           StdioServerTransport; exposes search-repo-files.mjs as an MCP tool
+                                           ("same tool, two transports")
+
+  sdk-version/
+    agent.mjs                             @anthropic-ai/claude-agent-sdk query(); systemPrompt (preset+append),
+                                           allowedTools, permissionMode, one PreToolUse hook, mcpServers pointing
+                                           at mcp-server/server.mjs, and the .claude/agents/lab-reviewer.md subagent
+                                           — scoped to "one thing per concept" to keep the SDK-vs-hand-rolled contrast clear
+
+  .claude/
+    agents/
+      lab-reviewer.md                     one project-level subagent, usable from sdk-version/agent.mjs AND Claude Code itself
+
+  tests/                                  node:test + node:assert, no added framework, NEVER calls the live API
+    agent-loop.test.mjs                   loop logic via stubbed Messages.create: turn cap, verify-phase branching
+    structured-output.test.mjs            retry-on-invalid-output logic
+    context-budget.test.mjs               compaction trigger threshold math; before/after token accounting
+    mcp-server.test.mjs                   InMemoryTransport.createLinkedPair(): real Client&lt;-&gt;Server, listTools/callTool
+    hooks.test.mjs                        sdk-version's PreToolUse callback called directly with fabricated input
+    README.md                             states plainly: sdk-version/agent.mjs is manual-run-and-eyeball only</code></pre>
+    </section>
+
+    <section id="mapping">
+      <h2><span class="kicker">05 · Cross-reference</span>Exam-domain mapping</h2>
+      <table>
+        <thead>
+          <tr><th>Domain (weight)</th><th>Covered by</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Agentic Architecture &amp; Orchestration (27%)</td>
+            <td><code>agent-loop.mjs</code> (explicit gather/act/verify), <code>orchestrator.mjs</code> (multi-agent decompose/dispatch/merge)</td>
+          </tr>
+          <tr>
+            <td>Claude Code Configuration &amp; Workflows (20%)</td>
+            <td><code>sdk-version/agent.mjs</code> (Agent SDK config, hooks, permission modes, authentication), <code>.claude/agents/lab-reviewer.md</code></td>
+          </tr>
+          <tr>
+            <td>Prompt Engineering &amp; Context Management (20%)</td>
+            <td><code>structured-output.mjs</code> (structured JSON + retry/error-handling), <code>review-loop.mjs</code> (multi-pass review)</td>
+          </tr>
+          <tr>
+            <td>Tool Design &amp; MCP (18%)</td>
+            <td><code>tools/*.mjs</code> (schema design, error handling), <code>mcp-server/server.mjs</code>, <code>sdk-version/agent.mjs</code>'s <code>mcpServers</code> wiring</td>
+          </tr>
+          <tr>
+            <td>Context Management (15%)</td>
+            <td><code>context-budget.mjs</code> (compaction + prompt caching, with a note on Anthropic's managed alternatives)</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="notes">
+      <h2><span class="kicker">06 · Watch for these</span>Key implementation notes</h2>
+      <ul>
+        <li><strong>API key:</strong> <code>.env</code> inside <code>claude-architect-lab/</code>, already covered by the root <code>.gitignore</code>'s bare <code>.env</code>/<code>.env.*</code> patterns. Loaded via Node's built-in <code>process.loadEnvFile()</code> — no <code>dotenv</code> dependency.</li>
+        <li><strong>Minimal dependencies:</strong> <code>@anthropic-ai/sdk</code>, <code>@anthropic-ai/claude-agent-sdk</code>, <code>@modelcontextprotocol/sdk</code>, <code>zod</code> (MCP tool schemas). No separate JSON-schema validator — <code>output_config.format</code> and MCP schemas already cover it.</li>
+        <li><strong><code>run-lab-tests.mjs</code></strong> must shell out to this package's own <code>node --test</code>, never the root <code>tests/</code> suite — the root harness is jsdom/page-shaped and unrelated to this project.</li>
+        <li><strong>Not a browser toy:</strong> this project is not linked from <code>index.html</code>, and CLAUDE.md's "verify the live deployed site" rule does not apply to it.</li>
+        <li><strong>No live API calls in automated tests:</strong> loop/logic tests stub <code>Messages.create</code>; <code>sdk-version/agent.mjs</code>'s true end-to-end behavior is manual-run-and-eyeball only, same spirit as <code>battle-bots-v2.core.test.mjs</code>.</li>
+      </ul>
+    </section>
+
+    <section id="next">
+      <h2><span class="kicker">07 · When it's time to build</span>Next-steps checklist</h2>
+      <ol>
+        <li><code>cd claude-architect-lab &amp;&amp; npm install</code></li>
+        <li><code>npm test</code> — every suite passes with <strong>zero</strong> network calls</li>
+        <li>Manually run each milestone against the real API with <code>ANTHROPIC_API_KEY</code> set: <code>agent-loop.mjs</code>, <code>mcp-server/server.mjs</code> (+ a client run), <code>structured-output.mjs</code>, <code>review-loop.mjs</code>, <code>context-budget.mjs</code> (confirm before/after token counts for both compaction and caching), <code>orchestrator.mjs</code>, <code>sdk-version/agent.mjs</code> (confirm the hook fires and the MCP tool is reachable)</li>
+        <li>Re-check <code>npm view @anthropic-ai/claude-agent-sdk version</code> immediately before implementation, given how fast that package ships</li>
+        <li>Read the finished README top to bottom as a study session — for each row in the exam-domain table, confirm the file actually demonstrates the concept, not just that it runs</li>
+      </ol>
+    </section>
+
+  </main>
+
+  <footer class="page-footer">
+    Claude Architect Lab study plan · written for /workspaces/Fun · not part of the toy gallery
+  </footer>
+
+</div>
+</body>
+</html>
