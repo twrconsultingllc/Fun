@@ -249,6 +249,11 @@
   }
 
   .callout.decision { border-left-color: var(--good); }
+  .callout.warning {
+    border-left-color: var(--accent);
+    background: rgba(242, 166, 90, 0.08);
+    font-size: 0.98rem;
+  }
   .callout strong.label {
     display: block;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -304,9 +309,22 @@
       A hands-on project plan for the <strong>Claude Certified Architect — Foundations</strong>
       exam: a small local Node project that exercises the agent loop, custom
       tools, an MCP server, the Claude Agent SDK, structured output, and
-      context management — the things the exam actually tests.
+      context management — the things the exam actually tests. The running
+      example throughout is a state-by-state <strong>money transmitter
+      licensing (MTL)</strong> expansion assistant.
     </p>
   </header>
+
+  <div class="callout warning" style="grid-column: 1 / -1;">
+    <strong class="label">Read this first</strong>
+    Every money-transmitter-licensing figure in this project — surety bond
+    ranges, net worth requirements, review times — is a <strong>synthetic,
+    illustrative sample</strong> built only to give the agents something
+    realistic-shaped to reason about. None of it is a source of truth. Real
+    licensing decisions must be verified against
+    <a href="https://www.nmlsconsumeraccess.org/" rel="noopener">NMLS</a> and
+    each state's actual regulator — not this dataset.
+  </div>
 
   <nav class="toc" aria-label="Table of contents">
     <h2>On this page</h2>
@@ -314,7 +332,9 @@
       <li><a href="#domains">Exam domains</a></li>
       <li><a href="#versions">Verified package versions</a></li>
       <li><a href="#decisions">Decisions already made</a></li>
+      <li><a href="#dataset">The MTL sample dataset</a></li>
       <li><a href="#layout">Directory layout</a></li>
+      <li><a href="#task">The example task</a></li>
       <li><a href="#mapping">Exam-domain mapping</a></li>
       <li><a href="#notes">Implementation notes</a></li>
       <li><a href="#next">Next-steps checklist</a></li>
@@ -448,55 +468,115 @@
       </div>
     </section>
 
+    <section id="dataset">
+      <h2><span class="kicker">04 · What the agents reason about</span>The MTL sample dataset</h2>
+      <p>
+        One JSON file, <code>mcp-server/data/state-mtl-requirements.json</code>,
+        covers <strong>eight to ten states</strong> — California, New York,
+        Texas, Florida, Illinois, Washington, Massachusetts, Georgia,
+        Colorado, and Arizona. Every record has the same shape, and every
+        record repeats the same warning rather than naming a specific
+        regulator (regulator names and requirements change, and inventing a
+        plausible-sounding agency name would be worse than not naming one):
+      </p>
+      <pre><code>{
+  "state": "California",
+  "licenseName": "Money Transmitter License (sample)",
+  "suretyBondRangeUsd": "50,000-500,000 (sample range only)",
+  "netWorthRequirementUsd": "100,000 (sample only)",
+  "nmlsRequired": true,
+  "typicalReviewTimeWeeks": "12-20 (sample only)",
+  "notes": "Illustrative sample only — verify against NMLS and the state regulator before relying on this."
+}</code></pre>
+      <p>
+        A top-level <code>"disclaimer"</code> key repeats the same warning
+        once for the whole file. A state simply <em>not present</em> in the
+        sample set is a feature, not a bug: it forces the tools below to say
+        "unknown — needs real research" instead of ever guessing.
+      </p>
+    </section>
+
     <section id="layout">
-      <h2><span class="kicker">04 · The project</span>Directory layout</h2>
+      <h2><span class="kicker">05 · The project</span>Directory layout</h2>
       <pre><code>claude-architect-lab/                     — own package; NOT linked from index.html or root tests/
   package.json                            type:"module"; scripts: test, lab:1..lab:6
   .env.example                            ANTHROPIC_API_KEY=
   README.md                               study crib sheet: file → exam domain → weight; setup/run instructions
 
+  mcp-server/
+    data/
+      state-mtl-requirements.json         the sample dataset — see previous section
+    server.mjs                            @modelcontextprotocol/sdk v1.30.0: McpServer + registerTool +
+                                           StdioServerTransport; exposes get_state_requirements + gap_analysis as
+                                           MCP tools, PLUS one MCP resource (mtl://dataset) — tools-vs-resources
+                                           contrast: a resource for "pull all context up front," a tool for
+                                           "look up or compute one thing"
+
   src/
     tools/
-      search-repo-files.mjs               grep *.html in repo root; tight JSON schema; real error handling
-      run-lab-tests.mjs                   shells out to THIS package's own `node --test` (not the root suite)
-    agent-loop.mjs                        hand-rolled gather→act→verify loop, raw @anthropic-ai/sdk, max-turn cap,
-                                           a distinct post-hoc "verify" call against the original task
-    structured-output.mjs                 forces a structured JSON response via `output_config.format`
+      get-state-requirements.mjs          dataset lookup for one state; tight JSON schema; real error handling
+      gap-analysis.mjs                    composes lookups into a diff for target states; flags any state not
+                                           in the sample set as "unknown — needs real research," never guesses
+      validate-expansion-checklist.mjs    deterministic code check: every target state present, no null
+                                           required fields, no duplicates — the "verify" tool
+    agent-loop.mjs                        hand-rolled gather→act→verify loop, raw @anthropic-ai/sdk, max-turn cap;
+                                           task: "licensed in CA/NY, expanding into TX/FL/IL — produce a checklist"
+    structured-output.mjs                 forces the final checklist into structured JSON via `output_config.format`
                                            (current API, not the deprecated forced-tool_choice trick) + bounded retry
-    review-loop.mjs                       draft → self-critique → revise chain (prompt chaining pattern)
-    context-budget.mjs                    growing-conversation simulation; usage tracking; compaction trigger +
-                                           before/after token counts; PLUS a prompt-caching before/after using one
-                                           cache_control breakpoint; README note on Anthropic's managed alternatives
-                                           (compact-2026-01-12 compaction beta, clear_tool_uses_20250919)
-    orchestrator.mjs                      decomposes a task, dispatches two worker runs of agent-loop.mjs with
-                                           narrower system prompts/tool subsets, merges results
-
-  mcp-server/
-    server.mjs                            @modelcontextprotocol/sdk v1.30.0: McpServer + registerTool +
-                                           StdioServerTransport; exposes search-repo-files.mjs as an MCP tool
-                                           ("same tool, two transports")
+    review-loop.mjs                       draft → self-critique → revise chain that turns the checklist into a
+                                           short prose compliance memo (prompt chaining pattern)
+    context-budget.mjs                    looks up every state one by one; usage tracking; compaction trigger +
+                                           before/after token counts; PLUS a prompt-caching before/after — the
+                                           whole dataset sits behind one cache_control breakpoint in the system
+                                           prompt, a realistic "static reference data queried repeatedly" case;
+                                           README note on Anthropic's managed alternatives (compact-2026-01-12
+                                           compaction beta, clear_tool_uses_20250919)
+    orchestrator.mjs                      decomposes "help us expand into 5 target states" into a research worker
+                                           (get_state_requirements/gap_analysis only) and a writing worker (only
+                                           sees the research worker's output, drafts the memo) — merges both
 
   sdk-version/
     agent.mjs                             @anthropic-ai/claude-agent-sdk query(); systemPrompt (preset+append),
                                            allowedTools, permissionMode, one PreToolUse hook, mcpServers pointing
-                                           at mcp-server/server.mjs, and the .claude/agents/lab-reviewer.md subagent
-                                           — scoped to "one thing per concept" to keep the SDK-vs-hand-rolled contrast clear
+                                           at mcp-server/server.mjs, and the .claude/agents/mtl-compliance-reviewer.md
+                                           subagent — scoped to "one thing per concept" to keep the SDK-vs-hand-rolled
+                                           contrast clear
 
   .claude/
     agents/
-      lab-reviewer.md                     one project-level subagent, usable from sdk-version/agent.mjs AND Claude Code itself
+      mtl-compliance-reviewer.md          one project-level subagent that reviews a drafted checklist/memo for
+                                           completeness — deliberate contrast with validate-expansion-checklist.mjs:
+                                           same "verify" idea, one via code, one via an LLM subagent
 
   tests/                                  node:test + node:assert, no added framework, NEVER calls the live API
     agent-loop.test.mjs                   loop logic via stubbed Messages.create: turn cap, verify-phase branching
     structured-output.test.mjs            retry-on-invalid-output logic
-    context-budget.test.mjs               compaction trigger threshold math; before/after token accounting
-    mcp-server.test.mjs                   InMemoryTransport.createLinkedPair(): real Client&lt;-&gt;Server, listTools/callTool
+    context-budget.test.mjs               compaction trigger threshold math; before/after token + cache accounting
+    mcp-server.test.mjs                   InMemoryTransport.createLinkedPair(): real Client&lt;-&gt;Server against the
+                                           actual tools AND the mtl://dataset resource
     hooks.test.mjs                        sdk-version's PreToolUse callback called directly with fabricated input
     README.md                             states plainly: sdk-version/agent.mjs is manual-run-and-eyeball only</code></pre>
     </section>
 
+    <section id="task">
+      <h2><span class="kicker">06 · Putting it together</span>The example task</h2>
+      <p>
+        Every milestone shares one scenario: <em>"We're licensed in
+        California and New York. We want to expand into Texas, Florida, and
+        Illinois — produce an expansion checklist and flag any gaps."</em>
+        That single scenario is small enough to hold in your head, but real
+        enough to force every exam-tested concept to earn its place:
+      </p>
+      <ul>
+        <li><strong>Gather:</strong> <code>get_state_requirements</code> looks up one state at a time from the sample dataset.</li>
+        <li><strong>Act:</strong> <code>gap_analysis</code> turns a list of target states into a diff — what's needed, what's already covered, what's simply not in the sample data yet.</li>
+        <li><strong>Verify, twice, two ways:</strong> <code>validate-expansion-checklist.mjs</code> checks the checklist deterministically (code); the <code>mtl-compliance-reviewer</code> subagent reviews it a second way (an LLM's judgment) — the page's built-in illustration of "verification doesn't have to mean asking the model again."</li>
+        <li><strong>Split the work:</strong> the orchestrator's research worker only ever sees the lookup tools; its writing worker only ever sees the research worker's structured findings — never the raw tool calls. That narrowing is itself the "structuring multi-agent architectures" exam point, not incidental plumbing.</li>
+      </ul>
+    </section>
+
     <section id="mapping">
-      <h2><span class="kicker">05 · Cross-reference</span>Exam-domain mapping</h2>
+      <h2><span class="kicker">07 · Cross-reference</span>Exam-domain mapping</h2>
       <table>
         <thead>
           <tr><th>Domain (weight)</th><th>Covered by</th></tr>
@@ -504,41 +584,41 @@
         <tbody>
           <tr>
             <td>Agentic Architecture &amp; Orchestration (27%)</td>
-            <td><code>agent-loop.mjs</code> (explicit gather/act/verify), <code>orchestrator.mjs</code> (multi-agent decompose/dispatch/merge)</td>
+            <td><code>agent-loop.mjs</code> (explicit gather/act/verify over the CA/NY → TX/FL/IL scenario), <code>orchestrator.mjs</code> (research worker + writing worker, merged)</td>
           </tr>
           <tr>
             <td>Claude Code Configuration &amp; Workflows (20%)</td>
-            <td><code>sdk-version/agent.mjs</code> (Agent SDK config, hooks, permission modes, authentication), <code>.claude/agents/lab-reviewer.md</code></td>
+            <td><code>sdk-version/agent.mjs</code> (Agent SDK config, hooks, permission modes, authentication), <code>.claude/agents/mtl-compliance-reviewer.md</code></td>
           </tr>
           <tr>
             <td>Prompt Engineering &amp; Context Management (20%)</td>
-            <td><code>structured-output.mjs</code> (structured JSON + retry/error-handling), <code>review-loop.mjs</code> (multi-pass review)</td>
+            <td><code>structured-output.mjs</code> (the checklist as structured JSON + retry/error-handling), <code>review-loop.mjs</code> (checklist → prose memo, multi-pass)</td>
           </tr>
           <tr>
             <td>Tool Design &amp; MCP (18%)</td>
-            <td><code>tools/*.mjs</code> (schema design, error handling), <code>mcp-server/server.mjs</code>, <code>sdk-version/agent.mjs</code>'s <code>mcpServers</code> wiring</td>
+            <td><code>tools/get-state-requirements.mjs</code>, <code>tools/gap-analysis.mjs</code>, <code>tools/validate-expansion-checklist.mjs</code> (schema design, error handling), <code>mcp-server/server.mjs</code> (tools + the <code>mtl://dataset</code> resource), <code>sdk-version/agent.mjs</code>'s <code>mcpServers</code> wiring</td>
           </tr>
           <tr>
             <td>Context Management (15%)</td>
-            <td><code>context-budget.mjs</code> (compaction + prompt caching, with a note on Anthropic's managed alternatives)</td>
+            <td><code>context-budget.mjs</code> (compaction across all ten state lookups + prompt caching of the dataset, with a note on Anthropic's managed alternatives)</td>
           </tr>
         </tbody>
       </table>
     </section>
 
     <section id="notes">
-      <h2><span class="kicker">06 · Watch for these</span>Key implementation notes</h2>
+      <h2><span class="kicker">08 · Watch for these</span>Key implementation notes</h2>
       <ul>
         <li><strong>API key:</strong> <code>.env</code> inside <code>claude-architect-lab/</code>, already covered by the root <code>.gitignore</code>'s bare <code>.env</code>/<code>.env.*</code> patterns. Loaded via Node's built-in <code>process.loadEnvFile()</code> — no <code>dotenv</code> dependency.</li>
         <li><strong>Minimal dependencies:</strong> <code>@anthropic-ai/sdk</code>, <code>@anthropic-ai/claude-agent-sdk</code>, <code>@modelcontextprotocol/sdk</code>, <code>zod</code> (MCP tool schemas). No separate JSON-schema validator — <code>output_config.format</code> and MCP schemas already cover it.</li>
-        <li><strong><code>run-lab-tests.mjs</code></strong> must shell out to this package's own <code>node --test</code>, never the root <code>tests/</code> suite — the root harness is jsdom/page-shaped and unrelated to this project.</li>
+        <li><strong>No invented regulator names:</strong> the dataset's <code>notes</code> field always points to NMLS/the state regulator rather than naming a specific agency, so nothing in it can be mistaken for a current, authoritative reference.</li>
         <li><strong>Not a browser toy:</strong> this project is not linked from <code>index.html</code>, and CLAUDE.md's "verify the live deployed site" rule does not apply to it.</li>
         <li><strong>No live API calls in automated tests:</strong> loop/logic tests stub <code>Messages.create</code>; <code>sdk-version/agent.mjs</code>'s true end-to-end behavior is manual-run-and-eyeball only, same spirit as <code>battle-bots-v2.core.test.mjs</code>.</li>
       </ul>
     </section>
 
     <section id="next">
-      <h2><span class="kicker">07 · When it's time to build</span>Next-steps checklist</h2>
+      <h2><span class="kicker">09 · When it's time to build</span>Next-steps checklist</h2>
       <ol>
         <li><code>cd claude-architect-lab &amp;&amp; npm install</code></li>
         <li><code>npm test</code> — every suite passes with <strong>zero</strong> network calls</li>

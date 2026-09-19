@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Licensing Expansion Assistant</title>
+<style>
+  :root {
+    --bg: #0c1013;
+    --bg-2: #11161b;
+    --panel: #161d24;
+    --panel-border: #2a333c;
+    --text: #eef1f4;
+    --text-dim: #a7b1ba;
+    --accent: #4fd1a5;
+    --accent-2: #f2a65a;
+    --warn-bg: rgba(242, 166, 90, 0.1);
+    --warn-border: #f2a65a;
+    --link: #4fd1a5;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f6f8f7;
+      --bg-2: #ffffff;
+      --panel: #ffffff;
+      --panel-border: #dfe5e1;
+      --text: #16211c;
+      --text-dim: #4d5b56;
+      --accent: #0f8f63;
+      --accent-2: #b8631f;
+      --warn-bg: rgba(184, 99, 31, 0.08);
+      --warn-border: #b8631f;
+      --link: #0f8f63;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+  }
+
+  a { color: var(--link); }
+
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 1.5rem 5rem;
+  }
+
+  header.hero {
+    background: linear-gradient(180deg, var(--bg-2), var(--bg) 85%);
+    border-bottom: 1px solid var(--panel-border);
+    padding: 4rem 1.5rem 3rem;
+    text-align: center;
+  }
+
+  header.hero .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 0.8rem;
+  }
+
+  header.hero h1 {
+    font-size: clamp(1.9rem, 4vw, 2.7rem);
+    margin: 0 0 1rem;
+    line-height: 1.2;
+    max-width: 20ch;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  header.hero p.sub {
+    font-size: 1.15rem;
+    color: var(--text-dim);
+    max-width: 56ch;
+    margin: 0 auto;
+  }
+
+  .disclaimer {
+    max-width: 880px;
+    margin: -1.5rem auto 3rem;
+    padding: 0 1.5rem;
+  }
+
+  .disclaimer-box {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    border-radius: 10px;
+    padding: 1.1rem 1.4rem;
+    font-size: 0.95rem;
+  }
+
+  .disclaimer-box strong.tag {
+    display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--warn-border);
+    margin-bottom: 0.4rem;
+  }
+
+  section {
+    padding: 3rem 0;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  section:last-of-type { border-bottom: none; }
+
+  section > .eyebrow {
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent-2);
+    margin-bottom: 0.6rem;
+  }
+
+  h2 {
+    font-size: 1.6rem;
+    margin: 0 0 1rem;
+  }
+
+  p { margin: 0.9rem 0; color: var(--text); }
+  p.lede { font-size: 1.08rem; color: var(--text-dim); max-width: 65ch; }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 1.1rem;
+    margin-top: 1.5rem;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 1.4rem 1.3rem;
+  }
+
+  .card .icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.7rem;
+    display: block;
+  }
+
+  .card h3 {
+    font-size: 1.05rem;
+    margin: 0 0 0.5rem;
+  }
+
+  .card p {
+    font-size: 0.92rem;
+    color: var(--text-dim);
+    margin: 0;
+  }
+
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    margin-top: 1.5rem;
+  }
+
+  .flow .step {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 0.9rem 1.1rem;
+    flex: 1 1 160px;
+    font-size: 0.92rem;
+  }
+
+  .flow .step .n {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 800;
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .flow .arrow {
+    color: var(--text-dim);
+    font-size: 1.3rem;
+  }
+
+  ul.plain { list-style: none; padding: 0; margin: 1.2rem 0 0; }
+  ul.plain li {
+    padding: 0.6rem 0 0.6rem 1.7rem;
+    position: relative;
+    color: var(--text);
+    border-bottom: 1px solid var(--panel-border);
+  }
+  ul.plain li:last-child { border-bottom: none; }
+  ul.plain li::before {
+    content: "✓";
+    color: var(--accent);
+    font-weight: 800;
+    position: absolute;
+    left: 0;
+  }
+
+  .callout-final {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-left: 4px solid var(--warn-border);
+    border-radius: 8px;
+    padding: 1.2rem 1.4rem;
+    font-size: 0.95rem;
+  }
+
+  footer.page-footer {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.82rem;
+    padding: 2.5rem 1.5rem 0;
+  }
+
+  @media print {
+    header.hero { background: none; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="eyebrow">Concept overview · not a live product</div>
+    <h1>A licensing research team that never gets tired of state regulations</h1>
+    <p class="sub">
+      An assistant system that does the first pass of state-by-state money
+      transmitter licensing research automatically — so your team spends its
+      time reviewing and deciding, not hunting for requirements.
+    </p>
+  </header>
+
+  <div class="disclaimer">
+    <div class="disclaimer-box">
+      <strong class="tag">Please read before anything else</strong>
+      This is a decision-support tool, not a substitute for licensed
+      compliance or legal review. It does not make licensing determinations
+      and it is not a source of current regulatory figures. Every
+      recommendation it produces should be verified by your compliance team
+      against <a href="https://www.nmlsconsumeraccess.org/" rel="noopener">NMLS</a>
+      and each state's own regulator before you act on it.
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <section id="problem">
+      <span class="eyebrow">The problem</span>
+      <h2>Expanding into a new state means redoing the same research, every time</h2>
+      <p class="lede">
+        Every state has its own money transmitter licensing rules — bonding
+        requirements, minimum net worth, review timelines, exemptions. When a
+        business wants to expand into new states, someone has to research
+        each one, keep the findings organized, and turn that into something
+        leadership and legal can act on. It's repetitive, easy to get
+        inconsistent between states, and it eats hours that could go toward
+        actually reviewing the judgment calls that matter.
+      </p>
+    </section>
+
+    <section id="solution">
+      <span class="eyebrow">The solution</span>
+      <h2>A small team of assistants, each with one job</h2>
+      <p class="lede">
+        Instead of one person doing everything by hand, four narrowly-scoped
+        assistants each handle one part of the process — the way you'd split
+        the work across a research analyst, a checklist owner, a writer, and
+        a second reviewer.
+      </p>
+      <div class="cards">
+        <div class="card">
+          <span class="icon">🔎</span>
+          <h3>Research Assistant</h3>
+          <p>Looks up what a given state requires — bonding, net worth, typical review time — instantly, instead of someone searching state by state.</p>
+        </div>
+        <div class="card">
+          <span class="icon">📋</span>
+          <h3>Checklist Builder</h3>
+          <p>Turns a list of target states into one clear go/no-go packet: what's covered, what's missing, and what still needs real research.</p>
+        </div>
+        <div class="card">
+          <span class="icon">✍️</span>
+          <h3>Memo Writer</h3>
+          <p>Drafts a short, readable summary memo from the checklist — the kind of write-up you'd hand to a stakeholder or put in front of legal.</p>
+        </div>
+        <div class="card">
+          <span class="icon">🛡️</span>
+          <h3>Second-Look Reviewer</h3>
+          <p>Checks the checklist and memo for completeness before a human ever sees it — every target state accounted for, nothing silently skipped.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="flow">
+      <span class="eyebrow">How it fits your workflow</span>
+      <h2>You ask a question in plain language, you get a reviewed packet back</h2>
+      <div class="flow">
+        <div class="step"><span class="n">1</span><br>"We're licensed in California and New York. We want to expand into Texas, Florida, and Illinois."</div>
+        <span class="arrow">→</span>
+        <div class="step"><span class="n">2</span><br>The research assistant looks up each target state and flags anything not yet in its knowledge base.</div>
+        <span class="arrow">→</span>
+        <div class="step"><span class="n">3</span><br>The checklist builder turns that into one consistent packet, state by state.</div>
+        <span class="arrow">→</span>
+        <div class="step"><span class="n">4</span><br>The reviewer double-checks nothing was missed, then the memo writer drafts the summary for your team.</div>
+      </div>
+    </section>
+
+    <section id="value">
+      <span class="eyebrow">Why it's worth it</span>
+      <h2>What you get</h2>
+      <ul class="plain">
+        <li>A consistent first draft for every state, instead of whatever one researcher happened to find that week</li>
+        <li>Far less manual lookup time before your compliance team's real review even starts</li>
+        <li>A packet that's already been checked once before it reaches a person — nothing obviously missing</li>
+        <li>A clear, honest "we don't know yet" whenever a state falls outside what the assistants have researched, instead of a guess dressed up as an answer</li>
+      </ul>
+    </section>
+
+    <section id="caveat">
+      <span class="eyebrow">What this is not</span>
+      <h2>Judgment still belongs to your team</h2>
+      <div class="callout-final">
+        <p style="margin-top:0;">
+          These assistants produce a first draft, not a final answer. They
+          don't replace your compliance officers, your outside counsel, or
+          your regulators — they take the repetitive research off your
+          team's plate so the people with real judgment can spend their time
+          on the calls that actually need it. Every packet they produce
+          should be reviewed by a qualified person and verified against
+          current NMLS and state-regulator sources before anyone acts on it.
+        </p>
+      </div>
+    </section>
+
+  </div>
+
+  <footer class="page-footer">
+    Concept overview for an internal exam-study project · not a deployed product · not part of the public toy gallery
+  </footer>
+
+</body>
+</html>
