@@ -282,6 +282,9 @@
         <code>innerHTML</code>, as defense-in-depth. Verified in Node against a simulated malicious
         <code>skill</code> payload: the server now returns <code>SNIPE_STANCE</code> instead of the injected
         string, and even a hypothetical bypass would render as inert HTML entities, not executable markup.
+        Verified live on <code>fun-xi-rouge.vercel.app</code> — <code>curl</code>'d the deployed
+        <code>game.js</code> and confirmed it contains the <code>escapeHtml()</code> fix, and confirmed
+        <code>/api/get-actions</code> still responds normally (GET model list) after the deploy.
         <div class="commit">commit d432917 — "Fix XSS in battle-bots V1 by porting V2's escape + skill whitelist"</div>
       </div>
     </div>
