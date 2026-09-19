@@ -157,6 +157,44 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   }
 
+  .legend-box {
+    background: var(--code-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 10px 0;
+    font-size: 0.85rem;
+  }
+  .legend-box p { margin: 4px 0; }
+
+  .hdr-table-wrap { overflow-x: auto; margin: 12px 0; }
+  table.hdr-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .hdr-table th, .hdr-table td {
+    border: 1px solid var(--panel-border);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .hdr-table th {
+    background: var(--code-bg);
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .hdr-table td.num {
+    text-align: center;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .no-fix {
+    color: var(--open);
+    font-weight: 700;
+  }
+
   footer {
     margin-top: 56px;
     padding-top: 20px;
@@ -269,54 +307,96 @@
         <p>No <code>vercel.json</code> exists for either battle-bots deployment, and GitHub Pages has no
         header-config mechanism at all — everything relies on platform defaults. Checked the actual response
         headers (<code>curl -I</code>) on GitHub Pages, <code>funv2.vercel.app</code>, and
-        <code>fun-xi-rouge.vercel.app</code> to confirm exactly what's really missing rather than guessing:</p>
+        <code>fun-xi-rouge.vercel.app</code> to confirm exactly what's really missing rather than guessing.
+        <b>Not actually missing:</b> <code>Strict-Transport-Security</code> (HSTS) — both hosts send this
+        automatically by default, nothing to fix there. Everything below is genuinely missing, confirmed on
+        every URL tested.</p>
 
-        <p><b>Not actually missing:</b> <code>Strict-Transport-Security</code> (HSTS) — both GitHub Pages and
-        Vercel send this automatically by default. Nothing to fix there.</p>
+        <div class="legend-box">
+          <p><b>Page-set legend</b> (referenced by letter in the table):</p>
+          <p><b>Set A</b> — all 13 GitHub Pages pages: <code>index.html</code>, <code>new.html</code>,
+          <code>threejsGallery.html</code>, <code>tricalc.html</code>, <code>araknoid.html</code>,
+          <code>pong.html</code>, <code>bots.html</code>, <code>snake.html</code>, <code>fullcircle.html</code>,
+          <code>ai-swarm.html</code>, <code>race-day.html</code>, <code>secret.html</code>, the hash-named ARG
+          page (<code>51d6d17b…html</code>) — even this report page.</p>
+          <p><b>Set B</b> — both Vercel apps: <code>funv2.vercel.app</code> (battle-bots-V2),
+          <code>fun-xi-rouge.vercel.app</code> (battle-bots V1).</p>
+          <p><b>Set C</b> — both API routes: <code>funv2.vercel.app/api/get-actions</code>,
+          <code>fun-xi-rouge.vercel.app/api/get-actions</code>.</p>
+        </div>
 
-        <p><b>Genuinely missing, confirmed on every URL tested:</b> <code>Content-Security-Policy</code>,
-        <code>X-Frame-Options</code> (clickjacking protection), <code>X-Content-Type-Options: nosniff</code>,
-        <code>Permissions-Policy</code>, and a page-wide <code>Referrer-Policy</code> header (distinct from the
-        per-tag <code>referrerpolicy="no-referrer"</code> already added to the CDN <code>&lt;script&gt;</code>
-        tags — that only covers those specific requests, not outbound link clicks).</p>
+        <div class="hdr-table-wrap">
+        <table class="hdr-table">
+          <thead>
+            <tr><th>#</th><th>1. Problem</th><th>2. Fix</th><th>3. Pages affected</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="num">1</td>
+              <td><b>No Content-Security-Policy.</b> Nothing restricts which domains a page's scripts can load
+                from or connect to. Doesn't stop the confirmed <code>battle-bots</code> V1 XSS bug from
+                <i>executing</i> (a no-build CSP needs <code>'unsafe-inline'</code>), but would block it from
+                <i>phoning home</i> to an attacker domain.</td>
+              <td><b>Partial fix on GitHub Pages</b> — a
+                <code>&lt;meta http-equiv="Content-Security-Policy"&gt;</code> tag can be added to each page's
+                <code>&lt;head&gt;</code>, but <code>'unsafe-inline'</code> is required, so it won't block
+                inline-handler injection. <b>Full fix on Vercel</b> via a <code>vercel.json</code>
+                <code>headers</code> block.</td>
+              <td>Set A + Set B + Set C</td>
+            </tr>
+            <tr>
+              <td class="num">2</td>
+              <td><b>No X-Frame-Options / frame-ancestors.</b> Any external site can load these pages in a
+                hidden iframe (clickjacking). Concretely: lets an attacker's page trick a visitor into clicking
+                "Start Match" on the real battle-bots app, burning the owner's Gemini quota with a
+                <i>genuinely</i> same-origin request — which slips right past the Origin/Referer check added in
+                the quota-abuse fix (commit 9b582bd).</td>
+              <td><span class="no-fix">NO FIX AVAILABLE on GitHub Pages.</span> There is no meta-tag equivalent
+                for this header — browsers only honor it as a real HTTP header, and GitHub Pages gives you no
+                way to set one. <b>Full fix on Vercel</b> via <code>vercel.json</code>.</td>
+              <td>Set A: <span class="no-fix">no fix exists, period.</span> Set B: fixable.</td>
+            </tr>
+            <tr>
+              <td class="num">3</td>
+              <td><b>No X-Content-Type-Options: nosniff.</b> Browser can MIME-sniff a response instead of
+                trusting its declared content type. Narrowest real exposure: the two API routes echo
+                model-generated text back as JSON.</td>
+              <td><span class="no-fix">NO FIX AVAILABLE on GitHub Pages</span> — no meta-tag equivalent exists
+                for this header either. <b>Full fix on Vercel</b> via <code>vercel.json</code>.</td>
+              <td>Set A: <span class="no-fix">no fix exists, period.</span> Set B + Set C: fixable.</td>
+            </tr>
+            <tr>
+              <td class="num">4</td>
+              <td><b>No Permissions-Policy.</b> Nothing blocks a page — or anything injected into it — from
+                requesting camera, microphone, geolocation, USB, fullscreen, etc. Nothing in this repo currently
+                uses those APIs, so today this is pure defense-in-depth.</td>
+              <td><span class="no-fix">NO FIX AVAILABLE on GitHub Pages</span> — no reliable meta-tag
+                equivalent exists. <b>Full fix on Vercel</b> via <code>vercel.json</code>.</td>
+              <td>Set A: <span class="no-fix">no fix exists, period.</span> Set B: fixable.</td>
+            </tr>
+            <tr>
+              <td class="num">5</td>
+              <td><b>No page-wide Referrer-Policy.</b> Full page URL can leak in the <code>Referer</code>
+                header when a visitor clicks an outbound link. (Different from the per-<code>&lt;script&gt;</code>
+                <code>referrerpolicy="no-referrer"</code> already fixed on CDN tags — that only covers those
+                specific asset requests.) Checked every outbound link in the repo: all go to Google
+                Fonts/cdnjs or the app's own other deployment, so real-world exposure is low right now.</td>
+              <td><b>Full fix on GitHub Pages too</b> —
+                <code>&lt;meta name="referrer" content="strict-origin-when-cross-origin"&gt;</code> is a
+                standard mechanism, not a workaround, and behaves the same as the real header. <b>Full fix on
+                Vercel</b> via <code>vercel.json</code> (or the same meta tag).</td>
+              <td>Set A + Set B — fixable everywhere</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
 
-        <p><b>Scope:</b> this is a hosting-platform gap, not a per-file issue — it affects every single page
-        on the site. All GitHub Pages toys (<code>index.html</code>, <code>new.html</code>,
-        <code>threejsGallery.html</code>, <code>tricalc.html</code>, <code>araknoid.html</code>,
-        <code>pong.html</code>, <code>bots.html</code>, <code>snake.html</code>, <code>fullcircle.html</code>,
-        <code>ai-swarm.html</code>, <code>race-day.html</code>, <code>secret.html</code>, the hash-named ARG
-        page, even this report page), plus both Vercel apps' pages <em>and</em> their <code>/api/get-actions</code>
-        routes.</p>
-
-        <p><b>Options, cheapest to most complete:</b></p>
-        <ul>
-          <li><b>Meta-tag CSP per page (GitHub Pages).</b> The one workaround GitHub Pages allows:
-          <code>&lt;meta http-equiv="Content-Security-Policy" content="..."&gt;</code> in each page's
-          <code>&lt;head&gt;</code>. Covers CSP only — <code>X-Frame-Options</code>,
-          <code>Permissions-Policy</code>, and a real <code>Referrer-Policy</code> have no meta-tag equivalent
-          and simply can't be set this way. Would need adding individually to all 13 pages.</li>
-          <li><b><code>vercel.json</code> for both battle-bots apps.</b> Vercel supports a <code>headers</code>
-          block that can set all of these at once, per app. Not yet done.</li>
-          <li><b>Migrate hosting to Cloudflare Pages or Netlify (free, deploys from this same repo).</b> Both
-          support a <code>_headers</code> file for full site-wide header control. This is a hosting migration,
-          not a code change — URLs would need a custom domain to stay stable either way.</li>
-          <li><b>Accept the gap.</b> No page here has a login, payment flow, or sensitive user data, so this is
-          a defensible low-priority call, not negligence.</li>
-        </ul>
-
-        <p><b>Important caveat on the CSP option specifically:</b> every page in this repo is a single
-        self-contained file with all its JS in one inline <code>&lt;script&gt;</code> block and no build step.
-        A CSP strict enough to actually block inline-script execution (no <code>'unsafe-inline'</code>) would
-        break every page's own game logic — that needs per-script nonces or hashes, which really wants a build
-        pipeline, impractical for a no-build static site edited this often. A CSP that keeps
-        <code>'unsafe-inline'</code> (the realistic option here) would <em>not</em> stop an inline-handler-style
-        injection like the <code>battle-bots</code> V1 bug (e.g. <code>&lt;img onerror="..."&gt;</code>) —
-        <code>'unsafe-inline'</code> explicitly permits that to run. It would still block: loading a
-        <code>&lt;script src="..."&gt;</code> from an unlisted domain, <code>&lt;base&gt;</code>-tag hijacking
-        via <code>base-uri</code>, form-redirection via <code>form-action</code>, and restrict
-        <code>object-src</code>/<code>img-src</code>/<code>style-src</code>/<code>frame-src</code> to known-good
-        origins. So CSP here is real defense-in-depth against <em>other</em> injection patterns, but it is not
-        a substitute for actually escaping output — that's what fixes the V1 bug, and V2 already does it.</p>
+        <p><b>Bottom line on "no fix":</b> rows 2, 3, and 4 are genuinely unfixable for every GitHub Pages page
+        as long as the site stays on GitHub Pages — not "not done yet," but architecturally blocked, because
+        GitHub Pages has zero mechanism for setting arbitrary response headers. The only way to close that gap
+        for the 13 static pages is migrating hosting (e.g. Cloudflare Pages or Netlify, both free and both
+        deploy from this same repo) or putting a reverse proxy/CDN in front of GitHub Pages. Rows 1 and 5 can be
+        patched today on GitHub Pages via meta tags; rows 2–4 cannot, by design of the platform.</p>
       </div>
     </div>
 
