@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
     <title>Arkanoid Mobile</title>
@@ -257,6 +257,8 @@
     let score = 0;
     let lives = 3;
     let lastTime = 0;
+    let fireballCooldownTimeout = null;
+    let fireballReadyTimeout = null;
 
     const paddle = {
         w: 70, h: 12,
@@ -333,8 +335,8 @@
 
     bindButton('btn-left', () => input.left = true, () => input.left = false);
     bindButton('btn-right', () => input.right = true, () => input.right = false);
-    
-    bindButton('btn-launch', () => {
+
+    function handleLaunch() {
         if (state === 'START' || state === 'GAMEOVER' || state === 'VICTORY') {
             startGame();
         } else if (!ball.active) {
@@ -345,30 +347,47 @@
             ball.vx = dir * ball.baseSpeed * 0.7;
             ball.vy = -ball.baseSpeed;
         }
-    }, null);
+    }
 
-    bindButton('btn-special', () => {
+    function handleSpecial() {
         if (state === 'PLAYING' && ball.active && specialReady && !ball.isFireball) {
             activateFireball();
         }
-    }, null);
+    }
+
+    bindButton('btn-launch', handleLaunch, null);
+    bindButton('btn-special', handleSpecial, null);
+
+    // Keyboard controls
+    window.addEventListener('keydown', (e) => {
+        if (e.repeat) return;
+        initAudio();
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') input.left = true;
+        else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') input.right = true;
+        else if (e.key === ' ' || e.key === 'ArrowUp') { e.preventDefault(); handleLaunch(); }
+        else if (e.key === 'Shift' || e.key === 'f' || e.key === 'F') handleSpecial();
+    });
+    window.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') input.left = false;
+        else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') input.right = false;
+    });
 
     function activateFireball() {
         specialReady = false;
         ball.isFireball = true;
         ball.fireballTimeRemaining = FIREBALL_DURATION;
         playSound('fireball_start');
-        
+
         btnSpecial.classList.add('cooldown');
         specialCooldownDisplay.innerText = "FIREBALL: ACTIVE";
         specialCooldownDisplay.style.color = "#ffeb3b";
 
         // Start cooldown after duration ends
-        setTimeout(() => {
+        fireballCooldownTimeout = setTimeout(() => {
             specialCooldownDisplay.innerText = "COOLDOWN...";
             specialCooldownDisplay.style.color = "#888";
-            
-            setTimeout(() => {
+
+            fireballReadyTimeout = setTimeout(() => {
                 specialReady = true;
                 btnSpecial.classList.remove('cooldown');
                 specialCooldownDisplay.innerText = "FIREBALL: READY";
@@ -376,6 +395,13 @@
             }, SPECIAL_COOLDOWN);
 
         }, FIREBALL_DURATION);
+    }
+
+    function clearFireballTimers() {
+        clearTimeout(fireballCooldownTimeout);
+        clearTimeout(fireballReadyTimeout);
+        fireballCooldownTimeout = null;
+        fireballReadyTimeout = null;
     }
 
     function createExplosion(x, y, color, isMassive = false) {
@@ -399,6 +425,8 @@
         lives = 3;
         state = 'PLAYING';
         overlay.classList.add('hidden');
+        clearFireballTimers();
+        ball.isFireball = false;
         specialReady = true;
         btnSpecial.classList.remove('cooldown');
         specialCooldownDisplay.innerText = "FIREBALL: READY";
@@ -473,6 +501,8 @@
                 updateHUD();
                 if (lives <= 0) {
                     state = 'GAMEOVER';
+                    clearFireballTimers();
+                    ball.isFireball = false;
                     overlayTitle.innerText = "GAME OVER";
                     overlayTitle.style.color = "#ff1744";
                     overlayText.innerHTML = `FINAL SCORE: ${score}<br>Tap LAUNCH to restart.`;

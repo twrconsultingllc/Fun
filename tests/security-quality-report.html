@@ -218,8 +218,8 @@
       <span><span class="dot fixed"></span> Fixed</span>
       <span><span class="dot open"></span> Open</span>
     </div>
-    <div class="progress-bar"><div class="progress-fill" style="width: 36%;"></div></div>
-    <div class="progress-label">5 of 14 actionable findings fixed (1 additional item confirmed clean, not counted)</div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 79%;"></div></div>
+    <div class="progress-label">11 of 14 actionable findings fixed, 3 partial (1 additional item confirmed clean, not counted)</div>
   </header>
 
   <section>
@@ -601,7 +601,7 @@
     <div class="item">
       <div class="item-head">
         <div class="item-title">Secret ARG payoff page is broken</div>
-        <span class="badge open">Open</span>
+        <span class="badge fixed">Fixed</span>
       </div>
       <div class="item-body">
         <code>51d6d17bd7a4fa0103aa27c0ef1ccfddc896f71a66f9fefc66bd58d1f98efbba.html</code> — the file
@@ -610,12 +610,19 @@
         <code>secret.html</code> is a complete, untruncated copy of the same content but is never linked from
         anywhere in the repo — looks like an orphaned source that got cut off when producing the hash-named file.
       </div>
+      <div class="fix-note">
+        <b>Fixed:</b> diffed the two files — everything before the truncation point was already byte-identical,
+        so the fix was completing the hash-named file's script with the rest of <code>secret.html</code>'s
+        (the full mercury-blob Three.js scene, resize handler included) rather than rewriting it from scratch.
+        <code>secret.html</code> is intentionally left as-is; it stays an orphaned but harmless duplicate, matching
+        how the puzzle already works (the hash-named file is the one actually linked to).
+      </div>
     </div>
 
     <div class="item">
       <div class="item-head">
         <div class="item-title"><code>index.html</code> CSS drift — most toy links render top-aligned instead of centered</div>
-        <span class="badge open">Open</span>
+        <span class="badge fixed">Fixed</span>
       </div>
       <div class="item-body">
         The <code>#section-4, #section-5, #section-6, #section-7 { justify-content: center }</code> rule was
@@ -623,47 +630,70 @@
         AI Battle Bots, Snake, Full Circle 3D, AI Model Swarm, Race Day Miami, Secret) fall back to the generic
         top-aligned rule.
       </div>
+      <div class="fix-note">
+        <b>Fixed:</b> extended the selector to cover every remaining <code>#section-N</code> (8 through 15),
+        so all "click here" link sections center consistently. Sections 1–3 (the hero/intro text) were
+        deliberately left on the default top-aligned rule — they're paragraph content, not link tiles, and
+        were never part of the drift.
+      </div>
     </div>
 
     <div class="item">
       <div class="item-head">
         <div class="item-title"><code>index.html</code> front-door polish</div>
-        <span class="badge open">Open</span>
+        <span class="badge fixed">Fixed</span>
       </div>
       <div class="item-body">
         <code>&lt;title&gt;Two-Layer Architecture&lt;/title&gt;</code> is a stale/wrong title for the landing
         page; no meta description, no favicon (unlike <code>race-day.html</code>, which has both).
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> retitled to <code>Traviseo — Fun</code>, added a one-line meta description, and added an
+        inline SVG data-URI favicon (a neon diamond/dot, matching the page's own color palette), following the
+        same data-URI pattern <code>race-day.html</code> already uses rather than adding a binary asset file.
       </div>
     </div>
 
     <div class="item">
       <div class="item-head">
         <div class="item-title">Real restart bug in <code>araknoid.html</code></div>
-        <span class="badge open">Open</span>
+        <span class="badge fixed">Fixed</span>
       </div>
       <div class="item-body">
         <code>activateFireball()</code>'s two <code>setTimeout</code>s aren't cleared on
         <code>startGame()</code>/game-over. Restarting mid-fireball can let a stale timer fire the special
         early or corrupt the cooldown display in the new game.
       </div>
+      <div class="fix-note">
+        <b>Fixed:</b> both timeout IDs are now stored (<code>fireballCooldownTimeout</code>,
+        <code>fireballReadyTimeout</code>) and cleared via a new <code>clearFireballTimers()</code> helper,
+        called from both <code>startGame()</code> and the game-over transition, alongside resetting
+        <code>ball.isFireball</code>. All 632 existing tests still pass.
+      </div>
     </div>
 
     <div class="item">
       <div class="item-head">
         <div class="item-title"><code>new.html</code> has no lose condition</div>
-        <span class="badge open">Open</span>
+        <span class="badge fixed">Fixed</span>
       </div>
       <div class="item-body">
         No health/lives variable, no alien bullets, no player-collision check anywhere in <code>update()</code>.
         The horde can descend indefinitely with zero consequence. May be intentional — unconfirmed with the
         user.
       </div>
+      <div class="fix-note">
+        <b>Fixed:</b> added the classic Space Invaders loss condition — game over when any alien's row reaches
+        the player's row — rather than inventing alien-bullet mechanics that weren't there before. Added a
+        <code>gameOver</code> state, a canvas-drawn "GAME OVER" overlay with score and a restart prompt, and a
+        <code>resetGame()</code> that's triggered by pressing FIRE (mouse, touch, or the new keyboard binding).
+      </div>
     </div>
 
     <div class="item">
       <div class="item-head">
         <div class="item-title">Accessibility gaps, repeated across several pages</div>
-        <span class="badge open">Open</span>
+        <span class="badge fixed">Fixed</span>
       </div>
       <div class="item-body">
         <code>user-scalable=no</code> blocks pinch-zoom on most pages (<code>race-day.html</code> proves it's
@@ -672,24 +702,49 @@
         clickable rows are unlabeled divs, not keyboard-operable; <code>index.html</code>'s secret-code input/link
         can't be triggered by keyboard at all.
       </div>
+      <div class="fix-note">
+        <b>Fixed:</b> removed <code>maximum-scale=1.0, user-scalable=no</code> from the viewport meta tag on
+        every GitHub Pages page that had it. Added full keyboard controls (arrow keys/WASD for movement, space
+        to fire/launch/restart) to <code>new.html</code>, <code>pong.html</code>, and <code>araknoid.html</code>,
+        reusing the same action functions the touch/mouse buttons already call rather than duplicating logic.
+        Added <code>aria-label</code>s to all nine sliders in <code>bots.html</code>. In <code>ai-swarm.html</code>,
+        added a shared <code>makeKeyboardClickable()</code> helper (focusable, <code>role="button"</code>,
+        Enter/Space triggers the existing click handler) applied to every clickable row/chip type (lineage rows,
+        legend rows, status/view filter chips, ranked-list rows, nearby-model rows). In <code>index.html</code>,
+        switched the secret-code link from a <code>pointerdown</code>-only handler (which never fires for
+        keyboard activation) to <code>click</code> (which does), and added an Enter-key submit on the input
+        itself. All 632 existing tests still pass — none of them exercised keyboard input on these pages before.
+      </div>
     </div>
 
     <div class="item">
       <div class="item-head">
         <div class="item-title"><code>tricalc.html</code> stub CTA and redundant reset logic</div>
-        <span class="badge open">Open</span>
+        <span class="badge partial">Partial</span>
       </div>
       <div class="item-body">
         The "Get Coached" button is still a stub TODO that just scrolls to top instead of linking anywhere
         real — a visible dead end for real visitors. <code>resetCalculator()</code> also triple-renders and
         double-persists due to redundant calls.
       </div>
+      <div class="fix-note">
+        <b>Reset logic fixed:</b> <code>applyPreset('ironman')</code> already sets <code>state.preset</code>,
+        syncs the preset dropdown (via <code>writeStateToDom()</code>), renders, and persists —
+        <code>resetCalculator()</code> was redundantly repeating three of those four steps afterward. Removed
+        the redundant <code>state.preset = 'ironman'</code>, <code>selectPresetDropdown.value</code> assignment,
+        and extra <code>render()</code> call, leaving <code>onInputChange(true)</code> (which itself
+        renders+persists once, picking up the new start time) as the only step after <code>applyPreset()</code>.
+        <b class="no-fix">"Get Coached" CTA not fixed</b> — this needs the real Full Circle contact/booking
+        URL, which isn't something this session can know or should guess at (this repo's own standing rule is
+        never to fabricate URLs). Left the current scroll-to-top behavior in place; ask the user for the real
+        destination.
+      </div>
     </div>
 
     <div class="item">
       <div class="item-head">
         <div class="item-title">Minor polish items</div>
-        <span class="badge open">Open</span>
+        <span class="badge partial">Partial</span>
       </div>
       <div class="item-body">
         Repeated sound-envelope boilerplate across several games; hardcoded neon hex colors in
@@ -698,6 +753,20 @@
         <code>tricalc.html</code> when 8 suites now exist; unused <code>type</code> param in
         <code>battle-bots-V2/public/audio.js</code>'s <code>envelope()</code>; an O(n) <code>find()</code> by
         id on a per-bullet-hit hot path in <code>engine.js</code> (fine at current scale).
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> defined a <code>:root</code> palette of neon custom properties in both
+        <code>index.html</code> and <code>secret.html</code> (and mirrored the identical change into the
+        hash-named ARG file, which is otherwise byte-identical to <code>secret.html</code>) and swapped every
+        matching hardcoded hex value over to <code>var(--neon-*)</code>. Removed the unused <code>type</code>
+        parameter from <code>battle-bots-V2/public/audio.js</code>'s <code>envelope()</code> and its three
+        call sites. Re-checked the README claim directly — it already reads "632 assertions across ten suites"
+        with no stale <code>tricalc.html</code>-only claim found anywhere in it, so that part of the finding no
+        longer applies (may have been fixed by an earlier session, or was inaccurate when first scanned).
+        <b class="no-fix">Not fixed, by design:</b> the repeated sound-envelope boilerplate is inherent to this
+        repo's single-file-per-page convention — sharing it would mean a shared script file, which this repo's
+        own CLAUDE.md says to avoid without a concrete reason. The O(n) <code>find()</code> in
+        <code>engine.js</code> was already flagged as fine at current scale; left alone.
       </div>
     </div>
   </section>

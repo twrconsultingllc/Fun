@@ -1690,6 +1690,20 @@ function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+/* Makes a clickable div/span keyboard-operable: focusable, announced as a
+   button, and Enter/Space triggers the same click handler already bound. */
+function makeKeyboardClickable(el, label) {
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    if (label) el.setAttribute('aria-label', label);
+    el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            el.click();
+        }
+    });
+}
+
 function renderDetail(node) {
     var m = node.model;
     var prov = PROVIDERS[m.p];
@@ -1771,6 +1785,8 @@ function renderDetail(node) {
 
     Array.prototype.forEach.call(body.querySelectorAll('.lin-row'), function (row) {
         row.addEventListener('click', function () { select(row.getAttribute('data-id'), true); });
+        var name = BY_ID[row.getAttribute('data-id')];
+        makeKeyboardClickable(row, name ? 'View ' + name.model.name : 'View model');
     });
     Array.prototype.forEach.call(body.querySelectorAll('[data-step]'), function (btn) {
         btn.addEventListener('click', function () { step(parseInt(btn.getAttribute('data-step'), 10)); });
@@ -1830,10 +1846,13 @@ var legendRows = {};
         row.innerHTML = '<span class="leg-swatch" style="background:' + PROVIDERS[key].color + '"></span>' +
                         '<span>' + PROVIDERS[key].label + '</span><span class="leg-n"></span>' +
                         '<span class="leg-go" title="Fly to this lab\u2019s arm">\u2316</span>';
-        row.querySelector('.leg-go').addEventListener('click', function (e) {
+        var legGo = row.querySelector('.leg-go');
+        legGo.addEventListener('click', function (e) {
             e.stopPropagation();
             flyToArm(key);
         });
+        makeKeyboardClickable(legGo, 'Fly to ' + PROVIDERS[key].label + '’s arm');
+        legGo.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); });
         row.addEventListener('click', function (e) {
             if (e.altKey || e.metaKey) {
                 /* alt-click isolates one lab */
@@ -1844,6 +1863,7 @@ var legendRows = {};
             }
             applyFilters();
         });
+        makeKeyboardClickable(row, 'Toggle ' + PROVIDERS[key].label + ' visibility');
         host.appendChild(row);
         legendRows[key] = row;
     });
@@ -1857,6 +1877,7 @@ var statusChips = {};
         chip.className = 'chip';
         chip.textContent = STATUS_LABEL[s];
         chip.addEventListener('click', function () { state.statuses[s] = !state.statuses[s]; applyFilters(); });
+        makeKeyboardClickable(chip, 'Toggle ' + STATUS_LABEL[s] + ' filter');
         host.appendChild(chip);
         statusChips[s] = chip;
     });
@@ -1875,6 +1896,7 @@ var viewChips = {};
             if (v.id === 'lineage') rebuildLineage();
             if (v.id === 'dust') dust.visible = state.view.dust;
         });
+        makeKeyboardClickable(chip, 'Toggle ' + v.label + ' view');
         host.appendChild(chip);
         viewChips[v.id] = chip;
     });
@@ -1898,6 +1920,7 @@ var rankRows = {};
         row.addEventListener('click', function () { select(m.id, true); });
         row.addEventListener('mouseenter', function () { node.hoverFromList = true; });
         row.addEventListener('mouseleave', function () { node.hoverFromList = false; });
+        makeKeyboardClickable(row, 'View ' + m.name);
         host.appendChild(row);
         rankRows[m.id] = row;
     });
@@ -2415,6 +2438,8 @@ function updateNearby(seconds) {
 
     Array.prototype.forEach.call(nearRowsEl.querySelectorAll('.near-row'), function (row) {
         row.addEventListener('click', function () { select(row.getAttribute('data-id'), true); });
+        var near = BY_ID[row.getAttribute('data-id')];
+        makeKeyboardClickable(row, near ? 'View ' + near.model.name : 'View model');
     });
 }
 

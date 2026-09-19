@@ -1183,9 +1183,6 @@ function resetCalculator() {
     applyPreset('ironman');
     el('startTime').value = '07:00';
     onInputChange(true);
-    state.preset = 'ironman';
-    el('selectPresetDropdown').value = 'ironman';
-    render();
     toast('Reset to the default Ironman plan');
 }
 

@@ -7,7 +7,7 @@ export function initAudio() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
-function envelope(type, startFreq, endFreq, peak, duration, oscType) {
+function envelope(startFreq, endFreq, peak, duration, oscType) {
     if (!audioCtx) return;
     const now = audioCtx.currentTime;
     const osc = audioCtx.createOscillator();
@@ -24,10 +24,10 @@ function envelope(type, startFreq, endFreq, peak, duration, oscType) {
 // Each team fires at its own pitch so a four-way fight stays readable by ear.
 export function playShot(team) {
     const t = TEAMS[team];
-    envelope('shoot', t ? t.tone : 500, 100, 0.05, 0.1, team === 'blue' || team === 'yellow' ? 'square' : 'sawtooth');
+    envelope(t ? t.tone : 500, 100, 0.05, 0.1, team === 'blue' || team === 'yellow' ? 'square' : 'sawtooth');
 }
 
 export function playSound(type) {
-    if (type === 'hit') envelope('hit', 150, 50, 0.1, 0.1, 'triangle');
-    else if (type === 'explode') envelope('explode', 100, 20, 0.2, 0.5, 'square');
+    if (type === 'hit') envelope(150, 50, 0.1, 0.1, 'triangle');
+    else if (type === 'explode') envelope(100, 20, 0.2, 0.5, 'square');
 }

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
     <title>Neon Bot Auto-Battler</title>
@@ -204,22 +204,22 @@
                 
                 <div class="slider-group">
                     <div class="slider-label"><span>Max HP</span><span id="val-r-hp">300</span></div>
-                    <input type="range" id="cfg-r-hp" class="slider-red" min="50" max="600" value="300" step="10">
+                    <input type="range" id="cfg-r-hp" class="slider-red" min="50" max="600" value="300" step="10" aria-label="Red bot max HP">
                 </div>
-                
+
                 <div class="slider-group">
                     <div class="slider-label"><span>Speed</span><span id="val-r-spd">90</span></div>
-                    <input type="range" id="cfg-r-spd" class="slider-red" min="30" max="250" value="90" step="5">
+                    <input type="range" id="cfg-r-spd" class="slider-red" min="30" max="250" value="90" step="5" aria-label="Red bot speed">
                 </div>
-                
+
                 <div class="slider-group">
                     <div class="slider-label"><span>Fire Rate</span><span id="val-r-fr">2.5</span></div>
-                    <input type="range" id="cfg-r-fr" class="slider-red" min="0.5" max="6.0" value="2.5" step="0.1">
+                    <input type="range" id="cfg-r-fr" class="slider-red" min="0.5" max="6.0" value="2.5" step="0.1" aria-label="Red bot fire rate">
                 </div>
-                
+
                 <div class="slider-group">
                     <div class="slider-label"><span>Aggression</span><span id="val-r-agg">90%</span></div>
-                    <input type="range" id="cfg-r-agg" class="slider-red" min="0" max="100" value="90" step="5">
+                    <input type="range" id="cfg-r-agg" class="slider-red" min="0" max="100" value="90" step="5" aria-label="Red bot aggression">
                 </div>
             </div>
 
@@ -229,22 +229,22 @@
                 
                 <div class="slider-group">
                     <div class="slider-label"><span>Max HP</span><span id="val-b-hp">150</span></div>
-                    <input type="range" id="cfg-b-hp" class="slider-blue" min="50" max="600" value="150" step="10">
+                    <input type="range" id="cfg-b-hp" class="slider-blue" min="50" max="600" value="150" step="10" aria-label="Blue bot max HP">
                 </div>
-                
+
                 <div class="slider-group">
                     <div class="slider-label"><span>Speed</span><span id="val-b-spd">160</span></div>
-                    <input type="range" id="cfg-b-spd" class="slider-blue" min="30" max="250" value="160" step="5">
+                    <input type="range" id="cfg-b-spd" class="slider-blue" min="30" max="250" value="160" step="5" aria-label="Blue bot speed">
                 </div>
-                
+
                 <div class="slider-group">
                     <div class="slider-label"><span>Fire Rate</span><span id="val-b-fr">1.5</span></div>
-                    <input type="range" id="cfg-b-fr" class="slider-blue" min="0.5" max="6.0" value="1.5" step="0.1">
+                    <input type="range" id="cfg-b-fr" class="slider-blue" min="0.5" max="6.0" value="1.5" step="0.1" aria-label="Blue bot fire rate">
                 </div>
-                
+
                 <div class="slider-group">
                     <div class="slider-label"><span>Aggression</span><span id="val-b-agg">10%</span></div>
-                    <input type="range" id="cfg-b-agg" class="slider-blue" min="0" max="100" value="10" step="5">
+                    <input type="range" id="cfg-b-agg" class="slider-blue" min="0" max="100" value="10" step="5" aria-label="Blue bot aggression">
                 </div>
             </div>
         </div>
@@ -254,7 +254,7 @@
             <div class="config-header header-arena" style="font-size: 0.9rem; margin-bottom: 5px;">ARENA SETTINGS</div>
             <div class="slider-group" style="margin-bottom: 0;">
                 <div class="slider-label"><span>Layout Type</span><span id="val-a-obs">1</span></div>
-                <input type="range" id="cfg-a-obs" min="0" max="3" value="1" step="1">
+                <input type="range" id="cfg-a-obs" min="0" max="3" value="1" step="1" aria-label="Arena layout type">
             </div>
         </div>
     </div>

@@ -2,11 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
-    <title>Two-Layer Architecture</title>
-    
+    <title>Traviseo — Fun</title>
+    <meta name="description" content="A collection of single-file browser toys and games: Space Invaders, Pong, Snake, Battle Bots, Race Day Miami, and more.">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%23000'/%3E%3Cpath d='M50 15 L82 50 L50 85 L18 50 Z' fill='none' stroke='%23ff2a2a' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='14' fill='%2300eaff'/%3E%3C/svg%3E">
+
     <!-- Load Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;700;900&display=swap" rel="stylesheet">
     
@@ -20,6 +22,18 @@
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --neon-red: #ff2a2a;
+            --neon-orange: #ff7a00;
+            --neon-yellow: #ffea00;
+            --neon-green: #00ff00;
+            --neon-cyan: #00ffff;
+            --neon-blue: #0088ff;
+            --neon-purple: #aa00ff;
+            --neon-pink: #ff00ff;
+            --neon-hotpink: #ff00a0;
+        }
 
         body, html {
             width: 100%;
@@ -63,19 +77,19 @@
 
         h1 { font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 900; letter-spacing: 0.05em; margin-bottom: 1rem; }
         
-        .neon-1 { color: #ff2a2a; text-shadow: 0 0 15px rgba(255, 42, 42, 0.8), 0 0 30px rgba(255, 42, 42, 0.5); }
-        .neon-2 { color: #ff7a00; text-shadow: 0 0 15px rgba(255, 122, 0, 0.8), 0 0 30px rgba(255, 122, 0, 0.5); }
-        .neon-3 { color: #ffea00; text-shadow: 0 0 15px rgba(255, 234, 0, 0.8), 0 0 30px rgba(255, 234, 0, 0.5); }
-        .neon-4 { color: #00ff00; text-shadow: 0 0 15px rgba(0, 255, 0, 0.8), 0 0 30px rgba(0, 255, 0, 0.5); }
-        .neon-5 { color: #00ffff; text-shadow: 0 0 15px rgba(0, 255, 255, 0.8), 0 0 30px rgba(0, 255, 255, 0.5); }
-        .neon-6 { color: #0088ff; text-shadow: 0 0 15px rgba(0, 136, 255, 0.8), 0 0 30px rgba(0, 136, 255, 0.5); }
-        .neon-7 { color: #aa00ff; text-shadow: 0 0 15px rgba(170, 0, 255, 0.8), 0 0 30px rgba(170, 0, 255, 0.5); }
-        .neon-8 { color: #ff00ff; text-shadow: 0 0 15px rgba(255, 0, 255, 0.8), 0 0 30px rgba(255, 0, 255, 0.5); }
+        .neon-1 { color: var(--neon-red); text-shadow: 0 0 15px rgba(255, 42, 42, 0.8), 0 0 30px rgba(255, 42, 42, 0.5); }
+        .neon-2 { color: var(--neon-orange); text-shadow: 0 0 15px rgba(255, 122, 0, 0.8), 0 0 30px rgba(255, 122, 0, 0.5); }
+        .neon-3 { color: var(--neon-yellow); text-shadow: 0 0 15px rgba(255, 234, 0, 0.8), 0 0 30px rgba(255, 234, 0, 0.5); }
+        .neon-4 { color: var(--neon-green); text-shadow: 0 0 15px rgba(0, 255, 0, 0.8), 0 0 30px rgba(0, 255, 0, 0.5); }
+        .neon-5 { color: var(--neon-cyan); text-shadow: 0 0 15px rgba(0, 255, 255, 0.8), 0 0 30px rgba(0, 255, 255, 0.5); }
+        .neon-6 { color: var(--neon-blue); text-shadow: 0 0 15px rgba(0, 136, 255, 0.8), 0 0 30px rgba(0, 136, 255, 0.5); }
+        .neon-7 { color: var(--neon-purple); text-shadow: 0 0 15px rgba(170, 0, 255, 0.8), 0 0 30px rgba(170, 0, 255, 0.5); }
+        .neon-8 { color: var(--neon-pink); text-shadow: 0 0 15px rgba(255, 0, 255, 0.8), 0 0 30px rgba(255, 0, 255, 0.5); }
 
         h2 { font-size: clamp(2rem, 5vw, 4rem); font-weight: 900; margin-bottom: 1rem; }
         p { font-size: clamp(1rem, 2.5vw, 1.3rem); font-weight: 300; line-height: 1.6; max-width: 600px; color: #a1a1aa; }
-        .text-cyan { color: #00ffff; text-shadow: 0 0 20px rgba(0, 255, 255, 0.4); }
-        .text-pink { color: #ff00ff; text-shadow: 0 0 20px rgba(255, 0, 255, 0.4); }
+        .text-cyan { color: var(--neon-cyan); text-shadow: 0 0 20px rgba(0, 255, 255, 0.4); }
+        .text-pink { color: var(--neon-pink); text-shadow: 0 0 20px rgba(255, 0, 255, 0.4); }
         
         .scroll-indicator {
             position: absolute; top: 40vh; left: 50%; transform: translateX(-50%);
@@ -83,17 +97,18 @@
             animation: bounce 2s infinite ease-in-out; color: #52525b;
         }
 
-        #section-4, #section-5, #section-6, #section-7 { justify-content: center; padding-top: 0; }
+        #section-4, #section-5, #section-6, #section-7, #section-8, #section-9,
+        #section-10, #section-11, #section-12, #section-13, #section-14, #section-15 { justify-content: center; padding-top: 0; }
 
         .space-invaders-link {
             font-size: clamp(2.5rem, 5vw, 5rem); font-weight: 900; color: #ffffff;
             text-decoration: none; text-transform: uppercase; letter-spacing: 2px;
-            text-shadow: 0 0 20px #ff00a0, 0 0 40px #ff00a0; padding: 5vh 5vw; 
+            text-shadow: 0 0 20px var(--neon-hotpink), 0 0 40px var(--neon-hotpink); padding: 5vh 5vw;
             transition: all 0.3s ease; cursor: pointer; z-index: 20;
         }
 
         .space-invaders-link:hover {
-            color: #ffea00; text-shadow: 0 0 30px #ffea00, 0 0 60px #ffea00, 0 0 90px #ff7a00; transform: scale(1.05);
+            color: var(--neon-yellow); text-shadow: 0 0 30px var(--neon-yellow), 0 0 60px var(--neon-yellow), 0 0 90px var(--neon-orange); transform: scale(1.05);
         }
         .click-here { display: block; font-size: 0.4em; letter-spacing: 4px; margin-top: 10px; }
 
@@ -106,7 +121,7 @@
             text-align: center; border-radius: 8px; outline: none; letter-spacing: 4px;
             transition: all 0.3s ease; z-index: 20; text-transform: uppercase;
         }
-        #secret-input:focus { border-color: #00ffff; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); background: rgba(0, 255, 255, 0.05); }
+        #secret-input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); background: rgba(0, 255, 255, 0.05); }
 
         @keyframes bounce { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 10px); } }
     </style>
@@ -177,9 +192,7 @@
         });
 
         // Hash the word and attempt redirect
-        secretLink.addEventListener('pointerdown', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+        function attemptSecretRedirect() {
             const val = secretInput.value.trim();
             if (val) {
                 // SHA-256 the input, append .html, and go!
@@ -187,6 +200,18 @@
                 const hash = CryptoJS.SHA256(val).toString();
                 window.location.href = hash + ".html";
             }
+        }
+
+        // 'click' fires for mouse, touch, and Enter/Space on a focused link —
+        // unlike 'pointerdown', which only fires for pointer devices.
+        secretLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            attemptSecretRedirect();
+        });
+
+        secretInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') attemptSecretRedirect();
         });
 
         /* --- THREE JS SCENE LOGIC --- */

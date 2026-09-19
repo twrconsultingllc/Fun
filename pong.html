@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
     <title>Neon Pong AI</title>
@@ -306,6 +306,19 @@
     btnStart.addEventListener('click', () => {
         initAudio();
         resetGame();
+    });
+
+    // Keyboard controls
+    window.addEventListener('keydown', (e) => {
+        if (e.repeat) return;
+        initAudio();
+        if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { e.preventDefault(); input.up = true; }
+        else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { e.preventDefault(); input.down = true; }
+        else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); resetGame(); }
+    });
+    window.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') input.up = false;
+        else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') input.down = false;
     });
 
     function createParticles(x, y, color, amount, isExplosion = false) {

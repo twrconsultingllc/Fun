@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
     <title>Space Invaders Overdrive</title>
@@ -185,6 +185,7 @@
 
     // === Game State ===
     let score = 0;
+    let gameOver = false;
     const player = { x: 185, y: 360, width: 30, height: 20, speed: 4 };
     let bullets = [];
     let aliens = [];
@@ -236,26 +237,43 @@
     bindControl('btn-left', () => leftPressed = true, () => leftPressed = false);
     bindControl('btn-right', () => rightPressed = true, () => rightPressed = false);
     bindControl('btn-fire', () => firePressed = true, () => firePressed = false);
-    
-    bindControl('btn-special', () => {
+
+    function fireSpecial() {
         if (specialReady) {
-            bullets.push({ 
-                x: player.x + player.width/2 - 6, 
-                y: player.y, 
-                width: 12, height: 24, speed: 7, type: 'special' 
+            bullets.push({
+                x: player.x + player.width/2 - 6,
+                y: player.y,
+                width: 12, height: 24, speed: 7, type: 'special'
             });
             specialReady = false;
             specialCooldownDisplay.innerText = "SPECIAL: WAIT";
             specialCooldownDisplay.style.color = "#f00";
             playSound('special');
-            
+
             setTimeout(() => {
                 specialReady = true;
                 specialCooldownDisplay.innerText = "SPECIAL: READY";
                 specialCooldownDisplay.style.color = "#0f0";
             }, specialCooldownTime);
         }
-    }, () => {});
+    }
+
+    bindControl('btn-special', fireSpecial, () => {});
+
+    // Keyboard controls
+    window.addEventListener('keydown', (e) => {
+        if (e.repeat) return;
+        initAudio();
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') leftPressed = true;
+        else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') rightPressed = true;
+        else if (e.key === ' ' || e.key === 'ArrowUp') { e.preventDefault(); firePressed = true; }
+        else if (e.key === 'Shift' || e.key === 'f' || e.key === 'F') fireSpecial();
+    });
+    window.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') leftPressed = false;
+        else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') rightPressed = false;
+        else if (e.key === ' ' || e.key === 'ArrowUp') firePressed = false;
+    });
 
     // === Particle Engine ===
     function createExplosion(x, y, color, count) {
@@ -272,8 +290,27 @@
         }
     }
 
+    function resetGame() {
+        score = 0;
+        gameOver = false;
+        bullets = [];
+        particles = [];
+        alienSpeed = 0.5;
+        alienDir = 1;
+        player.x = 185;
+        initAliens();
+        scoreDisplay.innerText = "SCORE: 0";
+    }
+
     // === Game Loop ===
     function update(time) {
+        if (gameOver) {
+            if (firePressed) resetGame();
+            draw();
+            requestAnimationFrame(update);
+            return;
+        }
+
         // Player movement
         if (leftPressed && player.x > 0) player.x -= player.speed;
         if (rightPressed && player.x < canvas.width - player.width) player.x += player.speed;
@@ -366,6 +403,16 @@
             alienSpeed += 0.5; // Next wave is faster
         }
 
+        // Loss condition: an alien reached the player's row
+        for (let a of aliens) {
+            if (a.alive && a.y + a.height >= player.y) {
+                gameOver = true;
+                createExplosion(player.x + player.width / 2, player.y, '#0f0', 40);
+                playSound('explosion');
+                break;
+            }
+        }
+
         // Update Particles
         for (let i = particles.length - 1; i >= 0; i--) {
             let p = particles[i];
@@ -428,6 +475,20 @@
             ctx.fillRect(p.x, p.y, p.size, p.size);
         }
         ctx.globalAlpha = 1.0;
+
+        if (gameOver) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#f00';
+            ctx.font = 'bold 32px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 10);
+            ctx.fillStyle = '#0f0';
+            ctx.font = '16px monospace';
+            ctx.fillText('SCORE: ' + score, canvas.width / 2, canvas.height / 2 + 20);
+            ctx.fillText('TAP FIRE TO RESTART', canvas.width / 2, canvas.height / 2 + 45);
+            ctx.textAlign = 'left';
+        }
     }
 
     // Start Game Loop
