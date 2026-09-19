@@ -359,7 +359,7 @@
                 inline-handler injection. <b>Full fix on Vercel</b> via a <code>vercel.json</code>
                 <code>headers</code> block — done for both apps; GitHub Pages meta-tag version not yet added.</td>
               <td>Set A + Set B + Set C</td>
-              <td><span class="badge partial">Partial — Vercel fixed</span></td>
+              <td><span class="badge partial">Partial — Vercel fixed*</span></td>
             </tr>
             <tr>
               <td class="num">2</td>
@@ -372,7 +372,7 @@
                 for this header — browsers only honor it as a real HTTP header, and GitHub Pages gives you no
                 way to set one. <b>Full fix on Vercel</b> via <code>vercel.json</code> — done.</td>
               <td>Set A: <span class="no-fix">no fix exists, period.</span> Set B: fixable.</td>
-              <td><span class="badge partial">Partial — Vercel fixed</span></td>
+              <td><span class="badge partial">Partial — Vercel fixed*</span></td>
             </tr>
             <tr>
               <td class="num">3</td>
@@ -382,7 +382,7 @@
               <td><span class="no-fix">NO FIX AVAILABLE on GitHub Pages</span> — no meta-tag equivalent exists
                 for this header either. <b>Full fix on Vercel</b> via <code>vercel.json</code> — done.</td>
               <td>Set A: <span class="no-fix">no fix exists, period.</span> Set B + Set C: fixable.</td>
-              <td><span class="badge partial">Partial — Vercel fixed</span></td>
+              <td><span class="badge partial">Partial — Vercel fixed*</span></td>
             </tr>
             <tr>
               <td class="num">4</td>
@@ -392,7 +392,7 @@
               <td><span class="no-fix">NO FIX AVAILABLE on GitHub Pages</span> — no reliable meta-tag
                 equivalent exists. <b>Full fix on Vercel</b> via <code>vercel.json</code> — done.</td>
               <td>Set A: <span class="no-fix">no fix exists, period.</span> Set B: fixable.</td>
-              <td><span class="badge partial">Partial — Vercel fixed</span></td>
+              <td><span class="badge partial">Partial — Vercel fixed*</span></td>
             </tr>
             <tr>
               <td class="num">5</td>
@@ -411,6 +411,12 @@
           </tbody>
         </table>
         </div>
+
+        <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: -4px;">
+          <b>*</b> rows 1–4 — the Vercel-side fix for all four was verified live via <code>curl -I</code> and
+          confirmed by the user visually rendering both apps on a real device, but was never rendered in a
+          browser by this session directly. See the rollout caveat in the fix-note below.
+        </p>
 
         <p><b>Bottom line on "no fix":</b> rows 2, 3, and 4 are still genuinely unfixable for every GitHub Pages
         page as long as the site stays on GitHub Pages — not "not done yet," but architecturally blocked,
@@ -454,7 +460,7 @@
           same-origin <code>/api/get-actions</code> — confirmed by grepping every <code>fetch(</code> call in
           both apps' client JS.
           <br><br>
-          <b>Caveat during rollout:</b> this environment has no browser/WebGL rendering available (see the
+          <b>Caveat during rollout (applies to rows 1–4, marked * in the table above):</b> this environment has no browser/WebGL rendering available (see the
           repo-wide note on that), so this CSP couldn't be checked against a live page load before shipping —
           it was derived entirely from reading the source, not from testing it. Verified live on both apps and
           their <code>/api/get-actions</code> routes via <code>curl -I</code>: all 5 headers present, and both
