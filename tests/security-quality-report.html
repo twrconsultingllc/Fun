@@ -582,15 +582,14 @@
         field, <code>response.text</code> as a getter (not a method), and <code>ApiError.status</code> all exist
         exactly as coded. Both files import cleanly under Node with the real package installed, and
         <code>genAI.models.generateContent</code> was confirmed to be a real function at runtime. All 632
-        existing tests still pass. <b>Not verified:</b> nothing in this repo's test suite exercises
-        <code>get-actions.js</code>'s POST path, and doing so needs a real <code>GEMINI_API_KEY</code> this
-        environment doesn't have — the actual <code>generateContent</code> call has only been checked for
-        correct shape, not run against the live Gemini API. Starting one real match on each deployed app is the
-        only way to close that gap. <b>Verified live:</b> both
+        existing tests still pass. This environment has no <code>GEMINI_API_KEY</code>, so the actual
+        <code>generateContent</code> call could only be checked for correct shape here, not run against the
+        live Gemini API. <b>Verified live:</b> both
         <code>funv2.vercel.app/api/get-actions</code> and <code>fun-xi-rouge.vercel.app/api/get-actions</code>
-        return <code>200</code> with a correct model list after this deploy — proves the new SDK's import and
-        client construction didn't crash on Vercel's actual runtime, though the GET path itself doesn't call
-        <code>generateContent</code>.
+        return <code>200</code> with a correct model list after this deploy, proving the new SDK's import and
+        client construction didn't crash on Vercel's actual runtime. <b>Fully confirmed by the user:</b> a real
+        match started and ran on both deployed apps — the migrated <code>generateContent</code> call path works
+        end to end against the live Gemini API, closing the one gap this session couldn't test itself.
         <div class="commit">commit 90b8f35 — "Add root .gitignore and migrate off the deprecated Gemini SDK"</div>
       </div>
     </div>
