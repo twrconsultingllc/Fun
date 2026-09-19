@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
 <title>Fun repo — security &amp; quality scan report</title>
 <meta name="description" content="Site-wide security and code-quality scan of the Fun repo, with fixed vs. open status for every finding.">
 <style>
@@ -353,13 +354,14 @@
                 from or connect to. Doesn't stop the confirmed <code>battle-bots</code> V1 XSS bug from
                 <i>executing</i> (a no-build CSP needs <code>'unsafe-inline'</code>), but would block it from
                 <i>phoning home</i> to an attacker domain.</td>
-              <td><b>Partial fix on GitHub Pages</b> — a
-                <code>&lt;meta http-equiv="Content-Security-Policy"&gt;</code> tag can be added to each page's
-                <code>&lt;head&gt;</code>, but <code>'unsafe-inline'</code> is required, so it won't block
-                inline-handler injection. <b>Full fix on Vercel</b> via a <code>vercel.json</code>
-                <code>headers</code> block — done for both apps; GitHub Pages meta-tag version not yet added.</td>
+              <td><b>Fixed on GitHub Pages</b> — a per-page
+                <code>&lt;meta http-equiv="Content-Security-Policy"&gt;</code> tag, tailored to each page's actual
+                script/style/font resources — done for all 13 pages. <code>'unsafe-inline'</code> is still
+                required for these single-file toys, so it still won't block inline-handler injection, only
+                cross-origin script/style loading and a few other vectors. <b>Fixed on Vercel</b> via a
+                <code>vercel.json</code> <code>headers</code> block — done for both apps.</td>
               <td>Set A + Set B + Set C</td>
-              <td><span class="badge partial">Partial — Vercel fixed*</span></td>
+              <td><span class="badge fixed">Fixed*†</span></td>
             </tr>
             <tr>
               <td class="num">2</td>
@@ -415,16 +417,20 @@
         <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: -4px;">
           <b>*</b> rows 1–4 — the Vercel-side fix for all four was verified live via <code>curl -I</code> and
           confirmed by the user visually rendering both apps on a real device, but was never rendered in a
-          browser by this session directly. See the rollout caveat in the fix-note below.
+          browser by this session directly. See the "Vercel rollout" caveat in the fix-notes below.<br>
+          <b>†</b> row 1 only — the GitHub Pages meta-tag CSP (13 files, several different third-party resources
+          per page: three.js, gsap, tailwind CDN, font-awesome, Google Fonts) has <b>not</b> been visually
+          verified on any live page yet — this one still needs a real-device check. See the "GitHub Pages CSP
+          rollout" caveat below.
         </p>
 
         <p><b>Bottom line on "no fix":</b> rows 2, 3, and 4 are still genuinely unfixable for every GitHub Pages
         page as long as the site stays on GitHub Pages — not "not done yet," but architecturally blocked,
         because GitHub Pages has zero mechanism for setting arbitrary response headers. The only way to close
         that gap for the 13 static pages is migrating hosting (e.g. Cloudflare Pages or Netlify, both free and
-        both deploy from this same repo) or putting a reverse proxy/CDN in front of GitHub Pages. Row 1 can also
-        be patched (partially) today on GitHub Pages via a meta tag; that hasn't been done yet either — only the
-        Vercel side of rows 1–4 is fixed so far.</p>
+        both deploy from this same repo) or putting a reverse proxy/CDN in front of GitHub Pages. Row 1 is now
+        fixed on both platforms — it's the only row of the five where GitHub Pages could ever fully catch up
+        to Vercel.</p>
 
         <div class="fix-note">
           <b>Row 5 fixed:</b> added <code>&lt;meta name="referrer" content="strict-origin-when-cross-origin"&gt;</code>
@@ -468,6 +474,50 @@
           <b>Visually confirmed by the user on a real device after deploy:</b> both apps render normally —
           Tailwind styling intact, no breakage — closing out the one thing <code>curl</code> couldn't check.
           <div class="commit">commit 3268413 — "Add vercel.json security headers to both battle-bots apps"</div>
+        </div>
+
+        <div class="fix-note">
+          <b>Row 1 fixed — GitHub Pages CSP rollout (marked † in the table above):</b> added a
+          <code>&lt;meta http-equiv="Content-Security-Policy"&gt;</code> tag to all 13 GitHub Pages files, each
+          one built from that page's actual resources rather than a copy-pasted default:
+          <ul>
+            <li><code>index.html</code>, <code>threejsGallery.html</code>, <code>ai-swarm.html</code>,
+            <code>race-day.html</code>, <code>secret.html</code>, <code>51d6d17b…html</code> — allow
+            <code>https://cdnjs.cloudflare.com</code> in <code>script-src</code> (three.js/gsap/ScrollTrigger/
+            crypto-js) and <code>https://fonts.googleapis.com</code> / <code>https://fonts.gstatic.com</code>
+            in <code>style-src</code>/<code>font-src</code> (Google Fonts).</li>
+            <li><code>tricalc.html</code> — allows <code>https://cdn.tailwindcss.com</code> in
+            <code>script-src</code>, plus <code>cdnjs.cloudflare.com</code> in both <code>style-src</code> and
+            <code>font-src</code> for its Font Awesome CSS and webfont files, plus Google Fonts.</li>
+            <li><code>bots.html</code> — allows only <code>https://cdn.tailwindcss.com</code> in
+            <code>script-src</code>; no fonts or other CDN use.</li>
+            <li><code>fullcircle.html</code> — Google Fonts only, no external script domain (it doesn't use
+            three.js despite being a 3D page — confirmed by grep, no <code>cdnjs</code> reference exists).</li>
+            <li><code>new.html</code>, <code>araknoid.html</code>, <code>pong.html</code>, <code>snake.html</code>
+            — no external resources at all; CSP is just <code>'self' 'unsafe-inline'</code>.</li>
+            <li>this report page — the only file in Set A with <b>zero</b> <code>&lt;script&gt;</code> tags, so
+            it gets a strictly tighter policy than the toys: <code>script-src 'self'</code> with
+            <b>no</b> <code>'unsafe-inline'</code>, since there's no inline JS to permit.</li>
+          </ul>
+          Every domain above was confirmed by grepping each file's actual <code>src=</code>/<code>href=</code>
+          attributes and <code>fetch(</code> calls — not assumed. All 13 pages keep <code>'unsafe-inline'</code>
+          in <code>script-src</code> (except this report) because they're single-file toys with no build step,
+          matching this report's established stance: the realistic CSP here still won't stop an inline-handler
+          injection, only cross-origin loading, <code>base-uri</code>/<code>form-action</code> hijacking, and
+          restrict <code>connect-src</code>/<code>img-src</code> to same-origin.
+          <br><br>
+          <b>Caveat, same as the Vercel rollout but larger in scope:</b> this environment still has no
+          browser/WebGL rendering available, so none of these 13 CSPs have been checked against a live page
+          load — this covers more third-party resources than the Vercel apps did (three.js WebGL scenes, gsap
+          ScrollTrigger animations, a JIT Tailwind build, and Font Awesome icon fonts, across 13 different
+          pages), so there's more surface area for something to be missing from an allowlist than there was on
+          Vercel. <b>Please spot-check at least the heaviest pages after this deploys</b> —
+          <code>index.html</code> (three.js + gsap + crypto-js), <code>tricalc.html</code> (Tailwind + Font
+          Awesome + Google Fonts), and one plain three.js page like <code>threejsGallery.html</code> — and watch
+          for missing icons, unstyled Tailwind classes, or a broken 3D scene. All 632 existing tests still pass
+          (they run in jsdom, which does not enforce CSP at all, so this is not a substitute for the visual
+          check).
+          <div class="commit">pending push</div>
         </div>
       </div>
     </div>
