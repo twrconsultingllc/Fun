@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Fun repo — security &amp; quality scan report</title>
 <meta name="description" content="Site-wide security and code-quality scan of the Fun repo, with fixed vs. open status for every finding.">
 <style>
@@ -328,7 +329,7 @@
         <div class="hdr-table-wrap">
         <table class="hdr-table">
           <thead>
-            <tr><th>#</th><th>1. Problem</th><th>2. Fix</th><th>3. Pages affected</th></tr>
+            <tr><th>#</th><th>1. Problem</th><th>2. Fix</th><th>3. Pages affected</th><th>4. Status</th></tr>
           </thead>
           <tbody>
             <tr>
@@ -343,6 +344,7 @@
                 inline-handler injection. <b>Full fix on Vercel</b> via a <code>vercel.json</code>
                 <code>headers</code> block.</td>
               <td>Set A + Set B + Set C</td>
+              <td><span class="badge open">Open</span></td>
             </tr>
             <tr>
               <td class="num">2</td>
@@ -355,6 +357,7 @@
                 for this header — browsers only honor it as a real HTTP header, and GitHub Pages gives you no
                 way to set one. <b>Full fix on Vercel</b> via <code>vercel.json</code>.</td>
               <td>Set A: <span class="no-fix">no fix exists, period.</span> Set B: fixable.</td>
+              <td><span class="badge open">Open</span></td>
             </tr>
             <tr>
               <td class="num">3</td>
@@ -364,6 +367,7 @@
               <td><span class="no-fix">NO FIX AVAILABLE on GitHub Pages</span> — no meta-tag equivalent exists
                 for this header either. <b>Full fix on Vercel</b> via <code>vercel.json</code>.</td>
               <td>Set A: <span class="no-fix">no fix exists, period.</span> Set B + Set C: fixable.</td>
+              <td><span class="badge open">Open</span></td>
             </tr>
             <tr>
               <td class="num">4</td>
@@ -373,6 +377,7 @@
               <td><span class="no-fix">NO FIX AVAILABLE on GitHub Pages</span> — no reliable meta-tag
                 equivalent exists. <b>Full fix on Vercel</b> via <code>vercel.json</code>.</td>
               <td>Set A: <span class="no-fix">no fix exists, period.</span> Set B: fixable.</td>
+              <td><span class="badge open">Open</span></td>
             </tr>
             <tr>
               <td class="num">5</td>
@@ -386,6 +391,7 @@
                 standard mechanism, not a workaround, and behaves the same as the real header. <b>Full fix on
                 Vercel</b> via <code>vercel.json</code> (or the same meta tag).</td>
               <td>Set A + Set B — fixable everywhere</td>
+              <td><span class="badge fixed">Fixed</span></td>
             </tr>
           </tbody>
         </table>
@@ -395,8 +401,22 @@
         as long as the site stays on GitHub Pages — not "not done yet," but architecturally blocked, because
         GitHub Pages has zero mechanism for setting arbitrary response headers. The only way to close that gap
         for the 13 static pages is migrating hosting (e.g. Cloudflare Pages or Netlify, both free and both
-        deploy from this same repo) or putting a reverse proxy/CDN in front of GitHub Pages. Rows 1 and 5 can be
-        patched today on GitHub Pages via meta tags; rows 2–4 cannot, by design of the platform.</p>
+        deploy from this same repo) or putting a reverse proxy/CDN in front of GitHub Pages. Row 1 can also be
+        patched (partially) today on GitHub Pages via a meta tag; rows 2–4 cannot, by design of the platform.</p>
+
+        <div class="fix-note">
+          <b>Row 5 fixed:</b> added <code>&lt;meta name="referrer" content="strict-origin-when-cross-origin"&gt;</code>
+          to the <code>&lt;head&gt;</code> of all 13 GitHub Pages pages (<code>index.html</code>,
+          <code>new.html</code>, <code>threejsGallery.html</code>, <code>tricalc.html</code>,
+          <code>araknoid.html</code>, <code>pong.html</code>, <code>bots.html</code>, <code>snake.html</code>,
+          <code>fullcircle.html</code>, <code>ai-swarm.html</code>, <code>race-day.html</code>,
+          <code>secret.html</code>, <code>51d6d17b…html</code>), this report page itself, and both Vercel
+          apps' entry pages (<code>battle-bots/public/index.html</code>,
+          <code>battle-bots-V2/public/index.html</code>, <code>battle-bots-V2/public/guide.html</code>) — 17
+          files in total. This is a standard, non-experimental mechanism (part of the Referrer Policy spec, not
+          a workaround), so it's a full fix everywhere, not a partial one like row 1's meta-tag CSP.
+          <div class="commit">pending push — will confirm live on GitHub Pages once deployed</div>
+        </div>
       </div>
     </div>
 
