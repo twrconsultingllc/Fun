@@ -72,6 +72,9 @@ export default async function run(t, page) {
         t.eq('play() does not flip isPlaying() without a GL context', api.isPlaying(), false);
         api.pause();
         t.eq('pause() is still safe to call', api.isPlaying(), false);
+        api.play();
+        api.play();
+        t.eq('calling play() twice in a row is still safe to call', api.isPlaying(), false);
     } finally {
         env.close();
     }

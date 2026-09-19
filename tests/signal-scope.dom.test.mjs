@@ -50,6 +50,9 @@ export default async function run(t, page) {
         t.eq('play() does not flip isPlaying without Web Audio', api.isPlaying, false);
         api.stop();
         t.eq('stop() is still safe to call', api.isPlaying, false);
+        api.play();
+        api.play();
+        t.eq('calling play() twice in a row is still safe to call', api.isPlaying, false);
 
         t.section('Control state updates independently of audio support');
 

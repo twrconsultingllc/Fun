@@ -35,7 +35,7 @@ not be loaded — so this drops straight into CI or a pre-push hook.
 
 ## What is covered
 
-725 assertions across fifteen suites.
+729 assertions across fifteen suites.
 
 ### `fullcircle.html`
 

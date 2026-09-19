@@ -368,7 +368,7 @@ h2.title { font-size: clamp(1.6rem, 3.4vw, 2.4rem); font-weight: 900; }
     }
 
     function play() {
-        if (!gl) return;
+        if (!gl || state.playing) return;
         state.playing = true;
         document.getElementById('play-btn').textContent = 'Pause';
         glState.lastFrameTime = performance.now();

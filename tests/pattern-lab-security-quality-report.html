@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Pattern Lab pages — security &amp; quality review</title>
+<meta name="description" content="Security and code-quality review of the four new pattern-lab pages against this repo's existing scan conventions, with fixed vs. open status for every finding.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+  .fix-note .commit {
+    color: var(--text-dim);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .open-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--open);
+  }
+  .open-note b { color: var(--open); }
+
+  .legend-box {
+    background: var(--code-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 10px 0;
+    font-size: 0.85rem;
+  }
+  .legend-box p { margin: 4px 0; }
+
+  .page-table-wrap { overflow-x: auto; margin: 12px 0; }
+  table.page-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .page-table th, .page-table td {
+    border: 1px solid var(--panel-border);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .page-table th {
+    background: var(--code-bg);
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .no-fix {
+    color: var(--open);
+    font-weight: 700;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Pattern Lab pages — security &amp; code-quality review</h1>
+    <p class="sub">The four new front-end pattern-lab pages, checked against the conventions this repo's <a href="security-quality-report.html" style="color: var(--accent);">site-wide security &amp; quality scan</a> already established, plus a fresh look at what each page introduces on its own.</p>
+    <div class="meta">Review performed 2026-09-19 · repo: <code>twrconsultingllc/Fun</code> · pages: <code>scroll-transit.html</code>, <code>shader-lab.html</code>, <code>widget-kit.html</code>, <code>signal-scope.html</code></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 67%;"></div></div>
+    <div class="progress-label">4 of 6 actionable findings fixed, 2 left open (1 architecturally blocked on GitHub Pages, same category as the site-wide report's header-policy rows; 1 minor/cosmetic — see section 02). 5 additional items confirmed clean, not counted as actionable.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Per-page CSP, tailored to actual resources — all four pages</div>
+        <span class="badge fixed">Not an issue</span>
+      </div>
+      <div class="item-body">
+        <p>Every page carries the same shape of <code>&lt;meta http-equiv="Content-Security-Policy"&gt;</code> the rest of the repo uses, built from an actual inventory of each page's resources rather than a copy-pasted default — the same discipline the site-wide report insisted on for the original 13 pages.</p>
+        <div class="page-table-wrap">
+        <table class="page-table">
+          <thead><tr><th>Page</th><th>External resources actually used</th><th>CSP shape</th></tr></thead>
+          <tbody>
+            <tr><td><code>scroll-transit.html</code></td><td>Google Fonts only</td><td><code>script-src 'self' 'unsafe-inline'</code>; <code>style-src</code>/<code>font-src</code> allow <code>fonts.googleapis.com</code>/<code>fonts.gstatic.com</code></td></tr>
+            <tr><td><code>shader-lab.html</code></td><td>Google Fonts only</td><td>same shape</td></tr>
+            <tr><td><code>widget-kit.html</code></td><td>Google Fonts only</td><td>same shape</td></tr>
+            <tr><td><code>signal-scope.html</code></td><td>Google Fonts only</td><td>same shape</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p>None of the four load a CDN script — unlike the rest of the repo, they were deliberately built dependency-free (no Three.js/GSAP/Tailwind needed for any of these four patterns), which is itself a smaller attack surface than the existing three.js-based pages. <code>'unsafe-inline'</code> in <code>script-src</code> is still required, same reasoning as every other single-file toy: there's no build step, so the page's own logic is an inline <code>&lt;script&gt;</code> block, and CSP's <code>'self'</code> alone does not cover inline script content. Verified every domain by grepping each file's actual <code>src=</code>/<code>href=</code> attributes — no page references anything beyond Google Fonts.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Referrer-Policy meta tag — all four pages</div>
+        <span class="badge fixed">Not an issue</span>
+      </div>
+      <div class="item-body">
+        <code>&lt;meta name="referrer" content="strict-origin-when-cross-origin"&gt;</code> is present in the head of all four, matching row 5 of the site-wide report (the one header-policy row that's a full fix everywhere, not just partial).
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Subresource Integrity — not applicable</div>
+        <span class="badge fixed">Not an issue</span>
+      </div>
+      <div class="item-body">
+        The site-wide report's SRI fix targeted pinned CDN <code>&lt;script&gt;</code>/<code>&lt;link&gt;</code> files loaded at a fixed version (three.js, gsap, crypto-js, Font Awesome). None of the four new pages load anything like that — the only external reference on any of them is the Google Fonts CSS endpoint, which the site-wide report's own SRI fix also left alone everywhere else in the repo, because Google serves that endpoint as a dynamically-generated, per-request stylesheet rather than a fixed file, so there is no single hash to pin.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No secrets, no inline handlers, no <code>eval</code>, no exfiltration path</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped all four files directly rather than assuming:
+        <ul>
+          <li>No <code>on*="…"</code> inline event-handler attributes anywhere — every interaction is wired with <code>addEventListener</code>.</li>
+          <li>No <code>eval(</code> or <code>new Function(</code> anywhere.</li>
+          <li>Every <code>.innerHTML</code> assignment (five, all in <code>widget-kit.html</code>'s Shadow DOM setup, one each in <code>scroll-transit.html</code>/<code>shader-lab.html</code>) either clears a container to <code>''</code> or assigns a fixed, hand-written template string with no interpolated data — anything that could contain user- or model-derived text (labels, ratings, copy-chip text) is written with <code>.textContent</code> instead, never concatenated into markup. This is the exact bug class the site-wide report's <code>battle-bots</code> V1 XSS finding was about; none of that pattern exists here.</li>
+          <li>No <code>fetch(</code>, <code>XMLHttpRequest</code>, <code>WebSocket</code>, or <code>sendBeacon</code> anywhere in any of the four pages — there is no network code at all, so <code>connect-src 'self'</code> in each page's CSP is a real, enforced ceiling with nothing to restrict in practice yet, not a false sense of safety.</li>
+          <li>No API keys, tokens, or <code>.env</code> references — these are static front-end demos with no server component, unlike <code>battle-bots</code>/<code>battle-bots-V2</code>.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>signal-scope.html</code> is the first page in the repo to request microphone access</div>
+        <span class="badge open">Open</span>
+      </div>
+      <div class="item-body">
+        <p>The site-wide report's Permissions-Policy row (row 4) was left <b>partial</b> — fixed on Vercel via <code>vercel.json</code>, unfixable on GitHub Pages because there is no meta-tag equivalent for that header — but justified leaving GitHub Pages as-is with <i>"nothing in this repo currently uses those APIs, so today this is pure defense-in-depth."</i> <code>signal-scope.html</code>'s optional "Use microphone instead" toggle removes that justification: this is now the first GitHub Pages page in the repo with a real reason to request a sensitive permission, and there is still no way to scope or block that request at the platform level here.</p>
+        <p><b>Concretely, what this does and doesn't expose:</b></p>
+        <ul>
+          <li>The mic is never requested automatically — only on an explicit click of the "Use microphone instead" checkbox, and the browser's own native permission prompt still gates the request regardless of any Permissions-Policy header. This is not a silent-access bug.</li>
+          <li>If access is granted, the stream is routed only to a local <code>AnalyserNode</code> for the visualizer and never leaves the page — confirmed above, there is no network code anywhere in the file, so there is no path for captured audio to be transmitted anywhere even if the permission were obtained under false pretenses.</li>
+          <li>The realistic residual risk is the same shape as the site-wide report's row 2 (missing <code>X-Frame-Options</code>, also architecturally unfixable on GitHub Pages): an attacker could iframe <code>signal-scope.html</code> and use a clickjacking overlay to trick a visitor into clicking the mic checkbox at an unexpected moment, surfacing the browser's real permission prompt out of context. The prompt itself still can't be bypassed, but a confused user could click "Allow" believing they're interacting with the attacker's page.</li>
+        </ul>
+      </div>
+      <div class="open-note">
+        <b>Not fixed, same reason as the site-wide report's row 4:</b> no meta-tag equivalent for <code>Permissions-Policy</code> or <code>X-Frame-Options</code> exists on GitHub Pages — this is architecturally blocked, not unaddressed. If this page (or any future one that requests a sensitive permission) ever moves to a host that sets real headers, add <code>Permissions-Policy: microphone=(self)</code> and <code>X-Frame-Options: DENY</code> there, mirroring the <code>vercel.json</code> pattern already in place for both <code>battle-bots</code> apps. Recorded here rather than silently left out, so this doesn't quietly become "not actually missing" the way <code>Strict-Transport-Security</code> turned out to be in the original scan — it did check that assumption before writing this, not skip it.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; bugs</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>Number(x) || fallback</code> silently discards a legitimate <code>0</code></div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        Three clamp helpers used the pattern <code>Math.max(min, Math.min(max, Number(x) || fallback))</code>: <code>shader-lab.html</code>'s <code>setSpeed()</code>, and <code>signal-scope.html</code>'s <code>setTempo()</code>/<code>setCutoff()</code>. Since <code>0</code> is falsy in JavaScript, calling e.g. <code>setCutoff(0)</code> silently produced <code>2400</code> (the fallback) instead of clamping to the real lower bound of <code>200</code> — a real, user-reachable bug (dragging the filter slider to its own minimum value would have been indistinguishable from an invalid input).
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> replaced all three with <code>Number.isFinite(x) ? x : fallback</code>, which only substitutes the fallback for genuinely invalid input (<code>NaN</code>, <code>undefined</code>), not for a valid <code>0</code>. Caught by writing the test suite for these pages, not by manual review — the tests now assert <code>setCutoff(0)</code>, <code>setTempo(0)</code>, and <code>setSpeed(0)</code> explicitly, on top of the more obvious out-of-range clamps, so this exact bug class can't silently return.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>signal-scope.html</code>'s canvas draw functions would throw if <code>getContext('2d')</code> returns null</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        <code>drawNoSignal()</code>, <code>drawBars()</code>, and <code>drawRadial()</code> called canvas 2D methods unconditionally. This repo's own CLAUDE.md already documents that <code>getContext('2d')</code> returns <code>null</code> without a native <code>canvas</code> package (as in this test environment, and in principle any environment without a working 2D backend) — and <code>drawNoSignal()</code> runs unconditionally at page load regardless of Web Audio support, so this would have thrown on the very first paint in exactly that situation.
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> all three functions now return early if the 2D context is unavailable. This has no effect on real browsers (which always provide a 2D context) — it only matters in a test/embedded environment without one — but it's the same defensive posture <code>race-day.html</code>'s <code>webglAvailable()</code> already models for missing rendering capability, applied to canvas 2D instead of WebGL. Confirmed by the DOM test suite, which loads the real page and asserts the script runs with zero errors.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>play()</code> not idempotent in <code>shader-lab.html</code> / <code>signal-scope.html</code></div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        Both pages expose <code>play()</code> on their <code>window.__pagename</code> debug hook. Calling it twice in a row without an intervening <code>pause()</code>/<code>stop()</code> would schedule a second, independent <code>requestAnimationFrame</code> chain — not reachable through the actual UI (the Play/Pause button toggles based on tracked state, so a real click sequence can't double-invoke it), and each duplicate chain self-terminates within one extra frame once <code>state.playing</code> goes false, so this was never a permanent leak — but it's a real gap in the guarantee "safe to call from outside code" that the debug hooks are supposed to offer.
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> both <code>play()</code> functions now no-op if <code>state.playing</code> is already <code>true</code>. Low severity — this could only be observed via direct misuse of the debug API — but cheap and correct to close. Noted honestly in the added regression test that jsdom cannot provide a real GL/AudioContext to prove the guard actually prevents a second scheduled frame; the test only confirms calling <code>play()</code> twice remains side-effect-free where jsdom can observe it.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>&lt;collapse-panel&gt;</code> missing <code>aria-expanded</code>, chevron not hidden from screen readers</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        The disclosure header in <code>widget-kit.html</code>'s <code>&lt;collapse-panel&gt;</code> toggled visually and dispatched a <code>toggle</code> event, but had no <code>aria-expanded</code> state for assistive tech to read, and its decorative <code>&rsaquo;</code> chevron glyph had no <code>aria-hidden</code>, so a screen reader could announce it as meaningful content. Same category of gap as the accessibility fixes in the site-wide report (unlabeled/unannounced interactive state).
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> the header button now carries <code>aria-expanded</code>, kept in sync with the <code>open</code> property/attribute in both directions (click and programmatic), and the chevron span now has <code>aria-hidden="true"</code>. Verified by a new assertion in the widget-kit test suite that reads <code>aria-expanded</code> before and after toggling.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Viewport, keyboard operability, and control labeling</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Checked against the exact accessibility gaps the site-wide report previously found and fixed elsewhere in the repo (blocked pinch-zoom, unlabeled sliders, unkeyboard-operable clickable <code>&lt;div&gt;</code>s):
+        <ul>
+          <li>All four pages use a plain <code>width=device-width, initial-scale=1.0</code> viewport — none add <code>maximum-scale</code> or <code>user-scalable=no</code>.</li>
+          <li>Every interactive control on all four pages is a native <code>&lt;button&gt;</code>, <code>&lt;input&gt;</code>, or <code>&lt;select&gt;</code> — there are no custom clickable <code>&lt;div&gt;</code>/<code>&lt;span&gt;</code> elements anywhere, unlike the pre-fix <code>ai-swarm.html</code> rows the site-wide report had to retrofit with a keyboard-clickable helper. Native elements get Tab focus and Enter/Space activation for free.</li>
+          <li><code>signal-scope.html</code>'s sliders and select (<code>waveform</code>, <code>tempo</code>, <code>cutoff</code>) and its mic checkbox all have a visible <code>&lt;label for="…"&gt;</code> paired to the control's <code>id</code>, rather than relying on placeholder text or an <code>aria-label</code> retrofit.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Minor, left as-is</div>
+        <span class="badge partial">Open — not a functional gap</span>
+      </div>
+      <div class="item-body">
+        <code>&lt;rating-stars&gt;</code> in <code>widget-kit.html</code> renders as a row of individually-labeled, independently focusable star buttons (each with its own <code>aria-label</code>, e.g. "3 stars") rather than a single compound widget with <code>role="radiogroup"</code> and one group-level label. It is fully keyboard-operable and each button's purpose is announced correctly on its own, so nothing is broken — a screen-reader user would just hear five separate buttons rather than one rating control with a spoken current value. Left alone for the same reason the site-wide report left the repeated sound-envelope boilerplate alone: it's a nice-to-have refinement, not a gap that blocks use, and over-engineering a demo widget-kit page's already-working control wasn't worth doing without being asked.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Test coverage, no debug cruft</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        No <code>console.log</code>/<code>console.warn</code>/<code>debugger</code>/<code>TODO</code>/<code>FIXME</code> left in any of the four pages. All four are covered by five dedicated test files (one extra for <code>shader-lab.html</code>'s GLSL source pinning), 97 assertions total, registered in <code>tests/run.mjs</code>'s <code>SUITES</code> array and documented in <code>tests/README.md</code> alongside every other page's suite. Full repo suite: <b>729 assertions across fifteen suites</b>, all passing against both the working copy and the live GitHub Pages deploy.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand as each item gets fixed,
+    or ask Claude to re-scan the four pattern-lab pages and refresh this page. See
+    <code>security-quality-report.html</code> for the rest of the repo.
+  </footer>
+
+</div>
+</body>
+</html>

@@ -86,12 +86,14 @@ export default async function run(t, page) {
         if (panels.length === 2) {
             const closedPanel = panels[0];
             t.eq('the first panel starts closed', closedPanel.open, false);
+            t.eq('aria-expanded starts false', closedPanel.shadowRoot.querySelector('.header').getAttribute('aria-expanded'), 'false');
 
             let toggleDetail = null;
             closedPanel.addEventListener('toggle', (e) => { toggleDetail = e.detail; });
             closedPanel.shadowRoot.querySelector('.header').click();
             t.eq('clicking the header opens it', closedPanel.open, true);
             t.eq('toggle fires with open: true', toggleDetail && toggleDetail.open, true);
+            t.eq('aria-expanded reflects the open state', closedPanel.shadowRoot.querySelector('.header').getAttribute('aria-expanded'), 'true');
 
             const openPanel = panels[1];
             t.eq('the second panel starts open (via the open attribute)', openPanel.open, true);
