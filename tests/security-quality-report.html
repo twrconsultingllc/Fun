@@ -419,9 +419,10 @@
           confirmed by the user visually rendering both apps on a real device, but was never rendered in a
           browser by this session directly. See the "Vercel rollout" caveat in the fix-notes below.<br>
           <b>†</b> row 1 only — the GitHub Pages meta-tag CSP (13 files, several different third-party resources
-          per page: three.js, gsap, tailwind CDN, font-awesome, Google Fonts) has <b>not</b> been visually
-          verified on any live page yet — this one still needs a real-device check. See the "GitHub Pages CSP
-          rollout" caveat below.
+          per page: three.js, gsap, tailwind CDN, font-awesome, Google Fonts) was verified live via
+          <code>curl</code> for header presence and confirmed by the user visually spot-checking
+          <code>index.html</code>, <code>tricalc.html</code>, and <code>threejsGallery.html</code> on a real
+          device — no breakage on any of the three. See the "GitHub Pages CSP rollout" caveat below.
         </p>
 
         <p><b>Bottom line on "no fix":</b> rows 2, 3, and 4 are still genuinely unfixable for every GitHub Pages
@@ -506,18 +507,17 @@
           injection, only cross-origin loading, <code>base-uri</code>/<code>form-action</code> hijacking, and
           restrict <code>connect-src</code>/<code>img-src</code> to same-origin.
           <br><br>
-          <b>Caveat, same as the Vercel rollout but larger in scope:</b> this environment still has no
-          browser/WebGL rendering available, so none of these 13 CSPs have been checked against a live page
-          load — this covers more third-party resources than the Vercel apps did (three.js WebGL scenes, gsap
-          ScrollTrigger animations, a JIT Tailwind build, and Font Awesome icon fonts, across 13 different
-          pages), so there's more surface area for something to be missing from an allowlist than there was on
-          Vercel. <b>Please spot-check at least the heaviest pages after this deploys</b> —
-          <code>index.html</code> (three.js + gsap + crypto-js), <code>tricalc.html</code> (Tailwind + Font
-          Awesome + Google Fonts), and one plain three.js page like <code>threejsGallery.html</code> — and watch
-          for missing icons, unstyled Tailwind classes, or a broken 3D scene. All 632 existing tests still pass
-          (they run in jsdom, which does not enforce CSP at all, so this is not a substitute for the visual
-          check).
-          <div class="commit">pending push</div>
+          <b>Caveat during rollout, same as Vercel but larger in scope:</b> this environment has no
+          browser/WebGL rendering available, so none of these 13 CSPs could be checked against a live page load
+          before shipping — this covers more third-party resources than the Vercel apps did (three.js WebGL
+          scenes, gsap ScrollTrigger animations, a JIT Tailwind build, and Font Awesome icon fonts, across 13
+          different pages). All 632 existing tests still passed (they run in jsdom, which doesn't enforce CSP at
+          all, so that alone was never a substitute for a visual check).
+          <b>Visually confirmed by the user on a real device after deploy:</b> <code>index.html</code> (three.js
+          + gsap + crypto-js), <code>tricalc.html</code> (Tailwind + Font Awesome + Google Fonts), and
+          <code>threejsGallery.html</code> (three.js) all render normally — no missing icons, no unstyled
+          Tailwind, no broken 3D scenes. Closes out the † caveat in the table above.
+          <div class="commit">commit f8d80fa — "Add per-page Content-Security-Policy meta tags to all 13 GitHub Pages files"</div>
         </div>
       </div>
     </div>
