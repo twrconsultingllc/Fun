@@ -345,7 +345,7 @@
         <div class="hdr-table-wrap">
         <table class="hdr-table">
           <thead>
-            <tr><th>#</th><th>1. Problem</th><th>2. Fix</th><th>3. Pages affected</th><th>4. Status</th></tr>
+            <tr><th>#</th><th>1. Problem</th><th>2. Fix</th><th>3. Pages affected</th><th>4. Status</th><th>5. Remaining options</th></tr>
           </thead>
           <tbody>
             <tr>
@@ -362,6 +362,11 @@
                 <code>vercel.json</code> <code>headers</code> block — done for both apps.</td>
               <td>Set A + Set B + Set C</td>
               <td><span class="badge fixed">Fixed*†</span></td>
+              <td><b>Optional — CSP violation reporting.</b> This row is already fixed everywhere; the only
+                thing left is visibility. Adding <code>report-uri</code>/<code>report-to</code> to the CSP would
+                notify you if a real page ever violates it in production, instead of finding out from a broken
+                page. Needs a report-collector endpoint (e.g. a free service, or a small endpoint of your own) —
+                not set up, and not a fix for anything currently broken.</td>
             </tr>
             <tr>
               <td class="num">2</td>
@@ -375,6 +380,9 @@
                 way to set one. <b>Full fix on Vercel</b> via <code>vercel.json</code> — done.</td>
               <td>Set A: <span class="no-fix">no fix exists, period.</span> Set B: fixable.</td>
               <td><span class="badge partial">Partial — Vercel fixed*</span></td>
+              <td><b>Migrate hosting off GitHub Pages.</b> Cloudflare Pages or Netlify (both free, both deploy
+                from this same repo) support a <code>_headers</code> file for full header control — that's the
+                only way to close this row's GitHub Pages gap. Not done; a hosting decision, not a code fix.</td>
             </tr>
             <tr>
               <td class="num">3</td>
@@ -385,6 +393,9 @@
                 for this header either. <b>Full fix on Vercel</b> via <code>vercel.json</code> — done.</td>
               <td>Set A: <span class="no-fix">no fix exists, period.</span> Set B + Set C: fixable.</td>
               <td><span class="badge partial">Partial — Vercel fixed*</span></td>
+              <td><b>Migrate hosting off GitHub Pages.</b> Same as row 2 — a Cloudflare Pages/Netlify
+                <code>_headers</code> file is the only way to close this row's GitHub Pages gap. Not done; a
+                hosting decision, not a code fix.</td>
             </tr>
             <tr>
               <td class="num">4</td>
@@ -395,6 +406,9 @@
                 equivalent exists. <b>Full fix on Vercel</b> via <code>vercel.json</code> — done.</td>
               <td>Set A: <span class="no-fix">no fix exists, period.</span> Set B: fixable.</td>
               <td><span class="badge partial">Partial — Vercel fixed*</span></td>
+              <td><b>Migrate hosting off GitHub Pages.</b> Same as rows 2 and 3 — a Cloudflare Pages/Netlify
+                <code>_headers</code> file is the only way to close this row's GitHub Pages gap. Not done; a
+                hosting decision, not a code fix.</td>
             </tr>
             <tr>
               <td class="num">5</td>
@@ -409,6 +423,7 @@
                 Vercel</b> via <code>vercel.json</code> (or the same meta tag).</td>
               <td>Set A + Set B — fixable everywhere</td>
               <td><span class="badge fixed">Fixed</span></td>
+              <td>N/A — already fixed everywhere, nothing left to do on this row.</td>
             </tr>
           </tbody>
         </table>
