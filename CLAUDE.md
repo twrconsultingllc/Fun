@@ -111,6 +111,27 @@ easy to get backwards by intuition (as happened once already) — simulate the
 actual `recycle()` math in Node against a few margins before changing one,
 rather than reasoning about it in the abstract.
 
+## New pages get a numbered security & quality review
+
+When a new page (or a small batch of related pages) is added to this repo,
+review it for security and code-quality issues before calling the work done,
+fix what can be fixed, and publish the result as the next sequentially
+numbered report in `tests/secrpts/` (`01.html` is the original site-wide
+scan; `02.html` reviewed the four pattern-lab pages — follow that file's
+format: CSP/referrer/description meta tags on the report itself, a progress
+bar, Security and Code quality sections, each finding tagged Fixed/Open/
+Partial). Verify claims instead of assuming them — e.g. compute WCAG
+contrast ratios rather than eyeballing colors, grep for the bug pattern
+instead of asserting it isn't there. Note honestly what's left open and why
+(architecturally blocked, e.g. no GitHub Pages equivalent for a header-only
+policy, vs. simply not fixed yet) — a badge that says "Fixed" without a real
+fix behind it is worse than an honest "Open."
+
+This applies to any new page, including reference/study material under
+`study/` that isn't part of the toy gallery — being off `index.html` doesn't
+exempt a page from this, since it's still served from GitHub Pages and still
+worth getting right.
+
 ## No browser or WebGL rendering in this environment
 
 There is no puppeteer, chromium-cli, or connected claude-in-chrome browser in

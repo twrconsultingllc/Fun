@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Study pages — security &amp; quality review</title>
+<meta name="description" content="Security and code-quality review of the two new study/ reference pages against this repo's existing scan conventions, with fixed vs. open status for every finding.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+  .open-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--open);
+  }
+  .open-note b { color: var(--open); }
+
+  .page-table-wrap { overflow-x: auto; margin: 12px 0; }
+  table.page-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .page-table th, .page-table td {
+    border: 1px solid var(--panel-border);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .page-table th {
+    background: var(--code-bg);
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Study pages — security &amp; code-quality review</h1>
+    <p class="sub">The two new <code>study/</code> reference pages, checked against the conventions this repo's <a href="01.html" style="color: var(--accent);">site-wide security &amp; quality scan</a> and <a href="02.html" style="color: var(--accent);">pattern-lab review</a> already established, per the process now documented in <code>CLAUDE.md</code> ("New pages get a numbered security &amp; quality review").</p>
+    <div class="meta">Review performed 2026-09-19 · repo: <code>twrconsultingllc/Fun</code> · pages: <code>study/plan.html</code>, <code>study/usecase.html</code></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 75%;"></div></div>
+    <div class="progress-label">3 of 4 actionable findings fixed, 1 left open (architecturally blocked on GitHub Pages, same category as the site-wide report's header-policy rows — see section 01). 6 additional items confirmed clean, not counted as actionable.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Neither page had a CSP, Referrer-Policy, or description meta tag</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        <p>Both pages were written and published without the <code>&lt;meta http-equiv="Content-Security-Policy"&gt;</code>, <code>&lt;meta name="referrer"&gt;</code>, and <code>&lt;meta name="description"&gt;</code> tags every other page in this repo carries — a real gap against the convention the site-wide scan (<code>01.html</code>) established, not a stylistic choice.</p>
+        <div class="page-table-wrap">
+        <table class="page-table">
+          <thead><tr><th>Page</th><th>External resources actually used</th><th>CSP shape now applied</th></tr></thead>
+          <tbody>
+            <tr><td><code>study/plan.html</code></td><td>None — no external fonts, scripts, or images; one plain <code>&lt;a href&gt;</code> to nmlsconsumeraccess.org (not a CSP-governed resource load)</td><td><code>script-src 'self'</code> (no <code>'unsafe-inline'</code> needed — neither page has a <code>&lt;script&gt;</code> tag at all); <code>style-src 'self' 'unsafe-inline'</code> (both use a few inline <code>style="…"</code> attributes)</td></tr>
+            <tr><td><code>study/usecase.html</code></td><td>Same — none</td><td>Same shape</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p>This is actually a tighter policy than the rest of the repo's pages get, since those load Google Fonts and/or a CDN script and need <code>'unsafe-inline'</code> on <code>script-src</code> for their inline logic — these two are pure static reference documents with zero external dependencies and zero script of any kind.</p>
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> added the CSP, referrer, and description meta tags to both files' <code>&lt;head&gt;</code>, tailored to their actual (minimal) resource use rather than copy-pasted from a page that loads fonts/scripts they don't have.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">External NMLS link had no <code>target</code>/hardened <code>rel</code></div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        Both pages link to <code>nmlsconsumeraccess.org</code> with <code>rel="noopener"</code> but no <code>target="_blank"</code> — since the link opened in the same tab, <code>noopener</code> was doing nothing (it only matters for a link that opens a new browsing context), and following it navigated the reader away from the study page entirely with no referrer protection.
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> both links now use <code>target="_blank" rel="noopener noreferrer"</code> — opens in a new tab (keeps the study page available), <code>noopener</code> now actually applies, and <code>noreferrer</code> stops the study page's URL from being sent to NMLS in the request.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No secrets, no inline handlers, no scripts, no forms, no exfiltration path</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped both files directly:
+        <ul>
+          <li>No <code>&lt;script&gt;</code> tag of any kind, inline or external, in either file — these pages are pure HTML/CSS with no executable logic at all.</li>
+          <li>No <code>on*="…"</code> inline event-handler attributes, no <code>eval(</code>, no <code>fetch(</code>/<code>XMLHttpRequest</code>/<code>WebSocket</code>, no <code>&lt;form&gt;</code> elements.</li>
+          <li>No API keys, tokens, or <code>.env</code> references — nothing here talks to a server at all.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Subresource Integrity — not applicable</div>
+        <span class="badge fixed">Not an issue</span>
+      </div>
+      <div class="item-body">
+        SRI targets pinned CDN <code>&lt;script&gt;</code>/<code>&lt;link&gt;</code> files. Neither page loads any external file at all — the only external reference on either page is a plain navigation link, which SRI has no bearing on.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No <code>X-Frame-Options</code> / <code>Permissions-Policy</code> on GitHub Pages</div>
+        <span class="badge open">Open</span>
+      </div>
+      <div class="item-body">
+        <p>Same architectural gap the site-wide report already documented (row 2/row 4 of <code>01.html</code>): GitHub Pages has no meta-tag equivalent for either header, so it can't be set here regardless of what either page needs.</p>
+        <p>Realistic severity here is low: both pages are read-only reference documents with no forms, no state, no sensitive browser permission requests (unlike <code>signal-scope.html</code>'s microphone case in <code>02.html</code>), and no user input of any kind. An attacker could iframe either page for a visual clickjacking overlay, but there is no click-triggered action on either page for such an overlay to actually weaponize — at worst it's a static page framed inside another site, not a route to tricking a user into an unwanted action.</p>
+      </div>
+      <div class="open-note">
+        <b>Not fixed, same reason as the site-wide report's rows 2 and 4:</b> architecturally blocked on GitHub Pages, not unaddressed. If either page ever moves to a host that sets real response headers, add <code>X-Frame-Options: DENY</code> there, mirroring the <code>vercel.json</code> pattern already in place for both <code>battle-bots</code> apps.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Several accent colors failed WCAG AA contrast in light mode</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        <p>Computed actual WCAG relative-luminance contrast ratios (not eyeballed) for every text-color CSS variable against every real background it's used on in light mode, including the composited badge/callout backgrounds (an <code>rgba()</code> tint over its actual parent color, not the flat panel color alone). Several failed the 4.5:1 AA threshold for normal-weight/small-bold text:</p>
+        <div class="page-table-wrap">
+        <table class="page-table">
+          <thead><tr><th>Page</th><th>Color / usage</th><th>Worst-case background</th><th>Before</th><th>After</th></tr></thead>
+          <tbody>
+            <tr><td><code>plan.html</code></td><td><code>--accent</code>/<code>--link</code> (orange links, weight-percent table cells)</td><td>tinted badge bg over table stripe</td><td>4.04–4.24:1</td><td>4.64–5.37:1</td></tr>
+            <tr><td><code>plan.html</code></td><td><code>--good</code> ("Verified" badge text)</td><td>tinted badge bg over table stripe</td><td>4.30:1</td><td>4.66:1</td></tr>
+            <tr><td><code>usecase.html</code></td><td><code>--accent</code>/<code>--link</code> (green links, step-circle numbers)</td><td>page background</td><td>3.84:1</td><td>4.63:1</td></tr>
+            <tr><td><code>usecase.html</code></td><td><code>--accent-2</code>/<code>--warn-border</code> (section eyebrows, disclaimer label)</td><td>tinted disclaimer box over page bg</td><td>4.20–4.34:1</td><td>4.63–5.44:1</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p>Dark mode was checked the same way and was already comfortably clear (5.9–10:1 on every pair) — the failures were light-mode-only.</p>
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> darkened each affected light-mode color by hue-preserving lightness reduction until it cleared 4.5:1 against its actual worst-case background (not just the flat page background — the tinted <code>rgba()</code> composite a color sits on in a badge or callout can be lighter than the plain background, which is what made the first pass of colors look fine against the page background alone but still fail in a badge). Re-verified every pair after the change; nothing dropped below 4.6:1 anywhere it's actually used. Dark-mode values were left untouched since they already passed.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Heading hierarchy, unique ids, table-of-contents links</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Both pages use a single <code>h1</code> with <code>h2</code>/<code>h3</code> nested correctly (no skipped levels). Checked every <code>id</code> attribute on <code>plan.html</code> for uniqueness (nine section ids, all distinct) and confirmed every table-of-contents <code>href="#…"</code> resolves to a real section id — a real risk after several rounds of edits added and renumbered sections mid-review.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Viewport, debug cruft, gallery visibility</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <ul>
+          <li>Plain <code>width=device-width, initial-scale=1</code> viewport on both — no blocked pinch-zoom.</li>
+          <li>No <code>console.log</code>/<code>console.warn</code>/<code>debugger</code>/<code>TODO</code>/<code>FIXME</code> in either file.</li>
+          <li>Neither page is linked from <code>index.html</code>, as intended — both are study/reference material, not toys for the gallery.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>usecase.html</code> content accuracy</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Read the whole page specifically checking for fabricated proof points, since it's written as a business pitch: no invented statistics, client names, testimonials, or claims of an already-deployed product. The compliance/legal-review caveat is in a visually prominent callout directly under the hero, not buried at the bottom, and is repeated in the closing section.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>plan.html</code> content consistency after multiple rounds of edits</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <code>plan.html</code> was rewritten from a generic-tools design to the money-transmitter-licensing example across several edits in the same session. Grepped for leftover references to the earlier tool/file names (<code>search_repo_files</code>, <code>run_lab_tests</code>, <code>lab-reviewer.md</code>) — none remain; the directory layout, the example-task section, and the exam-domain mapping table all name the current MTL-flavored files consistently.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand as each item gets fixed,
+    or ask Claude to re-scan these two pages and refresh this report. See
+    <code>01.html</code> for the rest of the repo and <code>02.html</code> for the pattern-lab pages.
+  </footer>
+
+</div>
+</body>
+</html>

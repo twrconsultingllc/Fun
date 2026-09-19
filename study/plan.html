@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
 <title>Claude Architect Lab — Study Plan</title>
+<meta name="description" content="Study plan for a hands-on Claude Certified Architect (Foundations) exam project: an agent loop, custom tools, an MCP server, and the Claude Agent SDK, built around an illustrative money-transmitter-licensing example." />
 <style>
   :root {
     --bg: #0f1115;
@@ -27,12 +30,12 @@
       --panel-border: #e3e1da;
       --text: #24262b;
       --text-dim: #5b5f6b;
-      --accent: #b8631f;
+      --accent: #9b531a;
       --accent-2: #1b6a94;
-      --good: #217a48;
+      --good: #1f7445;
       --code-bg: #f1efe8;
       --table-stripe: #f1f0eb;
-      --link: #b8631f;
+      --link: #9b531a;
     }
   }
 
@@ -322,7 +325,7 @@
     illustrative sample</strong> built only to give the agents something
     realistic-shaped to reason about. None of it is a source of truth. Real
     licensing decisions must be verified against
-    <a href="https://www.nmlsconsumeraccess.org/" rel="noopener">NMLS</a> and
+    <a href="https://www.nmlsconsumeraccess.org/" target="_blank" rel="noopener noreferrer">NMLS</a> and
     each state's actual regulator — not this dataset.
   </div>
 
