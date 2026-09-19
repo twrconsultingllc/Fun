@@ -462,7 +462,10 @@
           DevTools console for any <code>Content-Security-Policy</code> violation reports</b> — if Tailwind's
           styling doesn't render, that's the first place to look, and the fix is adding
           <code>'unsafe-inline'</code> to <code>script-src</code> in the affected app's <code>vercel.json</code>.
-          <div class="commit">pending push</div>
+          Verified live on both apps and their <code>/api/get-actions</code> routes: all 5 headers present via
+          <code>curl -I</code>, and both APIs still return a live model list — the deploy didn't break function
+          execution.
+          <div class="commit">commit 3268413 — "Add vercel.json security headers to both battle-bots apps"</div>
         </div>
       </div>
     </div>
