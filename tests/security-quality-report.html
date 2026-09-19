@@ -126,6 +126,7 @@
   }
   .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
   .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
 
   .item-body {
     margin-top: 8px;
@@ -316,7 +317,7 @@
     <div class="item">
       <div class="item-head">
         <div class="item-title">No security headers configured (CSP, X-Frame-Options, etc.)</div>
-        <span class="badge open">Open</span>
+        <span class="badge partial">Partial</span>
       </div>
       <div class="item-body">
         <p>No <code>vercel.json</code> exists for either battle-bots deployment, and GitHub Pages has no
@@ -356,9 +357,9 @@
                 <code>&lt;meta http-equiv="Content-Security-Policy"&gt;</code> tag can be added to each page's
                 <code>&lt;head&gt;</code>, but <code>'unsafe-inline'</code> is required, so it won't block
                 inline-handler injection. <b>Full fix on Vercel</b> via a <code>vercel.json</code>
-                <code>headers</code> block.</td>
+                <code>headers</code> block — done for both apps; GitHub Pages meta-tag version not yet added.</td>
               <td>Set A + Set B + Set C</td>
-              <td><span class="badge open">Open</span></td>
+              <td><span class="badge partial">Partial — Vercel fixed</span></td>
             </tr>
             <tr>
               <td class="num">2</td>
@@ -369,9 +370,9 @@
                 the quota-abuse fix (commit 9b582bd).</td>
               <td><span class="no-fix">NO FIX AVAILABLE on GitHub Pages.</span> There is no meta-tag equivalent
                 for this header — browsers only honor it as a real HTTP header, and GitHub Pages gives you no
-                way to set one. <b>Full fix on Vercel</b> via <code>vercel.json</code>.</td>
+                way to set one. <b>Full fix on Vercel</b> via <code>vercel.json</code> — done.</td>
               <td>Set A: <span class="no-fix">no fix exists, period.</span> Set B: fixable.</td>
-              <td><span class="badge open">Open</span></td>
+              <td><span class="badge partial">Partial — Vercel fixed</span></td>
             </tr>
             <tr>
               <td class="num">3</td>
@@ -379,9 +380,9 @@
                 trusting its declared content type. Narrowest real exposure: the two API routes echo
                 model-generated text back as JSON.</td>
               <td><span class="no-fix">NO FIX AVAILABLE on GitHub Pages</span> — no meta-tag equivalent exists
-                for this header either. <b>Full fix on Vercel</b> via <code>vercel.json</code>.</td>
+                for this header either. <b>Full fix on Vercel</b> via <code>vercel.json</code> — done.</td>
               <td>Set A: <span class="no-fix">no fix exists, period.</span> Set B + Set C: fixable.</td>
-              <td><span class="badge open">Open</span></td>
+              <td><span class="badge partial">Partial — Vercel fixed</span></td>
             </tr>
             <tr>
               <td class="num">4</td>
@@ -389,9 +390,9 @@
                 requesting camera, microphone, geolocation, USB, fullscreen, etc. Nothing in this repo currently
                 uses those APIs, so today this is pure defense-in-depth.</td>
               <td><span class="no-fix">NO FIX AVAILABLE on GitHub Pages</span> — no reliable meta-tag
-                equivalent exists. <b>Full fix on Vercel</b> via <code>vercel.json</code>.</td>
+                equivalent exists. <b>Full fix on Vercel</b> via <code>vercel.json</code> — done.</td>
               <td>Set A: <span class="no-fix">no fix exists, period.</span> Set B: fixable.</td>
-              <td><span class="badge open">Open</span></td>
+              <td><span class="badge partial">Partial — Vercel fixed</span></td>
             </tr>
             <tr>
               <td class="num">5</td>
@@ -411,12 +412,13 @@
         </table>
         </div>
 
-        <p><b>Bottom line on "no fix":</b> rows 2, 3, and 4 are genuinely unfixable for every GitHub Pages page
-        as long as the site stays on GitHub Pages — not "not done yet," but architecturally blocked, because
-        GitHub Pages has zero mechanism for setting arbitrary response headers. The only way to close that gap
-        for the 13 static pages is migrating hosting (e.g. Cloudflare Pages or Netlify, both free and both
-        deploy from this same repo) or putting a reverse proxy/CDN in front of GitHub Pages. Row 1 can also be
-        patched (partially) today on GitHub Pages via a meta tag; rows 2–4 cannot, by design of the platform.</p>
+        <p><b>Bottom line on "no fix":</b> rows 2, 3, and 4 are still genuinely unfixable for every GitHub Pages
+        page as long as the site stays on GitHub Pages — not "not done yet," but architecturally blocked,
+        because GitHub Pages has zero mechanism for setting arbitrary response headers. The only way to close
+        that gap for the 13 static pages is migrating hosting (e.g. Cloudflare Pages or Netlify, both free and
+        both deploy from this same repo) or putting a reverse proxy/CDN in front of GitHub Pages. Row 1 can also
+        be patched (partially) today on GitHub Pages via a meta tag; that hasn't been done yet either — only the
+        Vercel side of rows 1–4 is fixed so far.</p>
 
         <div class="fix-note">
           <b>Row 5 fixed:</b> added <code>&lt;meta name="referrer" content="strict-origin-when-cross-origin"&gt;</code>
@@ -430,6 +432,37 @@
           files in total. This is a standard, non-experimental mechanism (part of the Referrer Policy spec, not
           a workaround), so it's a full fix everywhere, not a partial one like row 1's meta-tag CSP.
           <div class="commit">commit 807d46c — "Fix missing page-wide Referrer-Policy (row 5 of the headers table)"</div>
+        </div>
+
+        <div class="fix-note">
+          <b>Rows 1–4 partially fixed — Vercel side only:</b> added <code>battle-bots/vercel.json</code> and
+          <code>battle-bots-V2/vercel.json</code>, each with a <code>headers</code> block applying all five
+          headers to every route in that app (pages and <code>/api/get-actions</code> alike):
+          <code>Content-Security-Policy</code>, <code>X-Frame-Options: DENY</code>,
+          <code>X-Content-Type-Options: nosniff</code>, <code>Referrer-Policy: strict-origin-when-cross-origin</code>,
+          and a deny-all <code>Permissions-Policy</code>. The CSP was built from an actual inventory of each
+          app's resources, not a generic template: both apps' JS lives entirely in separate same-origin files
+          (<code>game.js</code> / ES modules), with <em>no inline <code>&lt;script&gt;</code> and no inline
+          event handlers</em> — so unlike the GitHub Pages toys, <code>script-src</code> here does
+          <b>not</b> need <code>'unsafe-inline'</code>, only <code>'self'</code> plus
+          <code>https://cdn.tailwindcss.com</code> (the one external script both apps load).
+          <code>style-src 'unsafe-inline'</code> is still required because Tailwind's CDN build injects a
+          computed <code>&lt;style&gt;</code> tag at runtime, and a handful of elements use inline
+          <code>style="…"</code> attributes. <code>battle-bots-V2/public/guide.html</code> additionally needed
+          <code>fonts.googleapis.com</code>/<code>fonts.gstatic.com</code> allowed for its Google Fonts link.
+          <code>connect-src 'self'</code> is safe because both apps only ever <code>fetch()</code> their own
+          same-origin <code>/api/get-actions</code> — confirmed by grepping every <code>fetch(</code> call in
+          both apps' client JS.
+          <br><br>
+          <b>Caveat, stated plainly:</b> this environment has no browser/WebGL rendering available (see the
+          repo-wide note on that), so this CSP could not be checked against a live page load — it was derived
+          entirely from reading the source, not from testing it. The <code>script-src</code>/<code>style-src</code>
+          reasoning above about Tailwind's CDN build is inference from its known behavior, not an observed
+          console trace. <b>Please open both apps in a browser right after this deploys and check the
+          DevTools console for any <code>Content-Security-Policy</code> violation reports</b> — if Tailwind's
+          styling doesn't render, that's the first place to look, and the fix is adding
+          <code>'unsafe-inline'</code> to <code>script-src</code> in the affected app's <code>vercel.json</code>.
+          <div class="commit">pending push</div>
         </div>
       </div>
     </div>
