@@ -454,17 +454,13 @@
           same-origin <code>/api/get-actions</code> — confirmed by grepping every <code>fetch(</code> call in
           both apps' client JS.
           <br><br>
-          <b>Caveat, stated plainly:</b> this environment has no browser/WebGL rendering available (see the
-          repo-wide note on that), so this CSP could not be checked against a live page load — it was derived
-          entirely from reading the source, not from testing it. The <code>script-src</code>/<code>style-src</code>
-          reasoning above about Tailwind's CDN build is inference from its known behavior, not an observed
-          console trace. <b>Please open both apps in a browser right after this deploys and check the
-          DevTools console for any <code>Content-Security-Policy</code> violation reports</b> — if Tailwind's
-          styling doesn't render, that's the first place to look, and the fix is adding
-          <code>'unsafe-inline'</code> to <code>script-src</code> in the affected app's <code>vercel.json</code>.
-          Verified live on both apps and their <code>/api/get-actions</code> routes: all 5 headers present via
-          <code>curl -I</code>, and both APIs still return a live model list — the deploy didn't break function
-          execution.
+          <b>Caveat during rollout:</b> this environment has no browser/WebGL rendering available (see the
+          repo-wide note on that), so this CSP couldn't be checked against a live page load before shipping —
+          it was derived entirely from reading the source, not from testing it. Verified live on both apps and
+          their <code>/api/get-actions</code> routes via <code>curl -I</code>: all 5 headers present, and both
+          APIs still return a live model list, so the deploy didn't break function execution.
+          <b>Visually confirmed by the user on a real device after deploy:</b> both apps render normally —
+          Tailwind styling intact, no breakage — closing out the one thing <code>curl</code> couldn't check.
           <div class="commit">commit 3268413 — "Add vercel.json security headers to both battle-bots apps"</div>
         </div>
       </div>
