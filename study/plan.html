@@ -6,7 +6,7 @@
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
 <title>Claude Architect Lab — Study Plan</title>
-<meta name="description" content="Study plan for a hands-on Claude Certified Architect (Foundations) exam project: an agent loop, custom tools, an MCP server, and the Claude Agent SDK, built around an illustrative money-transmitter-licensing example." />
+<meta name="description" content="Study plan for a hands-on Claude Certified Architect (Foundations) exam project: an agent loop, custom tools, an MCP server, and the Claude Agent SDK, built around a licensing consulting firm's money-transmitter-licensing work — state requirements, per-client case tracking, and a production cost model." />
 <style>
   :root {
     --bg: #0f1115;
@@ -313,20 +313,27 @@
       exam: a small local Node project that exercises the agent loop, custom
       tools, an MCP server, the Claude Agent SDK, structured output, and
       context management — the things the exam actually tests. The running
-      example throughout is a state-by-state <strong>money transmitter
-      licensing (MTL)</strong> expansion assistant.
+      example is a <strong>licensing consulting firm</strong> that helps
+      client businesses obtain state-by-state <strong>money transmitter
+      licenses (MTL)</strong> — so the project models two things side by
+      side: the state rules themselves, and a case file per client tracking
+      where they stand against those rules.
     </p>
   </header>
 
   <div class="callout warning" style="grid-column: 1 / -1;">
     <strong class="label">Read this first</strong>
     Every money-transmitter-licensing figure in this project — surety bond
-    ranges, net worth requirements, review times — is a <strong>synthetic,
-    illustrative sample</strong> built only to give the agents something
-    realistic-shaped to reason about. None of it is a source of truth. Real
-    licensing decisions must be verified against
+    ranges, net worth requirements, review times — and every client named in
+    it is a <strong>synthetic, illustrative sample</strong> built only to
+    give the agents something realistic-shaped to reason about. No real
+    person, business, or regulatory figure appears anywhere in this dataset.
+    Real licensing decisions must be verified against
     <a href="https://www.nmlsconsumeraccess.org/" target="_blank" rel="noopener noreferrer">NMLS</a> and
-    each state's actual regulator — not this dataset.
+    each state's actual regulator — not this dataset. The cost figures in
+    section 10 are similarly illustrative, built from published API list
+    prices checked at write time — re-verify current pricing before quoting
+    a real number to anyone.
   </div>
 
   <nav class="toc" aria-label="Table of contents">
@@ -335,10 +342,13 @@
       <li><a href="#domains">Exam domains</a></li>
       <li><a href="#versions">Verified package versions</a></li>
       <li><a href="#decisions">Decisions already made</a></li>
-      <li><a href="#dataset">The MTL sample dataset</a></li>
+      <li><a href="#dataset">The state-rules sample dataset</a></li>
+      <li><a href="#clients">Client case files</a></li>
+      <li><a href="#queries">How the agent gets used</a></li>
       <li><a href="#layout">Directory layout</a></li>
       <li><a href="#task">The example task</a></li>
       <li><a href="#mapping">Exam-domain mapping</a></li>
+      <li><a href="#cost">Production cost model</a></li>
       <li><a href="#notes">Implementation notes</a></li>
       <li><a href="#next">Next-steps checklist</a></li>
     </ol>
@@ -460,7 +470,17 @@
       <div class="callout decision">
         <strong class="label">Default model for lab runs</strong>
         Sonnet 5 for day-to-day iteration; swap to Opus 5 for an occasional
-        polished run.
+        polished run, or for the change-impact query type in section 06
+        where reasoning quality matters more than cost.
+      </div>
+      <div class="callout decision">
+        <strong class="label">Client sample set</strong>
+        Three fictitious client case files, one per query type in section
+        06: an established client mid-expansion, a brand-new prospective
+        client, and an existing client with a pending ownership change.
+        Three is enough to exercise <code>list_clients</code> filtering and
+        every query type without turning sample-data upkeep into its own
+        project.
       </div>
       <div class="callout decision">
         <strong class="label">Testing</strong>
@@ -472,7 +492,7 @@
     </section>
 
     <section id="dataset">
-      <h2><span class="kicker">04 · What the agents reason about</span>The MTL sample dataset</h2>
+      <h2><span class="kicker">04 · What the agents reason about, part one</span>The state-rules sample dataset</h2>
       <p>
         One JSON file, <code>mcp-server/data/state-mtl-requirements.json</code>,
         covers <strong>eight to ten states</strong> — California, New York,
@@ -495,48 +515,182 @@
         A top-level <code>"disclaimer"</code> key repeats the same warning
         once for the whole file. A state simply <em>not present</em> in the
         sample set is a feature, not a bug: it forces the tools below to say
-        "unknown — needs real research" instead of ever guessing.
+        "unknown — needs real research" instead of ever guessing. This file
+        answers "what does a state require" in the abstract; it says
+        nothing about any particular client, which is what the next section
+        adds.
+      </p>
+    </section>
+
+    <section id="clients">
+      <h2><span class="kicker">05 · What the agents reason about, part two</span>Client case files</h2>
+      <p>
+        A consulting firm's actual product isn't a shelf of state rules —
+        it's the case file it keeps for every client it's shepherding
+        through licensing. <code>mcp-server/data/clients.json</code> models
+        that: three sample clients, each with the same shape a real firm
+        would track — who they are, who controls them, what they do, and
+        exactly where each state application stands.
+      </p>
+      <pre><code>{
+  "clientId": "meridian-payments",
+  "legalName": "Meridian Payments LLC (sample)",
+  "entityType": "LLC",
+  "formationState": "Delaware",
+  "einSample": "XX-XXXXXXX (sample — never a real EIN)",
+  "controlPersons": [
+    {
+      "name": "Dana Whitfield (sample)",
+      "title": "CEO / Managing Member",
+      "ownershipPercent": 40,
+      "birthYear": "1978 (sample — year only)",
+      "backgroundDisclosure": "None disclosed (sample)"
+    }
+  ],
+  "businessProfile": {
+    "productLines": ["money transmission", "prepaid access"],
+    "statesCurrentlyLicensed": ["California", "New York"],
+    "annualTransactionVolumeUsd": "18,000,000 (sample)",
+    "currentNetWorthUsd": "650,000 (sample)",
+    "suretyBondsPostedUsd": { "California": "50,000 (sample)", "New York": "500,000 (sample)" }
+  },
+  "licensingEngagements": [
+    {
+      "state": "Texas",
+      "status": "gathering_documents",
+      "targetSubmissionDate": "2026-11-01 (sample)",
+      "lastUpdated": "2026-09-10 (sample)",
+      "checklist": [
+        { "item": "Surety bond quote obtained", "status": "done" },
+        { "item": "Net worth statement prepared", "status": "done" },
+        { "item": "NMLS filing drafted", "status": "pending" },
+        { "item": "Background checks for control persons", "status": "pending" }
+      ]
+    }
+  ]
+}</code></pre>
+      <p>
+        Two deliberate choices, both driven by the same worry — that a
+        "pedigree" field is exactly the kind of thing that quietly becomes a
+        template for real PII if nobody stops to think about it:
+      </p>
+      <ul>
+        <li><strong>No field shaped like a real identifier.</strong> <code>controlPersons</code> tracks a birth <em>year</em>, not a date of birth, and never an SSN, address, or ID number — the fields a real intake form would need, minus anything that would look like a genuine identifier if this file were ever copy-pasted as a starting point.</li>
+        <li><strong>Every name and figure is tagged <code>(sample)</code> inline</strong>, the same convention the state dataset already uses, so a value can never be mistaken for a real client's data even out of context.</li>
+      </ul>
+      <p>
+        <code>licensingEngagements</code> is the progress-tracking piece: one
+        entry per state a client is pursuing, a <code>status</code> from a
+        fixed enum (<code>not_started</code>, <code>gathering_documents</code>,
+        <code>submitted</code>, <code>under_regulator_review</code>,
+        <code>deficiency_response</code>, <code>approved</code>,
+        <code>denied</code>, <code>withdrawn</code>, <code>renewal_due</code>,
+        <code>amendment_in_progress</code>), and a per-item checklist — the
+        same "go/no-go packet" idea from the original design, now scoped to
+        one real client instead of one hypothetical business.
+      </p>
+    </section>
+
+    <section id="queries">
+      <h2><span class="kicker">06 · Why both datasets exist</span>How the agent gets used</h2>
+      <p>
+        A consulting firm asks three different shapes of question, and the
+        two datasets above only pay off together once the agent has to
+        answer all three:
+      </p>
+      <table>
+        <thead><tr><th>Query type</th><th>Example question</th><th>Needs</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>New / prospective client</td>
+            <td>"Would Northstar Remittance qualify for a Washington MTL today, and what's the gap?"</td>
+            <td>a client with no <code>licensingEngagements</code> yet, checked against the state dataset — <code>client_gap_analysis</code></td>
+          </tr>
+          <tr>
+            <td>Ongoing client, change in circumstances</td>
+            <td>"Quickship is adding a new 25% owner — which in-progress state applications need an amendment and a fresh background disclosure?"</td>
+            <td>reading across a client's existing engagements and reasoning about which states' rules that change touches — judgment, not a lookup</td>
+          </tr>
+          <tr>
+            <td>Active application, in progress</td>
+            <td>"What's still open on Meridian's Texas application, and is anything overdue?"</td>
+            <td><code>get_client_progress</code> against one client's <code>checklist</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        The first and third are ordinary tool composition — this project
+        already builds that muscle in <code>gap-analysis.mjs</code> and
+        <code>validate-expansion-checklist.mjs</code>. The second is
+        deliberately left as a stretch case rather than a fully-built
+        milestone: <code>evaluate-change-impact.mjs</code> exists as a
+        thinner tool that returns the states a change touches and lets the
+        model reason about materiality, rather than trying to encode "which
+        ownership changes trigger a refiling" as a lookup table it can't
+        actually source. Scoping it that way keeps the lab honest about
+        where a deterministic tool stops being the right shape for the
+        problem — itself a Tool Design &amp; MCP exam point, not scope
+        creep.
       </p>
     </section>
 
     <section id="layout">
-      <h2><span class="kicker">05 · The project</span>Directory layout</h2>
+      <h2><span class="kicker">07 · The project</span>Directory layout</h2>
       <pre><code>claude-architect-lab/                     — own package; NOT linked from index.html or root tests/
   package.json                            type:"module"; scripts: test, lab:1..lab:6
   .env.example                            ANTHROPIC_API_KEY=
-  README.md                               study crib sheet: file → exam domain → weight; setup/run instructions
+  README.md                               study crib sheet: file → exam domain → weight; setup/run
+                                           instructions; also where section 10's cost numbers get
+                                           re-verified against live pricing
 
   mcp-server/
     data/
-      state-mtl-requirements.json         the sample dataset — see previous section
+      state-mtl-requirements.json         state rules — see "state-rules sample dataset"
+      clients.json                        3 sample client case files — see "Client case files"
     server.mjs                            @modelcontextprotocol/sdk v1.30.0: McpServer + registerTool +
-                                           StdioServerTransport; exposes get_state_requirements + gap_analysis as
-                                           MCP tools, PLUS one MCP resource (mtl://dataset) — tools-vs-resources
+                                           StdioServerTransport; exposes get_state_requirements,
+                                           gap_analysis, get_client, list_clients, get_client_progress,
+                                           update_checklist_item, client_gap_analysis, and (stretch)
+                                           evaluate_change_impact as MCP tools, PLUS two MCP resources —
+                                           mtl://dataset and mtl-clients://{clientId} — tools-vs-resources
                                            contrast: a resource for "pull all context up front," a tool for
                                            "look up or compute one thing"
 
   src/
     tools/
       get-state-requirements.mjs          dataset lookup for one state; tight JSON schema; real error handling
-      gap-analysis.mjs                    composes lookups into a diff for target states; flags any state not
-                                           in the sample set as "unknown — needs real research," never guesses
-      validate-expansion-checklist.mjs    deterministic code check: every target state present, no null
-                                           required fields, no duplicates — the "verify" tool
+      gap-analysis.mjs                    generic diff for a hypothetical business (kept for the plain,
+                                           client-free version of the scenario)
+      validate-expansion-checklist.mjs    deterministic code check for the generic checklist
+      get-client.mjs                      dataset lookup for one client by id
+      list-clients.mjs                    lists clients, optionally filtered by engagement status
+      get-client-progress.mjs             one client's licensingEngagements, optionally filtered to one state
+      update-checklist-item.mjs           the one tool with a side effect — mutates a client's checklist and
+                                           returns the updated record; exam point: side-effecting tools need
+                                           their own verify step, not just a schema
+      client-gap-analysis.mjs             client-aware gap analysis — diffs a client's actual net worth and
+                                           posted bonds against state-mtl-requirements.json, not a generic gap
+      validate-client-checklist.mjs       deterministic "verify" tool for one client+state pair
+      evaluate-change-impact.mjs          stretch tool: given a client and a change (new owner, address,
+                                           product line), returns the states it touches and why — judgment,
+                                           not a lookup table (see section 06)
     agent-loop.mjs                        hand-rolled gather→act→verify loop, raw @anthropic-ai/sdk, max-turn cap;
-                                           task: "licensed in CA/NY, expanding into TX/FL/IL — produce a checklist"
+                                           task: Meridian, licensed in CA/NY, expanding into TX/FL/IL
     structured-output.mjs                 forces the final checklist into structured JSON via `output_config.format`
                                            (current API, not the deprecated forced-tool_choice trick) + bounded retry
-    review-loop.mjs                       draft → self-critique → revise chain that turns the checklist into a
-                                           short prose compliance memo (prompt chaining pattern)
-    context-budget.mjs                    looks up every state one by one; usage tracking; compaction trigger +
-                                           before/after token counts; PLUS a prompt-caching before/after — the
-                                           whole dataset sits behind one cache_control breakpoint in the system
-                                           prompt, a realistic "static reference data queried repeatedly" case;
-                                           README note on Anthropic's managed alternatives (compact-2026-01-12
-                                           compaction beta, clear_tool_uses_20250919)
-    orchestrator.mjs                      decomposes "help us expand into 5 target states" into a research worker
-                                           (get_state_requirements/gap_analysis only) and a writing worker (only
-                                           sees the research worker's output, drafts the memo) — merges both
+    review-loop.mjs                       draft → self-critique → revise chain, checklist → prose compliance memo
+                                           (prompt chaining pattern)
+    context-budget.mjs                    looks up every state AND every client one by one; usage tracking;
+                                           compaction trigger + before/after token counts; a prompt-caching
+                                           before/after over both datasets sitting behind one cache_control
+                                           breakpoint in the system prompt — the numbers section 10's cost
+                                           model is built from; README note on Anthropic's managed
+                                           alternatives (compact-2026-01-12 compaction beta,
+                                           clear_tool_uses_20250919)
+    orchestrator.mjs                      decomposes "help Meridian expand into 5 target states" into a research
+                                           worker (state + client lookup tools only) and a writing worker (only
+                                           sees the research worker's structured output, drafts the memo) — merges
+                                           both
 
   sdk-version/
     agent.mjs                             @anthropic-ai/claude-agent-sdk query(); systemPrompt (preset+append),
@@ -548,7 +702,7 @@
   .claude/
     agents/
       mtl-compliance-reviewer.md          one project-level subagent that reviews a drafted checklist/memo for
-                                           completeness — deliberate contrast with validate-expansion-checklist.mjs:
+                                           completeness — deliberate contrast with validate-client-checklist.mjs:
                                            same "verify" idea, one via code, one via an LLM subagent
 
   tests/                                  node:test + node:assert, no added framework, NEVER calls the live API
@@ -556,30 +710,40 @@
     structured-output.test.mjs            retry-on-invalid-output logic
     context-budget.test.mjs               compaction trigger threshold math; before/after token + cache accounting
     mcp-server.test.mjs                   InMemoryTransport.createLinkedPair(): real Client&lt;-&gt;Server against the
-                                           actual tools AND the mtl://dataset resource
+                                           actual tools AND both the mtl://dataset and mtl-clients://{clientId}
+                                           resources
+    client-tools.test.mjs                 get-client / list-clients / get-client-progress /
+                                           update-checklist-item / client-gap-analysis against the sample
+                                           clients.json — where the "new," "ongoing change," and "in progress"
+                                           query types from section 06 actually get exercised
     hooks.test.mjs                        sdk-version's PreToolUse callback called directly with fabricated input
     README.md                             states plainly: sdk-version/agent.mjs is manual-run-and-eyeball only</code></pre>
     </section>
 
     <section id="task">
-      <h2><span class="kicker">06 · Putting it together</span>The example task</h2>
+      <h2><span class="kicker">08 · Putting it together</span>The example task</h2>
       <p>
-        Every milestone shares one scenario: <em>"We're licensed in
-        California and New York. We want to expand into Texas, Florida, and
-        Illinois — produce an expansion checklist and flag any gaps."</em>
+        Every milestone shares one throughline scenario, run from inside a
+        licensing consulting firm rather than from inside the business being
+        licensed: <em>"Meridian Payments is our client. They're already
+        licensed in California and New York and want to expand into Texas,
+        Florida, and Illinois — produce an expansion checklist, flag any
+        gaps against their actual financials, and track it as a case."</em>
         That single scenario is small enough to hold in your head, but real
-        enough to force every exam-tested concept to earn its place:
+        enough to force every exam-tested concept — and both datasets — to
+        earn its place:
       </p>
       <ul>
-        <li><strong>Gather:</strong> <code>get_state_requirements</code> looks up one state at a time from the sample dataset.</li>
-        <li><strong>Act:</strong> <code>gap_analysis</code> turns a list of target states into a diff — what's needed, what's already covered, what's simply not in the sample data yet.</li>
-        <li><strong>Verify, twice, two ways:</strong> <code>validate-expansion-checklist.mjs</code> checks the checklist deterministically (code); the <code>mtl-compliance-reviewer</code> subagent reviews it a second way (an LLM's judgment) — the page's built-in illustration of "verification doesn't have to mean asking the model again."</li>
-        <li><strong>Split the work:</strong> the orchestrator's research worker only ever sees the lookup tools; its writing worker only ever sees the research worker's structured findings — never the raw tool calls. That narrowing is itself the "structuring multi-agent architectures" exam point, not incidental plumbing.</li>
+        <li><strong>Gather:</strong> <code>get_state_requirements</code> looks up one state at a time from the sample dataset; <code>get_client</code> pulls Meridian's own profile and existing engagements.</li>
+        <li><strong>Act:</strong> <code>client_gap_analysis</code> diffs Meridian's actual net worth and posted bonds against each target state's requirements — a real per-client gap, not a generic one — and <code>update_checklist_item</code> records progress as it happens.</li>
+        <li><strong>Verify, twice, two ways:</strong> <code>validate-client-checklist.mjs</code> checks a client+state checklist deterministically (code); the <code>mtl-compliance-reviewer</code> subagent reviews it a second way (an LLM's judgment) — the page's built-in illustration of "verification doesn't have to mean asking the model again."</li>
+        <li><strong>Split the work:</strong> the orchestrator's research worker only ever sees the lookup tools (state + client); its writing worker only ever sees the research worker's structured findings — never the raw tool calls. That narrowing is itself the "structuring multi-agent architectures" exam point, not incidental plumbing.</li>
+        <li><strong>Answer ad hoc, client-scoped questions:</strong> the other two query types from section 06 — a prospective client (Northstar) and a client mid-change (Quickship) — are exercised directly against the MCP tools in <code>client-tools.test.mjs</code>, without a dedicated milestone file each; see the "Client sample set" decision in section 03 for why three clients was the deliberate stopping point.</li>
       </ul>
     </section>
 
     <section id="mapping">
-      <h2><span class="kicker">07 · Cross-reference</span>Exam-domain mapping</h2>
+      <h2><span class="kicker">09 · Cross-reference</span>Exam-domain mapping</h2>
       <table>
         <thead>
           <tr><th>Domain (weight)</th><th>Covered by</th></tr>
@@ -587,7 +751,7 @@
         <tbody>
           <tr>
             <td>Agentic Architecture &amp; Orchestration (27%)</td>
-            <td><code>agent-loop.mjs</code> (explicit gather/act/verify over the CA/NY → TX/FL/IL scenario), <code>orchestrator.mjs</code> (research worker + writing worker, merged)</td>
+            <td><code>agent-loop.mjs</code> (explicit gather/act/verify over the Meridian CA/NY → TX/FL/IL scenario, against both datasets), <code>orchestrator.mjs</code> (research worker + writing worker, merged)</td>
           </tr>
           <tr>
             <td>Claude Code Configuration &amp; Workflows (20%)</td>
@@ -599,34 +763,145 @@
           </tr>
           <tr>
             <td>Tool Design &amp; MCP (18%)</td>
-            <td><code>tools/get-state-requirements.mjs</code>, <code>tools/gap-analysis.mjs</code>, <code>tools/validate-expansion-checklist.mjs</code> (schema design, error handling), <code>mcp-server/server.mjs</code> (tools + the <code>mtl://dataset</code> resource), <code>sdk-version/agent.mjs</code>'s <code>mcpServers</code> wiring</td>
+            <td><code>tools/get-state-requirements.mjs</code>, <code>tools/gap-analysis.mjs</code>, <code>tools/validate-expansion-checklist.mjs</code> (schema design, error handling), <code>tools/get-client.mjs</code>, <code>tools/list-clients.mjs</code>, <code>tools/get-client-progress.mjs</code>, <code>tools/update-checklist-item.mjs</code> (a side-effecting tool), <code>tools/client-gap-analysis.mjs</code>, <code>tools/validate-client-checklist.mjs</code>, <code>tools/evaluate-change-impact.mjs</code> (stretch), <code>mcp-server/server.mjs</code> (tools + the <code>mtl://dataset</code> and <code>mtl-clients://{clientId}</code> resources), <code>sdk-version/agent.mjs</code>'s <code>mcpServers</code> wiring</td>
           </tr>
           <tr>
             <td>Context Management (15%)</td>
-            <td><code>context-budget.mjs</code> (compaction across all ten state lookups + prompt caching of the dataset, with a note on Anthropic's managed alternatives)</td>
+            <td><code>context-budget.mjs</code> (compaction and prompt caching across all ten state lookups AND the client roster, with a note on Anthropic's managed alternatives) — the source of section 10's cost math</td>
           </tr>
         </tbody>
       </table>
     </section>
 
+    <section id="cost">
+      <h2><span class="kicker">10 · What this would cost for real</span>Production cost model</h2>
+      <div class="callout warning">
+        <strong class="label">Illustrative, not a quote</strong>
+        Every number below uses Anthropic's published per-token list prices,
+        pulled from a maintained, dated pricing reference rather than
+        recalled from training data (the "verified, not recalled" habit
+        from section 02 — though unlike that section's live <code>npm
+        view</code> checks, this is a cached reference table, not a
+        same-session live fetch, so it carries whatever lag that table has
+        against Anthropic's current published pricing). They are still a
+        back-of-envelope model, not a bid:
+        real traffic shape, prompt length, and hosting-provider choice will
+        all move these numbers. Re-check current pricing at the time this
+        would ever actually be quoted to anyone.
+      </div>
+
+      <h3>Model pricing used</h3>
+      <table>
+        <thead><tr><th>Model</th><th>Input / MTok</th><th>Output / MTok</th><th>Where it fits</th></tr></thead>
+        <tbody>
+          <tr><td>Claude Haiku 4.5</td><td>$1.00</td><td>$5.00</td><td>the deterministic-lookup query types (progress tracking, plain gap analysis) — little reasoning needed</td></tr>
+          <tr><td>Claude Sonnet 5</td><td>$2.00</td><td>$10.00</td><td>this project's default (section 03) — the balance point for most queries</td></tr>
+          <tr><td>Claude Opus 5</td><td>$5.00</td><td>$25.00</td><td>reserved for the change-impact query type, where judgment quality matters more than cost</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Prompt caching (used in <code>context-budget.mjs</code>) charges a
+        premium to write a cache entry and a discount to read one: writes
+        cost <strong>1.25×</strong> the base input price on the default
+        5-minute TTL (2× on a 1-hour TTL), reads cost <strong>0.1×</strong>.
+        It only pays for itself once the same prefix gets read back more
+        than once or twice — exactly the shape of a "static reference data
+        queried repeatedly" case, which is why <code>context-budget.mjs</code>
+        is built around it.
+      </p>
+
+      <h3>Per-query cost at this lab's scale</h3>
+      <p>
+        At the lab's deliberately small scale — 8–10 states, 3 clients — a
+        single query's context is tiny: roughly 800 tokens of system prompt
+        and tool schemas, ~1,500 tokens for the full state dataset, and
+        ~400–600 tokens for one client's record, call it ~3,000 input
+        tokens, plus a 300–1,500 token answer. On Sonnet 5, uncached that's
+        roughly <strong>$0.009–$0.02 per query</strong>. With the static
+        portion (system prompt + state dataset, ~2,300 tokens) cached and
+        hit on every subsequent query, the uncached slice drops to the
+        ~700 tokens that actually vary (the client record and the
+        question) — roughly <strong>$0.005–$0.017 per query</strong>.
+        Caching is doing its job here, but the dataset is too small for
+        that job to show up as real savings yet.
+      </p>
+      <p>
+        That's the honest number for the lab as scoped. It is <em>not</em>
+        the number for a real firm's dataset — which is the actual "would
+        this survive contact with production" question worth asking:
+      </p>
+      <div class="callout">
+        <strong class="label">Where caching actually starts to matter</strong>
+        A real firm's reference data would cover all fifty states plus
+        however many active client case files it runs — easily 40,000–60,000
+        tokens of static context instead of ~2,300. At 50,000 cached
+        tokens, an uncached query costs roughly <strong>$0.10</strong> in
+        input tokens alone on Sonnet 5; the same query against a warm cache
+        costs about <strong>$0.01</strong> — a real order-of-magnitude
+        difference. <code>context-budget.mjs</code>'s before/after
+        measurement is exactly the exercise that would confirm this at
+        whatever scale gets built.
+      </div>
+
+      <h3>Monthly volume, a firm-sized guess</h3>
+      <p>
+        Say a firm carries 40 active client case files and an analyst asks
+        the assistant roughly 15 questions per client per week across the
+        three query types — progress checks, gap analysis, the occasional
+        change-impact question. That's about 2,400 queries a month. At
+        $0.01–$0.02/query on Sonnet 5, that's roughly
+        <strong>$24–$48/month</strong> in model spend. Ten times the
+        traffic (a firm ten times this size) scales roughly linearly to
+        <strong>$240–$480/month</strong> — still a rounding error against
+        staff cost. The lever that actually moves per-query cost is
+        dataset size, not client count — see the caching callout above.
+      </p>
+
+      <h3>Hosting</h3>
+      <p>
+        The MCP server and the Node tooling around it have no GPU, no
+        vector database, and — at 8–10 states and a few dozen clients — no
+        real storage requirement; the whole dataset is a couple of small
+        JSON files. Run on-demand (invoked only when a question comes in)
+        the compute cost is close to zero between queries; run as a small
+        always-on process it's the cost of the cheapest container or VM
+        tier a provider offers — a handful of dollars a month, not a line
+        item worth optimizing at this scale. Moving the client data into a
+        real database once case volume grows past what a JSON file can
+        track cleanly is a "when it's needed" step, not a "day one" cost.
+      </p>
+
+      <div class="callout decision">
+        <strong class="label">The actual bottom line</strong>
+        At this scale, and probably well past it, API spend is not the
+        constraint. A consulting firm deciding whether to build something
+        like this should be weighing analyst time saved and error rate
+        against engineering and compliance-review time to build and
+        maintain it — not against a token bill that, on these numbers,
+        rounds to noise next to one analyst's hourly rate.
+      </div>
+    </section>
+
     <section id="notes">
-      <h2><span class="kicker">08 · Watch for these</span>Key implementation notes</h2>
+      <h2><span class="kicker">11 · Watch for these</span>Key implementation notes</h2>
       <ul>
         <li><strong>API key:</strong> <code>.env</code> inside <code>claude-architect-lab/</code>, already covered by the root <code>.gitignore</code>'s bare <code>.env</code>/<code>.env.*</code> patterns. Loaded via Node's built-in <code>process.loadEnvFile()</code> — no <code>dotenv</code> dependency.</li>
         <li><strong>Minimal dependencies:</strong> <code>@anthropic-ai/sdk</code>, <code>@anthropic-ai/claude-agent-sdk</code>, <code>@modelcontextprotocol/sdk</code>, <code>zod</code> (MCP tool schemas). No separate JSON-schema validator — <code>output_config.format</code> and MCP schemas already cover it.</li>
-        <li><strong>No invented regulator names:</strong> the dataset's <code>notes</code> field always points to NMLS/the state regulator rather than naming a specific agency, so nothing in it can be mistaken for a current, authoritative reference.</li>
+        <li><strong>No invented regulator names:</strong> the state dataset's <code>notes</code> field always points to NMLS/the state regulator rather than naming a specific agency, so nothing in it can be mistaken for a current, authoritative reference.</li>
+        <li><strong>No real-shaped identifiers in the client dataset:</strong> <code>clients.json</code> never includes an SSN, full date of birth, street address, or anything else shaped like a genuine identifier — see section 05.</li>
         <li><strong>Not a browser toy:</strong> this project is not linked from <code>index.html</code>, and CLAUDE.md's "verify the live deployed site" rule does not apply to it.</li>
         <li><strong>No live API calls in automated tests:</strong> loop/logic tests stub <code>Messages.create</code>; <code>sdk-version/agent.mjs</code>'s true end-to-end behavior is manual-run-and-eyeball only, same spirit as <code>battle-bots-v2.core.test.mjs</code>.</li>
       </ul>
     </section>
 
     <section id="next">
-      <h2><span class="kicker">09 · When it's time to build</span>Next-steps checklist</h2>
+      <h2><span class="kicker">12 · When it's time to build</span>Next-steps checklist</h2>
       <ol>
         <li><code>cd claude-architect-lab &amp;&amp; npm install</code></li>
         <li><code>npm test</code> — every suite passes with <strong>zero</strong> network calls</li>
-        <li>Manually run each milestone against the real API with <code>ANTHROPIC_API_KEY</code> set: <code>agent-loop.mjs</code>, <code>mcp-server/server.mjs</code> (+ a client run), <code>structured-output.mjs</code>, <code>review-loop.mjs</code>, <code>context-budget.mjs</code> (confirm before/after token counts for both compaction and caching), <code>orchestrator.mjs</code>, <code>sdk-version/agent.mjs</code> (confirm the hook fires and the MCP tool is reachable)</li>
+        <li>Manually run each milestone against the real API with <code>ANTHROPIC_API_KEY</code> set: <code>agent-loop.mjs</code>, <code>mcp-server/server.mjs</code> (+ a client run), <code>structured-output.mjs</code>, <code>review-loop.mjs</code>, <code>context-budget.mjs</code> (confirm before/after token counts for both compaction and caching, across both datasets), <code>orchestrator.mjs</code>, <code>sdk-version/agent.mjs</code> (confirm the hook fires and the MCP tool is reachable)</li>
         <li>Re-check <code>npm view @anthropic-ai/claude-agent-sdk version</code> immediately before implementation, given how fast that package ships</li>
+        <li>Re-check current per-token pricing before treating section 10's numbers as anything more than a study exercise</li>
         <li>Read the finished README top to bottom as a study session — for each row in the exam-domain table, confirm the file actually demonstrates the concept, not just that it runs</li>
       </ol>
     </section>

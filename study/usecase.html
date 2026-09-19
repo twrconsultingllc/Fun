@@ -6,7 +6,7 @@
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
 <title>Licensing Expansion Assistant</title>
-<meta name="description" content="A non-technical concept pitch for an AI assistant team that automates first-draft state money-transmitter-licensing research — decision support, not a replacement for compliance or legal review." />
+<meta name="description" content="A non-technical concept pitch for an AI assistant team built for a licensing consulting firm: it automates first-draft state money-transmitter-licensing research and keeps a running case file for every client — decision support, not a replacement for compliance or legal review." />
 <style>
   :root {
     --bg: #0c1013;
@@ -77,7 +77,7 @@
     font-size: clamp(1.9rem, 4vw, 2.7rem);
     margin: 0 0 1rem;
     line-height: 1.2;
-    max-width: 20ch;
+    max-width: 22ch;
     margin-left: auto;
     margin-right: auto;
   }
@@ -246,11 +246,12 @@
 
   <header class="hero">
     <div class="eyebrow">Concept overview · not a live product</div>
-    <h1>A licensing research team that never gets tired of state regulations</h1>
+    <h1>A licensing team that tracks the rules — and every client's paperwork — so nothing falls through the cracks</h1>
     <p class="sub">
-      An assistant system that does the first pass of state-by-state money
-      transmitter licensing research automatically — so your team spends its
-      time reviewing and deciding, not hunting for requirements.
+      An assistant system built for a licensing consulting firm: it does the
+      first pass of state-by-state money transmitter licensing research
+      automatically, and it keeps a running case file for every client so
+      your team always knows exactly where each one stands.
     </p>
   </header>
 
@@ -259,9 +260,10 @@
       <strong class="tag">Please read before anything else</strong>
       This is a decision-support tool, not a substitute for licensed
       compliance or legal review. It does not make licensing determinations
-      and it is not a source of current regulatory figures. Every
-      recommendation it produces should be verified by your compliance team
-      against <a href="https://www.nmlsconsumeraccess.org/" target="_blank" rel="noopener noreferrer">NMLS</a>
+      and it is not a source of current regulatory figures or a system of
+      record for real client data. Every recommendation it produces should
+      be verified by your compliance team against
+      <a href="https://www.nmlsconsumeraccess.org/" target="_blank" rel="noopener noreferrer">NMLS</a>
       and each state's own regulator before you act on it.
     </div>
   </div>
@@ -270,15 +272,20 @@
 
     <section id="problem">
       <span class="eyebrow">The problem</span>
-      <h2>Expanding into a new state means redoing the same research, every time</h2>
+      <h2>Two things get lost once a firm has more than a handful of clients</h2>
       <p class="lede">
-        Every state has its own money transmitter licensing rules — bonding
-        requirements, minimum net worth, review timelines, exemptions. When a
-        business wants to expand into new states, someone has to research
-        each one, keep the findings organized, and turn that into something
-        leadership and legal can act on. It's repetitive, easy to get
-        inconsistent between states, and it eats hours that could go toward
-        actually reviewing the judgment calls that matter.
+        Every state has its own money transmitter licensing rules —
+        bonding requirements, minimum net worth, review timelines,
+        exemptions. Researching each one, keeping the findings organized,
+        and turning that into something a client or a regulator can act on
+        is repetitive and easy to get inconsistent between states. That's
+        only half the job, though. The other half is tracking where each
+        <em>client</em> actually stands — which states they're already
+        licensed in, what's still open on an in-progress application,
+        whose ownership just changed and needs a fresh filing. Past a
+        handful of clients, that tracking lives in scattered spreadsheets
+        and email threads, and losing track of a client's status is just
+        as costly as misremembering a state's bonding requirement.
       </p>
     </section>
 
@@ -286,10 +293,10 @@
       <span class="eyebrow">The solution</span>
       <h2>A small team of assistants, each with one job</h2>
       <p class="lede">
-        Instead of one person doing everything by hand, four narrowly-scoped
+        Instead of one person doing everything by hand, five narrowly-scoped
         assistants each handle one part of the process — the way you'd split
-        the work across a research analyst, a checklist owner, a writer, and
-        a second reviewer.
+        the work across a research analyst, a case manager, a checklist
+        owner, a writer, and a second reviewer.
       </p>
       <div class="cards">
         <div class="card">
@@ -298,14 +305,19 @@
           <p>Looks up what a given state requires — bonding, net worth, typical review time — instantly, instead of someone searching state by state.</p>
         </div>
         <div class="card">
+          <span class="icon">🗂️</span>
+          <h3>Client Tracker</h3>
+          <p>Keeps one running case file per client — who they are, what they do, and exactly where each state application stands — so status lives in one place instead of a dozen inboxes.</p>
+        </div>
+        <div class="card">
           <span class="icon">📋</span>
           <h3>Checklist Builder</h3>
-          <p>Turns a list of target states into one clear go/no-go packet: what's covered, what's missing, and what still needs real research.</p>
+          <p>Turns a target state and a client's actual profile into one clear go/no-go packet: what's covered, what's missing, and what still needs real research.</p>
         </div>
         <div class="card">
           <span class="icon">✍️</span>
           <h3>Memo Writer</h3>
-          <p>Drafts a short, readable summary memo from the checklist — the kind of write-up you'd hand to a stakeholder or put in front of legal.</p>
+          <p>Drafts a short, readable summary memo from the checklist — the kind of write-up you'd hand to a client or put in front of legal.</p>
         </div>
         <div class="card">
           <span class="icon">🛡️</span>
@@ -319,14 +331,28 @@
       <span class="eyebrow">How it fits your workflow</span>
       <h2>You ask a question in plain language, you get a reviewed packet back</h2>
       <div class="flow">
-        <div class="step"><span class="n">1</span><br>"We're licensed in California and New York. We want to expand into Texas, Florida, and Illinois."</div>
+        <div class="step"><span class="n">1</span><br>"Our client Meridian Payments is licensed in California and New York and wants to expand into Texas, Florida, and Illinois."</div>
         <span class="arrow">→</span>
-        <div class="step"><span class="n">2</span><br>The research assistant looks up each target state and flags anything not yet in its knowledge base.</div>
+        <div class="step"><span class="n">2</span><br>The research assistant looks up each target state, and the client tracker pulls Meridian's actual profile — net worth, bonds already posted, what's already on file.</div>
         <span class="arrow">→</span>
-        <div class="step"><span class="n">3</span><br>The checklist builder turns that into one consistent packet, state by state.</div>
+        <div class="step"><span class="n">3</span><br>The checklist builder turns that into one packet, checked against what this specific client actually has — not a generic template.</div>
         <span class="arrow">→</span>
-        <div class="step"><span class="n">4</span><br>The reviewer double-checks nothing was missed, then the memo writer drafts the summary for your team.</div>
+        <div class="step"><span class="n">4</span><br>The reviewer double-checks nothing was missed, the memo writer drafts the summary, and Meridian's case file updates to reflect where things stand.</div>
       </div>
+    </section>
+
+    <section id="queries">
+      <span class="eyebrow">What it's actually for</span>
+      <h2>Three kinds of questions it answers</h2>
+      <p class="lede">
+        A consulting firm doesn't ask one kind of question — it asks these
+        three, over and over, about different clients at different stages:
+      </p>
+      <ul class="plain">
+        <li><strong>A brand-new client:</strong> "Would this prospect qualify for a license in Washington today, and what's missing?"</li>
+        <li><strong>An existing client with a change:</strong> "This client is bringing on a new part-owner — which of their in-progress applications need updating?"</li>
+        <li><strong>A client mid-application:</strong> "What's still open on this client's Florida application, and is anything overdue?"</li>
+      </ul>
     </section>
 
     <section id="value">
@@ -334,10 +360,39 @@
       <h2>What you get</h2>
       <ul class="plain">
         <li>A consistent first draft for every state, instead of whatever one researcher happened to find that week</li>
+        <li>One case file per client instead of a spreadsheet per analyst, so everyone sees the same status</li>
         <li>Far less manual lookup time before your compliance team's real review even starts</li>
         <li>A packet that's already been checked once before it reaches a person — nothing obviously missing</li>
-        <li>A clear, honest "we don't know yet" whenever a state falls outside what the assistants have researched, instead of a guess dressed up as an answer</li>
+        <li>A clear, honest "we don't know yet" whenever a state or a client detail falls outside what the assistants have on file, instead of a guess dressed up as an answer</li>
       </ul>
+    </section>
+
+    <section id="cost">
+      <span class="eyebrow">The real-world question</span>
+      <h2>What this would actually cost to run</h2>
+      <p class="lede">
+        The honest answer, worked out from the technical version of this
+        project: not much, at least not in day-to-day usage costs. A single
+        question — checking a client's status, running a gap analysis —
+        costs a small fraction of a cent at today's published AI-model
+        pricing. Running it for a firm handling a few dozen clients, with
+        analysts asking it a few thousand questions a month, comes out to
+        roughly the cost of one modest team lunch per month, not a line
+        item that needs its own budget conversation.
+      </p>
+      <p>
+        Hosting the assistant itself is similarly small — it doesn't need
+        specialized infrastructure, just a small always-on service, or one
+        that only runs when someone actually asks it something.
+      </p>
+      <div class="callout-final">
+        These are estimates from a technical study project, using
+        published list prices at the time they were written — not a quote.
+        Real usage patterns and provider choice would need to be checked
+        before anyone builds a budget around them. But at this order of
+        magnitude, cost was never going to be the reason a project like
+        this doesn't happen.
+      </div>
     </section>
 
     <section id="caveat">
@@ -347,11 +402,15 @@
         <p style="margin-top:0;">
           These assistants produce a first draft, not a final answer. They
           don't replace your compliance officers, your outside counsel, or
-          your regulators — they take the repetitive research off your
-          team's plate so the people with real judgment can spend their time
-          on the calls that actually need it. Every packet they produce
-          should be reviewed by a qualified person and verified against
-          current NMLS and state-regulator sources before anyone acts on it.
+          your regulators — they take the repetitive research and status
+          tracking off your team's plate so the people with real judgment
+          can spend their time on the calls that actually need it. Every
+          packet they produce should be reviewed by a qualified person and
+          verified against current NMLS and state-regulator sources before
+          anyone acts on it, and every client record it holds should carry
+          only what the licensing work actually needs, with real access
+          controls around anything closer to genuine client data than this
+          concept's fictitious samples.
         </p>
       </div>
     </section>

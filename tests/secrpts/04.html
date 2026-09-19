@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Study pages follow-up — security &amp; quality review</title>
+<meta name="description" content="Follow-up security and code-quality review of the client-case-tracking and cost-model content added to the two study/ reference pages, against this repo's existing scan conventions.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+  .open-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--open);
+  }
+  .open-note b { color: var(--open); }
+
+  .page-table-wrap { overflow-x: auto; margin: 12px 0; }
+  table.page-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .page-table th, .page-table td {
+    border: 1px solid var(--panel-border);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .page-table th {
+    background: var(--code-bg);
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Study pages follow-up — security &amp; code-quality review</h1>
+    <p class="sub">Same day as <a href="03.html" style="color: var(--accent);">03.html</a>, both study pages were substantially revised again: <code>plan.html</code> gained a second dataset (client case files, alongside the state-rules dataset) and a production cost model, and <code>usecase.html</code> was reframed around a licensing consulting firm serving multiple clients. This report covers <strong>only that delta</strong> — content already reviewed in <code>03.html</code> and left unchanged here is not re-derived, just cross-referenced.</p>
+    <div class="meta">Review performed 2026-09-19 · repo: <code>twrconsultingllc/Fun</code> · pages: <code>study/plan.html</code>, <code>study/usecase.html</code> · scope: the client-case-tracking + cost-model revision only</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 50%;"></div></div>
+    <div class="progress-label">1 of 2 actionable findings fixed, 1 left open — and that one is a carry-over from <code>03.html</code>, not something this revision introduced. 6 additional items confirmed clean, not counted as actionable.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">New content adds no external resources, scripts, or exfiltration paths</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p>The revision added a whole second dataset and a new section to each page — the kind of change that's easy to accidentally widen the attack surface on. Grepped both files after the edit, not just before it:</p>
+        <ul>
+          <li>No new <code>href="http…"</code> anywhere in either file besides the one pre-existing NMLS link, and that link's <code>target="_blank" rel="noopener noreferrer"</code> hardening (fixed in <code>03.html</code>) is untouched on both pages.</li>
+          <li>No <code>&lt;script&gt;</code> tag, inline event handler, <code>eval(</code>, <code>fetch(</code>, or <code>&lt;form&gt;</code> introduced — both files are still pure static HTML/CSS with zero executable logic.</li>
+          <li>The <code>&lt;head&gt;</code> CSP/referrer/description meta tags from <code>03.html</code>'s fix are intact and unmodified on <code>plan.html</code>; on <code>usecase.html</code> only the <code>description</code> text itself was updated to reflect the new client-tracking framing, the CSP and referrer tags were not touched.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The new client sample dataset contains nothing shaped like a real identifier</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p>A "client demographic and pedigree" dataset is exactly the kind of thing that quietly turns into a template for real PII if nobody checks it — a control-person's ownership stake, background disclosure, and identifying details are genuinely sensitive fields on a real license application. Grepped <code>plan.html</code>'s sample <code>clients.json</code> excerpt and the surrounding prose for anything shaped like a real identifier: no SSN, no full date of birth, no street address, no phone number, no ZIP code. <code>controlPersons</code> deliberately tracks a birth <em>year</em> only, not a date of birth, and the sample EIN is rendered as literal placeholder characters (<code>"XX-XXXXXXX (sample — never a real EIN)"</code>) rather than a plausible-looking number.</p>
+        <p>Every value in the sample — names, dollar figures, dates — carries an inline <code>(sample)</code> tag, the same convention <code>03.html</code> already confirmed for the state-rules dataset, extended consistently to the new client data.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No <code>X-Frame-Options</code> / <code>Permissions-Policy</code> on GitHub Pages</div>
+        <span class="badge open">Open</span>
+      </div>
+      <div class="item-body">
+        Unchanged carry-over from <code>03.html</code> (itself inherited from the site-wide report, <code>01.html</code>) — GitHub Pages has no meta-tag equivalent for either header. This revision didn't touch that constraint in either direction: both pages are still read-only reference documents with no forms, no state, and no click-triggered action for a clickjacking overlay to weaponize.
+      </div>
+      <div class="open-note">
+        <b>Not fixed, not newly introduced either:</b> same architectural gap as before. See <code>03.html</code> for the full reasoning; nothing about the client-tracking or cost-model addition changes that analysis.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Heading hierarchy, unique ids, and TOC anchors after growing from 9 to 12 sections</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p><code>03.html</code> flagged this exact check as "not re-checked" against the grown page — closing that loop here. <code>plan.html</code> now has 12 <code>&lt;section id="…"&gt;</code> elements; checked every one for uniqueness (none repeat) and confirmed all 12 <code>nav.toc</code> <code>href="#…"</code> entries resolve to a real section id, in the same order the sections appear in the document. Heading levels stay <code>h1</code> → <code>h2</code> → <code>h3</code> with no skips: the new cost-model section (10) nests four <code>h3</code>s (<em>Model pricing used</em>, <em>Per-query cost…</em>, <em>Monthly volume…</em>, <em>Hosting</em>) directly under its own <code>h2</code>, the same pattern section 02's <code>h3</code> already used.</p>
+        <p><code>usecase.html</code>'s two new sections (<code>#queries</code>, <code>#cost</code>) use unique ids not shared with any existing section.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">New tables and callouts introduce no new colors, so <code>03.html</code>'s contrast fix still covers them</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The cost-model section's pricing table and its four callouts reuse the existing <code>table</code>, <code>callout</code>, <code>callout.decision</code>, and <code>callout.warning</code> classes verbatim — no new CSS variables, no new inline colors. Grepped both files for <code>style="…"</code> attributes: the only two matches are pre-existing layout properties (<code>grid-column</code>, <code>margin-top:0</code>), neither is a color. Since <code>03.html</code> already computed and fixed contrast ratios for every one of those classes against every background they appear on, the new content sitting inside them inherits an already-verified 4.6:1+ contrast — nothing to recompute.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Cost-model arithmetic, checked by computing it rather than trusting the prose</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p>Recomputed every dollar figure in <code>plan.html</code> section 10 from the stated inputs (3,000 uncached input tokens at Sonnet 5's $2.00/MTok, a 300–1,500 token output range at $10.00/MTok, a 2,300-token cached prefix at the documented 0.1× cache-read rate) rather than assuming the page's own numbers are right — the same "grep for the bug pattern instead of asserting it isn't there" habit <code>CLAUDE.md</code> asks for, applied to arithmetic instead of code.</p>
+        <div class="page-table-wrap">
+        <table class="page-table">
+          <thead><tr><th>Claim in the page</th><th>Computed value</th><th>Match?</th></tr></thead>
+          <tbody>
+            <tr><td>Uncached per-query cost, "$0.009–$0.02"</td><td>$0.009–$0.021</td><td>Yes</td></tr>
+            <tr><td>Cached per-query cost, "$0.005–$0.017"</td><td>$0.00486–$0.01686</td><td>Yes</td></tr>
+            <tr><td>50,000-token uncached input cost, "$0.10"</td><td>$0.10 exactly</td><td>Yes</td></tr>
+            <tr><td>50,000-token cached-read cost, "$0.01"</td><td>$0.01 exactly</td><td>Yes</td></tr>
+            <tr><td>Monthly spend at 2,400 queries, "$24–$48/month"</td><td>$24.00–$48.00</td><td>Yes</td></tr>
+            <tr><td>10× traffic, "$240–$480/month"</td><td>$240.00–$480.00</td><td>Yes</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p>All six check out. The per-token prices themselves (Sonnet 5 $2/$10, Opus 5 $5/$25, Haiku 4.5 $1/$5 per MTok; cache write 1.25×/2×, read 0.1×) came from a maintained, dated Anthropic pricing reference rather than being recalled from training data — see the next item for a wording correction to that claim.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Pricing-source wording overstated how the numbers were checked</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        <p>Section 10's opening callout originally said the per-token prices were "checked live against the current API reference," echoing section 02's language for its <code>npm view</code> checks. That's not quite what happened: the pricing table actually came from a bundled, dated reference (a pricing snapshot, not a same-session live fetch of Anthropic's pricing page), which is a meaningfully different confidence level than a live <code>npm view</code> call — closer to "not recalled from memory" than to "live-verified this session." Leaving the stronger claim in place would have been the same category of mistake <code>CLAUDE.md</code> already warns about for model IDs: overclaiming certainty about something outside training data without actually checking it live.</p>
+        <p>The underlying numbers themselves are still the right call — pulling from a maintained reference is legitimately better than recalling pricing from memory — the issue was purely the wording implying a stronger verification than what occurred.</p>
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> reworded the callout to say the prices came from "a maintained, dated pricing reference," explicitly distinguish that from section 02's same-session live checks, and note it "carries whatever lag that table has against Anthropic's current published pricing" — on top of the callout's existing instruction to re-verify before quoting a real number to anyone, which was already accurate and didn't need changing.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">New tool and file names follow the existing naming convention consistently</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The pre-existing pages use snake_case for MCP tool names (<code>get_state_requirements</code>, <code>gap_analysis</code>) and kebab-case for their <code>.mjs</code> file names (<code>get-state-requirements.mjs</code>, <code>gap-analysis.mjs</code>). Checked all six new client tools against that pattern — <code>get_client</code>/<code>get-client.mjs</code>, <code>list_clients</code>/<code>list-clients.mjs</code>, <code>get_client_progress</code>/<code>get-client-progress.mjs</code>, <code>update_checklist_item</code>/<code>update-checklist-item.mjs</code>, <code>client_gap_analysis</code>/<code>client-gap-analysis.mjs</code>, <code>evaluate_change_impact</code>/<code>evaluate-change-impact.mjs</code> — all consistent. Also confirmed the two deterministic "verify" files (<code>validate-expansion-checklist.mjs</code> and the new <code>validate-client-checklist.mjs</code>) are both correctly <em>excluded</em> from <code>server.mjs</code>'s list of exposed MCP tools in the directory-layout section, matching the original document's existing pattern of keeping code-level verify checks separate from MCP-exposed tools — not an inconsistency introduced by the new content.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>usecase.html</code>'s new sections checked for fabricated proof points</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Same check <code>03.html</code> already ran on the rest of the page, applied to the two new sections ("Three kinds of questions it answers" and "What this would actually cost to run"). Both stay in the same register as the rest of the pitch: no invented client names, no fabricated statistics presented as real, no claim of an already-deployed or already-billed product. The cost section uses a deliberately generic framing ("a firm handling a few dozen clients," "roughly the cost of one modest team lunch per month") rather than a fabricated-precision number, and its closing callout explicitly labels the figures as estimates from a study project that need checking before anyone builds a real budget around them — consistent with the compliance/legal-review caveat pattern <code>03.html</code> already confirmed for the rest of the page.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand as each item gets fixed,
+    or ask Claude to re-scan these two pages and refresh this report. See
+    <code>01.html</code> for the rest of the repo, <code>02.html</code> for the pattern-lab pages, and
+    <code>03.html</code> for the review this one follows up on.
+  </footer>
+
+</div>
+</body>
+</html>

@@ -319,7 +319,7 @@
         <span class="badge fixed">Confirmed clean</span>
       </div>
       <div class="item-body">
-        Both pages use a single <code>h1</code> with <code>h2</code>/<code>h3</code> nested correctly (no skipped levels). Checked every <code>id</code> attribute on <code>plan.html</code> for uniqueness (nine section ids, all distinct) and confirmed every table-of-contents <code>href="#…"</code> resolves to a real section id — a real risk after several rounds of edits added and renumbered sections mid-review.
+        Both pages use a single <code>h1</code> with <code>h2</code>/<code>h3</code> nested correctly (no skipped levels). Checked every <code>id</code> attribute on <code>plan.html</code> for uniqueness and confirmed every table-of-contents <code>href="#…"</code> resolves to a real section id — a real risk after several rounds of edits added and renumbered sections mid-review. <strong>Update, same day:</strong> both pages were substantially revised again after this review to add client-case-tracking content and a cost-model section (<code>plan.html</code> grew from nine section ids to twelve; the id-uniqueness and anchor-resolution check above was re-run against that revision and still passes). The rest of this report reflects the version reviewed at the timestamp above, not the current content — see the "content consistency" item below for what did and didn't get re-checked.
       </div>
     </div>
 
@@ -353,7 +353,7 @@
         <span class="badge fixed">Confirmed clean</span>
       </div>
       <div class="item-body">
-        <code>plan.html</code> was rewritten from a generic-tools design to the money-transmitter-licensing example across several edits in the same session. Grepped for leftover references to the earlier tool/file names (<code>search_repo_files</code>, <code>run_lab_tests</code>, <code>lab-reviewer.md</code>) — none remain; the directory layout, the example-task section, and the exam-domain mapping table all name the current MTL-flavored files consistently.
+        <code>plan.html</code> was rewritten from a generic-tools design to the money-transmitter-licensing example across several edits in the same session. Grepped for leftover references to the earlier tool/file names (<code>search_repo_files</code>, <code>run_lab_tests</code>, <code>lab-reviewer.md</code>) — none remain; the directory layout, the example-task section, and the exam-domain mapping table all name the current MTL-flavored files consistently. <strong>Not re-checked:</strong> the later same-day revision that added client case files (<code>clients.json</code>, the client-scoped tools, sections 05–06) and the cost-model section — those were spot-checked for internal id/anchor consistency (see the item above) but not put through this report's full accuracy and code-quality pass. Content added after this review's timestamp should be treated as unreviewed until a follow-up report covers it.
       </div>
     </div>
   </section>
