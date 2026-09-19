@@ -108,6 +108,16 @@ const SKILL_CATALOG = {
     "KITE_RETREAT": { action: "Retreat", aggression: 0, speedModifier: 1.0 },
     "DEFENSIVE_SHIELD": { action: "Defend", aggression: 30, speedModifier: 0.5 }
 };
+const DEFAULT_SKILL = "SNIPE_STANCE";
+
+// Never forward the model's raw output to the client: build a clean order
+// from just the whitelisted skill name, so an arbitrary/malicious string in
+// the model's response (or any extra field it invents) can't reach the
+// browser's innerHTML sink in game.js.
+function buildOrder(raw) {
+    const skill = SKILL_CATALOG[raw?.skill] ? raw.skill : DEFAULT_SKILL;
+    return { skill, stats: SKILL_CATALOG[skill] };
+}
 
 export default async function handler(req, res) {
     if (!isSameOriginRequest(req)) {
@@ -162,10 +172,10 @@ export default async function handler(req, res) {
 
             const result = await model.generateContent(prompt);
             const botActions = JSON.parse(result.response.text());
-            
+
             const mappedActions = {
-                botA: { ...botActions.botA, stats: SKILL_CATALOG[botActions.botA?.skill] || SKILL_CATALOG["SNIPE_STANCE"] },
-                botB: { ...botActions.botB, stats: SKILL_CATALOG[botActions.botB?.skill] || SKILL_CATALOG["SNIPE_STANCE"] }
+                botA: buildOrder(botActions.botA),
+                botB: buildOrder(botActions.botB)
             };
 
             return res.status(200).json(mappedActions);

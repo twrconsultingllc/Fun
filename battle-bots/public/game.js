@@ -27,10 +27,17 @@ bindSlider('cfg-r-hp', 'val-r-hp'); bindSlider('cfg-r-spd', 'val-r-spd');
 bindSlider('cfg-b-hp', 'val-b-hp'); bindSlider('cfg-b-spd', 'val-b-spd');
 bindSlider('cfg-a-obs', 'val-a-obs');
 
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+}
+
 function addLog(type, data) {
     const timestamp = new Date().toLocaleTimeString();
     const colorClass = type === 'SENT' ? 'log-sent' : type === 'RECV' ? 'log-recv' : 'log-error';
-    const logString = `<div class="log-entry"><span style="color:#555">[${timestamp}]</span> <strong class="${colorClass}">${type}:</strong> ${typeof data === 'object' ? JSON.stringify(data) : data}</div>`;
+    const body = typeof data === 'object' ? JSON.stringify(data) : data;
+    const logString = `<div class="log-entry"><span style="color:#555">[${timestamp}]</span> <strong class="${colorClass}">${type}:</strong> ${escapeHtml(body)}</div>`;
     logs.unshift(logString);
     if (logs.length > 10) logs.pop();
     logContent.innerHTML = logs.join('');

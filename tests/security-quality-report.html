@@ -216,8 +216,8 @@
       <span><span class="dot fixed"></span> Fixed</span>
       <span><span class="dot open"></span> Open</span>
     </div>
-    <div class="progress-bar"><div class="progress-fill" style="width: 14%;"></div></div>
-    <div class="progress-label">2 of 14 actionable findings fixed (1 additional item confirmed clean, not counted)</div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 21%;"></div></div>
+    <div class="progress-label">3 of 14 actionable findings fixed (1 additional item confirmed clean, not counted)</div>
   </header>
 
   <section>
@@ -264,14 +264,25 @@
     <div class="item">
       <div class="item-head">
         <div class="item-title">Real XSS bug in <code>battle-bots</code> V1</div>
-        <span class="badge open">Open</span>
+        <span class="badge fixed">Fixed</span>
       </div>
       <div class="item-body">
-        <code>battle-bots/public/game.js</code>'s <code>addLog()</code> injects LLM-derived text into
-        <code>innerHTML</code> unescaped, and the server doesn't whitelist the <code>skill</code> field
-        before passing it through. <code>battle-bots-V2</code> already fixed both (an <code>escapeHtml()</code>
-        helper in <code>ui.js</code> and a strict <code>SKILL_CATALOG</code> whitelist server-side). Recommend
-        porting V2's fix back to V1, or retiring V1 in favor of V2.
+        <code>battle-bots/public/game.js</code>'s <code>addLog()</code> injected LLM-derived text into
+        <code>innerHTML</code> unescaped, and the server didn't whitelist the <code>skill</code> field before
+        passing it through — a crafted model response (e.g. a <code>skill</code> value of
+        <code>&lt;img src=x onerror=...&gt;</code>) could execute arbitrary JS in the victim's browser.
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> ported V2's two-layer fix back to V1. Server-side, <code>battle-bots/api/get-actions.js</code>
+        now builds each bot's order from a whitelisted <code>skill</code> name only (falling back to
+        <code>SNIPE_STANCE</code> if the model's response isn't a real <code>SKILL_CATALOG</code> key), instead
+        of spreading the model's raw object straight into the response — so an arbitrary/malicious string can no
+        longer leave the server at all. Client-side, <code>battle-bots/public/game.js</code>'s <code>addLog()</code>
+        now runs the same <code>escapeHtml()</code> helper V2 uses before writing anything into
+        <code>innerHTML</code>, as defense-in-depth. Verified in Node against a simulated malicious
+        <code>skill</code> payload: the server now returns <code>SNIPE_STANCE</code> instead of the injected
+        string, and even a hypothetical bypass would render as inert HTML entities, not executable markup.
+        <div class="commit">pending push</div>
       </div>
     </div>
 
