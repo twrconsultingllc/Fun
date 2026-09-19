@@ -27,7 +27,12 @@ const SUITES = [
     { id: 'bots-core', page: 'battle-bots-V2/public/index.html', file: './battle-bots-v2.core.test.mjs' },
     { id: 'bots-dom', page: 'battle-bots-V2/public/index.html', file: './battle-bots-v2.dom.test.mjs' },
     { id: 'fullcircle-core', page: 'fullcircle.html', file: './fullcircle.core.test.mjs' },
-    { id: 'snake-dom', page: 'snake.html', file: './snake.dom.test.mjs' }
+    { id: 'snake-dom', page: 'snake.html', file: './snake.dom.test.mjs' },
+    { id: 'scroll-transit', page: 'scroll-transit.html', file: './scroll-transit.dom.test.mjs' },
+    { id: 'shader-lab-core', page: 'shader-lab.html', file: './shader-lab.core.test.mjs' },
+    { id: 'shader-lab-dom', page: 'shader-lab.html', file: './shader-lab.dom.test.mjs' },
+    { id: 'widget-kit', page: 'widget-kit.html', file: './widget-kit.dom.test.mjs' },
+    { id: 'signal-scope', page: 'signal-scope.html', file: './signal-scope.dom.test.mjs' }
 ];
 
 const DEFAULT_BASE = new URL('../', import.meta.url).pathname;

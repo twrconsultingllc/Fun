@@ -35,7 +35,7 @@ not be loaded — so this drops straight into CI or a pre-push hook.
 
 ## What is covered
 
-632 assertions across ten suites.
+725 assertions across fifteen suites.
 
 ### `fullcircle.html`
 
@@ -91,6 +91,30 @@ centre. It is an editorial judgement, not a benchmark, and it is the one field
 in the catalogue that cannot be verified against a source. The tests check that
 it is in range and internally consistent with the layout — they do not and
 cannot check that it is *right*.
+
+### The pattern-lab pages (`scroll-transit.html`, `shader-lab.html`, `widget-kit.html`, `signal-scope.html`)
+
+| Suite | File | Covers |
+|---|---|---|
+| `scroll-transit` | `scroll-transit.dom.test.mjs` | The scroll-timeline/View-Transitions fallback path (jsdom implements neither `CSS.supports('animation-timeline: …')` nor `document.startViewTransition`), plus the swatch grid's `promote()`/`shuffle()` DOM reordering, which runs the same either way. |
+| `shader-lab-core` | `shader-lab.core.test.mjs` | The literal GLSL source of all four shader presets, pinned between `SHADER PRESETS START/END` marker comments — one `shade()` entry point each, balanced braces/parens — without ever needing a real GL context. |
+| `shader-lab-dom` | `shader-lab.dom.test.mjs` | The no-WebGL2 fallback (jsdom's `getContext('webgl2')` returns null) and the preset/speed/hue state machine around it — clamping, wrapping, and the active-button UI sync. |
+| `widget-kit` | `widget-kit.dom.test.mjs` | The four custom elements for real: Shadow DOM encapsulation (`<neon-badge>`), click-to-rate and the `readonly` guard with a dispatched `rating-change` (`<rating-stars>`), header-click and programmatic toggling both firing `toggle` (`<collapse-panel>`), and the clipboard-unavailable fallback firing `chip-copy` with `ok: false` (`<copy-chip>`). jsdom supports custom elements and Shadow DOM natively, so this is the one pattern-lab page tested end to end rather than via a fallback path. |
+| `signal-scope` | `signal-scope.dom.test.mjs` | The no-Web-Audio fallback (`AudioContext`/`webkitAudioContext` are undefined in jsdom) and the sequencer's state machine — waveform/tempo/cutoff clamping, viz-mode switching, and the microphone toggle falling back cleanly when `getUserMedia` is unavailable. |
+
+These four pages exist to demonstrate patterns unused elsewhere in the repo
+(CSS scroll-driven animation + View Transitions, raw WebGL2/GLSL shaders,
+Web Components/Shadow DOM, and the Web Audio API) — see each page's own
+`window.__<name>` hook (`__scrolltransit`, `__shaderlab`, `__widgetkit`,
+`__signalscope`) for what a test can drive directly, same reasoning as
+`window.__swarm`/`window.__raceday`/`window.__snake` above.
+
+`setCutoff(0)`/`setTempo(0)`/`setSpeed(0)` are asserted explicitly on top of
+the more obvious out-of-range clamps: `Number(x) || fallback` silently
+replaces a legitimate `0` with the fallback because `0` is falsy in
+JavaScript. That exact bug shipped in the first draft of `signal-scope.html`
+and `shader-lab.html` and was caught immediately by these assertions — fixed
+with `Number.isFinite(x) ? x : fallback` instead.
 
 ### `snake.html`
 

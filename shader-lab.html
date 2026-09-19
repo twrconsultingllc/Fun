@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Shader Lab — raw WebGL2 fragment shaders</title>
+<meta name="description" content="A shadertoy-style fragment shader playground written directly against WebGL2, no Three.js.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%2305040a'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%23c026ff' stroke-width='6'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --bg: #05040a;
+    --panel: rgba(9, 11, 20, 0.84);
+    --edge: rgba(255, 255, 255, 0.12);
+    --ink: #eef1f8;
+    --ink-dim: #99a2b8;
+    --ink-faint: #5d667d;
+    --accent: #c026ff;
+}
+
+html, body {
+    width: 100%; height: 100%;
+    background: var(--bg); color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+}
+
+a { color: inherit; }
+
+.chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 18px;
+    padding: 14px 20px; font-size: 0.78rem;
+    background: linear-gradient(180deg, rgba(5,4,10,0.9), rgba(5,4,10,0));
+}
+.backlink { color: var(--ink-dim); text-decoration: none; font-weight: 600; }
+.backlink:hover, .backlink:focus-visible { color: var(--accent); }
+.crossnav { display: flex; gap: 14px; margin-left: auto; flex-wrap: wrap; }
+.crossnav a { color: var(--ink-faint); text-decoration: none; letter-spacing: 0.04em; }
+.crossnav a:hover, .crossnav a:focus-visible { color: var(--ink); }
+.crossnav a.current { color: var(--accent); font-weight: 700; }
+
+#gl-canvas { position: fixed; inset: 0; z-index: 0; display: block; width: 100%; height: 100%; }
+
+#no-gl-placeholder {
+    position: fixed; inset: 0; z-index: 0; display: none;
+    background: radial-gradient(ellipse at 50% 40%, #2a0f3d 0%, #05040a 70%);
+}
+#no-gl-placeholder.show { display: block; }
+
+.hud {
+    position: fixed; z-index: 10; left: 20px; bottom: 20px; width: min(320px, 84vw);
+    background: var(--panel); border: 1px solid var(--edge); border-radius: 14px;
+    padding: 16px 18px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+}
+.hud h1 {
+    font-size: 0.72rem; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 4px;
+}
+.hud p.sub { font-size: 0.72rem; color: var(--ink-faint); margin-bottom: 14px; line-height: 1.5; }
+
+.presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.preset-btn {
+    background: transparent; border: 1px solid var(--edge); color: var(--ink-dim);
+    padding: 6px 12px; border-radius: 999px; font: inherit; font-size: 0.72rem;
+    cursor: pointer; letter-spacing: 0.02em;
+}
+.preset-btn:hover { color: var(--ink); border-color: var(--accent); }
+.preset-btn.active { color: #05040a; background: var(--accent); border-color: var(--accent); font-weight: 700; }
+.preset-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.slider-row { display: flex; align-items: center; gap: 10px; font-size: 0.72rem; color: var(--ink-dim); margin-bottom: 8px; }
+.slider-row label { width: 52px; flex: none; }
+.slider-row input[type="range"] { flex: 1; accent-color: var(--accent); }
+
+.play-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.play-btn {
+    background: transparent; border: 1px solid var(--accent); color: var(--accent);
+    padding: 8px 16px; border-radius: 999px; font: inherit; font-size: 0.75rem;
+    cursor: pointer; font-weight: 700;
+}
+.play-btn:hover { background: var(--accent); color: #05040a; }
+.hint { font-size: 0.68rem; color: var(--ink-faint); }
+
+.kicker-block {
+    position: fixed; z-index: 10; top: 72px; left: 20px; max-width: 420px;
+    pointer-events: none;
+}
+.kicker {
+    display: block; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 8px;
+}
+h2.title { font-size: clamp(1.6rem, 3.4vw, 2.4rem); font-weight: 900; }
+
+.banner {
+    position: fixed; z-index: 20; top: 130px; left: 20px; right: 20px; max-width: 520px;
+    display: none; padding: 12px 16px; border: 1px solid rgba(255,176,32,0.4);
+    background: rgba(255,176,32,0.1); color: #ffd27a; border-radius: 10px;
+    font-size: 0.8rem; line-height: 1.5;
+}
+.banner.show { display: block; }
+
+@media (max-width: 700px) {
+    .kicker-block { top: 66px; }
+    .hud { left: 12px; right: 12px; width: auto; bottom: 12px; }
+    .banner { left: 12px; right: 12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="chrome">
+    <a class="backlink" href="index.html">&larr; Back</a>
+    <nav class="crossnav" aria-label="Pattern lab pages">
+        <a href="scroll-transit.html">01 Scroll</a>
+        <a class="current" href="shader-lab.html">02 Shader</a>
+        <a href="widget-kit.html">03 Components</a>
+        <a href="signal-scope.html">04 Audio</a>
+    </nav>
+</div>
+
+<canvas id="gl-canvas"></canvas>
+<div id="no-gl-placeholder"></div>
+
+<div class="kicker-block">
+    <span class="kicker">Pattern Lab &middot; 02 / 04 &middot; Raw WebGL2 / GLSL</span>
+    <h2 class="title">Shader Lab</h2>
+</div>
+
+<div id="gl-banner" class="banner"></div>
+
+<div class="hud">
+    <h1>Fragment Shader</h1>
+    <p class="sub">A fullscreen triangle rendered by hand-written GLSL &mdash; no Three.js, no library. Everything you see is one <code>vec3 shade(vec2 uv)</code> function per preset.</p>
+
+    <div class="presets" id="preset-buttons"></div>
+
+    <div class="slider-row">
+        <label for="speed">Speed</label>
+        <input type="range" id="speed" min="0.1" max="3" step="0.1" value="1">
+    </div>
+    <div class="slider-row">
+        <label for="hue">Hue</label>
+        <input type="range" id="hue" min="0" max="360" step="1" value="0">
+    </div>
+
+    <div class="play-row">
+        <button class="play-btn" id="play-btn" type="button">Pause</button>
+        <span class="hint" id="motion-hint"></span>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var REDUCED = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var canvas = document.getElementById('gl-canvas');
+    var gl = canvas.getContext('webgl2');
+
+    var state = {
+        preset: 'plasma',
+        speed: 1,
+        hue: 0,
+        playing: !REDUCED
+    };
+
+    /* ===== SHADER PRESETS START =====
+       Each preset defines vec3 shade(vec2 uv, vec2 res, float t). Kept between
+       these markers so a core test can pin the literal GLSL source without
+       ever needing a real GL context. */
+    var PRESET_SOURCE = {
+        plasma: [
+            'vec3 shade(vec2 uv, vec2 res, float t) {',
+            '    float v = sin(uv.x * 6.0 + t) + sin(uv.y * 6.0 - t * 1.3);',
+            '    v += sin((uv.x + uv.y) * 6.0 + t * 0.7);',
+            '    v += sin(length(uv) * 8.0 - t * 1.7);',
+            '    vec3 col = 0.5 + 0.5 * cos(vec3(0.0, 2.0, 4.0) + v * 3.14159);',
+            '    return col;',
+            '}'
+        ].join('\n'),
+        tunnel: [
+            'vec3 shade(vec2 uv, vec2 res, float t) {',
+            '    float r = length(uv) + 0.0001;',
+            '    float a = atan(uv.y, uv.x);',
+            '    float depth = 1.0 / r;',
+            '    float bands = fract(depth * 0.6 - t * 1.2);',
+            '    float spokes = 0.5 + 0.5 * sin(a * 10.0 + depth * 0.4);',
+            '    vec3 col = 0.5 + 0.5 * cos(vec3(1.0, 2.4, 3.8) * bands * 6.2832 + depth * 0.2);',
+            '    return col * mix(0.5, 1.0, spokes);',
+            '}'
+        ].join('\n'),
+        voronoi: [
+            'vec2 hash2(vec2 p) {',
+            '    p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));',
+            '    return fract(sin(p) * 43758.5453123);',
+            '}',
+            'vec3 shade(vec2 uv, vec2 res, float t) {',
+            '    vec2 p = uv * 4.0;',
+            '    vec2 ip = floor(p);',
+            '    float minDist = 8.0;',
+            '    for (int y = -1; y <= 1; y++) {',
+            '        for (int x = -1; x <= 1; x++) {',
+            '            vec2 neighbor = vec2(float(x), float(y));',
+            '            vec2 cellPoint = hash2(ip + neighbor);',
+            '            cellPoint = 0.5 + 0.5 * sin(t * 0.6 + 6.2831 * cellPoint);',
+            '            vec2 diff = neighbor + cellPoint - fract(p);',
+            '            minDist = min(minDist, length(diff));',
+            '        }',
+            '    }',
+            '    float glow = smoothstep(0.35, 0.0, minDist);',
+            '    vec3 col = 0.5 + 0.5 * cos(vec3(0.2, 2.1, 3.3) + minDist * 3.0);',
+            '    return col * glow + vec3(0.02, 0.0, 0.05);',
+            '}'
+        ].join('\n'),
+        julia: [
+            'vec3 shade(vec2 uv, vec2 res, float t) {',
+            '    vec2 c = 0.355 * vec2(cos(t * 0.2), sin(t * 0.25));',
+            '    vec2 z = uv * 1.5;',
+            '    float i = 0.0;',
+            '    const float MAX_I = 64.0;',
+            '    for (float n = 0.0; n < MAX_I; n += 1.0) {',
+            '        z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;',
+            '        if (dot(z, z) > 4.0) { i = n; break; }',
+            '        i = MAX_I;',
+            '    }',
+            '    float f = i / MAX_I;',
+            '    vec3 col = 0.5 + 0.5 * cos(vec3(0.0, 1.6, 3.0) + f * 8.0);',
+            '    return col * (f < 0.999 ? 1.0 : 0.05);',
+            '}'
+        ].join('\n')
+    };
+    /* ===== SHADER PRESETS END ===== */
+
+    var PRESET_IDS = ['plasma', 'tunnel', 'voronoi', 'julia'];
+    var PRESET_LABELS = { plasma: 'Plasma', tunnel: 'Tunnel', voronoi: 'Voronoi', julia: 'Julia' };
+
+    var VERT_SRC = [
+        '#version 300 es',
+        'void main() {',
+        '    vec2 pos = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2) * 2.0 - 1.0;',
+        '    gl_Position = vec4(pos, 0.0, 1.0);',
+        '}'
+    ].join('\n');
+
+    var FRAG_HEADER = [
+        '#version 300 es',
+        'precision highp float;',
+        'out vec4 fragColor;',
+        'uniform vec2 u_resolution;',
+        'uniform float u_time;',
+        'uniform float u_hue;',
+        'vec3 hueRotate(vec3 c, float deg) {',
+        '    float a = radians(deg);',
+        '    float cosA = cos(a), sinA = sin(a);',
+        '    mat3 m = mat3(',
+        '        0.213 + cosA*0.787 - sinA*0.213, 0.213 - cosA*0.213 + sinA*0.143, 0.213 - cosA*0.213 - sinA*0.787,',
+        '        0.715 - cosA*0.715 - sinA*0.715, 0.715 + cosA*0.285 + sinA*0.140, 0.715 - cosA*0.715 + sinA*0.715,',
+        '        0.072 - cosA*0.072 + sinA*0.928, 0.072 - cosA*0.072 - sinA*0.283, 0.072 + cosA*0.928 + sinA*0.072',
+        '    );',
+        '    return clamp(m * c, 0.0, 1.0);',
+        '}'
+    ].join('\n');
+
+    var FRAG_FOOTER = [
+        'void main() {',
+        '    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;',
+        '    vec3 col = hueRotate(shade(uv, u_resolution, u_time), u_hue);',
+        '    fragColor = vec4(col, 1.0);',
+        '}'
+    ].join('\n');
+
+    function createShader(gl, type, src) {
+        var s = gl.createShader(type);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+            var info = gl.getShaderInfoLog(s);
+            gl.deleteShader(s);
+            throw new Error(info);
+        }
+        return s;
+    }
+
+    function createProgram(gl, vsSrc, fsSrc) {
+        var p = gl.createProgram();
+        gl.attachShader(p, createShader(gl, gl.VERTEX_SHADER, vsSrc));
+        gl.attachShader(p, createShader(gl, gl.FRAGMENT_SHADER, fsSrc));
+        gl.linkProgram(p);
+        if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+            var info = gl.getProgramInfoLog(p);
+            gl.deleteProgram(p);
+            throw new Error(info);
+        }
+        return p;
+    }
+
+    var glState = null;
+
+    function buildPresetButtons() {
+        var wrap = document.getElementById('preset-buttons');
+        wrap.innerHTML = '';
+        PRESET_IDS.forEach(function (id) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'preset-btn';
+            btn.textContent = PRESET_LABELS[id];
+            btn.dataset.preset = id;
+            if (!gl) btn.disabled = true;
+            btn.addEventListener('click', function () { setPreset(id); });
+            wrap.appendChild(btn);
+        });
+        syncPresetButtons();
+    }
+
+    function syncPresetButtons() {
+        var buttons = document.querySelectorAll('.preset-btn');
+        buttons.forEach(function (b) {
+            b.classList.toggle('active', b.dataset.preset === state.preset);
+        });
+    }
+
+    function compileProgramFor(preset) {
+        if (!gl) return null;
+        var fragSrc = FRAG_HEADER + '\n' + PRESET_SOURCE[preset] + '\n' + FRAG_FOOTER;
+        var program = createProgram(gl, VERT_SRC, fragSrc);
+        return {
+            program: program,
+            uResolution: gl.getUniformLocation(program, 'u_resolution'),
+            uTime: gl.getUniformLocation(program, 'u_time'),
+            uHue: gl.getUniformLocation(program, 'u_hue')
+        };
+    }
+
+    function setPreset(id) {
+        if (!PRESET_SOURCE[id]) return;
+        state.preset = id;
+        syncPresetButtons();
+        if (gl) {
+            try {
+                glState.current = compileProgramFor(id);
+                drawFrame();
+            } catch (e) {
+                showGlBanner('Shader failed to compile: ' + e.message);
+            }
+        }
+    }
+
+    function setSpeed(v) {
+        var speedNum = Number(v);
+        state.speed = Math.max(0.1, Math.min(3, Number.isFinite(speedNum) ? speedNum : 1));
+        document.getElementById('speed').value = String(state.speed);
+        if (gl && !state.playing) drawFrame();
+    }
+
+    function setHue(v) {
+        var h = Number(v);
+        if (!Number.isFinite(h)) h = 0;
+        h = ((h % 360) + 360) % 360;
+        state.hue = h;
+        document.getElementById('hue').value = String(state.hue);
+        if (gl) drawFrame();
+    }
+
+    function play() {
+        if (!gl) return;
+        state.playing = true;
+        document.getElementById('play-btn').textContent = 'Pause';
+        glState.lastFrameTime = performance.now();
+        scheduleFrame();
+    }
+
+    function pause() {
+        state.playing = false;
+        document.getElementById('play-btn').textContent = 'Play';
+        if (glState) cancelAnimationFrame(glState.rafId);
+    }
+
+    function scheduleFrame() {
+        glState.rafId = requestAnimationFrame(function (now) {
+            var dt = (now - glState.lastFrameTime) / 1000;
+            glState.lastFrameTime = now;
+            glState.clock += dt * state.speed;
+            drawFrame();
+            if (state.playing) scheduleFrame();
+        });
+    }
+
+    function resize() {
+        if (!gl) return;
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        var w = Math.floor(canvas.clientWidth * dpr);
+        var h = Math.floor(canvas.clientHeight * dpr);
+        if (canvas.width !== w || canvas.height !== h) {
+            canvas.width = w;
+            canvas.height = h;
+            gl.viewport(0, 0, w, h);
+        }
+    }
+
+    function drawFrame() {
+        if (!gl || !glState.current) return;
+        resize();
+        var p = glState.current;
+        gl.useProgram(p.program);
+        gl.uniform2f(p.uResolution, canvas.width, canvas.height);
+        gl.uniform1f(p.uTime, glState.clock);
+        gl.uniform1f(p.uHue, state.hue);
+        gl.bindVertexArray(glState.vao);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+
+    function showGlBanner(text) {
+        var b = document.getElementById('gl-banner');
+        b.textContent = text;
+        b.classList.add('show');
+    }
+
+    buildPresetButtons();
+
+    if (!gl) {
+        state.playing = false;
+        document.getElementById('no-gl-placeholder').classList.add('show');
+        showGlBanner('WebGL2 isn\'t available in this browser — the shader preview is unavailable. The controls above stay visible but have nothing to render.');
+        document.getElementById('play-btn').disabled = true;
+    } else {
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+        glState = {
+            vao: gl.createVertexArray(),
+            current: null,
+            clock: 0,
+            lastFrameTime: performance.now(),
+            rafId: 0
+        };
+        glState.current = compileProgramFor(state.preset);
+        window.addEventListener('resize', resize);
+
+        if (REDUCED) {
+            document.getElementById('motion-hint').textContent = 'Motion reduced — showing a still frame.';
+            drawFrame();
+        } else {
+            play();
+        }
+    }
+
+    document.getElementById('speed').addEventListener('input', function (e) { setSpeed(e.target.value); });
+    document.getElementById('hue').addEventListener('input', function (e) { setHue(e.target.value); });
+    document.getElementById('play-btn').addEventListener('click', function () {
+        if (state.playing) pause(); else play();
+    });
+
+    /* Nothing on the page reads this — it exists purely for the test suite. */
+    window.__shaderlab = {
+        webgl2Available: !!gl,
+        presets: PRESET_IDS.slice(),
+        currentPreset: function () { return state.preset; },
+        setPreset: setPreset,
+        setSpeed: setSpeed,
+        setHue: setHue,
+        reducedMotion: REDUCED,
+        isPlaying: function () { return state.playing; },
+        play: play,
+        pause: pause
+    };
+}());
+</script>
+</body>
+</html>

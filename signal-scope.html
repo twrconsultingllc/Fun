@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Signal Scope — Web Audio API visualizer</title>
+<meta name="description" content="A self-generated synth sequencer driving a Web Audio AnalyserNode into a canvas visualizer.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%2305040a'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%23ff7a00' stroke-width='6'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --bg: #05040a;
+    --panel: rgba(9, 11, 20, 0.84);
+    --edge: rgba(255, 255, 255, 0.12);
+    --ink: #eef1f8;
+    --ink-dim: #99a2b8;
+    --ink-faint: #5d667d;
+    --accent: #ff7a00;
+}
+
+html, body {
+    width: 100%; height: 100%;
+    background: var(--bg); color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+}
+
+a { color: inherit; }
+
+.chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 18px;
+    padding: 14px 20px; font-size: 0.78rem;
+    background: linear-gradient(180deg, rgba(5,4,10,0.9), rgba(5,4,10,0));
+}
+.backlink { color: var(--ink-dim); text-decoration: none; font-weight: 600; }
+.backlink:hover, .backlink:focus-visible { color: var(--accent); }
+.crossnav { display: flex; gap: 14px; margin-left: auto; flex-wrap: wrap; }
+.crossnav a { color: var(--ink-faint); text-decoration: none; letter-spacing: 0.04em; }
+.crossnav a:hover, .crossnav a:focus-visible { color: var(--ink); }
+.crossnav a.current { color: var(--accent); font-weight: 700; }
+
+#viz-canvas { position: fixed; inset: 0; z-index: 0; display: block; width: 100%; height: 100%; }
+
+.kicker-block { position: fixed; z-index: 10; top: 72px; left: 20px; max-width: 420px; pointer-events: none; }
+.kicker { display: block; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+h2.title { font-size: clamp(1.6rem, 3.4vw, 2.4rem); font-weight: 900; }
+
+.banner {
+    position: fixed; z-index: 20; top: 130px; left: 20px; right: 20px; max-width: 520px;
+    display: none; padding: 12px 16px; border: 1px solid rgba(255,176,32,0.4);
+    background: rgba(255,176,32,0.1); color: #ffd27a; border-radius: 10px;
+    font-size: 0.8rem; line-height: 1.5;
+}
+.banner.show { display: block; }
+.banner.info { border-color: rgba(255,122,0,0.4); background: rgba(255,122,0,0.08); color: #ffcf9e; }
+
+.hud {
+    position: fixed; z-index: 10; left: 20px; bottom: 20px; width: min(340px, 86vw);
+    background: var(--panel); border: 1px solid var(--edge); border-radius: 14px;
+    padding: 16px 18px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+}
+.hud h1 { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+.hud p.sub { font-size: 0.72rem; color: var(--ink-faint); margin-bottom: 14px; line-height: 1.5; }
+
+.row { display: flex; align-items: center; gap: 10px; font-size: 0.72rem; color: var(--ink-dim); margin-bottom: 10px; }
+.row label { width: 60px; flex: none; }
+.row input[type="range"] { flex: 1; accent-color: var(--accent); }
+.row select { flex: 1; background: rgba(255,255,255,0.06); color: var(--ink); border: 1px solid var(--edge); border-radius: 6px; padding: 4px 6px; font: inherit; }
+
+.viz-toggle { display: flex; gap: 8px; margin-bottom: 10px; }
+.mode-btn {
+    flex: 1; background: transparent; border: 1px solid var(--edge); color: var(--ink-dim);
+    padding: 6px 8px; border-radius: 8px; font: inherit; font-size: 0.72rem; cursor: pointer;
+}
+.mode-btn.active { color: #05040a; background: var(--accent); border-color: var(--accent); font-weight: 700; }
+
+.play-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.play-btn {
+    background: transparent; border: 1px solid var(--accent); color: var(--accent);
+    padding: 8px 16px; border-radius: 999px; font: inherit; font-size: 0.75rem; cursor: pointer; font-weight: 700;
+}
+.play-btn:hover:not(:disabled) { background: var(--accent); color: #05040a; }
+.play-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.mic-row { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--ink-dim); margin-top: 10px; }
+#mic-status { font-size: 0.68rem; color: var(--ink-faint); margin-top: 4px; }
+
+@media (max-width: 700px) {
+    .kicker-block { top: 66px; }
+    .hud { left: 12px; right: 12px; width: auto; bottom: 12px; }
+    .banner { left: 12px; right: 12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="chrome">
+    <a class="backlink" href="index.html">&larr; Back</a>
+    <nav class="crossnav" aria-label="Pattern lab pages">
+        <a href="scroll-transit.html">01 Scroll</a>
+        <a href="shader-lab.html">02 Shader</a>
+        <a href="widget-kit.html">03 Components</a>
+        <a class="current" href="signal-scope.html">04 Audio</a>
+    </nav>
+</div>
+
+<canvas id="viz-canvas"></canvas>
+
+<div class="kicker-block">
+    <span class="kicker">Pattern Lab &middot; 04 / 04 &middot; Web Audio API</span>
+    <h2 class="title">Signal Scope</h2>
+</div>
+
+<div id="audio-banner" class="banner"></div>
+
+<div class="hud">
+    <h1>Synth Sequencer</h1>
+    <p class="sub">A 16-step oscillator arpeggio feeds an <code>AnalyserNode</code>, which drives the canvas behind this panel &mdash; no audio file, no microphone required.</p>
+
+    <div class="row">
+        <label for="waveform">Wave</label>
+        <select id="waveform">
+            <option value="sine">Sine</option>
+            <option value="square">Square</option>
+            <option value="sawtooth">Sawtooth</option>
+            <option value="triangle" selected>Triangle</option>
+        </select>
+    </div>
+    <div class="row">
+        <label for="tempo">Tempo</label>
+        <input type="range" id="tempo" min="60" max="200" step="1" value="120">
+    </div>
+    <div class="row">
+        <label for="cutoff">Filter</label>
+        <input type="range" id="cutoff" min="200" max="8000" step="10" value="2400">
+    </div>
+
+    <div class="viz-toggle" id="viz-toggle">
+        <button class="mode-btn" data-mode="bars" type="button">Bars</button>
+        <button class="mode-btn" data-mode="radial" type="button">Radial</button>
+    </div>
+
+    <div class="play-row">
+        <button class="play-btn" id="play-btn" type="button">Play</button>
+        <span class="hint" id="motion-hint" style="font-size:0.68rem;color:var(--ink-faint);"></span>
+    </div>
+
+    <div class="mic-row">
+        <input type="checkbox" id="mic-toggle">
+        <label for="mic-toggle">Use microphone instead</label>
+    </div>
+    <div id="mic-status"></div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var REDUCED = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+
+    /* A 16-step pentatonic arpeggio, in Hz. Pinned for the test suite so a
+       regression that changes the sequence's shape is caught. */
+    var PATTERN = [
+        261.63, 293.66, 329.63, 392.00, 440.00, 392.00, 329.63, 293.66,
+        329.63, 392.00, 440.00, 523.25, 440.00, 392.00, 329.63, 293.66
+    ];
+
+    var state = {
+        playing: false,
+        waveform: 'triangle',
+        tempo: 120,
+        cutoff: 2400,
+        vizMode: 'bars',
+        usingMic: false
+    };
+
+    var canvas = document.getElementById('viz-canvas');
+    var canvasCtx = canvas.getContext('2d');
+
+    var audio = null; // lazily created AudioContext + graph, only once webAudioAvailable
+
+    function showBanner(text, info) {
+        var b = document.getElementById('audio-banner');
+        b.textContent = text;
+        b.classList.add('show');
+        if (info) b.classList.add('info');
+    }
+
+    function resizeCanvas() {
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.floor(window.innerWidth * dpr);
+        canvas.height = Math.floor(window.innerHeight * dpr);
+    }
+
+    function drawNoSignal() {
+        if (!canvasCtx) return;
+        resizeCanvas();
+        canvasCtx.fillStyle = '#05040a';
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+        canvasCtx.strokeStyle = 'rgba(255,122,0,0.3)';
+        canvasCtx.lineWidth = 2;
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(0, canvas.height / 2);
+        canvasCtx.lineTo(canvas.width, canvas.height / 2);
+        canvasCtx.stroke();
+    }
+
+    function buildGraph(ctx) {
+        var analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        var filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = state.cutoff;
+        filter.connect(analyser);
+        analyser.connect(ctx.destination);
+        return { analyser: analyser, filter: filter };
+    }
+
+    function ensureAudio() {
+        if (!AudioContextCtor || audio) return audio;
+        var ctx = new AudioContextCtor();
+        var graph = buildGraph(ctx);
+        audio = {
+            ctx: ctx,
+            filter: graph.filter,
+            analyser: graph.analyser,
+            micSource: null,
+            micStream: null,
+            stepIndex: 0,
+            stepTimer: null,
+            drawRafId: 0,
+            freqData: new Uint8Array(graph.analyser.frequencyBinCount),
+            timeData: new Uint8Array(graph.analyser.fftSize)
+        };
+        return audio;
+    }
+
+    function stepInterval() {
+        return 60 / state.tempo / 2; // eighth notes
+    }
+
+    function playStep() {
+        if (!audio || state.usingMic) return;
+        var ctx = audio.ctx;
+        var freq = PATTERN[audio.stepIndex % PATTERN.length];
+        audio.stepIndex++;
+
+        var osc = ctx.createOscillator();
+        osc.type = state.waveform;
+        osc.frequency.value = freq;
+
+        var gain = ctx.createGain();
+        var now = ctx.currentTime;
+        var dur = stepInterval() * 0.85;
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.linearRampToValueAtTime(0.22, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+        osc.connect(gain);
+        gain.connect(audio.filter);
+        osc.start(now);
+        osc.stop(now + dur + 0.02);
+    }
+
+    function scheduleSteps() {
+        clearTimeout(audio.stepTimer);
+        (function tick() {
+            if (!state.playing || state.usingMic) return;
+            playStep();
+            audio.stepTimer = setTimeout(tick, stepInterval() * 1000);
+        }());
+    }
+
+    function drawBars() {
+        if (!canvasCtx) return;
+        audio.analyser.getByteFrequencyData(audio.freqData);
+        var w = canvas.width, h = canvas.height;
+        canvasCtx.fillStyle = 'rgba(5,4,10,0.35)';
+        canvasCtx.fillRect(0, 0, w, h);
+        var barCount = audio.freqData.length;
+        var barWidth = w / barCount;
+        for (var i = 0; i < barCount; i++) {
+            var v = audio.freqData[i] / 255;
+            var barHeight = v * h * 0.7;
+            var hue = 24 + v * 60;
+            canvasCtx.fillStyle = 'hsl(' + hue + ', 100%, 55%)';
+            canvasCtx.fillRect(i * barWidth, h - barHeight, barWidth * 0.8, barHeight);
+        }
+    }
+
+    function drawRadial() {
+        if (!canvasCtx) return;
+        audio.analyser.getByteTimeDomainData(audio.timeData);
+        var w = canvas.width, h = canvas.height;
+        canvasCtx.fillStyle = 'rgba(5,4,10,0.35)';
+        canvasCtx.fillRect(0, 0, w, h);
+        var cx = w / 2, cy = h / 2;
+        var baseR = Math.min(w, h) * 0.22;
+        canvasCtx.strokeStyle = '#ff7a00';
+        canvasCtx.lineWidth = 2;
+        canvasCtx.beginPath();
+        var n = audio.timeData.length;
+        for (var i = 0; i <= n; i++) {
+            var v = audio.timeData[i % n] / 128 - 1;
+            var angle = (i / n) * Math.PI * 2;
+            var r = baseR + v * baseR * 0.8;
+            var x = cx + Math.cos(angle) * r;
+            var y = cy + Math.sin(angle) * r;
+            if (i === 0) canvasCtx.moveTo(x, y); else canvasCtx.lineTo(x, y);
+        }
+        canvasCtx.stroke();
+    }
+
+    var lastDraw = 0;
+    function drawLoop(now) {
+        if (!state.playing) return;
+        var minInterval = REDUCED ? 1000 / 7 : 0;
+        if (now - lastDraw >= minInterval) {
+            lastDraw = now;
+            if (state.vizMode === 'radial') drawRadial(); else drawBars();
+        }
+        audio.drawRafId = requestAnimationFrame(drawLoop);
+    }
+
+    function syncModeButtons() {
+        document.querySelectorAll('.mode-btn').forEach(function (b) {
+            b.classList.toggle('active', b.dataset.mode === state.vizMode);
+        });
+    }
+
+    function setVizMode(mode) {
+        if (mode !== 'bars' && mode !== 'radial') return;
+        state.vizMode = mode;
+        syncModeButtons();
+    }
+
+    function setWaveform(w) {
+        if (['sine', 'square', 'sawtooth', 'triangle'].indexOf(w) === -1) return;
+        state.waveform = w;
+        document.getElementById('waveform').value = w;
+    }
+
+    function setTempo(bpm) {
+        var tempoNum = Number(bpm);
+        state.tempo = Math.max(60, Math.min(200, Number.isFinite(tempoNum) ? tempoNum : 120));
+        document.getElementById('tempo').value = String(state.tempo);
+    }
+
+    function setCutoff(hz) {
+        var cutoffNum = Number(hz);
+        state.cutoff = Math.max(200, Math.min(8000, Number.isFinite(cutoffNum) ? cutoffNum : 2400));
+        document.getElementById('cutoff').value = String(state.cutoff);
+        if (audio) audio.filter.frequency.value = state.cutoff;
+    }
+
+    function play() {
+        if (!AudioContextCtor) return;
+        ensureAudio();
+        if (audio.ctx.state === 'suspended') audio.ctx.resume();
+        state.playing = true;
+        document.getElementById('play-btn').textContent = 'Stop';
+        if (!state.usingMic) scheduleSteps();
+        lastDraw = 0;
+        audio.drawRafId = requestAnimationFrame(drawLoop);
+    }
+
+    function stop() {
+        state.playing = false;
+        document.getElementById('play-btn').textContent = 'Play';
+        if (audio) {
+            clearTimeout(audio.stepTimer);
+            cancelAnimationFrame(audio.drawRafId);
+        }
+    }
+
+    function micEnabled() { return state.usingMic; }
+
+    function disableMic(reason) {
+        state.usingMic = false;
+        document.getElementById('mic-toggle').checked = false;
+        document.getElementById('mic-status').textContent = reason || '';
+        if (state.playing) scheduleSteps();
+    }
+
+    function enableMic() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            disableMic('Microphone unavailable in this browser — using the built-in synth instead.');
+            return;
+        }
+        ensureAudio();
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+            clearTimeout(audio.stepTimer);
+            audio.micStream = stream;
+            audio.micSource = audio.ctx.createMediaStreamSource(stream);
+            audio.micSource.connect(audio.filter);
+            state.usingMic = true;
+            document.getElementById('mic-status').textContent = 'Using microphone input.';
+        }, function () {
+            disableMic('Microphone unavailable or denied — using the built-in synth instead.');
+        });
+    }
+
+    /* ---------- wire up controls ---------- */
+    document.getElementById('waveform').addEventListener('change', function (e) { setWaveform(e.target.value); });
+    document.getElementById('tempo').addEventListener('input', function (e) {
+        setTempo(e.target.value);
+        if (state.playing && !state.usingMic) scheduleSteps();
+    });
+    document.getElementById('cutoff').addEventListener('input', function (e) { setCutoff(e.target.value); });
+    document.getElementById('viz-toggle').addEventListener('click', function (e) {
+        var btn = e.target.closest('.mode-btn');
+        if (btn) setVizMode(btn.dataset.mode);
+    });
+    document.getElementById('play-btn').addEventListener('click', function () {
+        if (state.playing) stop(); else play();
+    });
+    document.getElementById('mic-toggle').addEventListener('change', function (e) {
+        if (e.target.checked) enableMic(); else disableMic('');
+    });
+
+    syncModeButtons();
+
+    if (!AudioContextCtor) {
+        showBanner('The Web Audio API isn\'t available in this browser — the visualizer is disabled.');
+        document.getElementById('play-btn').disabled = true;
+        drawNoSignal();
+        window.addEventListener('resize', drawNoSignal);
+    } else {
+        window.addEventListener('resize', function () { if (!state.playing) drawNoSignal(); });
+        drawNoSignal();
+        if (REDUCED) {
+            document.getElementById('motion-hint').textContent = 'Reduced motion: visualizer updates slower.';
+        }
+    }
+
+    /* Nothing on the page reads this — it exists purely for the test suite. */
+    window.__signalscope = {
+        webAudioAvailable: !!AudioContextCtor,
+        get isPlaying() { return state.playing; },
+        play: play,
+        stop: stop,
+        setWaveform: setWaveform,
+        setTempo: setTempo,
+        setCutoff: setCutoff,
+        setVizMode: setVizMode,
+        reducedMotion: REDUCED,
+        pattern: PATTERN.slice(),
+        micEnabled: micEnabled
+    };
+}());
+</script>
+</body>
+</html>

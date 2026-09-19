@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Widget Kit — Web Components &amp; Shadow DOM</title>
+<meta name="description" content="A small kit of custom elements built with Shadow DOM encapsulation, no framework.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%2305040a'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%2300ffb2' stroke-width='6'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --bg: #05040a;
+    --panel: rgba(9, 11, 20, 0.82);
+    --edge: rgba(255, 255, 255, 0.12);
+    --ink: #eef1f8;
+    --ink-dim: #99a2b8;
+    --ink-faint: #5d667d;
+    --accent: #00ffb2;
+}
+
+html, body {
+    width: 100%;
+    background: var(--bg); color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; }
+code { font-family: 'SFMono-Regular', Consolas, monospace; background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
+
+.chrome {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; gap: 18px;
+    padding: 14px 20px; font-size: 0.78rem;
+    background: rgba(5,4,10,0.92); border-bottom: 1px solid var(--edge);
+    backdrop-filter: blur(10px);
+}
+.backlink { color: var(--ink-dim); text-decoration: none; font-weight: 600; }
+.backlink:hover, .backlink:focus-visible { color: var(--accent); }
+.crossnav { display: flex; gap: 14px; margin-left: auto; flex-wrap: wrap; }
+.crossnav a { color: var(--ink-faint); text-decoration: none; letter-spacing: 0.04em; }
+.crossnav a:hover, .crossnav a:focus-visible { color: var(--ink); }
+.crossnav a.current { color: var(--accent); font-weight: 700; }
+
+main { max-width: 860px; margin: 0 auto; padding: 8vh 6vw 12vh; }
+
+.kicker { display: block; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.24em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 900; margin-bottom: 14px; }
+.intro { max-width: 620px; color: var(--ink-dim); line-height: 1.6; margin-bottom: 4vh; }
+
+.kit-section { margin-bottom: 6vh; }
+.kit-section h2 { font-size: 1.3rem; margin-bottom: 6px; }
+.kit-section p.desc { color: var(--ink-dim); line-height: 1.6; margin-bottom: 18px; max-width: 560px; }
+
+.demo-box {
+    background: var(--panel); border: 1px solid var(--edge); border-radius: 14px;
+    padding: 22px; display: flex; flex-direction: column; gap: 14px;
+}
+.badge-row { display: flex; gap: 10px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<div class="chrome">
+    <a class="backlink" href="index.html">&larr; Back</a>
+    <nav class="crossnav" aria-label="Pattern lab pages">
+        <a href="scroll-transit.html">01 Scroll</a>
+        <a href="shader-lab.html">02 Shader</a>
+        <a class="current" href="widget-kit.html">03 Components</a>
+        <a href="signal-scope.html">04 Audio</a>
+    </nav>
+</div>
+
+<main>
+    <span class="kicker">Pattern Lab &middot; 03 / 04 &middot; Web Components / Shadow DOM</span>
+    <h1>Widget Kit</h1>
+    <p class="intro">
+        Four custom elements, each with its own encapsulated Shadow DOM &mdash;
+        styles defined inside one element never leak out, and outer page styles
+        never leak in. No framework, no build step: <code>customElements.define()</code>
+        and a shadow root are all this needs.
+    </p>
+
+    <section class="kit-section">
+        <h2>&lt;neon-badge&gt;</h2>
+        <p class="desc">A presentational pill. <code>tone</code> and <code>pulse</code> are reflected attributes that drive the shadow-internal styling.</p>
+        <div class="demo-box">
+            <div class="badge-row">
+                <neon-badge label="Shadow DOM" tone="cyan"></neon-badge>
+                <neon-badge label="No leakage" tone="pink" pulse></neon-badge>
+                <neon-badge label="Attribute-reflected" tone="green"></neon-badge>
+                <neon-badge label="Zero dependencies" tone="amber"></neon-badge>
+            </div>
+        </div>
+    </section>
+
+    <section class="kit-section">
+        <h2>&lt;rating-stars&gt;</h2>
+        <p class="desc">Click a star to set <code>value</code> and dispatch a <code>rating-change</code> event. Try the read-only one below &mdash; clicks on it do nothing.</p>
+        <div class="demo-box">
+            <div>
+                <p style="color:var(--ink-dim);font-size:0.85rem;margin-bottom:6px;">Rate this page's neon-ness</p>
+                <rating-stars id="rate-me" value="3" max="5"></rating-stars>
+                <p id="rate-output" style="color:var(--ink-faint);font-size:0.8rem;margin-top:6px;">Current value: 3</p>
+            </div>
+            <div>
+                <p style="color:var(--ink-dim);font-size:0.85rem;margin-bottom:6px;">Read-only (locked at 5)</p>
+                <rating-stars value="5" max="5" readonly></rating-stars>
+            </div>
+        </div>
+    </section>
+
+    <section class="kit-section">
+        <h2>&lt;collapse-panel&gt;</h2>
+        <p class="desc">A disclosure widget. The header toggles the reflected <code>open</code> attribute and fires <code>toggle</code>; setting <code>.open</code> from script does the same thing.</p>
+        <div class="demo-box">
+            <collapse-panel>
+                <span slot="heading">Why Shadow DOM?</span>
+                <p>Each of these components renders into its own shadow root, so its internal <code>&lt;style&gt;</code> can use plain class names like <code>.header</code> without ever colliding with this page's own <code>.header</code>, if it had one.</p>
+            </collapse-panel>
+            <collapse-panel open>
+                <span slot="heading">What's a reflected attribute?</span>
+                <p>A property and an HTML attribute kept in sync in both directions &mdash; set the attribute and the property updates, set the property and the attribute updates. It's what lets <code>document.querySelector('rating-stars').value = 5</code> and <code>&lt;rating-stars value="5"&gt;</code> mean the same thing.</p>
+            </collapse-panel>
+        </div>
+    </section>
+
+    <section class="kit-section">
+        <h2>&lt;copy-chip&gt;</h2>
+        <p class="desc">Feature-detects <code>navigator.clipboard</code> and copies its <code>text</code> attribute on click, or shows an inline status if the API isn't available.</p>
+        <div class="demo-box">
+            <copy-chip text="customElements.define('neon-badge', NeonBadge)"></copy-chip>
+        </div>
+    </section>
+</main>
+
+<script>
+(function () {
+    'use strict';
+
+    var REDUCED = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ---------- <neon-badge> ---------- */
+    var TONE_COLORS = { cyan: '#00d4ff', pink: '#ff00a0', green: '#00ffb2', amber: '#ffb020', purple: '#c026ff' };
+
+    class NeonBadgeEl extends HTMLElement {
+        static get observedAttributes() { return ['label', 'tone', 'pulse']; }
+
+        constructor() {
+            super();
+            var root = this.attachShadow({ mode: 'open' });
+            root.innerHTML =
+                '<style>' +
+                ':host { display: inline-flex; }' +
+                '.pill { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 999px;' +
+                ' font: 600 0.78rem "Inter", system-ui, sans-serif; letter-spacing: 0.02em;' +
+                ' border: 1px solid var(--tone, #00d4ff); color: var(--tone, #00d4ff);' +
+                ' background: color-mix(in srgb, var(--tone, #00d4ff) 12%, transparent); }' +
+                ':host([pulse]:not([data-reduced])) .pill { animation: pulse 1.6s ease-in-out infinite; }' +
+                '@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--tone, #00d4ff) 45%, transparent); }' +
+                ' 50% { box-shadow: 0 0 0 6px transparent; } }' +
+                '</style>' +
+                '<span class="pill" part="pill"><slot></slot></span>';
+            this._pill = root.querySelector('.pill');
+            this._slot = root.querySelector('slot');
+            if (REDUCED) this.setAttribute('data-reduced', '');
+        }
+
+        connectedCallback() { this._sync(); }
+        attributeChangedCallback() { this._sync(); }
+
+        _sync() {
+            if (!this._pill) return;
+            var tone = this.getAttribute('tone') || 'cyan';
+            this.style.setProperty('--tone', TONE_COLORS[tone] || TONE_COLORS.cyan);
+            var label = this.getAttribute('label');
+            this._pill.textContent = label != null ? label : this.textContent;
+        }
+
+        get label() { return this.getAttribute('label'); }
+        set label(v) { this.setAttribute('label', v); }
+        get tone() { return this.getAttribute('tone') || 'cyan'; }
+        set tone(v) { this.setAttribute('tone', v); }
+        get pulse() { return this.hasAttribute('pulse'); }
+        set pulse(v) { if (v) this.setAttribute('pulse', ''); else this.removeAttribute('pulse'); }
+    }
+    customElements.define('neon-badge', NeonBadgeEl);
+
+    /* ---------- <rating-stars> ---------- */
+    class RatingStarsEl extends HTMLElement {
+        static get observedAttributes() { return ['value', 'max', 'readonly']; }
+
+        constructor() {
+            super();
+            var root = this.attachShadow({ mode: 'open' });
+            root.innerHTML =
+                '<style>' +
+                ':host { display: inline-flex; }' +
+                '.stars { display: flex; gap: 4px; }' +
+                '.star { background: none; border: none; font-size: 1.4rem; line-height: 1; cursor: pointer; color: #3a3f52; padding: 0; }' +
+                '.star.on { color: #ffea00; }' +
+                ':host([readonly]) .star { cursor: default; }' +
+                '</style>' +
+                '<div class="stars" part="stars"></div>';
+            this._stars = root.querySelector('.stars');
+        }
+
+        connectedCallback() { this._render(); }
+        attributeChangedCallback() { this._render(); }
+
+        get value() { return Number(this.getAttribute('value')) || 0; }
+        set value(v) { this.setAttribute('value', String(v)); }
+        get max() { return Number(this.getAttribute('max')) || 5; }
+        set max(v) { this.setAttribute('max', String(v)); }
+
+        _select(n) {
+            this.value = n;
+            this.dispatchEvent(new CustomEvent('rating-change', {
+                detail: { value: n },
+                bubbles: true,
+                composed: true
+            }));
+        }
+
+        _render() {
+            var max = this.max;
+            var value = this.value;
+            var readonly = this.hasAttribute('readonly');
+            this._stars.innerHTML = '';
+            for (var i = 1; i <= max; i++) {
+                var n = i;
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'star' + (n <= value ? ' on' : '');
+                btn.textContent = n <= value ? '★' : '☆';
+                btn.setAttribute('aria-label', n + ' star' + (n > 1 ? 's' : ''));
+                btn.addEventListener('click', () => { if (!readonly) this._select(n); });
+                this._stars.appendChild(btn);
+            }
+        }
+    }
+    customElements.define('rating-stars', RatingStarsEl);
+
+    /* ---------- <collapse-panel> ---------- */
+    class CollapsePanelEl extends HTMLElement {
+        static get observedAttributes() { return ['open']; }
+
+        constructor() {
+            super();
+            var root = this.attachShadow({ mode: 'open' });
+            root.innerHTML =
+                '<style>' +
+                ':host { display: block; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; overflow: hidden; margin-bottom: 10px; }' +
+                '.header { width: 100%; text-align: left; background: rgba(255,255,255,0.04); border: none; color: inherit;' +
+                ' font: 700 0.9rem "Inter", system-ui, sans-serif; padding: 12px 16px; cursor: pointer; display: flex;' +
+                ' align-items: center; justify-content: space-between; }' +
+                '.chevron { transition: transform 0.15s ease; }' +
+                ':host([open]) .chevron { transform: rotate(90deg); }' +
+                ':host([data-reduced]) .chevron { transition: none; }' +
+                '.body { padding: 0 16px; max-height: 0; overflow: hidden; transition: max-height 0.2s ease, padding 0.2s ease; font-size: 0.88rem; color: #b7bdd0; line-height: 1.6; }' +
+                ':host([data-reduced]) .body { transition: none; }' +
+                ':host([open]) .body { max-height: 480px; padding: 12px 16px 16px; }' +
+                '</style>' +
+                '<button class="header" part="header" type="button"><slot name="heading"></slot><span class="chevron">&rsaquo;</span></button>' +
+                '<div class="body" part="body"><slot></slot></div>';
+            this._header = root.querySelector('.header');
+            if (REDUCED) this.setAttribute('data-reduced', '');
+            this._header.addEventListener('click', () => { this.open = !this.open; });
+        }
+
+        get open() { return this.hasAttribute('open'); }
+        set open(v) {
+            var was = this.open;
+            if (v) this.setAttribute('open', ''); else this.removeAttribute('open');
+            if (was !== !!v) {
+                this.dispatchEvent(new CustomEvent('toggle', { detail: { open: !!v }, bubbles: true, composed: true }));
+            }
+        }
+    }
+    customElements.define('collapse-panel', CollapsePanelEl);
+
+    /* ---------- <copy-chip> ---------- */
+    class CopyChipEl extends HTMLElement {
+        static get observedAttributes() { return ['text']; }
+
+        constructor() {
+            super();
+            var root = this.attachShadow({ mode: 'open' });
+            root.innerHTML =
+                '<style>' +
+                ':host { display: inline-flex; align-items: center; gap: 10px; }' +
+                '.chip { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.06);' +
+                ' border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 8px 12px; }' +
+                'code { font-family: monospace; font-size: 0.8rem; color: #eef1f8; }' +
+                'button { background: transparent; border: 1px solid #00ffb2; color: #00ffb2; border-radius: 6px;' +
+                ' padding: 4px 10px; font: inherit; font-size: 0.72rem; cursor: pointer; }' +
+                '.status { font-size: 0.72rem; color: #99a2b8; }' +
+                '</style>' +
+                '<div class="chip"><code part="code"></code><button type="button" part="button">Copy</button></div>' +
+                '<span class="status" part="status"></span>';
+            this._code = root.querySelector('code');
+            this._status = root.querySelector('.status');
+            root.querySelector('button').addEventListener('click', () => this._copy());
+        }
+
+        connectedCallback() { this._sync(); }
+        attributeChangedCallback() { this._sync(); }
+
+        get text() { return this.getAttribute('text') || ''; }
+        set text(v) { this.setAttribute('text', v); }
+
+        _sync() { this._code.textContent = this.text; }
+
+        _copy() {
+            var text = this.text;
+            var supported = !!(navigator.clipboard && navigator.clipboard.writeText);
+            if (!supported) {
+                this._status.textContent = 'Copy unsupported';
+                this.dispatchEvent(new CustomEvent('chip-copy', { detail: { text: text, ok: false }, bubbles: true, composed: true }));
+                return;
+            }
+            var self = this;
+            navigator.clipboard.writeText(text).then(function () {
+                self._status.textContent = 'Copied!';
+                self.dispatchEvent(new CustomEvent('chip-copy', { detail: { text: text, ok: true }, bubbles: true, composed: true }));
+            }, function () {
+                self._status.textContent = 'Copy failed';
+                self.dispatchEvent(new CustomEvent('chip-copy', { detail: { text: text, ok: false }, bubbles: true, composed: true }));
+            });
+        }
+    }
+    customElements.define('copy-chip', CopyChipEl);
+
+    /* ---------- rating output wiring for the demo on this page ---------- */
+    var rateMe = document.getElementById('rate-me');
+    var rateOutput = document.getElementById('rate-output');
+    if (rateMe && rateOutput) {
+        rateMe.addEventListener('rating-change', function (e) {
+            rateOutput.textContent = 'Current value: ' + e.detail.value;
+        });
+    }
+
+    /* Nothing on the page reads this — it exists purely for the test suite. */
+    window.__widgetkit = {
+        elements: ['neon-badge', 'rating-stars', 'collapse-panel', 'copy-chip'],
+        reducedMotion: REDUCED
+    };
+}());
+</script>
+</body>
+</html>

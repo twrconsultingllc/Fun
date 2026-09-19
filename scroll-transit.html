@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Scroll Transit — scroll-driven animation &amp; View Transitions</title>
+<meta name="description" content="A CSS scroll-driven animation and View Transitions API demo — no JavaScript animation loop.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%2305040a'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%2300d4ff' stroke-width='6'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --bg: #05040a;
+    --panel: rgba(9, 11, 20, 0.82);
+    --edge: rgba(255, 255, 255, 0.12);
+    --ink: #eef1f8;
+    --ink-dim: #99a2b8;
+    --ink-faint: #5d667d;
+    --accent: #00d4ff;
+    --accent-2: #ff00a0;
+}
+
+html, body {
+    width: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    scroll-behavior: smooth;
+}
+
+a { color: inherit; }
+
+/* ---------- chrome shared across the pattern-lab pages ---------- */
+.chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 18px;
+    padding: 14px 20px; font-size: 0.78rem;
+    background: linear-gradient(180deg, rgba(5,4,10,0.92), rgba(5,4,10,0));
+    pointer-events: none;
+}
+.chrome > * { pointer-events: auto; }
+.backlink { color: var(--ink-dim); text-decoration: none; font-weight: 600; letter-spacing: 0.02em; }
+.backlink:hover, .backlink:focus-visible { color: var(--accent); }
+.crossnav { display: flex; gap: 14px; margin-left: auto; flex-wrap: wrap; }
+.crossnav a { color: var(--ink-faint); text-decoration: none; letter-spacing: 0.04em; }
+.crossnav a:hover, .crossnav a:focus-visible { color: var(--ink); }
+.crossnav a.current { color: var(--accent); font-weight: 700; }
+
+#progress-track {
+    position: fixed; top: 0; left: 0; width: 100%; height: 3px; z-index: 60;
+    background: rgba(255,255,255,0.06);
+}
+#progress {
+    height: 100%; width: 100%; transform-origin: left; transform: scaleX(0);
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    animation: grow-progress linear both;
+    animation-timeline: scroll(root);
+}
+@keyframes grow-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+main { position: relative; padding-top: 72px; }
+
+.kicker {
+    display: block; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.24em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
+}
+h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 900; letter-spacing: -0.01em; margin-bottom: 14px; }
+.intro { max-width: 620px; color: var(--ink-dim); line-height: 1.6; font-size: 1rem; }
+.hero { padding: 12vh 6vw 8vh; max-width: 900px; }
+
+.banner {
+    display: none; max-width: 900px; margin: 0 6vw 2rem; padding: 12px 16px;
+    border: 1px solid rgba(255, 176, 32, 0.4); background: rgba(255, 176, 32, 0.08);
+    color: #ffd27a; border-radius: 10px; font-size: 0.85rem; line-height: 1.5;
+}
+.banner.show { display: block; }
+.banner.info { border-color: rgba(0,212,255,0.4); background: rgba(0,212,255,0.08); color: #9fe8ff; }
+
+/* ---------- scroll-driven scenes ---------- */
+.scenes { padding: 4vh 6vw 8vh; display: flex; flex-direction: column; gap: 34vh; }
+.scene {
+    min-height: 46vh; display: flex; align-items: center; gap: 6vw;
+    flex-wrap: wrap;
+}
+.scene-shape {
+    width: clamp(120px, 18vw, 220px); height: clamp(120px, 18vw, 220px);
+    border-radius: 28px; flex: none;
+    background: linear-gradient(135deg, var(--shape-a, var(--accent)), var(--shape-b, var(--accent-2)));
+    box-shadow: 0 0 60px -10px var(--shape-a, var(--accent));
+    animation: scene-in linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 45%;
+}
+.scene:nth-of-type(2n) .scene-shape { border-radius: 50%; }
+.scene-copy { flex: 1; min-width: 240px; max-width: 460px; }
+.scene-copy h2 { font-size: clamp(1.4rem, 3vw, 2.1rem); margin-bottom: 10px; }
+.scene-copy p { color: var(--ink-dim); line-height: 1.6; }
+
+@keyframes scene-in {
+    from { opacity: 0; transform: scale(0.55) translateY(60px) rotate(-8deg); }
+    to   { opacity: 1; transform: scale(1) translateY(0) rotate(0deg); }
+}
+
+/* Fallback for browsers without animation-timeline, or with reduced motion:
+   content must render fully visible immediately, never stuck at the 0% frame. */
+html.no-scroll-timeline .scene-shape,
+html.no-scroll-timeline #progress {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+}
+html.no-scroll-timeline #progress { transform: scaleX(1) !important; }
+
+/* ---------- view-transition swatch grid ---------- */
+.grid-section { padding: 6vh 6vw 14vh; max-width: 980px; }
+.grid-section h2 { font-size: clamp(1.6rem, 3vw, 2.3rem); margin-bottom: 8px; }
+.grid-section p.lead { color: var(--ink-dim); max-width: 560px; line-height: 1.6; margin-bottom: 28px; }
+
+.featured {
+    height: 160px; border-radius: 18px; margin-bottom: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; letter-spacing: 0.06em; font-size: 1.1rem; color: #05040a;
+}
+.swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 14px; }
+.swatch {
+    height: 90px; border-radius: 12px; border: none; cursor: pointer;
+    font-weight: 700; color: rgba(5,4,10,0.75); font-size: 0.8rem;
+    transition: transform 0.15s ease;
+}
+.swatch:hover { transform: translateY(-3px); }
+.swatch:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+.controls { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+button.action {
+    background: transparent; border: 1px solid var(--edge); color: var(--ink);
+    padding: 10px 18px; border-radius: 999px; font: inherit; font-size: 0.82rem;
+    cursor: pointer; letter-spacing: 0.03em;
+}
+button.action:hover { border-color: var(--accent); color: var(--accent); }
+
+@media (max-width: 640px) {
+    .scenes { gap: 22vh; }
+    .scene { flex-direction: column; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<div id="progress-track"><div id="progress"></div></div>
+
+<div class="chrome">
+    <a class="backlink" href="index.html">&larr; Back</a>
+    <nav class="crossnav" aria-label="Pattern lab pages">
+        <a class="current" href="scroll-transit.html">01 Scroll</a>
+        <a href="shader-lab.html">02 Shader</a>
+        <a href="widget-kit.html">03 Components</a>
+        <a href="signal-scope.html">04 Audio</a>
+    </nav>
+</div>
+
+<main>
+    <section class="hero">
+        <span class="kicker">Pattern Lab &middot; 01 / 04 &middot; CSS scroll-driven animation + View Transitions</span>
+        <h1>Scroll Transit</h1>
+        <p class="intro">
+            Every animation below is declared in CSS and driven by the browser's own
+            scroll and view timelines &mdash; nothing here runs on a
+            <code>requestAnimationFrame</code> loop. The grid at the bottom uses the
+            View Transitions API to morph the DOM between states instead of a JS
+            transition library.
+        </p>
+    </section>
+
+    <div id="timeline-banner" class="banner"></div>
+
+    <section class="scenes" id="scenes">
+        <div class="scene">
+            <div class="scene-shape" style="--shape-a:#00d4ff; --shape-b:#0088ff;"></div>
+            <div class="scene-copy">
+                <h2>animation-timeline: view()</h2>
+                <p>This shape's keyframes are scrubbed by how far it has travelled through the viewport, not by elapsed time. Scroll past it slowly and it barely moves; scroll fast and it still lands exactly in sync.</p>
+            </div>
+        </div>
+        <div class="scene">
+            <div class="scene-shape" style="--shape-a:#ff00a0; --shape-b:#aa00ff;"></div>
+            <div class="scene-copy">
+                <h2>animation-range</h2>
+                <p><code>animation-range: entry 0% cover 45%</code> tells the browser exactly which slice of the element's journey through the viewport maps to the animation's 0%&ndash;100%.</p>
+            </div>
+        </div>
+        <div class="scene">
+            <div class="scene-shape" style="--shape-a:#ffea00; --shape-b:#ff7a00;"></div>
+            <div class="scene-copy">
+                <h2>No JS per frame</h2>
+                <p>There is no scroll event listener anywhere on this page. The compositor thread updates these animations independently of the main thread, which is why they stay smooth even while other JS is busy.</p>
+            </div>
+        </div>
+        <div class="scene">
+            <div class="scene-shape" style="--shape-a:#00ff00; --shape-b:#00d4ff;"></div>
+            <div class="scene-copy">
+                <h2>Graceful degradation</h2>
+                <p>If your browser doesn't support scroll-driven animation, or you have reduced motion turned on, every shape above rendered fully visible immediately instead of sitting invisible at its 0% frame.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid-section">
+        <h2>Now try View Transitions</h2>
+        <p class="lead">Click any swatch to promote it into the featured slot above the grid, or shuffle the whole set. Either action mutates the DOM directly &mdash; the only difference with support is that the mutation is wrapped in <code>document.startViewTransition()</code> so the browser animates the change for you.</p>
+
+        <div id="vt-banner" class="banner"></div>
+
+        <div id="featured" class="featured"></div>
+        <div id="swatch-grid" class="swatch-grid" role="list"></div>
+
+        <div class="controls">
+            <button class="action" id="shuffle-btn" type="button">Shuffle</button>
+        </div>
+    </section>
+</main>
+
+<script>
+(function () {
+    'use strict';
+
+    var REDUCED = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var supportsScrollTimeline = typeof CSS !== 'undefined' && typeof CSS.supports === 'function' &&
+        CSS.supports('animation-timeline: view()') && CSS.supports('animation-timeline: scroll(root)');
+    var supportsViewTransitions = typeof document.startViewTransition === 'function';
+
+    var timelineBanner = document.getElementById('timeline-banner');
+    var vtBanner = document.getElementById('vt-banner');
+
+    if (!supportsScrollTimeline) {
+        document.documentElement.classList.add('no-scroll-timeline');
+        timelineBanner.textContent = 'Scroll-driven animation (animation-timeline) isn\'t supported in this browser — showing a static layout instead.';
+        timelineBanner.classList.add('show');
+    } else if (REDUCED) {
+        document.documentElement.classList.add('no-scroll-timeline');
+        timelineBanner.textContent = 'Reduced motion is enabled, so the scroll-driven animations above are turned off.';
+        timelineBanner.classList.add('show', 'info');
+    }
+
+    if (!supportsViewTransitions) {
+        vtBanner.textContent = 'The View Transitions API isn\'t supported in this browser — the grid below still works, it just updates instantly instead of morphing.';
+        vtBanner.classList.add('show');
+    } else if (REDUCED) {
+        vtBanner.textContent = 'Reduced motion is enabled, so grid changes below apply instantly instead of animating.';
+        vtBanner.classList.add('show', 'info');
+    }
+
+    /* ---------- swatch grid + view transitions ---------- */
+    var PALETTE = [
+        { id: 'cyan',   label: 'Cyan',   color: '#00d4ff' },
+        { id: 'pink',   label: 'Pink',   color: '#ff00a0' },
+        { id: 'purple', label: 'Purple', color: '#aa00ff' },
+        { id: 'amber',  label: 'Amber',  color: '#ff7a00' },
+        { id: 'lime',   label: 'Lime',   color: '#00ff00' },
+        { id: 'yellow', label: 'Yellow', color: '#ffea00' }
+    ];
+    var swatches = {};
+    PALETTE.forEach(function (s) { swatches[s.id] = s; });
+
+    var order = PALETTE.map(function (s) { return s.id; });
+
+    var featuredEl = document.getElementById('featured');
+    var gridEl = document.getElementById('swatch-grid');
+
+    function render() {
+        var featuredId = order[0];
+        var rest = order.slice(1);
+
+        var f = swatches[featuredId];
+        featuredEl.textContent = f.label + ' is featured';
+        featuredEl.style.background = f.color;
+        featuredEl.style.viewTransitionName = 'card-' + featuredId;
+
+        gridEl.innerHTML = '';
+        rest.forEach(function (id) {
+            var s = swatches[id];
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'swatch';
+            btn.textContent = s.label;
+            btn.style.background = s.color;
+            btn.style.viewTransitionName = 'card-' + id;
+            btn.setAttribute('role', 'listitem');
+            btn.addEventListener('click', function () { promote(id); });
+            gridEl.appendChild(btn);
+        });
+    }
+
+    function mutate(fn) {
+        if (supportsViewTransitions && !REDUCED) {
+            document.startViewTransition(fn);
+        } else {
+            fn();
+        }
+    }
+
+    function promote(id) {
+        mutate(function () {
+            order = [id].concat(order.filter(function (x) { return x !== id; }));
+            render();
+        });
+        return order.slice();
+    }
+
+    function shuffle() {
+        mutate(function () {
+            var next = order.slice();
+            for (var i = next.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var tmp = next[i]; next[i] = next[j]; next[j] = tmp;
+            }
+            order = next;
+            render();
+        });
+        return order.slice();
+    }
+
+    document.getElementById('shuffle-btn').addEventListener('click', function () { shuffle(); });
+
+    render();
+
+    /* Nothing on the page reads this — it exists purely for the test suite. */
+    window.__scrolltransit = {
+        supportsViewTransitions: supportsViewTransitions,
+        supportsScrollTimeline: supportsScrollTimeline,
+        reducedMotion: REDUCED,
+        getOrder: function () { return order.slice(); },
+        promote: promote,
+        shuffle: shuffle
+    };
+}());
+</script>
+</body>
+</html>
