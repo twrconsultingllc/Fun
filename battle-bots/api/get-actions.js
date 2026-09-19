@@ -1,6 +1,6 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // The key must never reach the browser. Two defences:
 //   1. Send it as a header so it is not embedded in a URL that a network-layer
@@ -143,10 +143,6 @@ export default async function handler(req, res) {
 
         try {
             const modelName = await resolveModel(selectedModel, apiKey);
-            const model = genAI.getGenerativeModel({
-                model: modelName,
-                generationConfig: { responseMimeType: "application/json" }
-            });
 
             const prompt = `
             You are the tactical engine for a 2D Battle Arena.
@@ -170,8 +166,12 @@ export default async function handler(req, res) {
             }
             `;
 
-            const result = await model.generateContent(prompt);
-            const botActions = JSON.parse(result.response.text());
+            const response = await genAI.models.generateContent({
+                model: modelName,
+                contents: prompt,
+                config: { responseMimeType: "application/json" }
+            });
+            const botActions = JSON.parse(response.text);
 
             const mappedActions = {
                 botA: buildOrder(botActions.botA),
@@ -181,7 +181,7 @@ export default async function handler(req, res) {
             return res.status(200).json(mappedActions);
         } catch (error) {
             console.error("Gemini API Error:", error);
-            const statusCode = (error.message && error.message.includes('429')) ? 429 : 500;
+            const statusCode = error.status || ((error.message && error.message.includes('429')) ? 429 : 500);
             return res.status(statusCode).json({ error: safeMessage(error, "Unknown API Error") });
         }
     } else {

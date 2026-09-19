@@ -218,8 +218,8 @@
       <span><span class="dot fixed"></span> Fixed</span>
       <span><span class="dot open"></span> Open</span>
     </div>
-    <div class="progress-bar"><div class="progress-fill" style="width: 21%;"></div></div>
-    <div class="progress-label">3 of 14 actionable findings fixed (1 additional item confirmed clean, not counted)</div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 36%;"></div></div>
+    <div class="progress-label">5 of 14 actionable findings fixed (1 additional item confirmed clean, not counted)</div>
   </header>
 
   <section>
@@ -540,23 +540,54 @@
     <div class="item">
       <div class="item-head">
         <div class="item-title">No root-level <code>.gitignore</code></div>
-        <span class="badge open">Open</span>
+        <span class="badge fixed">Fixed</span>
       </div>
       <div class="item-body">
-        Currently harmless (nothing stray is tracked), but a future root-level <code>node_modules</code> or
-        <code>.env</code> wouldn't be excluded by default. Both <code>battle-bots</code> subdirectories already
-        have correct <code>.gitignore</code> files.
+        Was harmless (nothing stray was tracked), but a future root-level <code>node_modules</code> or
+        <code>.env</code> wouldn't have been excluded by default. Both <code>battle-bots</code> subdirectories
+        already had correct <code>.gitignore</code> files.
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> added a root-level <code>.gitignore</code> covering <code>node_modules/</code>,
+        <code>.env</code>/<code>.env.*</code>, <code>.vercel</code>, and common OS/editor junk
+        (<code>.DS_Store</code>, <code>Thumbs.db</code>, <code>*.log</code>).
+        <div class="commit">pending push</div>
       </div>
     </div>
 
     <div class="item">
       <div class="item-head">
         <div class="item-title">Deprecated Gemini SDK</div>
-        <span class="badge open">Open</span>
+        <span class="badge fixed">Fixed</span>
       </div>
       <div class="item-body">
-        <code>@google/generative-ai</code> (used by both battle-bots apps) is Google's deprecated Gemini SDK,
-        superseded by <code>@google/genai</code>. Not a vulnerability, just worth migrating eventually.
+        <code>@google/generative-ai</code> (used by both battle-bots apps) was Google's deprecated Gemini SDK,
+        superseded by <code>@google/genai</code>. Not a vulnerability, just needed migrating.
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> migrated both <code>battle-bots/api/get-actions.js</code> and
+        <code>battle-bots-V2/api/get-actions.js</code> to <code>@google/genai@^2.23.0</code>. The API shape
+        changed: <code>new GoogleGenerativeAI(key)</code> → <code>new GoogleGenAI({ apiKey: key })</code>,
+        <code>genAI.getGenerativeModel({...}).generateContent(prompt)</code> →
+        <code>genAI.models.generateContent({ model, contents, config })</code>, and
+        <code>result.response.text()</code> (a method) → <code>response.text</code> (a getter property). Also
+        switched the 429-detection fallback to use the new SDK's real <code>ApiError.status</code> field when
+        present, falling back to the old message-string check otherwise. The REST-based model-listing code
+        (<code>fetchLiveModels</code>) was untouched — it never used the SDK.
+        <br><br>
+        <b>How this was verified without guessing from memory</b> (per this repo's standing rule not to trust
+        recall for third-party APIs): installed <code>@google/genai@2.23.0</code> fresh from the npm registry
+        and read its actual <code>README.md</code> and <code>.d.ts</code> type definitions rather than assuming
+        the API shape — confirmed <code>ai.models.generateContent</code>, its <code>config.responseMimeType</code>
+        field, <code>response.text</code> as a getter (not a method), and <code>ApiError.status</code> all exist
+        exactly as coded. Both files import cleanly under Node with the real package installed, and
+        <code>genAI.models.generateContent</code> was confirmed to be a real function at runtime. All 632
+        existing tests still pass. <b>Not verified:</b> nothing in this repo's test suite exercises
+        <code>get-actions.js</code>'s POST path, and doing so needs a real <code>GEMINI_API_KEY</code> this
+        environment doesn't have — the actual <code>generateContent</code> call has only been checked for
+        correct shape, not run against the live Gemini API. Starting one real match on each deployed app is the
+        only way to close that gap.
+        <div class="commit">pending push</div>
       </div>
     </div>
   </section>
