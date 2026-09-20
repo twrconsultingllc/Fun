@@ -256,6 +256,36 @@
 
   .session-meta strong { color: var(--text); }
 
+  .badge {
+    display: inline-block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.15em 0.55em;
+    border-radius: 999px;
+    background: var(--panel-border);
+    color: var(--text-dim);
+  }
+
+  .badge.done {
+    background: rgba(123, 198, 150, 0.15);
+    color: var(--good);
+  }
+
+  .badge.in-progress {
+    background: rgba(242, 166, 90, 0.15);
+    color: var(--accent);
+  }
+
+  .callout.notes {
+    border-left-color: var(--text-dim);
+  }
+
+  .callout.notes p:first-child { margin-top: 0; }
+  .callout.notes p:last-child { margin-bottom: 0; }
+
   footer.page-footer {
     grid-column: 1 / -1;
     color: var(--text-dim);
@@ -325,6 +355,7 @@
         <li><strong>An <code>ANTHROPIC_API_KEY</code> is only needed starting Session 5.</strong> Sessions 1–4 are pure data, tools, and MCP wiring, tested with stubs or an in-memory transport — zero live calls, zero cost. See the session index below for exactly which sessions touch the real API.</li>
         <li><strong>Fast-moving packages get re-checked, not assumed.</strong> Session 1 and Session 9 both re-verify current npm versions before writing code, per the "verified, not recalled" habit in <a href="plan.html#versions">plan.html section 02</a> — a version pinned weeks ago in this plan may already be stale by the time you build it.</li>
         <li>Every session below cross-references the exact file names and shapes already decided in <a href="plan.html">plan.html</a> — this page sequences the work, it doesn't redesign it. If something here seems to contradict that page, plan.html is the source of truth; treat the mismatch as a bug in this page.</li>
+        <li><strong>This page doubles as the tracker.</strong> Each session has a <code>Status</code> line (<span class="badge">Not started</span>, <span class="badge in-progress">In progress</span>, or <span class="badge done">Done</span>) in its meta row, and a <strong>Session notes</strong> callout underneath its "Done when" line. When a session is finished, flip its badge to <span class="badge done">Done</span> and log anything worth remembering there — a version that had drifted, a decision made on the spot, a divergence from plan.html, a dead end. Leave a session's notes as "None yet." if nothing came up; an empty callout is fine, a missing one isn't.</li>
       </ul>
     </section>
 
@@ -332,19 +363,19 @@
       <h2><span class="kicker">The whole plan, at a glance</span>Session index</h2>
       <table>
         <thead>
-          <tr><th>#</th><th>Session</th><th>Needs API key?</th><th>Est. time</th><th>Depends on</th></tr>
+          <tr><th>#</th><th>Session</th><th>Status</th><th>Needs API key?</th><th>Est. time</th><th>Depends on</th></tr>
         </thead>
         <tbody>
-          <tr><td>1</td><td>Scaffolding &amp; both datasets</td><td>No</td><td>45–60 min</td><td>—</td></tr>
-          <tr><td>2</td><td>Read-only lookup tools</td><td>No</td><td>60–90 min</td><td>Session 1</td></tr>
-          <tr><td>3</td><td>Gap analysis &amp; the mutating tool</td><td>No</td><td>90 min</td><td>Session 2</td></tr>
-          <tr><td>4</td><td>The MCP server</td><td>Optional (one manual check)</td><td>60–90 min</td><td>Session 3</td></tr>
-          <tr><td>5</td><td>The hand-rolled agent loop</td><td><strong>Yes</strong></td><td>90–120 min</td><td>Session 3</td></tr>
-          <tr><td>6</td><td>Structured output &amp; review loop</td><td><strong>Yes</strong> (for the manual runs)</td><td>60–90 min</td><td>Session 5</td></tr>
-          <tr><td>7</td><td>Context budget: compaction &amp; caching</td><td><strong>Yes</strong> (for the real run)</td><td>90 min</td><td>Session 4</td></tr>
-          <tr><td>8</td><td>Orchestrator &amp; the stretch tool</td><td><strong>Yes</strong> (for the manual run)</td><td>90–120 min</td><td>Sessions 3, 6</td></tr>
-          <tr><td>9</td><td>Claude Agent SDK version</td><td><strong>Yes</strong></td><td>90 min</td><td>Session 4</td></tr>
-          <tr><td>10</td><td>README, cross-check, cost reality-check</td><td>No</td><td>60 min</td><td>Everything above</td></tr>
+          <tr><td>1</td><td>Scaffolding &amp; both datasets</td><td><span class="badge done">Done</span></td><td>No</td><td>45–60 min</td><td>—</td></tr>
+          <tr><td>2</td><td>Read-only lookup tools</td><td><span class="badge">Not started</span></td><td>No</td><td>60–90 min</td><td>Session 1</td></tr>
+          <tr><td>3</td><td>Gap analysis &amp; the mutating tool</td><td><span class="badge">Not started</span></td><td>No</td><td>90 min</td><td>Session 2</td></tr>
+          <tr><td>4</td><td>The MCP server</td><td><span class="badge">Not started</span></td><td>Optional (one manual check)</td><td>60–90 min</td><td>Session 3</td></tr>
+          <tr><td>5</td><td>The hand-rolled agent loop</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong></td><td>90–120 min</td><td>Session 3</td></tr>
+          <tr><td>6</td><td>Structured output &amp; review loop</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong> (for the manual runs)</td><td>60–90 min</td><td>Session 5</td></tr>
+          <tr><td>7</td><td>Context budget: compaction &amp; caching</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong> (for the real run)</td><td>90 min</td><td>Session 4</td></tr>
+          <tr><td>8</td><td>Orchestrator &amp; the stretch tool</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong> (for the manual run)</td><td>90–120 min</td><td>Sessions 3, 6</td></tr>
+          <tr><td>9</td><td>Claude Agent SDK version</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong></td><td>90 min</td><td>Session 4</td></tr>
+          <tr><td>10</td><td>README, cross-check, cost reality-check</td><td><span class="badge">Not started</span></td><td>No</td><td>60 min</td><td>Everything above</td></tr>
         </tbody>
       </table>
       <p>
@@ -358,6 +389,7 @@
     <section id="s1">
       <h2><span class="kicker">Session 1</span>Scaffolding &amp; both datasets</h2>
       <div class="session-meta">
+        <span><strong>Status:</strong> <span class="badge done">Done</span></span>
         <span><strong>Needs API key:</strong> No</span>
         <span><strong>Est. time:</strong> 45–60 min</span>
         <span><strong>Depends on:</strong> nothing</span>
@@ -377,11 +409,19 @@
         <strong class="label">Done when</strong>
         <code>npm install</code> succeeds, both JSON files parse, and their contents match the shapes documented in <code>plan.html</code> sections 04–05. Nothing executes against them yet — that's Session 2.
       </div>
+      <div class="callout notes">
+        <strong class="label">Session notes</strong>
+        <p>All three pinned packages (<code>@anthropic-ai/sdk</code>, <code>@anthropic-ai/claude-agent-sdk</code>, <code>@modelcontextprotocol/sdk</code>) matched plan.html section 02 exactly on re-check — no drift. <code>zod</code> wasn't version-pinned in the plan; live check found 4.6.5 (a major version ahead of the 3.x that would've been guessed from memory), so that's what got pinned.</p>
+        <p>State dataset covers all 10 states named in plan.html section 04. Client dataset's three clients were built to match the three query types in section 06 one-to-one: Meridian (established, mid-expansion into TX/FL/IL, matching the Session 5 scenario), Northstar (brand-new prospective client, empty <code>licensingEngagements</code>), and Quickship (existing client, two in-progress engagements, plus a <code>pendingChanges</code> entry describing the 25%-owner addition for <code>evaluate-change-impact.mjs</code> in Session 8 to reason about later — that field isn't in plan.html's example client shape but doesn't contradict it).</p>
+        <p>Found and fixed a real gap along the way: the repo's root <code>.gitignore</code> has a blanket <code>.env.*</code> rule that was also silently matching <code>.env.example</code>, so it would never have been committed. Added a <code>!.env.example</code> exception and documented the trap in the repo's root <code>CLAUDE.md</code> so it isn't rediscovered in a later session.</p>
+        <p>Committed as <code>76569f3</code>.</p>
+      </div>
     </section>
 
     <section id="s2">
       <h2><span class="kicker">Session 2</span>Read-only lookup tools</h2>
       <div class="session-meta">
+        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
         <span><strong>Needs API key:</strong> No</span>
         <span><strong>Est. time:</strong> 60–90 min</span>
         <span><strong>Depends on:</strong> Session 1</span>
@@ -400,11 +440,16 @@
         <strong class="label">Done when</strong>
         <code>npm test</code> passes for both test files with zero network calls. You should be able to hand-trace, for any of the 3 sample clients, exactly what each tool returns.
       </div>
+      <div class="callout notes">
+        <strong class="label">Session notes</strong>
+        <p>None yet.</p>
+      </div>
     </section>
 
     <section id="s3">
       <h2><span class="kicker">Session 3</span>Gap analysis &amp; the mutating tool</h2>
       <div class="session-meta">
+        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
         <span><strong>Needs API key:</strong> No</span>
         <span><strong>Est. time:</strong> 90 min</span>
         <span><strong>Depends on:</strong> Session 2</span>
@@ -424,11 +469,16 @@
         <strong class="label">Done when</strong>
         Tests pass, and you can say out loud what happens if <code>update_checklist_item</code> runs twice with identical input — if you can't answer that without re-reading the code, the tool isn't done yet.
       </div>
+      <div class="callout notes">
+        <strong class="label">Session notes</strong>
+        <p>None yet.</p>
+      </div>
     </section>
 
     <section id="s4">
       <h2><span class="kicker">Session 4</span>The MCP server</h2>
       <div class="session-meta">
+        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
         <span><strong>Needs API key:</strong> Optional — one manual check only</span>
         <span><strong>Est. time:</strong> 60–90 min</span>
         <span><strong>Depends on:</strong> Session 3</span>
@@ -447,11 +497,16 @@
         <strong class="label">Done when</strong>
         <code>mcp-server.test.mjs</code> passes with zero subprocesses and zero network calls. This is the last "no API key required" session — everything from here on either needs one or is far more useful with one.
       </div>
+      <div class="callout notes">
+        <strong class="label">Session notes</strong>
+        <p>None yet.</p>
+      </div>
     </section>
 
     <section id="s5">
       <h2><span class="kicker">Session 5</span>The hand-rolled agent loop</h2>
       <div class="session-meta">
+        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
         <span><strong>Needs API key:</strong> Yes, for the final manual run</span>
         <span><strong>Est. time:</strong> 90–120 min — the biggest single session in this plan</span>
         <span><strong>Depends on:</strong> Session 3</span>
@@ -475,11 +530,16 @@
         <strong class="label">Why this session is bigger than the others</strong>
         This is the first place the whole scenario has to live in your head at once — three datasets' worth of context, a multi-turn loop, and a real model response to read critically. Don't split it across two sittings if you can help it; a half-built agent loop is harder to pick back up than a half-built dataset.
       </div>
+      <div class="callout notes">
+        <strong class="label">Session notes</strong>
+        <p>None yet.</p>
+      </div>
     </section>
 
     <section id="s6">
       <h2><span class="kicker">Session 6</span>Structured output &amp; review loop</h2>
       <div class="session-meta">
+        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
         <span><strong>Needs API key:</strong> Yes, for the manual runs</span>
         <span><strong>Est. time:</strong> 60–90 min</span>
         <span><strong>Depends on:</strong> Session 5</span>
@@ -498,11 +558,16 @@
         <strong class="label">Done when</strong>
         The retry-logic test passes, one real structured-output run actually validates against its schema, and one real memo reads as something you'd hand to a person.
       </div>
+      <div class="callout notes">
+        <strong class="label">Session notes</strong>
+        <p>None yet.</p>
+      </div>
     </section>
 
     <section id="s7">
       <h2><span class="kicker">Session 7</span>Context budget: compaction &amp; caching</h2>
       <div class="session-meta">
+        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
         <span><strong>Needs API key:</strong> Yes, for the real measurement run</span>
         <span><strong>Est. time:</strong> 90 min</span>
         <span><strong>Depends on:</strong> Session 4</span>
@@ -523,11 +588,16 @@
         <strong class="label">Done when</strong>
         The stubbed test passes, and there's a real before/after number on record — not just an estimate — for both compaction and caching. If the real numbers disagree with plan.html section 10, that disagreement is worth writing down, not smoothing over.
       </div>
+      <div class="callout notes">
+        <strong class="label">Session notes</strong>
+        <p>None yet.</p>
+      </div>
     </section>
 
     <section id="s8">
       <h2><span class="kicker">Session 8</span>Orchestrator &amp; the stretch tool</h2>
       <div class="session-meta">
+        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
         <span><strong>Needs API key:</strong> Yes, for the manual run</span>
         <span><strong>Est. time:</strong> 90–120 min</span>
         <span><strong>Depends on:</strong> Sessions 3 and 6</span>
@@ -546,11 +616,16 @@
         <strong class="label">Done when</strong>
         All three query types have a passing test, and one real orchestrator run produces a coherent merged memo. Also worth writing down here: did <code>evaluate-change-impact.mjs</code>'s "judgment, not lookup" framing actually hold up once you tried to build it, or did it need more structure than planned? That's a real study finding either way.
       </div>
+      <div class="callout notes">
+        <strong class="label">Session notes</strong>
+        <p>None yet.</p>
+      </div>
     </section>
 
     <section id="s9">
       <h2><span class="kicker">Session 9</span>Claude Agent SDK version</h2>
       <div class="session-meta">
+        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
         <span><strong>Needs API key:</strong> Yes</span>
         <span><strong>Est. time:</strong> 90 min</span>
         <span><strong>Depends on:</strong> Session 4</span>
@@ -572,11 +647,16 @@
         <strong class="label">Done when</strong>
         The hooks test passes, and one real run confirms both the hook firing and the MCP tool being reachable. State plainly in the README that this file's true end-to-end behavior is manual-run-and-eyeball only, same as <code>battle-bots-v2.core.test.mjs</code>'s convention elsewhere in this repo.
       </div>
+      <div class="callout notes">
+        <strong class="label">Session notes</strong>
+        <p>None yet.</p>
+      </div>
     </section>
 
     <section id="s10">
       <h2><span class="kicker">Session 10</span>README, cross-check, cost reality-check</h2>
       <div class="session-meta">
+        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
         <span><strong>Needs API key:</strong> No</span>
         <span><strong>Est. time:</strong> 60 min</span>
         <span><strong>Depends on:</strong> everything above</span>
@@ -594,6 +674,10 @@
       <div class="callout decision">
         <strong class="label">Done when</strong>
         You could hand this README to someone else and they'd understand what every file is for, why it exists, and which exam domain it demonstrates — and you've read it once yourself as an actual study session, not just as a formality.
+      </div>
+      <div class="callout notes">
+        <strong class="label">Session notes</strong>
+        <p>None yet.</p>
       </div>
     </section>
 
