@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
+<title>Licensing Expansion Assistant — Case + Chat (Hybrid mockup)</title>
+<meta name="description" content="A clickable UI mockup: a case-file panel and a docked chat panel side by side, where asking the assistants a question runs the 5-assistant pipeline and cross-highlights the matching checklist items live. Variation C of 3, fictional data only." />
+<style>
+:root {
+  --bg: #0d1117;
+  --bg-2: #11161d;
+  --panel: #161b22;
+  --panel-2: #1c2430;
+  --panel-border: #29313d;
+  --text: #e6e9ef;
+  --text-dim: #9aa4b2;
+  --accent: #296aea;
+  --accent-2: #8b7cf6;
+  --good: #3fb87f;
+  --warn: #e0a63e;
+  --danger: #e0645a;
+  --code-bg: #0b0e13;
+  --link: #7aa2ff;
+  --shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f5f7fa;
+    --bg-2: #ffffff;
+    --panel: #ffffff;
+    --panel-2: #f0f2f6;
+    --panel-border: #dde2e8;
+    --text: #1b222c;
+    --text-dim: #57616f;
+    --accent: #2f5fd6;
+    --accent-2: #6c4fd1;
+    --good: #1f7a53;
+    --warn: #8a5a12;
+    --danger: #b23b32;
+    --code-bg: #eef0f4;
+    --link: #2f5fd6;
+    --shadow: 0 8px 24px rgba(20,30,50,0.1);
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-size: 15px;
+}
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: "SF Mono", Menlo, Consolas, monospace; background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.9em; }
+button { font-family: inherit; }
+
+.appbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 0.75rem 1.25rem; background: var(--panel); border-bottom: 1px solid var(--panel-border);
+  flex-wrap: wrap; position: sticky; top: 0; z-index: 20;
+}
+.appbar-left { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.brand { font-weight: 800; color: var(--text); font-size: 0.98rem; white-space: nowrap; }
+.variant-badge {
+  font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;
+  color: var(--accent-2); background: rgba(139,124,246,0.10); padding: 0.22em 0.6em; border-radius: 999px;
+  white-space: nowrap;
+}
+.appbar-nav { display: flex; gap: 1.1rem; font-size: 0.85rem; }
+.appbar-nav a { color: var(--text-dim); padding: 0.3rem 0; border-bottom: 2px solid transparent; }
+.appbar-nav a.active, .appbar-nav a:hover { color: var(--text); border-bottom-color: var(--accent); text-decoration: none; }
+.appbar-right { font-size: 0.8rem; color: var(--text-dim); display: flex; gap: 1rem; }
+.appbar-right a { color: var(--text-dim); }
+.appbar-right a:hover { color: var(--text); }
+
+.mockup-banner {
+  background: rgba(224,166,62,0.1); border-bottom: 1px solid var(--panel-border);
+  color: var(--text); font-size: 0.8rem; padding: 0.55rem 1.25rem;
+}
+.mockup-banner strong { color: var(--warn); }
+.mockup-banner a { color: var(--warn); text-decoration: underline; }
+
+.panel { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; padding: 1.2rem 1.3rem; }
+.panel h2, .panel h3 { margin-top: 0; }
+.tile { background: var(--panel-2); border: 1px solid var(--panel-border); border-radius: 10px; padding: 1rem 1.1rem; }
+.badge { display: inline-block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.18em 0.55em; border-radius: 999px; }
+.badge.done, .badge.good { background: rgba(63,184,127,0.06); color: var(--good); }
+.badge.pending, .badge.warn { background: rgba(224,166,62,0.06); color: var(--warn); }
+.badge.missing, .badge.danger { background: rgba(224,100,90,0.15); color: var(--danger); }
+.badge.sample { background: var(--panel-2); color: var(--text-dim); border: 1px solid var(--panel-border); }
+
+button.btn {
+  background: var(--accent); color: #fff; border: none; border-radius: 8px;
+  padding: 0.55rem 1.1rem; font-size: 0.88rem; font-weight: 600; cursor: pointer;
+}
+button.btn:hover { filter: brightness(1.08); }
+button.btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+button.btn.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--panel-border); }
+button.btn.small { padding: 0.35rem 0.7rem; font-size: 0.78rem; border-radius: 6px; }
+
+table.data { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+table.data th, table.data td { text-align: left; padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--panel-border); vertical-align: top; }
+table.data th { color: var(--text-dim); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; width: 40%; }
+table.data tbody tr:last-child th, table.data tbody tr:last-child td { border-bottom: none; }
+
+.pipeline-step {
+  display: flex; gap: 0.85rem; padding: 0.9rem 1rem; border: 1px solid var(--panel-border);
+  border-radius: 10px; background: var(--panel-2); margin-bottom: 0.7rem;
+  opacity: 0; transform: translateY(6px); transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.pipeline-step.visible { opacity: 1; transform: none; }
+.pipeline-step .icon { font-size: 1.3rem; line-height: 1; }
+.pipeline-step .who { font-weight: 700; font-size: 0.88rem; }
+.pipeline-step .role { color: var(--text-dim); font-size: 0.76rem; margin-bottom: 0.35rem; }
+.pipeline-step .output { font-size: 0.86rem; }
+@media (prefers-reduced-motion: reduce) {
+  .pipeline-step { transition: none; }
+}
+
+.chat-thread { display: flex; flex-direction: column; gap: 0.9rem; }
+.msg { max-width: 100%; }
+.msg.user { align-self: flex-end; background: var(--accent); color: #fff; padding: 0.65rem 1rem; border-radius: 14px 14px 2px 14px; max-width: 90%; }
+.msg.assistant { align-self: flex-start; }
+.chat-input-row { display: flex; gap: 0.6rem; padding: 0.9rem 1.25rem; border-top: 1px solid var(--panel-border); background: var(--panel); }
+.chat-input-row input[type=text] {
+  flex: 1; background: var(--panel-2); border: 1px solid var(--panel-border); border-radius: 8px;
+  padding: 0.6rem 0.85rem; color: var(--text); font-size: 0.9rem;
+}
+.prompt-chip {
+  display: block; text-align: left; width: 100%; background: var(--panel-2); border: 1px solid var(--panel-border);
+  border-radius: 10px; padding: 0.7rem 0.9rem; color: var(--text); font-size: 0.86rem; cursor: pointer; margin-bottom: 0.6rem;
+}
+.prompt-chip:hover { border-color: var(--accent); }
+.prompt-chip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.split { display: grid; grid-template-columns: 1fr 1fr; min-height: calc(100vh - 84px); }
+.split > div { overflow-y: auto; }
+.split > div:first-child { border-right: 1px solid var(--panel-border); }
+@media (max-width: 880px) {
+  .split { grid-template-columns: 1fr; }
+  .split > div:first-child { border-right: none; border-bottom: 1px solid var(--panel-border); }
+}
+
+footer.page-footer { color: var(--text-dim); font-size: 0.78rem; text-align: center; padding: 1.5rem; border-top: 1px solid var(--panel-border); }
+
+/* page-specific: cross-panel highlight */
+.checklist-item { font-size: 0.82rem; display: flex; gap: 0.45rem; align-items: center; padding: 0.15rem 0; }
+.engagement-tile { transition: background 0.4s ease, border-color 0.4s ease; }
+.engagement-tile.cross-highlight { border-color: var(--accent-2); background: rgba(139,124,246,0.12); }
+.engagement-tile.flash { animation: flashHighlight 0.9s ease; }
+@keyframes flashHighlight { 0% { background: rgba(139,124,246,0.38); } 100% { background: rgba(139,124,246,0.12); } }
+.reviewed-badge { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; background: rgba(63,184,127,0.06); color: var(--good); padding: 0.1em 0.5em; border-radius: 999px; margin-left: 0.5rem; vertical-align: middle; }
+.case-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; gap: 1rem; flex-wrap: wrap; }
+.eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); }
+.note-msg { color: var(--text-dim); font-size: 0.85rem; }
+.result-link { display: inline-block; margin-top: 0.4rem; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header class="appbar">
+  <div class="appbar-left">
+    <a class="brand" href="ui-mockups.html">Licensing Expansion Assistant</a>
+    <span class="variant-badge">Variation C · Hybrid</span>
+  </div>
+  <nav class="appbar-nav">
+    <a href="mockup-hybrid-home.html" class="active">Case + chat</a>
+  </nav>
+  <div class="appbar-right">
+    <a href="ui-mockups.html">All variations</a>
+    <a href="index.html">Study index</a>
+  </div>
+</header>
+
+<div class="mockup-banner">
+  <strong>Prototype — nothing here is real.</strong> Every client, number, and pipeline step is fictional sample data, scripted client-side with no backend and no API calls. This explores what a future product UI <em>could</em> look like for the Claude Architect Lab concept — see <a href="ui-plan.html">ui-plan.html</a> for the actual (much narrower) companion page planned for the real CLI lab, and <a href="ui-mockups.html">ui-mockups.html</a> for the other variations.
+</div>
+
+<div class="split">
+  <div>
+    <div style="padding: 1.5rem;">
+      <div class="case-header">
+        <div>
+          <div class="eyebrow">Case file</div>
+          <h2 style="margin: 0.2rem 0;">Meridian Payments LLC <span class="badge sample">sample</span></h2>
+          <div style="color: var(--text-dim); font-size: 0.85rem;">LLC · formed in Delaware · currently licensed in California, New York</div>
+        </div>
+        <a href="mockup-hybrid-clients.html">Switch client →</a>
+      </div>
+
+      <div class="panel" style="margin-bottom: 1.2rem;">
+        <h3 style="font-size: 0.95rem;">Profile</h3>
+        <table class="data">
+          <tbody>
+            <tr><th>Net worth on file</th><td>650,000 (sample)</td></tr>
+            <tr><th>Annual volume</th><td>18,000,000 (sample)</td></tr>
+            <tr><th>Bonds posted</th><td>California 50,000 (sample), New York 500,000 (sample)</td></tr>
+            <tr><th>Control persons</th><td>Dana Whitfield — CEO / Managing Member, 40% (sample)<br />Priya Anand — COO / Member, 35% (sample)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="font-size: 0.95rem;">Licensing engagements</h3>
+      <div id="engagements"></div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column;">
+    <div style="flex: 1; overflow-y: auto; padding: 1.25rem;">
+      <h3 style="margin-top: 0; font-size: 0.95rem;">Ask the assistants</h3>
+      <div id="prompts">
+        <button type="button" class="prompt-chip" data-scenario="meridian">"Our client Meridian Payments is licensed in California and New York and wants to expand into Texas, Florida, and Illinois."</button>
+        <button type="button" class="prompt-chip" data-scenario="other">"Would Northstar Remittance qualify for a Washington MTL today, and what's the gap?"</button>
+      </div>
+      <div class="chat-thread" id="thread"></div>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Ask about a client or state…" aria-label="Ask the assistants" />
+      <button type="button" class="btn" id="send-btn">Send</button>
+    </div>
+  </div>
+</div>
+
+<footer class="page-footer">Variation C of a product UI mockup for the Claude Architect Lab concept · fictional data, nothing built for real · see <a href="ui-mockups.html">all variations</a> · not part of the toy gallery</footer>
+
+<script>
+var CLIENTS = [
+  {
+    clientId: "meridian-payments",
+    legalName: "Meridian Payments LLC (sample)",
+    entityType: "LLC",
+    formationState: "Delaware",
+    controlPersons: [
+      { name: "Dana Whitfield (sample)", title: "CEO / Managing Member", ownershipPercent: 40 },
+      { name: "Priya Anand (sample)", title: "COO / Member", ownershipPercent: 35 }
+    ],
+    businessProfile: {
+      productLines: ["money transmission", "prepaid access"],
+      statesCurrentlyLicensed: ["California", "New York"],
+      annualTransactionVolumeUsd: "18,000,000 (sample)",
+      currentNetWorthUsd: "650,000 (sample)",
+      suretyBondsPostedUsd: { "California": "50,000 (sample)", "New York": "500,000 (sample)" }
+    },
+    licensingEngagements: [
+      { state: "Texas", status: "gathering_documents", lastUpdated: "2026-09-10 (sample)",
+        checklist: [
+          { item: "Surety bond quote obtained", status: "done" },
+          { item: "Net worth statement prepared", status: "done" },
+          { item: "NMLS filing drafted", status: "pending" },
+          { item: "Background checks for control persons", status: "pending" }
+        ] },
+      { state: "Florida", status: "not_started", lastUpdated: "—",
+        checklist: [
+          { item: "Surety bond quote obtained", status: "pending" },
+          { item: "Net worth statement prepared", status: "pending" },
+          { item: "NMLS filing drafted", status: "pending" },
+          { item: "Background checks for control persons", status: "pending" }
+        ] },
+      { state: "Illinois", status: "not_started", lastUpdated: "—",
+        checklist: [
+          { item: "Surety bond quote obtained", status: "pending" },
+          { item: "Net worth statement prepared", status: "pending" },
+          { item: "NMLS filing drafted", status: "pending" },
+          { item: "Background checks for control persons", status: "pending" }
+        ] }
+    ]
+  },
+  {
+    clientId: "northstar-remittance",
+    legalName: "Northstar Remittance (sample)",
+    entityType: "Corporation",
+    formationState: "Nevada",
+    controlPersons: [ { name: "Alicia Bourne (sample)", title: "CEO / Founder", ownershipPercent: 60 } ],
+    businessProfile: {
+      productLines: ["remittance"],
+      statesCurrentlyLicensed: [],
+      annualTransactionVolumeUsd: "4,200,000 (sample)",
+      currentNetWorthUsd: "120,000 (sample)",
+      suretyBondsPostedUsd: {}
+    },
+    licensingEngagements: []
+  },
+  {
+    clientId: "quickship",
+    legalName: "Quickship (sample)",
+    entityType: "LLC",
+    formationState: "Georgia",
+    controlPersons: [
+      { name: "Marcus Idowu (sample)", title: "CEO / Managing Member", ownershipPercent: 55 },
+      { name: "New proposed owner (sample, pending disclosure)", title: "Incoming Member", ownershipPercent: 25 }
+    ],
+    businessProfile: {
+      productLines: ["money transmission"],
+      statesCurrentlyLicensed: ["Georgia", "Colorado"],
+      annualTransactionVolumeUsd: "9,600,000 (sample)",
+      currentNetWorthUsd: "310,000 (sample)",
+      suretyBondsPostedUsd: { "Georgia": "60,000 (sample)", "Colorado": "55,000 (sample)" }
+    },
+    licensingEngagements: [
+      { state: "Georgia", status: "amendment_in_progress", lastUpdated: "2026-09-15 (sample)",
+        checklist: [
+          { item: "Ownership-change disclosure filed", status: "pending" },
+          { item: "Updated background check for new owner", status: "pending" }
+        ] },
+      { state: "Colorado", status: "amendment_in_progress", lastUpdated: "2026-09-15 (sample)",
+        checklist: [
+          { item: "Ownership-change disclosure filed", status: "pending" },
+          { item: "Updated background check for new owner", status: "pending" }
+        ] }
+    ]
+  }
+];
+
+var PIPELINE_STEPS = [
+  { id: "research", icon: "🔎", who: "Research Assistant", role: "Looks up target-state requirements",
+    output: "Looked up Texas, Florida, and Illinois. Texas: bond 300,000–2,000,000 (sample), net worth 500,000 (sample). Florida: bond 50,000–1,000,000 (sample), net worth 250,000 (sample). Illinois: bond 100,000–500,000 (sample), net worth 300,000 (sample)." },
+  { id: "tracker", icon: "🗂️", who: "Client Tracker", role: "Pulls the client's actual case file",
+    output: "Pulled Meridian Payments LLC (sample). Licensed in California and New York. Net worth on file: 650,000 (sample). Bonds posted: California 50,000, New York 500,000 (sample). One engagement already open — Texas, status gathering_documents." },
+  { id: "checklist", icon: "📋", who: "Checklist Builder", role: "Builds a per-client, per-state packet",
+    output: "Built a packet for Texas, Florida, and Illinois checked against Meridian's actual profile. Texas reuses its existing engagement (2 of 4 items already done). Florida and Illinois start fresh. Net worth clears all three states' requirements with room to spare." },
+  { id: "review", icon: "🛡️", who: "Second-Look Reviewer", role: "Checks the packet before a human sees it",
+    output: "Confirmed all three target states are accounted for — nothing silently skipped. Flagged that Texas's bond quote hasn't been posted yet, and that background checks are outstanding in all three states. Packet is complete and ready for a memo." },
+  { id: "memo", icon: "✍️", who: "Memo Writer", role: "Drafts the client-ready summary",
+    output: "Drafted a short summary memo recommending Texas be prioritized (furthest along), with Florida and Illinois to follow — see the full memo below." }
+];
+
+var highlighted = [];
+
+function renderEngagements() {
+  var meridian = CLIENTS[0];
+  var wrap = document.getElementById('engagements');
+  wrap.innerHTML = '';
+  meridian.licensingEngagements.forEach(function (eng) {
+    var doneCount = eng.checklist.filter(function (c) { return c.status === 'done'; }).length;
+    var div = document.createElement('div');
+    div.className = 'tile engagement-tile';
+    div.setAttribute('data-state', eng.state);
+    div.style.marginBottom = '0.7rem';
+    var itemsHtml = eng.checklist.map(function (c) {
+      return '<div class="checklist-item" data-state="' + eng.state + '" data-item="' + c.item + '"><span class="badge ' + (c.status === 'done' ? 'done' : 'pending') + '">' + c.status + '</span> ' + c.item + '</div>';
+    }).join('');
+    div.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+        '<strong>' + eng.state + '</strong>' +
+        '<span style="font-size:0.78rem;color:var(--text-dim);">' + doneCount + '/' + eng.checklist.length + ' done</span>' +
+      '</div>' +
+      '<div class="checklist-items" style="margin-top:0.5rem;display:flex;flex-direction:column;gap:0.25rem;">' + itemsHtml + '</div>';
+    wrap.appendChild(div);
+  });
+}
+
+function prefersReduced() {
+  return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function renderThreadUserMsg(text) {
+  var thread = document.getElementById('thread');
+  var div = document.createElement('div');
+  div.className = 'msg user';
+  div.textContent = text;
+  thread.appendChild(div);
+  thread.scrollTop = thread.scrollHeight;
+}
+
+function renderThreadNote(text) {
+  var thread = document.getElementById('thread');
+  var div = document.createElement('div');
+  div.className = 'msg assistant note-msg';
+  div.textContent = text;
+  thread.appendChild(div);
+}
+
+function renderPipelineStep(step, instant) {
+  var thread = document.getElementById('thread');
+  var div = document.createElement('div');
+  div.className = 'msg assistant pipeline-step';
+  div.setAttribute('data-step', step.id);
+  div.innerHTML =
+    '<span class="icon">' + step.icon + '</span>' +
+    '<div><div class="who">' + step.who + '</div>' +
+    '<div class="role">' + step.role + '</div>' +
+    '<div class="output">' + step.output + '</div></div>';
+  thread.appendChild(div);
+  if (instant) {
+    div.classList.add('visible');
+  } else {
+    window.requestAnimationFrame(function () { div.classList.add('visible'); });
+  }
+  return div;
+}
+
+function crossHighlight(states, opts) {
+  highlighted = states.slice();
+  states.forEach(function (s) {
+    var tile = document.querySelector('.engagement-tile[data-state="' + s + '"]');
+    if (!tile) return;
+    tile.classList.add('cross-highlight');
+    tile.classList.add('flash');
+    window.setTimeout(function () { tile.classList.remove('flash'); }, 900);
+    if (opts && opts.reviewed && !tile.querySelector('.reviewed-badge')) {
+      var b = document.createElement('span');
+      b.className = 'reviewed-badge';
+      b.textContent = 'Reviewed ✓';
+      var strong = tile.querySelector('strong');
+      if (strong) strong.insertAdjacentElement('afterend', b);
+    }
+  });
+}
+
+function runMeridianPipeline(instant) {
+  renderThreadUserMsg('Our client Meridian Payments is licensed in California and New York and wants to expand into Texas, Florida, and Illinois.');
+  var i = 0;
+  function next() {
+    if (i >= PIPELINE_STEPS.length) {
+      var thread = document.getElementById('thread');
+      var link = document.createElement('a');
+      link.href = 'mockup-hybrid-result.html';
+      link.className = 'result-link';
+      link.textContent = 'See full packet →';
+      thread.appendChild(link);
+      thread.scrollTop = thread.scrollHeight;
+      return;
+    }
+    var step = PIPELINE_STEPS[i];
+    renderPipelineStep(step, instant);
+    if (step.id === 'checklist') crossHighlight(['Texas', 'Florida', 'Illinois']);
+    if (step.id === 'review') crossHighlight(['Texas', 'Florida', 'Illinois'], { reviewed: true });
+    i++;
+    if (instant) { next(); } else { window.setTimeout(next, 600); }
+  }
+  next();
+}
+
+renderEngagements();
+
+document.querySelectorAll('.prompt-chip').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    if (btn.getAttribute('data-scenario') === 'meridian') {
+      document.querySelectorAll('.prompt-chip').forEach(function (b) { b.disabled = true; });
+      runMeridianPipeline(prefersReduced());
+    } else {
+      renderThreadUserMsg(btn.textContent);
+      renderThreadNote('This scripted demo only wires the Meridian expansion scenario through the full pipeline — Northstar and Quickship are shown in the client list only.');
+    }
+  });
+});
+
+document.getElementById('send-btn').addEventListener('click', function () {
+  var input = document.getElementById('chat-input');
+  var val = input.value.trim();
+  if (!val) return;
+  renderThreadUserMsg(val);
+  renderThreadNote('This mockup only has one scripted path — try the Meridian expansion prompt above to see the full pipeline run.');
+  input.value = '';
+});
+document.getElementById('chat-input').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') document.getElementById('send-btn').click();
+});
+
+window.__mockupHybrid = {
+  runPipeline: function () { runMeridianPipeline(true); },
+  isComplete: function () {
+    var steps = document.querySelectorAll('.pipeline-step');
+    return steps.length === PIPELINE_STEPS.length && document.querySelectorAll('.pipeline-step:not(.visible)').length === 0;
+  },
+  highlightedStates: function () { return highlighted.slice(); }
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Claude Architect Lab UI mockups — security &amp; quality review</title>
+<meta name="description" content="Security and code-quality review of the eleven new study/mockup-*.html and study/ui-mockups.html product-UI mockup pages, against this repo's existing scan conventions.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+  .open-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--open);
+  }
+  .open-note b { color: var(--open); }
+
+  .page-table-wrap { overflow-x: auto; margin: 12px 0; }
+  table.page-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .page-table th, .page-table td {
+    border: 1px solid var(--panel-border);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .page-table th {
+    background: var(--code-bg);
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Claude Architect Lab UI mockups — security &amp; code-quality review</h1>
+    <p class="sub">Review of a new batch of pages: three clickable, non-functional product-UI mockup variations (chat, dashboard, hybrid — eleven <code>study/mockup-*.html</code> files total) plus a new landing page, <code>study/ui-mockups.html</code>, tying them together, added alongside edits to <code>study/index.html</code> and <code>study/ui-plan.html</code>. Reviewed per the process in <code>CLAUDE.md</code> ("New pages get a numbered security &amp; quality review") — following the conventions <a href="01.html" style="color: var(--accent);">01.html</a> through <a href="09.html" style="color: var(--accent);">09.html</a> already established.</p>
+    <div class="meta">Review performed 2026-09-20 · repo: <code>twrconsultingllc/Fun</code> · new pages: eleven <code>study/mockup-*.html</code> files + <code>study/ui-mockups.html</code> · edited: <code>study/index.html</code>, <code>study/ui-plan.html</code></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 90%;"></div></div>
+    <div class="progress-label">3 real issues found and fixed. 1 issue left open (unreachable in current markup, documented below). 6 additional items confirmed clean.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Pages reviewed</h2>
+    <div class="page-table-wrap">
+      <table class="page-table">
+        <thead><tr><th>Page</th><th>Variation</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><code>ui-mockups.html</code></td><td>—</td><td>Static landing page linking the three variations; zero scripts</td></tr>
+          <tr><td><code>mockup-chat-home.html</code></td><td>A · Chat</td><td>Conversational thread, the scripted pipeline, and the result</td></tr>
+          <tr><td><code>mockup-chat-clients.html</code></td><td>A · Chat</td><td>Client case-file reference list + detail</td></tr>
+          <tr><td><code>mockup-dash-home.html</code></td><td>B · Dashboard</td><td>Overview with live-computed summary tiles</td></tr>
+          <tr><td><code>mockup-dash-clients.html</code></td><td>B · Dashboard</td><td>Filterable client table</td></tr>
+          <tr><td><code>mockup-dash-client-detail.html</code></td><td>B · Dashboard</td><td>Meridian's full case file</td></tr>
+          <tr><td><code>mockup-dash-pipeline.html</code></td><td>B · Dashboard</td><td>Dedicated pipeline-trace screen</td></tr>
+          <tr><td><code>mockup-dash-result.html</code></td><td>B · Dashboard</td><td>Reviewed checklist + memo</td></tr>
+          <tr><td><code>mockup-hybrid-home.html</code></td><td>C · Hybrid</td><td>Split view — case file + docked chat, cross-panel highlight</td></tr>
+          <tr><td><code>mockup-hybrid-clients.html</code></td><td>C · Hybrid</td><td>Client switcher</td></tr>
+          <tr><td><code>mockup-hybrid-result.html</code></td><td>C · Hybrid</td><td>Reviewed checklist + memo</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Findings — fixed</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Primary button text failed WCAG AA contrast in dark mode</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        <p>All ten interactive pages share one <code>:root</code> palette. Computed WCAG relative-luminance contrast ratios (not eyeballed) for every foreground/background pairing the CSS actually produces. <code>button.btn</code> renders white text (<code>#ffffff</code>) on <code>--accent</code>; in dark mode <code>--accent</code> was <code>#5b8def</code>, giving a ratio of <b>3.23:1</b> against the WCAG AA threshold of 4.5:1 for text this size (0.88rem / ~13px, bold — below the "large text" exemption). This affects every primary button across all ten pages: Send, Copy memo, Run expansion analysis, View result.</p>
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> darkened <code>--accent</code>'s dark-mode value to <code>#296aea</code> (same hue, same use everywhere else — decorative borders and hover states, which carry no contrast requirement) across all ten files identically. New ratio: <b>4.83:1</b>, clears AA. Light mode was already compliant (5.63:1) and untouched. Re-ran the full test suite (787 assertions) after the change to confirm nothing else regressed.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Two status-badge components failed AA in one theme each</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        <p>The badge/pill backgrounds are hardcoded <code>rgba(r,g,b,alpha)</code> triples (not theme-aware CSS variables), while their text color does switch per theme — so the actual rendered contrast in each theme had to be computed from the real pairing, not assumed symmetric. Two components that are actually instantiated in shipped markup came up short:</p>
+        <ul>
+          <li><code>.badge.good</code> ("done" checklist items, "Reviewed ✓" badges, and the identically-styled <code>.reviewed-badge</code> in the hybrid variation) — <b>4.19:1</b> in light mode (passed dark at 4.83:1).</li>
+          <li><code>.variant-badge</code> (the "Variation A/B/C" pill in every page's top bar) — <b>4.28:1</b> in dark mode (passed light at 4.95:1).</li>
+        </ul>
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> lowered the badge family's background alpha from <code>0.15</code> to <code>0.06</code> (<code>.badge.done</code>/<code>.badge.good</code>, <code>.badge.pending</code>/<code>.badge.warn</code>, and <code>.reviewed-badge</code>) and <code>.variant-badge</code>'s from <code>0.14</code> to <code>0.10</code>, applied identically across every file that defines each rule. Recomputed: badge-good now 5.65:1 (dark) / 4.52:1 (light); badge-pending/warn now 6.48:1 (dark) / 5.06:1 (light); variant-badge now 4.55:1 (dark) / 5.15:1 (light) — all clear AA with margin. Verified the palette stayed byte-identical across all ten files after the edit (a script comparison of every <code>--custom-property</code> value, not a visual diff), and re-ran the full suite.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The chat variation's message input had no accessible name</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        <code>mockup-chat-home.html</code>'s <code>#chat-input</code> relied on its <code>placeholder</code> alone, which screen readers don't treat as a label. The hybrid variation's equivalent input already carried <code>aria-label="Ask the assistants"</code> — the chat variation was the one inconsistent page.
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> added the same <code>aria-label="Ask the assistants"</code> to the chat variation's input, matching the standard the hybrid variation already set.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span>Findings — open</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>.badge.missing</code>/<code>.badge.danger</code> still fails AA in dark mode, but is unreachable</div>
+        <span class="badge open">Open</span>
+      </div>
+      <div class="item-body">
+        <p>The same badge family defines a third variant, <code>.badge.missing, .badge.danger { background: rgba(224,100,90,0.15); color: var(--danger); }</code>, at <b>3.79:1</b> in dark mode (light mode already passes at 4.50:1). Grepped every page's shipped markup — including the JS template strings that build badge classes dynamically (<code>cls</code>, <code>status.cls</code>, and similar computed values) — for any instance of the <code>danger</code> or <code>missing</code> class: none exists anywhere in this batch. Every checklist item in the sample data is only ever <code>done</code> or <code>pending</code>, so this variant is defined but never rendered.</p>
+      </div>
+      <div class="open-note">
+        <b>Open, not fixed:</b> left this alone rather than force a fix with nothing real to verify it against. The same <code>alpha: 0.06</code> treatment does not clear 4.5:1 for this specific color at any alpha above ~0.01 (a near-invisible tint), so a real fix needs either a different visual treatment (e.g. moving the semantic color to a small dot/icon instead of the full badge background+text) or simply removing the unused rule — a decision for whoever first actually uses a "missing"/error state in a future variant, not something to guess at now.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span>Scope &amp; regression checks — confirmed clean</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No inline event handlers, no external resources, no <code>fetch()</code> calls</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped all eleven new pages for <code>on*="</code> attributes, off-origin <code>src</code>/<code>href</code>, <code>@import</code>, CDN references, and <code>fetch(</code> — zero matches. Every page's data (<code>STATES</code>, <code>CLIENTS</code>, <code>PIPELINE_STEPS</code>, <code>MEMO_TEXT</code>) is a canned inline JS object; nothing is fetched, matching this batch's design intent (a scripted, offline prototype, not a live agent).
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Free-text user input never reaches <code>innerHTML</code></div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The only two pages that echo typed text back into the DOM (<code>mockup-chat-home.html</code>'s chat thread and <code>mockup-hybrid-home.html</code>'s docked chat panel) both render the user's message with <code>element.textContent = text</code>, never string-concatenated into <code>innerHTML</code>. Every <code>innerHTML</code> assignment across all eleven pages builds its markup from the pages' own canned data, not from anything a visitor types — confirmed by grepping every <code>innerHTML</code> site against input-value variable names.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">CSP matches each page's actual script needs, nothing wider</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The ten interactive pages carry <code>script-src 'self' 'unsafe-inline'</code> — a loosening <code>study/ui-plan.html</code>'s own "Decisions already made" section pre-approves for exactly this case (an inline-script page in this repo's existing single-file-toy pattern), not something invented for this batch. <code>ui-mockups.html</code> is a static page with zero <code>&lt;script&gt;</code> tags and keeps the stricter <code>script-src 'self'</code> baseline. Confirmed the exact head block (charset, viewport, referrer, CSP, description) is present and correctly scoped on all eleven pages; no page widens <code>img-src</code>, <code>connect-src</code>, or <code>font-src</code> beyond <code>'self'</code>, since none of them load an image, make a network request, or use a web font.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The chat form can't navigate or submit anywhere</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <code>mockup-chat-home.html</code> is the only page with a real <code>&lt;form&gt;</code> (the chat input row). Its submit handler calls <code>event.preventDefault()</code> before doing anything else, so it never triggers a real navigation or request — and the head block's <code>form-action 'self'</code> would contain it even if that weren't true.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Every internal link resolves to a real file in the batch</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Extracted every same-directory <code>href="*.html"</code> across all eleven pages and checked each target exists on disk. One deliberate exception, already handled honestly rather than left as a silent dead link: <code>mockup-dash-clients.html</code> only links Meridian's row to a detail page, since Northstar's and Quickship's rows have no built detail page in this mockup — those two rows render a small "detail view not built in this mockup" note instead of a broken link.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The shared palette is byte-identical across all ten interactive pages</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Per the approved plan, the three variations were required to share one visual identity so the comparison is about structure, not skin. A script parsed every <code>--custom-property</code> declaration out of each page's <code>&lt;style&gt;</code> block and diffed the resulting maps pairwise — not a visual read, an actual value comparison. All ten pages matched exactly, both before and after the two contrast fixes above (which were applied identically to every file that defines the affected rule).
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span>Test coverage</h2>
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Five new suites, 58 assertions, registered in <code>tests/run.mjs</code></div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p>Unlike <code>battle-bots-V2</code> or the WebGL pages, these are plain interactive HTML/CSS/JS with no canvas or GL context, so they run end to end under jsdom the same way <code>tricalc.html</code> does. Each page with a scripted pipeline run exposes a <code>window.__mockup&lt;Variant&gt;</code> hook whose <code>runPipeline()</code> replays the reveal logic with no <code>setTimeout</code> delay, so the DOM state after a run is asserted deterministically. <code>mockup-hybrid.dom.test.mjs</code> specifically pins the hybrid variation's actual differentiator — that running the pipeline cross-highlights the matching Texas/Florida/Illinois tiles in the case-file panel — not just that the trace renders.</p>
+        <p>Full suite: <b>787 passed, 0 failed</b> (729 pre-existing + 58 new), run both before and after the contrast fixes in this review.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static-analysis and jsdom-test review, not a rendered-browser check — no browser is available in this
+    environment to screenshot the result (see <code>CLAUDE.md</code>'s "No browser or WebGL rendering" note), so every
+    contrast ratio above was computed from the actual shipped hex/rgba values via the WCAG relative-luminance formula
+    in a throwaway Node script, not eyeballed. Worth a quick look on the live pages once deployed. See
+    <code>01.html</code> for the rest of the repo, <code>02.html</code> for the pattern-lab pages, <code>03.html</code>–<code>06.html</code>
+    for the earlier study-page reviews, and <code>07.html</code>–<code>09.html</code> for this project's other pages.
+  </footer>
+
+</div>
+</body>
+</html>

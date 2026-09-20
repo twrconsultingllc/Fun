@@ -32,7 +32,12 @@ const SUITES = [
     { id: 'shader-lab-core', page: 'shader-lab.html', file: './shader-lab.core.test.mjs' },
     { id: 'shader-lab-dom', page: 'shader-lab.html', file: './shader-lab.dom.test.mjs' },
     { id: 'widget-kit', page: 'widget-kit.html', file: './widget-kit.dom.test.mjs' },
-    { id: 'signal-scope', page: 'signal-scope.html', file: './signal-scope.dom.test.mjs' }
+    { id: 'signal-scope', page: 'signal-scope.html', file: './signal-scope.dom.test.mjs' },
+    { id: 'mockup-chat', page: 'study/mockup-chat-home.html', file: './mockup-chat.dom.test.mjs' },
+    { id: 'mockup-dash', page: 'study/mockup-dash-home.html', file: './mockup-dash.dom.test.mjs' },
+    { id: 'mockup-dash-pipeline', page: 'study/mockup-dash-pipeline.html', file: './mockup-dash-pipeline.dom.test.mjs' },
+    { id: 'mockup-hybrid', page: 'study/mockup-hybrid-home.html', file: './mockup-hybrid.dom.test.mjs' },
+    { id: 'ui-mockups-index', page: 'study/ui-mockups.html', file: './ui-mockups.dom.test.mjs' }
 ];
 
 const DEFAULT_BASE = new URL('../', import.meta.url).pathname;

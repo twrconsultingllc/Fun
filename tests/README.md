@@ -35,7 +35,7 @@ not be loaded — so this drops straight into CI or a pre-push hook.
 
 ## What is covered
 
-729 assertions across fifteen suites.
+787 assertions across twenty suites.
 
 ### `fullcircle.html`
 
@@ -232,6 +232,28 @@ any buffered output stuck in the pipe. `run.mjs` calls `closeAllDoms()` after
 every suite, so a suite that forgets cannot hang the runner — but an ad-hoc
 script that imports this module and skips `close()` will hang outright. One did,
 for over an hour, which is why this is written down.
+
+### `study/mockup-*.html` and `study/ui-mockups.html` — the product UI mockups
+
+| Suite | File | Covers |
+|---|---|---|
+| `mockup-chat` | `mockup-chat.dom.test.mjs` | Variation A (chat): the scripted five-assistant trace runs in the documented order, the result bubble carries all three target states and a working copy button, and `sendPrompt()` stays safe to call more than once. |
+| `mockup-dash` | `mockup-dash.dom.test.mjs` | Variation B's overview: the three summary tiles are computed live from the page's own sample data (not hardcoded) — pinned against hand-derived totals (3 clients, 5 open engagements, 14 pending checklist items). |
+| `mockup-dash-pipeline` | `mockup-dash-pipeline.dom.test.mjs` | Variation B's dedicated trace screen: the five-dot progress row, the step order, and that "View result" only unlocks once the trace actually finishes. |
+| `mockup-hybrid` | `mockup-hybrid.dom.test.mjs` | Variation C's actual differentiator: running the pipeline cross-highlights the matching Texas/Florida/Illinois tiles in the case-file panel and adds a reviewed badge to each — not just that the trace itself renders. |
+| `ui-mockups-index` | `ui-mockups.dom.test.mjs` | The landing page links to all three variations' home pages and to its sibling study pages, and its comparison table has one row per variation. |
+
+These pages are plain interactive HTML/CSS/JS — no canvas, WebGL, or Web
+Audio — so unlike `battle-bots-V2`/`fullcircle.html` below, they run end to
+end under jsdom the same way `tricalc.html`/`signal-scope.html` do. Each
+page that has a scripted "pipeline run" (all except the static
+`ui-mockups.html`) exposes a `window.__mockup<Variant>` hook whose
+`runPipeline()` replays the same reveal logic with no `setTimeout` delays,
+so the DOM state after a run can be asserted deterministically instead of
+waiting on real timers — same reasoning as `window.__swarm`/`__raceday`/
+`__snake` above. Every `CLIENTS`/`STATES`/`PIPELINE_STEPS` value asserted
+against here is duplicated inline in each page per this repo's single-file
+convention, not imported from a shared module.
 
 ### `battle-bots-V2` (a multi-file app, not a single-file page)
 

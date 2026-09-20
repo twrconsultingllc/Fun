@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
+<title>Claude Architect Lab — UI Mockups</title>
+<meta name="description" content="Three clickable, non-functional product UI mockups for the Claude Architect Lab concept — a chat variation, a dashboard variation, and a hybrid variation — built to compare interaction models for using and prompting the five assistants, not to decide anything." />
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --panel-border: #262c38;
+    --text: #e4e7ee;
+    --text-dim: #a2a9b8;
+    --accent: #5b8def;
+    --accent-2: #8b7cf6;
+    --good: #7bc696;
+    --warn: #f2a65a;
+    --link: #7aa2ff;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f7f7f5;
+      --panel: #ffffff;
+      --panel-border: #e3e1da;
+      --text: #24262b;
+      --text-dim: #5b5f6b;
+      --accent: #2f5fd6;
+      --accent-2: #6c4fd1;
+      --good: #1f7445;
+      --warn: #9b531a;
+      --link: #2f5fd6;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.55;
+  }
+
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 3.5rem;
+  }
+
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent-2);
+    margin-bottom: 0.6rem;
+  }
+
+  h1 {
+    font-size: 1.9rem;
+    margin: 0 0 1rem;
+    line-height: 1.25;
+  }
+
+  p.lede {
+    font-size: 1.02rem;
+    color: var(--text-dim);
+    max-width: 68ch;
+    margin: 0 0 1.5rem;
+  }
+
+  a { color: var(--link); }
+
+  .callout {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-left: 4px solid var(--warn);
+    border-radius: 8px;
+    padding: 1.1rem 1.3rem;
+    margin: 0 0 2.2rem;
+    font-size: 0.95rem;
+  }
+
+  .callout strong.label {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--warn);
+    margin-bottom: 0.4rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    margin: 0 0 0.4rem;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+  }
+
+  a.card {
+    display: block;
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 1.3rem 1.4rem;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  a.card:hover,
+  a.card:focus-visible {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+  }
+
+  a.card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .card .variant-tag {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent-2);
+    background: rgba(139, 124, 246, 0.12);
+    padding: 0.2em 0.6em;
+    border-radius: 999px;
+    margin-bottom: 0.6rem;
+  }
+
+  .card h2 { font-size: 1.05rem; margin: 0 0 0.4rem; color: var(--link); }
+  .card p { font-size: 0.9rem; color: var(--text-dim); margin: 0 0 0.7rem; }
+  .card .cta { font-size: 0.85rem; color: var(--accent); font-weight: 600; }
+
+  h3 {
+    font-size: 1rem;
+    margin: 2.2rem 0 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    margin-bottom: 2.2rem;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--panel-border);
+    vertical-align: top;
+  }
+
+  th {
+    background: var(--panel);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+  }
+
+  footer.page-footer {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    margin-top: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--panel-border);
+  }
+</style>
+</head>
+<body>
+
+  <div class="wrap">
+    <span class="eyebrow">Claude Architect Lab · speculative product UI</span>
+    <h1>Three UI mockups for the same concept</h1>
+    <p class="lede">
+      <a href="usecase.html">usecase.html</a> pitches a five-assistant product —
+      Research Assistant, Client Tracker, Checklist Builder, Second-Look Reviewer,
+      Memo Writer — for a licensing consulting firm. This page collects three
+      genuinely different, clickable mockups of what a real UI for that product
+      could look like, built purely to compare interaction models. Each one runs
+      the same scripted example — Meridian Payments expanding from California and
+      New York into Texas, Florida, and Illinois — through the same five-step
+      pipeline, so the only thing that varies between them is the interaction
+      design, not the underlying story.
+    </p>
+
+    <div class="callout">
+      <strong class="label">Read before clicking around</strong>
+      Every page linked below is a static, client-side prototype: all client and
+      state data is fictional sample data, the "pipeline run" is scripted with
+      <code>setTimeout</code>, and nothing is saved, sent anywhere, or backed by a
+      real agent or API call. This is a different, more speculative exercise than
+      <a href="ui-plan.html">ui-plan.html</a>, which plans an actual (much
+      narrower) companion page for the real CLI lab — a session cheat-sheet and a
+      read-only dataset viewer, nothing that simulates the agents working. Nothing
+      on this page or its three linked variations is built for real.
+    </div>
+
+    <div class="cards">
+      <a class="card" href="mockup-chat-home.html">
+        <span class="variant-tag">Variation A</span>
+        <h2>Chat</h2>
+        <p>A single conversational thread. Ask a plain-language question, and the five assistants hand off one at a time as chat bubbles, ending with the reviewed checklist and memo inline in the conversation.</p>
+        <span class="cta">Open the chat mockup →</span>
+      </a>
+
+      <a class="card" href="mockup-dash-home.html">
+        <span class="variant-tag">Variation B</span>
+        <h2>Dashboard</h2>
+        <p>A case-management console: client list, a full case-file page per client, and a dedicated step-by-step pipeline trace and result screen reached by drilling in from a client's profile.</p>
+        <span class="cta">Open the dashboard mockup →</span>
+      </a>
+
+      <a class="card" href="mockup-hybrid-home.html">
+        <span class="variant-tag">Variation C</span>
+        <h2>Hybrid</h2>
+        <p>A case file and a docked chat panel side by side. Asking a question in the chat panel runs the pipeline in place and highlights exactly which checklist items in the case file each step touched.</p>
+        <span class="cta">Open the hybrid mockup →</span>
+      </a>
+    </div>
+
+    <h3>What's the same across all three</h3>
+    <p style="color: var(--text-dim); font-size: 0.92rem; margin-top: 0;">
+      One shared color palette and type system, so the comparison below is about
+      structure and interaction, not visual polish — plus the same five-assistant
+      pipeline, the same three sample clients, and the same scripted Meridian
+      TX/FL/IL scenario as the one fully wired-up example in every variation.
+    </p>
+
+    <h3>What differs</h3>
+    <table>
+      <thead>
+        <tr><th>Variation</th><th>Home screen</th><th>Where the pipeline shows</th><th>Client browsing</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>A · Chat</td><td>Conversation thread with example prompts</td><td>Inline, as assistant chat bubbles</td><td>A separate list + detail reference page</td></tr>
+        <tr><td>B · Dashboard</td><td>Summary tiles + recent activity</td><td>A dedicated trace page reached from a client's profile</td><td>A filterable client table, each row drilling into a full case-file page</td></tr>
+        <tr><td>C · Hybrid</td><td>Split view — case file plus a docked chat panel</td><td>Inline in the docked panel, cross-highlighting the case file as it runs</td><td>A lightweight switcher over the same split-view shell</td></tr>
+      </tbody>
+    </table>
+
+    <footer class="page-footer">
+      Claude Architect Lab UI mockups · a companion to <a href="usecase.html">usecase.html</a>'s concept pitch and a separate, more speculative exercise than <a href="ui-plan.html">ui-plan.html</a>'s real companion-page plan · back to <a href="index.html">study index</a> · not part of the toy gallery
+    </footer>
+  </div>
+
+</body>
+</html>
