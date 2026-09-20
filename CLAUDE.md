@@ -184,6 +184,24 @@ Node rather than eyeballing it. Say so explicitly rather than claiming a
 visual check that didn't happen, and ask the user to eyeball the real result
 once it's deployed.
 
+## The root `.gitignore`'s `.env.*` also swallows `.env.example`
+
+`.gitignore` has both `.env` and `.env.*` to keep real secrets out of every
+subproject. The broad pattern has a side effect: it also matches
+`.env.example`, the placeholder file meant to be committed so a new
+subproject documents which environment variables it needs. Without an
+exception, that file silently never gets tracked — `git status` won't even
+flag it as a problem, since untracked-and-ignored looks the same as
+untracked-and-fine at a glance.
+
+This was caught while scaffolding `claude-architect-lab/`, which needed its
+own `.env.example`. The fix already in place: `.gitignore` has
+`!.env.example` right after the `.env.*` line, so any subproject's example
+file stays trackable while `.env` and every other `.env.*` variant stay
+ignored. If a future subproject needs a differently-named placeholder (e.g.
+`.env.sample`), it needs its own `!` exception line, or it will vanish the
+same way.
+
 ## Do not judge third-party model IDs from memory
 
 An unfamiliar model ID is far more likely to be newer than the training cutoff

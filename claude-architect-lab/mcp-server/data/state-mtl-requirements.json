@@ -1,0 +1,95 @@
+{
+  "disclaimer": "Illustrative sample only — verify against NMLS and the state regulator before relying on this.",
+  "states": [
+    {
+      "state": "California",
+      "licenseName": "Money Transmitter License (sample)",
+      "suretyBondRangeUsd": "50,000-500,000 (sample range only)",
+      "netWorthRequirementUsd": "100,000 (sample only)",
+      "nmlsRequired": true,
+      "typicalReviewTimeWeeks": "12-20 (sample only)",
+      "notes": "Illustrative sample only — verify against NMLS and the state regulator before relying on this."
+    },
+    {
+      "state": "New York",
+      "licenseName": "Money Transmitter License (sample)",
+      "suretyBondRangeUsd": "500,000-1,000,000 (sample range only)",
+      "netWorthRequirementUsd": "500,000 (sample only)",
+      "nmlsRequired": true,
+      "typicalReviewTimeWeeks": "26-52 (sample only)",
+      "notes": "Illustrative sample only — verify against NMLS and the state regulator before relying on this."
+    },
+    {
+      "state": "Texas",
+      "licenseName": "Money Transmitter License (sample)",
+      "suretyBondRangeUsd": "300,000-2,000,000 (sample range only)",
+      "netWorthRequirementUsd": "500,000 (sample only)",
+      "nmlsRequired": true,
+      "typicalReviewTimeWeeks": "16-24 (sample only)",
+      "notes": "Illustrative sample only — verify against NMLS and the state regulator before relying on this."
+    },
+    {
+      "state": "Florida",
+      "licenseName": "Money Transmitter License (sample)",
+      "suretyBondRangeUsd": "50,000-2,000,000 (sample range only)",
+      "netWorthRequirementUsd": "100,000 (sample only)",
+      "nmlsRequired": true,
+      "typicalReviewTimeWeeks": "12-20 (sample only)",
+      "notes": "Illustrative sample only — verify against NMLS and the state regulator before relying on this."
+    },
+    {
+      "state": "Illinois",
+      "licenseName": "Money Transmitter License (sample)",
+      "suretyBondRangeUsd": "100,000-1,000,000 (sample range only)",
+      "netWorthRequirementUsd": "250,000 (sample only)",
+      "nmlsRequired": true,
+      "typicalReviewTimeWeeks": "14-22 (sample only)",
+      "notes": "Illustrative sample only — verify against NMLS and the state regulator before relying on this."
+    },
+    {
+      "state": "Washington",
+      "licenseName": "Money Transmitter License (sample)",
+      "suretyBondRangeUsd": "10,000-550,000 (sample range only)",
+      "netWorthRequirementUsd": "10,000 (sample only)",
+      "nmlsRequired": true,
+      "typicalReviewTimeWeeks": "10-18 (sample only)",
+      "notes": "Illustrative sample only — verify against NMLS and the state regulator before relying on this."
+    },
+    {
+      "state": "Massachusetts",
+      "licenseName": "Money Transmitter License (sample)",
+      "suretyBondRangeUsd": "100,000-300,000 (sample range only)",
+      "netWorthRequirementUsd": "100,000 (sample only)",
+      "nmlsRequired": true,
+      "typicalReviewTimeWeeks": "16-26 (sample only)",
+      "notes": "Illustrative sample only — verify against NMLS and the state regulator before relying on this."
+    },
+    {
+      "state": "Georgia",
+      "licenseName": "Money Transmitter License (sample)",
+      "suretyBondRangeUsd": "50,000-250,000 (sample range only)",
+      "netWorthRequirementUsd": "100,000 (sample only)",
+      "nmlsRequired": true,
+      "typicalReviewTimeWeeks": "10-16 (sample only)",
+      "notes": "Illustrative sample only — verify against NMLS and the state regulator before relying on this."
+    },
+    {
+      "state": "Colorado",
+      "licenseName": "Money Transmitter License (sample)",
+      "suretyBondRangeUsd": "50,000-500,000 (sample range only)",
+      "netWorthRequirementUsd": "100,000 (sample only)",
+      "nmlsRequired": true,
+      "typicalReviewTimeWeeks": "10-18 (sample only)",
+      "notes": "Illustrative sample only — verify against NMLS and the state regulator before relying on this."
+    },
+    {
+      "state": "Arizona",
+      "licenseName": "Money Transmitter License (sample)",
+      "suretyBondRangeUsd": "10,000-150,000 (sample range only)",
+      "netWorthRequirementUsd": "50,000 (sample only)",
+      "nmlsRequired": true,
+      "typicalReviewTimeWeeks": "8-14 (sample only)",
+      "notes": "Illustrative sample only — verify against NMLS and the state regulator before relying on this."
+    }
+  ]
+}

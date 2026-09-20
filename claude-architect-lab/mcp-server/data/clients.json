@@ -1,0 +1,174 @@
+{
+  "disclaimer": "Illustrative sample only — every name, figure, and ownership detail below is synthetic and does not describe a real person, business, or filing.",
+  "clients": [
+    {
+      "clientId": "meridian-payments",
+      "legalName": "Meridian Payments LLC (sample)",
+      "entityType": "LLC",
+      "formationState": "Delaware",
+      "einSample": "XX-XXXXXXX (sample — never a real EIN)",
+      "controlPersons": [
+        {
+          "name": "Dana Whitfield (sample)",
+          "title": "CEO / Managing Member",
+          "ownershipPercent": 40,
+          "birthYear": "1978 (sample — year only)",
+          "backgroundDisclosure": "None disclosed (sample)"
+        },
+        {
+          "name": "Priya Anand (sample)",
+          "title": "COO / Member",
+          "ownershipPercent": 35,
+          "birthYear": "1982 (sample — year only)",
+          "backgroundDisclosure": "None disclosed (sample)"
+        }
+      ],
+      "businessProfile": {
+        "productLines": ["money transmission", "prepaid access"],
+        "statesCurrentlyLicensed": ["California", "New York"],
+        "annualTransactionVolumeUsd": "18,000,000 (sample)",
+        "currentNetWorthUsd": "650,000 (sample)",
+        "suretyBondsPostedUsd": {
+          "California": "50,000 (sample)",
+          "New York": "500,000 (sample)"
+        }
+      },
+      "licensingEngagements": [
+        {
+          "state": "Texas",
+          "status": "gathering_documents",
+          "targetSubmissionDate": "2026-11-01 (sample)",
+          "lastUpdated": "2026-09-10 (sample)",
+          "checklist": [
+            { "item": "Surety bond quote obtained", "status": "done" },
+            { "item": "Net worth statement prepared", "status": "done" },
+            { "item": "NMLS filing drafted", "status": "pending" },
+            { "item": "Background checks for control persons", "status": "pending" }
+          ]
+        },
+        {
+          "state": "Florida",
+          "status": "gathering_documents",
+          "targetSubmissionDate": "2026-11-15 (sample)",
+          "lastUpdated": "2026-09-05 (sample)",
+          "checklist": [
+            { "item": "Surety bond quote obtained", "status": "pending" },
+            { "item": "Net worth statement prepared", "status": "done" },
+            { "item": "NMLS filing drafted", "status": "pending" },
+            { "item": "Background checks for control persons", "status": "pending" }
+          ]
+        },
+        {
+          "state": "Illinois",
+          "status": "not_started",
+          "targetSubmissionDate": "2026-12-01 (sample)",
+          "lastUpdated": "2026-08-20 (sample)",
+          "checklist": [
+            { "item": "Surety bond quote obtained", "status": "pending" },
+            { "item": "Net worth statement prepared", "status": "pending" },
+            { "item": "NMLS filing drafted", "status": "pending" },
+            { "item": "Background checks for control persons", "status": "pending" }
+          ]
+        }
+      ]
+    },
+    {
+      "clientId": "northstar-remittance",
+      "legalName": "Northstar Remittance, Inc. (sample)",
+      "entityType": "C-Corp",
+      "formationState": "Nevada",
+      "einSample": "XX-XXXXXXX (sample — never a real EIN)",
+      "controlPersons": [
+        {
+          "name": "Ronan Ellery (sample)",
+          "title": "CEO / President",
+          "ownershipPercent": 55,
+          "birthYear": "1985 (sample — year only)",
+          "backgroundDisclosure": "None disclosed (sample)"
+        },
+        {
+          "name": "Mei Sorensen (sample)",
+          "title": "CFO",
+          "ownershipPercent": 20,
+          "birthYear": "1990 (sample — year only)",
+          "backgroundDisclosure": "None disclosed (sample)"
+        }
+      ],
+      "businessProfile": {
+        "productLines": ["remittance", "money transmission"],
+        "statesCurrentlyLicensed": [],
+        "annualTransactionVolumeUsd": "4,200,000 (sample)",
+        "currentNetWorthUsd": "80,000 (sample)",
+        "suretyBondsPostedUsd": {}
+      },
+      "licensingEngagements": []
+    },
+    {
+      "clientId": "quickship-financial",
+      "legalName": "Quickship Financial Solutions LLC (sample)",
+      "entityType": "LLC",
+      "formationState": "Delaware",
+      "einSample": "XX-XXXXXXX (sample — never a real EIN)",
+      "controlPersons": [
+        {
+          "name": "Alina Petrov (sample)",
+          "title": "CEO / Managing Member",
+          "ownershipPercent": 60,
+          "birthYear": "1975 (sample — year only)",
+          "backgroundDisclosure": "None disclosed (sample)"
+        },
+        {
+          "name": "Tomas Reyes (sample)",
+          "title": "Member",
+          "ownershipPercent": 40,
+          "birthYear": "1980 (sample — year only)",
+          "backgroundDisclosure": "None disclosed (sample)"
+        }
+      ],
+      "businessProfile": {
+        "productLines": ["money transmission"],
+        "statesCurrentlyLicensed": ["Washington", "Colorado"],
+        "annualTransactionVolumeUsd": "9,500,000 (sample)",
+        "currentNetWorthUsd": "310,000 (sample)",
+        "suretyBondsPostedUsd": {
+          "Washington": "100,000 (sample)",
+          "Colorado": "75,000 (sample)"
+        }
+      },
+      "licensingEngagements": [
+        {
+          "state": "Arizona",
+          "status": "submitted",
+          "targetSubmissionDate": "2026-08-01 (sample)",
+          "lastUpdated": "2026-08-28 (sample)",
+          "checklist": [
+            { "item": "Surety bond quote obtained", "status": "done" },
+            { "item": "Net worth statement prepared", "status": "done" },
+            { "item": "NMLS filing drafted", "status": "done" },
+            { "item": "Background checks for control persons", "status": "done" }
+          ]
+        },
+        {
+          "state": "Georgia",
+          "status": "under_regulator_review",
+          "targetSubmissionDate": "2026-07-15 (sample)",
+          "lastUpdated": "2026-09-01 (sample)",
+          "checklist": [
+            { "item": "Surety bond quote obtained", "status": "done" },
+            { "item": "Net worth statement prepared", "status": "done" },
+            { "item": "NMLS filing drafted", "status": "done" },
+            { "item": "Background checks for control persons", "status": "done" }
+          ]
+        }
+      ],
+      "pendingChanges": [
+        {
+          "type": "new_control_person",
+          "description": "Adding a new 25% owner (sample) — Jordan Blake (sample), no title assigned yet",
+          "effectiveDateSample": "2026-10-01 (sample)",
+          "notes": "Not yet reflected in controlPersons above; this is the pending-change scenario evaluate-change-impact.mjs (Session 8) reasons about."
+        }
+      ]
+    }
+  ]
+}

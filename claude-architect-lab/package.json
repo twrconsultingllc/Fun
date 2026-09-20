@@ -1,0 +1,25 @@
+{
+  "name": "claude-architect-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Claude Certified Architect (Foundations) exam-prep project: agent loop, custom tools, MCP server, and Claude Agent SDK, built around a money-transmitter-licensing consulting scenario. See study/plan.html and study/build-plan.html in the repo root.",
+  "scripts": {
+    "test": "node --test tests/",
+    "lab:1": "node src/agent-loop.mjs",
+    "lab:2": "node src/structured-output.mjs",
+    "lab:3": "node src/review-loop.mjs",
+    "lab:4": "node src/context-budget.mjs",
+    "lab:5": "node src/orchestrator.mjs",
+    "lab:6": "node sdk-version/agent.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.127.0",
+    "@anthropic-ai/claude-agent-sdk": "^0.3.278",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.6.5"
+  }
+}
