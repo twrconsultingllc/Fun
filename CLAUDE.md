@@ -132,6 +132,43 @@ This applies to any new page, including reference/study material under
 exempt a page from this, since it's still served from GitHub Pages and still
 worth getting right.
 
+## `tests/secrpts/` reports follow a fixed template — they don't need their own review
+
+A numbered report in `tests/secrpts/` is itself a new page, and reviewing a
+report about a report about a report is a real trap — something has to
+break that cycle. The fix is to make every report structurally incapable of
+introducing a vulnerability in the first place, so no report ever needs a
+numbered review of its own. Every `tests/secrpts/NN.html` must:
+
+- Carry exactly this head block: UTF-8 charset, a `viewport` meta,
+  `referrer` set to `strict-origin-when-cross-origin`, this exact CSP —
+  `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';
+  font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none';
+  base-uri 'none'; form-action 'self'` — and a `description` meta tag
+  specific to that report. Don't add `data:` to `img-src` or widen anything
+  else unless a report genuinely embeds an image (none has so far).
+- Have zero `<script>` tags, inline or external, and zero inline event
+  handlers (`on*="…"`) — these are pure static HTML/CSS documents.
+- Load nothing from outside the repo: no external `<link>`, no CDN font or
+  script, no `@import`, no off-origin `url(...)` in CSS.
+- Have no `<form>` — a report has nothing to submit.
+- Only cross-link to other files in the same `tests/secrpts/` directory, as
+  a plain relative `href="NN.html"` — same-origin, same-tab, no
+  `target`/`rel` hardening needed. If a report needs to mention an external
+  URL from a page it reviewed (e.g. the NMLS link), write it as inert text
+  inside `<code>`, never as a real `<a href>` to that origin.
+- Style only through a `<style>` block in `<head>` using CSS custom
+  properties with a `prefers-color-scheme: dark` override, matching
+  `01.html`'s pattern — no inline `style="…"` attribute may introduce a new
+  color; layout-only inline styles (`grid-column`, `margin-top`) are fine.
+
+A report that follows this template has no path to a new vulnerability by
+construction, so it's exempt from the "new pages get a numbered review" rule
+above — publishing `06.html` doesn't require a `07.html` to review it. What
+still needs doing per report is the actual work the report exists to do
+(verifying the claims it makes about the pages it's reviewing), not a
+security check of the report file itself.
+
 ## No browser or WebGL rendering in this environment
 
 There is no puppeteer, chromium-cli, or connected claude-in-chrome browser in
