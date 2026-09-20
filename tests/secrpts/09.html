@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>usecase.html hero border fix — security &amp; quality review</title>
+<meta name="description" content="Security and code-quality review of removing usecase.html's full-width header border that ran behind the disclaimer box, against this repo's existing scan conventions.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+  .open-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--open);
+  }
+  .open-note b { color: var(--open); }
+
+  .page-table-wrap { overflow-x: auto; margin: 12px 0; }
+  table.page-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .page-table th, .page-table td {
+    border: 1px solid var(--panel-border);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .page-table th {
+    background: var(--code-bg);
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1><code>usecase.html</code> hero border fix — security &amp; code-quality review</h1>
+    <p class="sub">User-reported visual bug: a thin gray line ran across the whole screen right through the "Please read before anything else" disclaimer box, unlike the site's other section-divider lines, which stay contained to the content column. Traced to <code>header.hero</code>'s full-width <code>border-bottom</code> combined with the disclaimer box's intentional negative top margin, and fixed by removing that border. Reviewed per the process in <code>CLAUDE.md</code> ("New pages get a numbered security &amp; quality review") — following the conventions <a href="01.html" style="color: var(--accent);">01.html</a> through <a href="08.html" style="color: var(--accent);">08.html</a> already established.</p>
+    <div class="meta">Review performed 2026-09-20 · repo: <code>twrconsultingllc/Fun</code> · changed page: <code>study/usecase.html</code></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">1 of 1 reported issue fixed. 3 additional items confirmed clean.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Root cause &amp; fix</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">A full-bleed header border overlapped by the disclaimer box's intentional negative margin</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        <p><code>header.hero</code> has no <code>max-width</code>, so its <code>border-bottom: 1px solid var(--panel-border)</code> spanned the full viewport width, edge to edge. The very next element, <code>.disclaimer</code>, is deliberately pulled up with <code>margin: -1.5rem auto 3rem</code> to sit snugly under the hero instead of leaving a gap. Geometrically, that negative margin moves <code>.disclaimer</code>'s top edge 24px <em>above</em> the header's own bottom edge — and since <code>.disclaimer-box</code> (the visible card with its own background and orange border) starts right at that same top edge with no extra spacing, and is definitely taller than 24px, its box always extends past the header's border position. Painted later in DOM order, it draws on top of that stretch of the header's border for its own width (roughly the shared 880px content column) while the header's border remains fully visible in the empty margins on either side, on any viewport wider than the content column. That combination is exactly the reported symptom: a gray line visible across the wide parts of the screen but interrupted where the disclaimer box sits, with a sliver of misalignment right at the box's top edge. Every <code>section</code> border-bottom further down the page, by contrast, lives entirely inside <code>.wrap</code> (max-width 880px) with nothing before or after it doing a negative-margin overlap, which is why those read as clean.</p>
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> removed <code>border-bottom: 1px solid var(--panel-border);</code> from <code>header.hero</code>. The disclaimer box already carries its own visible border for separation, and the header's <code>linear-gradient(180deg, var(--bg-2), var(--bg) 85%)</code> background already fades toward the page background before it reaches the bottom, so no seam is needed there — deleting the line removes the stray full-width bar without touching the deliberate tight overlap between the hero and the disclaimer, or any of the page's other borders.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Scope &amp; regression check</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">This CSS-only change touches no security-relevant surface</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The edit removes one CSS declaration and nothing else. Re-checked the head block, script/form/external-resource posture, and link list to be sure nothing else changed: CSP, referrer, viewport, and description meta tags are byte-for-byte unchanged, and the page still has zero <code>&lt;script&gt;</code> tags, zero inline handlers, and no new external references.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The removed border was unique to this page — no sibling page needed the same fix</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped the repo for both <code>header.hero</code> and <code>class="disclaimer"</code>: both patterns exist only in <code>study/usecase.html</code>, so this fix doesn't need to be repeated anywhere else in the repo.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The remaining three <code>border-bottom</code> declarations in this file are the intended, unaffected ones</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped for <code>border-bottom</code> after the edit: the <code>section</code> rule (paired with <code>section:last-of-type { border-bottom: none; }</code>, contained inside <code>.wrap</code>) and the <code>ul.plain li</code> rule (paired with <code>ul.plain li:last-child { border-bottom: none; }</code>, a list-row divider) are both still present and untouched — only the one full-bleed hero border was removed.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — no browser is available in this environment to screenshot the
+    result (see <code>CLAUDE.md</code>'s "No browser or WebGL rendering" note), so this fix was verified by tracing
+    the box-model geometry directly rather than by eyeballing a render; worth a quick look on the live page once
+    deployed. See <code>01.html</code> for the rest of the repo, <code>02.html</code> for the pattern-lab pages,
+    <code>03.html</code>–<code>06.html</code> for the earlier study-page reviews, and <code>07.html</code>/<code>08.html</code>
+    for this project's overview page.
+  </footer>
+
+</div>
+</body>
+</html>
