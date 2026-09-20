@@ -44,6 +44,24 @@ work, not as a follow-up. A guide that states the old numbers or describes
 removed behavior is worse than no guide, because it reads as authoritative.
 Treat this as part of the task, not an extra to ask permission for.
 
+## Keep `study/build-plan.html` in sync while working the Claude Architect Lab
+
+`study/build-plan.html` is the in-place progress tracker for the
+`claude-architect-lab` project (see `study/plan.html` for the design it
+sequences). Every session there has a `Status` badge and a "Session notes"
+callout, added specifically so the plan records real progress instead of
+that progress only existing in chat history.
+
+Whenever a session from that plan gets worked on, update its entry in
+`build-plan.html` as part of the same piece of work, not as a follow-up:
+flip the badge (both in the session's own meta row and in the session-index
+table) to `In progress` or `Done`, and write down anything that actually
+happened — a version that had drifted, a decision made on the spot, a
+divergence from `plan.html`, a dead end, a commit hash. Leave "None yet." in
+the notes only when a session is genuinely done and nothing came up worth
+recording. Treat this the same way as the user-guide-sync rule above: part
+of the task, not an extra to ask permission for.
+
 ## Tests belong in the repo
 
 Test suites are deliverables, not working notes. Anything worth running again
