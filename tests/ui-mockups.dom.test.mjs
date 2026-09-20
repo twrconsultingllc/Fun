@@ -34,7 +34,7 @@ export default async function run(t, page) {
         t.section('Links to sibling study pages');
 
         t.ok('links back to the study index', !!document.querySelector('a[href="index.html"]'));
-        t.ok('links to ui-plan.html and distinguishes itself from it', !!document.querySelector('a[href="ui-plan.html"]'));
+        t.ok('links to agentic-plan.html and distinguishes itself from it', !!document.querySelector('a[href="agentic-plan.html"]'));
         t.ok('links to usecase.html, the concept this explores', !!document.querySelector('a[href="usecase.html"]'));
 
         t.section('Comparison table');

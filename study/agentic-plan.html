@@ -303,6 +303,7 @@
       <li><a href="#control-loop">The control loop: Agent SDK hooks</a></li>
       <li><a href="#loop-map">All the loops, one map</a></li>
       <li><a href="#status">What's actually running today</a></li>
+      <li><a href="#failure-modes">What's likely to break in production</a></li>
     </ol>
   </nav>
 
@@ -644,6 +645,104 @@ attempt 3 → valid → loop exits, structured checklist moves on to
         will build against; it isn't a substitute for actually running
         them, and its illustrative numbers shouldn't be quoted as measured
         ones until they are.
+      </p>
+    </section>
+
+    <section id="failure-modes">
+      <h2><span class="kicker">Guesswork now, evals later</span>What's likely to break in production</h2>
+      <div class="callout warning">
+        <strong class="label">This section is a prediction, not an incident report</strong>
+        Nothing on this page has run against the real API yet (see
+        <a href="#not-a-trace">the caveat at the top</a>), so nothing below
+        is a bug this project has actually hit. It's the set of failure
+        modes that show up again and again in agentic LLM systems shaped
+        like this one — tool-calling loops, structured-output retries,
+        self-critique chains — applied to this specific design so there's a
+        concrete list to test against once Sessions 5–9 actually run,
+        instead of finding all of this out for the first time in front of a
+        real client's case file.
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Failure mode</th><th>How it would show up</th><th>Likely cause</th><th>Cheap first response</th><th>If it keeps happening</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Ungrounded claims</td>
+            <td>The final memo states a number (a bond gap, a net-worth shortfall) that doesn't match any tool result actually returned in that run.</td>
+            <td>The model skips the gather step and pattern-matches to a plausible-sounding figure instead of calling <code>client_gap_analysis</code>.</td>
+            <td>Tighten the system prompt to require a tool call backing every numeric claim; have <code>validate-client-checklist.mjs</code> reject a draft whose numbers don't trace to a logged tool result.</td>
+            <td>Move the citation check from a prompt instruction into a hard code gate in the verify step, so it can't be reasoned around by a confident-sounding draft.</td>
+          </tr>
+          <tr>
+            <td>Tool-call thrashing</td>
+            <td>The core loop hits <code>MAX_TURNS</code> without producing an answer, having called the same or near-duplicate tool several times.</td>
+            <td>The model isn't sure it has enough information yet, so it re-checks instead of proceeding.</td>
+            <td>Log every tool call's arguments, dedupe repeats, and return the cached result with a note instead of re-invoking the tool.</td>
+            <td>Rewrite the tool's description to state explicitly what a complete result looks like, since an ambiguous tool contract is the usual root cause.</td>
+          </tr>
+          <tr>
+            <td>Hallucinated coverage</td>
+            <td>The model answers as if it has real requirements for a state that isn't in the sample dataset, instead of surfacing the "unknown" result and saying so.</td>
+            <td>A plausible-sounding answer is rewarded more than an honest "I don't know" during training — a well-documented general tendency, not specific to this model.</td>
+            <td>Add adversarial test cases that ask about an unsupported state on purpose, and strengthen the "say you don't know" instruction until they pass.</td>
+            <td>If a model keeps failing that specific eval, treat it as a real disqualifier for that step and swap to a model with a demonstrated lower refusal-failure rate, even at a cost premium — this is the one failure mode a licensing firm can't tolerate.</td>
+          </tr>
+          <tr>
+            <td>Schema-retry oscillation</td>
+            <td>The structured-output retry loop fixes the field the error flagged, breaks a different one, and hits its retry cap without ever validating.</td>
+            <td>Each retry prompt only shows the latest validation error, so the model "forgets" the earlier fix while chasing the new one.</td>
+            <td>Feed the full validation-error history into every retry attempt, not just the newest one.</td>
+            <td>If a specific field keeps oscillating, simplify its schema (a fixed enum instead of a free-text date, say) rather than continuing to retry against a shape the model can't reliably hit.</td>
+          </tr>
+          <tr>
+            <td>Self-critique blind spots</td>
+            <td>The review-loop's own critique step approves a draft that still has a real gap.</td>
+            <td>A model critiquing its own output shares its own blind spots — a known weakness of self-critique chains in general.</td>
+            <td>This is exactly why <code>validate-client-checklist.mjs</code> (code) and the <code>mtl-compliance-reviewer</code> subagent both exist alongside it, per <a href="#two-verifies">the two-verify-loops section above</a>.</td>
+            <td>If the subagent keeps missing the same class of gap the self-critique missed, that's a sign it shares a model-family blind spot rather than acting as independent judgment — run it on a different model or provider, or add a periodic human spot-check on a sample of real outputs.</td>
+          </tr>
+          <tr>
+            <td>Cost/latency assumptions breaking at scale</td>
+            <td>Real per-query cost or latency comes in noticeably higher than <a href="plan.html#cost">plan.html section 10</a>'s estimate.</td>
+            <td>That model was sized for the lab's 8–10 states and 3 clients — a real firm's fifty-state, dozens-of-clients dataset changes when compaction triggers and how much caching actually saves.</td>
+            <td>Re-run <code>context-budget.mjs</code>'s before/after token measurement at realistic dataset size before trusting the cost estimate for a real deployment.</td>
+            <td>If real costs run meaningfully higher, revisit which query types are assigned to Haiku vs. Sonnet vs. Opus in plan.html section 10 before assuming the architecture itself needs to change.</td>
+          </tr>
+          <tr>
+            <td>Model version drift</td>
+            <td>Behavior on the same prompt changes, or breaks outright, with no code change on this project's side.</td>
+            <td>The provider updated or deprecated the pinned model ID on their own release cycle.</td>
+            <td>Pin an exact model version rather than a "latest" alias, and keep a small fixed set of test scenarios to re-run after every version bump.</td>
+            <td>If a version bump changes behavior in a way prompting can't recover, that's the point to seriously weigh prompt iteration vs. a different model tier vs. — only once there's enough real labeled production data to do it responsibly — fine-tuning, in that order.</td>
+          </tr>
+          <tr>
+            <td>Untrusted client data read as instructions</td>
+            <td>A client's own free-text notes manipulate the agent into skipping a verification step or taking an action nobody asked for.</td>
+            <td>Free-text fields get treated as instructions instead of as data to reason about — a risk that doesn't really exist yet, since today's client records are curated sample JSON, not real client-submitted intake text.</td>
+            <td>Treat any client-supplied text as data, never as directives, and enforce that at the <code>PreToolUse</code> hook layer (<a href="#control-loop">the control-loop section above</a>), not just in the system prompt.</td>
+            <td>The moment a real intake pipeline feeds this project actual client-submitted text, this graduates from "worth watching" to "must fix before launch" — it's the one row here with a real trust boundary attached.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        The honest order of operations, given there's no real usage data
+        yet: iterate on prompts and schemas first, since they're the
+        cheapest and fastest to change and most of the table above is
+        addressable that way. Reach for a different or larger model on one
+        specific step only once a failure mode is shown to actually recur
+        across many real cases, not after a single wrong answer. Treat
+        fine-tuning as the last resort, worth doing only once there's
+        enough real, labeled production data to do it responsibly — this
+        lab's synthetic ten-state, three-client sample is nowhere near that
+        bar. None of that ordering can be executed on vibes, though: it
+        depends on having a small held-out set of realistic questions with
+        known-correct answers to check any prompt change, model swap, or
+        version bump against — building that eval set is arguably the real
+        next step once Sessions 5–9 exist, not an afterthought once
+        something breaks.
       </p>
     </section>
 

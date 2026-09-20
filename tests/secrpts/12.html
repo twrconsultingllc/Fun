@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>agentic-plan.html rename + new section — security &amp; quality review</title>
+<meta name="description" content="Security and code-quality review of renaming study/ui-plan.html to study/agentic-plan.html across the repo and adding its new 'What's likely to break in production' section, against this repo's existing scan conventions.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1><code>agentic-plan.html</code> rename + new section — security &amp; code-quality review</h1>
+    <p class="sub"><code>study/ui-plan.html</code> was renamed to <code>study/agentic-plan.html</code> (the name no longer fits — the page hasn't been about a UI since the previous rewrite), every live cross-reference to it was updated to match, and a new closing section, "What's likely to break in production," was added. Reviewed per the process in <code>CLAUDE.md</code> ("New pages get a numbered security &amp; quality review") — following the conventions <a href="01.html" style="color: var(--accent);">01.html</a> through <a href="11.html" style="color: var(--accent);">11.html</a> already established.</p>
+    <div class="meta">Review performed 2026-09-20 · repo: <code>twrconsultingllc/Fun</code> · renamed: <code>study/ui-plan.html</code> → <code>study/agentic-plan.html</code> · edited for the rename: <code>study/index.html</code>, <code>study/ui-mockups.html</code>, ten <code>study/mockup-*.html</code> files, <code>tests/ui-mockups.dom.test.mjs</code></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">0 actionable findings, nothing left open. 9 items confirmed clean.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Head block, and the rest of the page, untouched by the rename itself</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The rename is a pure <code>git mv</code> — the file's own content, including its CSP/referrer/description head block, is byte-identical apart from the new section appended at the bottom. Grepped the renamed file for any leftover self-reference to the old filename (e.g. in its own prose or a stray <code>href</code>) — none; the page never referred to itself by filename before or after.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Every live reference to the old filename was found and updated — checked by grepping for the string, not by memory of which files were touched last time</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p>Grepped the whole repo for <code>ui-plan</code> after the rename. Two categories of hit remained, both correct to leave as-is: <code>tests/secrpts/06.html</code>, <code>07.html</code>, <code>08.html</code>, <code>10.html</code>, and <code>11.html</code> — historical review reports that accurately describe the page under the name it had at the time they were written, the same reason git history doesn't get rewritten when a file moves. Everything else — <code>study/index.html</code>'s card link, <code>study/ui-mockups.html</code>'s two references, the ten <code>study/mockup-*.html</code> files' shared disclaimer sentence, and <code>tests/ui-mockups.dom.test.mjs</code>'s selector and assertion label — now points at <code>agentic-plan.html</code>, both the <code>href</code> and any visible anchor text that named the file directly.</p>
+        <p>The last of those (<code>tests/ui-mockups.dom.test.mjs</code>) is the one that would have caught a miss on its own: it asserts <code>document.querySelector('a[href="ui-plan.html"]')</code> is truthy, so leaving it unupdated after the rename would have turned a silent content drift into a loud, immediate test failure rather than something that ships unnoticed. It was updated in this same pass, not left to fail later.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The new section introduces no scripts, forms, external resources, or inline handlers</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The new "What's likely to break in production" section is a callout, a table, and a closing paragraph — no new markup category. Grepped the whole file after the addition for <code>&lt;script</code>, <code>on[a-z]+="</code>, <code>&lt;form</code>, <code>href="http</code>, <code>src="http</code>, and <code>@import</code> — zero matches outside the expected meta tags.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Every link the new section adds resolves</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The new section adds one TOC entry (<code>#failure-modes</code>, matching its own new <code>section id</code>), two same-page anchors back into earlier sections (<code>#two-verifies</code>, <code>#control-loop</code>), and one new cross-page anchor, <code>plan.html#cost</code>. Extracted every <code>href="#…"</code> in the whole file and diffed it against every <code>id="…"</code> — full one-to-one match, no orphaned links. Checked <code>plan.html</code> directly for <code>&lt;section id="cost"&gt;</code> rather than assuming the anchor name — it exists.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No new CSS needed or added</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The new section reuses <code>table</code>/<code>th</code>/<code>td</code>, <code>.callout</code>/<code>.callout.warning</code>, <code>strong.label</code>, and inline <code>code</code> — every one already defined and already exercised elsewhere on this same page. Extracted every <code>class="…"</code> value on the whole page after the edit and confirmed each one still matches a real selector in the stylesheet (no reintroduction of the unused rules <a href="11.html" style="color: var(--accent);">11.html</a> already removed).
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No new color pairing to compute contrast for</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Because the new section introduces zero new classes, it introduces zero new text/background pairings — every combination it uses (table header text on <code>--panel</code>, striped-row text on <code>--table-stripe</code>, the warning callout's composited background, its <code>strong.label</code>) is one <a href="11.html" style="color: var(--accent);">11.html</a> already computed WCAG contrast for directly. Re-deriving the same ten ratios against unchanged CSS would be a check with no way to produce a different answer, so it wasn't repeated.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Heading hierarchy and id uniqueness after the addition</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The page now has 12 <code>h2</code> sections directly under its one <code>h1</code>, including the new <code>#failure-modes</code> section, which needed no <code>h4</code> sub-labels since its content is one callout, one table, and one closing paragraph. All 12 section ids are unique and match the 12 <code>nav.toc</code> entries one-to-one (re-verified after the addition, not assumed from before it).
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The new section's claims are labeled as predictions, not measured findings</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The specific risk with a "what could go wrong" section on a page that otherwise insists on "verify, don't guess" is smuggling in claims that read as findings when they're actually speculation. The section opens with its own callout stating plainly that nothing on the page has run against the real API yet and that every row in its table is a general, well-known agentic-system failure pattern applied to this design, not an observed bug — consistent with the "design walkthrough, not a captured trace" framing already established at the top of the same page, rather than a new, weaker standard introduced just for this section.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Full test suite re-run after both the rename and the content addition</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Ran <code>npm test</code> from <code>tests/</code> after the rename (with <code>tests/ui-mockups.dom.test.mjs</code> updated) and again after adding the new section: 787 passed, 0 failed both times.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand as each item gets fixed,
+    or ask Claude to re-scan this page and refresh this report. See
+    <code>01.html</code> for the rest of the repo, <code>02.html</code> for the pattern-lab pages, and
+    <code>03.html</code> through <code>11.html</code> for the earlier study-page and mockup reviews this one follows.
+  </footer>
+
+</div>
+</body>
+</html>
