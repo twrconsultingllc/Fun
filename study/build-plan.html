@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
+<title>Claude Architect Lab — Build Plan</title>
+<meta name="description" content="Step-by-step build plan for the Claude Architect Lab exam-prep project, split into ten self-contained sessions so the work can be spread across separate Claude Code sessions and days instead of one long sitting." />
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --panel-border: #262c38;
+    --text: #e4e7ee;
+    --text-dim: #a2a9b8;
+    --accent: #f2a65a;
+    --accent-2: #7fb9e0;
+    --good: #7bc696;
+    --code-bg: #0b0d12;
+    --table-stripe: #1b202a;
+    --link: #f2a65a;
+    --max-width: 960px;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f7f7f5;
+      --panel: #ffffff;
+      --panel-border: #e3e1da;
+      --text: #24262b;
+      --text-dim: #5b5f6b;
+      --accent: #9b531a;
+      --accent-2: #1b6a94;
+      --good: #1f7445;
+      --code-bg: #f1efe8;
+      --table-stripe: #f1f0eb;
+      --link: #9b531a;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    line-height: 1.65;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 220px minmax(0, var(--max-width));
+    gap: 2.5rem;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 6rem;
+  }
+
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: 1fr; }
+    nav.toc { position: static !important; order: 2; }
+  }
+
+  header.masthead {
+    grid-column: 1 / -1;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--panel-border);
+    margin-bottom: 0.5rem;
+  }
+
+  header.masthead .eyebrow {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  header.masthead h1 {
+    font-size: 2.1rem;
+    margin: 0.35rem 0 0.5rem;
+    line-height: 1.2;
+  }
+
+  header.masthead p.tagline {
+    color: var(--text-dim);
+    font-size: 1.05rem;
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  nav.toc {
+    position: sticky;
+    top: 2rem;
+    align-self: start;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.86rem;
+  }
+
+  nav.toc h2 {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin: 0 0 0.6rem;
+  }
+
+  nav.toc ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: toc;
+  }
+
+  nav.toc li {
+    counter-increment: toc;
+    margin-bottom: 0.5rem;
+  }
+
+  nav.toc a {
+    color: var(--text-dim);
+    text-decoration: none;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  nav.toc a::before {
+    content: counter(toc);
+    color: var(--accent);
+    font-weight: 700;
+    min-width: 1.2em;
+  }
+
+  nav.toc a:hover { color: var(--text); }
+
+  main { min-width: 0; }
+
+  section {
+    margin-bottom: 3rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  section:last-of-type { border-bottom: none; }
+
+  h2 {
+    font-size: 1.5rem;
+    margin: 0 0 0.3rem;
+    scroll-margin-top: 1.5rem;
+  }
+
+  h2 .kicker {
+    display: block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent-2);
+    margin-bottom: 0.4rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    margin: 1.6rem 0 0.6rem;
+    color: var(--text);
+  }
+
+  p { margin: 0.8rem 0; }
+
+  a { color: var(--link); }
+
+  code {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    background: var(--code-bg);
+    padding: 0.12em 0.4em;
+    border-radius: 4px;
+    font-size: 0.88em;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.2rem 0;
+    font-size: 0.92rem;
+  }
+
+  caption {
+    text-align: left;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-bottom: 0.4rem;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid var(--panel-border);
+    vertical-align: top;
+  }
+
+  th {
+    background: var(--panel);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+  }
+
+  tbody tr:nth-child(even) { background: var(--table-stripe); }
+
+  ul, ol { padding-left: 1.4rem; }
+  li { margin: 0.35rem 0; }
+
+  .callout {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-left: 4px solid var(--accent-2);
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    margin: 1.2rem 0;
+    font-size: 0.94rem;
+  }
+
+  .callout.decision { border-left-color: var(--good); }
+  .callout.warning {
+    border-left-color: var(--accent);
+    background: rgba(242, 166, 90, 0.08);
+    font-size: 0.98rem;
+  }
+  .callout strong.label {
+    display: block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 0.35rem;
+  }
+
+  .session-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1.2rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    margin: 0.4rem 0 1.2rem;
+  }
+
+  .session-meta strong { color: var(--text); }
+
+  footer.page-footer {
+    grid-column: 1 / -1;
+    color: var(--text-dim);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.8rem;
+    text-align: center;
+    padding-top: 1rem;
+  }
+
+  @media print {
+    nav.toc { display: none; }
+    .layout { grid-template-columns: 1fr; }
+    section { break-inside: avoid; border-bottom: none; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <header class="masthead">
+    <span class="eyebrow">Study reference · not a repo toy · not linked from index.html</span>
+    <h1>Claude Architect Lab — Build Plan</h1>
+    <p class="tagline">
+      The design in <a href="plan.html">plan.html</a> turned into ten
+      self-contained work sessions, so the actual build can happen a
+      little at a time across separate Claude Code sessions and separate
+      days instead of one long sitting. Each session below ends at a point
+      where something runs and you can stop cleanly — pick this plan back
+      up in a brand-new session any time and it'll be obvious where you
+      left off.
+    </p>
+  </header>
+
+  <nav class="toc" aria-label="Table of contents">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#how">How to use this plan</a></li>
+      <li><a href="#index">Session index</a></li>
+      <li><a href="#s1">Session 1 — Scaffolding &amp; both datasets</a></li>
+      <li><a href="#s2">Session 2 — Read-only lookup tools</a></li>
+      <li><a href="#s3">Session 3 — Gap analysis &amp; the mutating tool</a></li>
+      <li><a href="#s4">Session 4 — The MCP server</a></li>
+      <li><a href="#s5">Session 5 — The hand-rolled agent loop</a></li>
+      <li><a href="#s6">Session 6 — Structured output &amp; review loop</a></li>
+      <li><a href="#s7">Session 7 — Context budget: compaction &amp; caching</a></li>
+      <li><a href="#s8">Session 8 — Orchestrator &amp; the stretch tool</a></li>
+      <li><a href="#s9">Session 9 — Claude Agent SDK version</a></li>
+      <li><a href="#s10">Session 10 — README, cross-check, cost reality-check</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section id="how">
+      <h2><span class="kicker">Before you start</span>How to use this plan</h2>
+      <p>
+        This isn't a schedule — there's no requirement to do one session
+        per day, or to do them on consecutive days at all. It's a set of
+        stopping points chosen so that each one leaves you with something
+        that actually runs, rather than half-finished work spread across
+        an arbitrary line count. A few ground rules that make the
+        multi-session approach actually work:
+      </p>
+      <ul>
+        <li><strong>Start each new session by reading this plan and the "Done when" line of whatever session you finished last</strong> — not by reading raw code you wrote days ago. A fresh Claude Code session has no memory of prior ones, so re-orienting from this document is faster than re-deriving context from files.</li>
+        <li><strong>Don't open a session's next tests as extra credit.</strong> Each session already ends at a real boundary — resist folding the next one in just because you have 20 minutes left. Half of Session 5 is worse than none of it, since the agent loop needs the whole scenario in your head at once.</li>
+        <li><strong>An <code>ANTHROPIC_API_KEY</code> is only needed starting Session 5.</strong> Sessions 1–4 are pure data, tools, and MCP wiring, tested with stubs or an in-memory transport — zero live calls, zero cost. See the session index below for exactly which sessions touch the real API.</li>
+        <li><strong>Fast-moving packages get re-checked, not assumed.</strong> Session 1 and Session 9 both re-verify current npm versions before writing code, per the "verified, not recalled" habit in <a href="plan.html#versions">plan.html section 02</a> — a version pinned weeks ago in this plan may already be stale by the time you build it.</li>
+        <li>Every session below cross-references the exact file names and shapes already decided in <a href="plan.html">plan.html</a> — this page sequences the work, it doesn't redesign it. If something here seems to contradict that page, plan.html is the source of truth; treat the mismatch as a bug in this page.</li>
+      </ul>
+    </section>
+
+    <section id="index">
+      <h2><span class="kicker">The whole plan, at a glance</span>Session index</h2>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Session</th><th>Needs API key?</th><th>Est. time</th><th>Depends on</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Scaffolding &amp; both datasets</td><td>No</td><td>45–60 min</td><td>—</td></tr>
+          <tr><td>2</td><td>Read-only lookup tools</td><td>No</td><td>60–90 min</td><td>Session 1</td></tr>
+          <tr><td>3</td><td>Gap analysis &amp; the mutating tool</td><td>No</td><td>90 min</td><td>Session 2</td></tr>
+          <tr><td>4</td><td>The MCP server</td><td>Optional (one manual check)</td><td>60–90 min</td><td>Session 3</td></tr>
+          <tr><td>5</td><td>The hand-rolled agent loop</td><td><strong>Yes</strong></td><td>90–120 min</td><td>Session 3</td></tr>
+          <tr><td>6</td><td>Structured output &amp; review loop</td><td><strong>Yes</strong> (for the manual runs)</td><td>60–90 min</td><td>Session 5</td></tr>
+          <tr><td>7</td><td>Context budget: compaction &amp; caching</td><td><strong>Yes</strong> (for the real run)</td><td>90 min</td><td>Session 4</td></tr>
+          <tr><td>8</td><td>Orchestrator &amp; the stretch tool</td><td><strong>Yes</strong> (for the manual run)</td><td>90–120 min</td><td>Sessions 3, 6</td></tr>
+          <tr><td>9</td><td>Claude Agent SDK version</td><td><strong>Yes</strong></td><td>90 min</td><td>Session 4</td></tr>
+          <tr><td>10</td><td>README, cross-check, cost reality-check</td><td>No</td><td>60 min</td><td>Everything above</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Sessions 6, 7, 8, and 9 only depend on earlier sessions, not on
+        each other — once Session 5 is done, you can do them in any order
+        that fits your available time, and skip around if one day you only
+        have 30 minutes and another you have two hours.
+      </p>
+    </section>
+
+    <section id="s1">
+      <h2><span class="kicker">Session 1</span>Scaffolding &amp; both datasets</h2>
+      <div class="session-meta">
+        <span><strong>Needs API key:</strong> No</span>
+        <span><strong>Est. time:</strong> 45–60 min</span>
+        <span><strong>Depends on:</strong> nothing</span>
+      </div>
+      <p>
+        Goal: the project exists, installs, and both sample datasets are
+        written and valid — nothing reads them yet.
+      </p>
+      <ol>
+        <li>Re-verify current versions of <code>@anthropic-ai/sdk</code>, <code>@anthropic-ai/claude-agent-sdk</code>, and <code>@modelcontextprotocol/sdk</code> (<code>npm view &lt;pkg&gt; version</code>) against <a href="plan.html#versions">plan.html section 02</a> — don't build against numbers that are already stale.</li>
+        <li>Scaffold <code>claude-architect-lab/</code>: <code>package.json</code> (<code>type: "module"</code>, script stubs for <code>test</code> and <code>lab:1</code>–<code>lab:6</code>), <code>.env.example</code> (<code>ANTHROPIC_API_KEY=</code>), and a <code>README.md</code> with just section headers for now — content comes in Session 10.</li>
+        <li>Write <code>mcp-server/data/state-mtl-requirements.json</code>: 8–10 states, the exact record shape and disclaimer convention from <a href="plan.html#dataset">plan.html section 04</a>.</li>
+        <li>Write <code>mcp-server/data/clients.json</code>: the 3 sample clients from <a href="plan.html#clients">plan.html section 05</a> — one per query type from section 06 (established/mid-expansion, brand-new/prospective, existing-with-a-pending-change).</li>
+        <li>Sanity-check both files with a throwaway <code>node -e "JSON.parse(...)"</code> — not a committed test, just confirming they parse before anything is built on top of them.</li>
+      </ol>
+      <div class="callout decision">
+        <strong class="label">Done when</strong>
+        <code>npm install</code> succeeds, both JSON files parse, and their contents match the shapes documented in <code>plan.html</code> sections 04–05. Nothing executes against them yet — that's Session 2.
+      </div>
+    </section>
+
+    <section id="s2">
+      <h2><span class="kicker">Session 2</span>Read-only lookup tools</h2>
+      <div class="session-meta">
+        <span><strong>Needs API key:</strong> No</span>
+        <span><strong>Est. time:</strong> 60–90 min</span>
+        <span><strong>Depends on:</strong> Session 1</span>
+      </div>
+      <p>
+        Goal: every plain lookup tool over both datasets, each with a
+        tight schema and a real "not found" path — no composition, no
+        mutation yet.
+      </p>
+      <ol>
+        <li><code>tools/get-state-requirements.mjs</code> — one state at a time; an unrecognized state returns an explicit "unknown — needs real research" result, never a guess.</li>
+        <li><code>tools/get-client.mjs</code>, <code>tools/list-clients.mjs</code> (optionally filtered by engagement status), <code>tools/get-client-progress.mjs</code> (optionally filtered to one state).</li>
+        <li><code>tests/get-state-requirements.test.mjs</code> and the read-only parts of <code>tests/client-tools.test.mjs</code> — schema validation, the not-found path, and at least one passing lookup per tool.</li>
+      </ol>
+      <div class="callout decision">
+        <strong class="label">Done when</strong>
+        <code>npm test</code> passes for both test files with zero network calls. You should be able to hand-trace, for any of the 3 sample clients, exactly what each tool returns.
+      </div>
+    </section>
+
+    <section id="s3">
+      <h2><span class="kicker">Session 3</span>Gap analysis &amp; the mutating tool</h2>
+      <div class="session-meta">
+        <span><strong>Needs API key:</strong> No</span>
+        <span><strong>Est. time:</strong> 90 min</span>
+        <span><strong>Depends on:</strong> Session 2</span>
+      </div>
+      <p>
+        Goal: the tools that combine both datasets or change state — the
+        last session before anything touches the live API.
+      </p>
+      <ol>
+        <li><code>tools/gap-analysis.mjs</code> — the generic, client-free diff.</li>
+        <li><code>tools/client-gap-analysis.mjs</code> — the client-aware version: a real client's net worth and posted bonds against <code>state-mtl-requirements.json</code>, not a generic gap.</li>
+        <li><code>tools/update-checklist-item.mjs</code> — the one tool with a side effect. Before writing it, decide and write down (in a code comment or the README stub) whether it mutates an in-memory copy for the session or rewrites <code>clients.json</code> on disk, and what happens if it's called twice with the same input — this is the "side-effecting tools need their own verify step" exam point from <a href="plan.html#queries">plan.html section 06</a>, made concrete.</li>
+        <li><code>tools/validate-expansion-checklist.mjs</code> and <code>tools/validate-client-checklist.mjs</code> — the deterministic "verify" tools, kept separate from anything exposed as an MCP tool (see Session 4).</li>
+        <li>Extend <code>tests/client-tools.test.mjs</code> to cover the mutation and its idempotency.</li>
+      </ol>
+      <div class="callout decision">
+        <strong class="label">Done when</strong>
+        Tests pass, and you can say out loud what happens if <code>update_checklist_item</code> runs twice with identical input — if you can't answer that without re-reading the code, the tool isn't done yet.
+      </div>
+    </section>
+
+    <section id="s4">
+      <h2><span class="kicker">Session 4</span>The MCP server</h2>
+      <div class="session-meta">
+        <span><strong>Needs API key:</strong> Optional — one manual check only</span>
+        <span><strong>Est. time:</strong> 60–90 min</span>
+        <span><strong>Depends on:</strong> Session 3</span>
+      </div>
+      <p>
+        Goal: everything built in Sessions 2–3, exposed as one MCP server
+        with resources alongside the tools.
+      </p>
+      <ol>
+        <li><code>mcp-server/server.mjs</code>: <code>McpServer</code> + <code>registerTool</code> for every tool from Sessions 2–3, via <code>StdioServerTransport</code>.</li>
+        <li>Two MCP resources: <code>mtl://dataset</code> and <code>mtl-clients://{clientId}</code> — the "pull everything up front" counterpart to the "look up one thing" tools.</li>
+        <li><code>tests/mcp-server.test.mjs</code> using <code>InMemoryTransport.createLinkedPair()</code> — a real <code>Client</code>↔<code>Server</code> round-trip against every tool and both resources, no subprocess.</li>
+        <li><em>Optional:</em> one manual run with a real MCP client to eyeball an actual tool call end to end — this is the only place in this session an API key would even come up, and only if you want to see it work outside the test harness.</li>
+      </ol>
+      <div class="callout decision">
+        <strong class="label">Done when</strong>
+        <code>mcp-server.test.mjs</code> passes with zero subprocesses and zero network calls. This is the last "no API key required" session — everything from here on either needs one or is far more useful with one.
+      </div>
+    </section>
+
+    <section id="s5">
+      <h2><span class="kicker">Session 5</span>The hand-rolled agent loop</h2>
+      <div class="session-meta">
+        <span><strong>Needs API key:</strong> Yes, for the final manual run</span>
+        <span><strong>Est. time:</strong> 90–120 min — the biggest single session in this plan</span>
+        <span><strong>Depends on:</strong> Session 3</span>
+      </div>
+      <p>
+        Goal: <code>agent-loop.mjs</code> — the explicit gather → act →
+        verify loop over raw <code>@anthropic-ai/sdk</code>, run against
+        the full Meridian scenario from <a href="plan.html#task">plan.html
+        section 08</a>.
+      </p>
+      <ol>
+        <li>Write the loop with a hard max-turn cap and explicit phase transitions (gather → act → verify), not an open-ended <code>while (true)</code>.</li>
+        <li><code>tests/agent-loop.test.mjs</code> against a stubbed <code>Messages.create</code> — turn-cap enforcement and verify-phase branching, zero network calls.</li>
+        <li>Set <code>ANTHROPIC_API_KEY</code> and run the loop for real against the Meridian scenario: licensed in CA/NY, expanding into TX/FL/IL. Read the actual transcript, not just the final output — this is where a max-turn cap set too low or a tool schema that's subtly wrong shows up.</li>
+      </ol>
+      <div class="callout decision">
+        <strong class="label">Done when</strong>
+        The stubbed test suite passes, and one real run produces a checklist for Meridian that's actually correct against the sample data — not just "the loop terminated without an error."
+      </div>
+      <div class="callout warning">
+        <strong class="label">Why this session is bigger than the others</strong>
+        This is the first place the whole scenario has to live in your head at once — three datasets' worth of context, a multi-turn loop, and a real model response to read critically. Don't split it across two sittings if you can help it; a half-built agent loop is harder to pick back up than a half-built dataset.
+      </div>
+    </section>
+
+    <section id="s6">
+      <h2><span class="kicker">Session 6</span>Structured output &amp; review loop</h2>
+      <div class="session-meta">
+        <span><strong>Needs API key:</strong> Yes, for the manual runs</span>
+        <span><strong>Est. time:</strong> 60–90 min</span>
+        <span><strong>Depends on:</strong> Session 5</span>
+      </div>
+      <p>
+        Goal: turn the agent loop's checklist into validated structured
+        JSON, then into a short prose memo.
+      </p>
+      <ol>
+        <li><code>structured-output.mjs</code> — force the final checklist through <code>output_config.format</code> (not the deprecated forced-<code>tool_choice</code> trick), with a bounded retry on invalid output.</li>
+        <li><code>tests/structured-output.test.mjs</code> — the retry-on-invalid-output logic, stubbed.</li>
+        <li><code>review-loop.mjs</code> — a draft → self-critique → revise chain that turns the checklist into a short compliance memo (prompt chaining).</li>
+        <li>One real run of each against the Meridian scenario's output from Session 5.</li>
+      </ol>
+      <div class="callout decision">
+        <strong class="label">Done when</strong>
+        The retry-logic test passes, one real structured-output run actually validates against its schema, and one real memo reads as something you'd hand to a person.
+      </div>
+    </section>
+
+    <section id="s7">
+      <h2><span class="kicker">Session 7</span>Context budget: compaction &amp; caching</h2>
+      <div class="session-meta">
+        <span><strong>Needs API key:</strong> Yes, for the real measurement run</span>
+        <span><strong>Est. time:</strong> 90 min</span>
+        <span><strong>Depends on:</strong> Session 4</span>
+      </div>
+      <p>
+        Goal: <code>context-budget.mjs</code> — the file the cost estimates
+        in <a href="plan.html#cost">plan.html section 10</a> were only ever
+        a prediction for. This session produces the real numbers.
+      </p>
+      <ol>
+        <li>Loop every state and every client one at a time, tracking token usage as you go.</li>
+        <li>Add a compaction trigger with before/after token counts.</li>
+        <li>Put the static portion of the context (system prompt + full state dataset) behind one <code>cache_control</code> breakpoint; measure a prompt-caching before/after over both datasets.</li>
+        <li><code>tests/context-budget.test.mjs</code> — compaction-trigger threshold math and cache accounting, stubbed.</li>
+        <li>Run it for real. Write the actual measured numbers into the README next to plan.html section 10's estimates, and note plainly where reality agreed or disagreed with the prediction.</li>
+      </ol>
+      <div class="callout decision">
+        <strong class="label">Done when</strong>
+        The stubbed test passes, and there's a real before/after number on record — not just an estimate — for both compaction and caching. If the real numbers disagree with plan.html section 10, that disagreement is worth writing down, not smoothing over.
+      </div>
+    </section>
+
+    <section id="s8">
+      <h2><span class="kicker">Session 8</span>Orchestrator &amp; the stretch tool</h2>
+      <div class="session-meta">
+        <span><strong>Needs API key:</strong> Yes, for the manual run</span>
+        <span><strong>Est. time:</strong> 90–120 min</span>
+        <span><strong>Depends on:</strong> Sessions 3 and 6</span>
+      </div>
+      <p>
+        Goal: multi-agent decomposition, plus the one tool that's
+        deliberately judgment-based rather than a lookup table.
+      </p>
+      <ol>
+        <li><code>orchestrator.mjs</code> — a research worker (lookup tools only) and a writing worker (only ever sees the research worker's structured output, never raw tool calls), merged.</li>
+        <li><code>tools/evaluate-change-impact.mjs</code> — the stretch tool from <a href="plan.html#queries">plan.html section 06</a>: given Quickship's pending ownership change, return which states it touches and why, without a lookup table pretending to know which ownership changes trigger which state's refiling rules.</li>
+        <li>Extend <code>tests/client-tools.test.mjs</code> so all three query types from plan.html section 06 (new/prospective, ongoing-change, in-progress) each have at least one passing test exercised directly against the MCP tools.</li>
+        <li>One real run of the orchestrator on the full 5-target-state Meridian expansion.</li>
+      </ol>
+      <div class="callout decision">
+        <strong class="label">Done when</strong>
+        All three query types have a passing test, and one real orchestrator run produces a coherent merged memo. Also worth writing down here: did <code>evaluate-change-impact.mjs</code>'s "judgment, not lookup" framing actually hold up once you tried to build it, or did it need more structure than planned? That's a real study finding either way.
+      </div>
+    </section>
+
+    <section id="s9">
+      <h2><span class="kicker">Session 9</span>Claude Agent SDK version</h2>
+      <div class="session-meta">
+        <span><strong>Needs API key:</strong> Yes</span>
+        <span><strong>Est. time:</strong> 90 min</span>
+        <span><strong>Depends on:</strong> Session 4</span>
+      </div>
+      <p>
+        Goal: the same MCP server from Session 4, driven through the
+        Claude Agent SDK instead of a hand-rolled loop — the direct
+        contrast <a href="plan.html#versions">plan.html section 02</a>
+        sets up.
+      </p>
+      <ol>
+        <li>Re-run <code>npm view @anthropic-ai/claude-agent-sdk version</code> — this package ships multiple times a week, so re-check immediately before writing against it, not just once back in Session 1.</li>
+        <li><code>sdk-version/agent.mjs</code>: <code>query()</code> with <code>systemPrompt</code> (preset + append), <code>allowedTools</code>, a <code>permissionMode</code>, one <code>PreToolUse</code> hook, and <code>mcpServers</code> pointing at Session 4's server.</li>
+        <li><code>.claude/agents/mtl-compliance-reviewer.md</code> — the subagent that reviews a drafted checklist/memo, the LLM-judgment counterpart to <code>validate-client-checklist.mjs</code>'s code-based check.</li>
+        <li><code>tests/hooks.test.mjs</code> — the <code>PreToolUse</code> callback called directly with fabricated input, no live call.</li>
+        <li>One real manual run confirming the hook actually fires and the MCP tool is actually reachable through the SDK.</li>
+      </ol>
+      <div class="callout decision">
+        <strong class="label">Done when</strong>
+        The hooks test passes, and one real run confirms both the hook firing and the MCP tool being reachable. State plainly in the README that this file's true end-to-end behavior is manual-run-and-eyeball only, same as <code>battle-bots-v2.core.test.mjs</code>'s convention elsewhere in this repo.
+      </div>
+    </section>
+
+    <section id="s10">
+      <h2><span class="kicker">Session 10</span>README, cross-check, cost reality-check</h2>
+      <div class="session-meta">
+        <span><strong>Needs API key:</strong> No</span>
+        <span><strong>Est. time:</strong> 60 min</span>
+        <span><strong>Depends on:</strong> everything above</span>
+      </div>
+      <p>
+        Goal: turn ten sessions' worth of files into something you'd
+        actually review the night before the exam.
+      </p>
+      <ol>
+        <li>Write the README's exam-domain crib sheet — the table from <a href="plan.html#mapping">plan.html section 09</a>, filled in with the real file paths you actually ended up with, not the planned ones (note anywhere they diverged).</li>
+        <li>Re-check current per-token pricing against <a href="plan.html#cost">plan.html section 10</a> one more time, and note anything that's drifted since that section was written.</li>
+        <li>Read the exam-domain mapping table top to bottom: for each row, confirm the named file actually demonstrates the concept, not just that it runs without error.</li>
+        <li>Fold in whatever you wrote down in Session 7 (the real compaction/caching numbers) and Session 8 (whether the judgment-based tool held up) — these are the parts of this project that are actually yours, not just a rebuild of the plan.</li>
+      </ol>
+      <div class="callout decision">
+        <strong class="label">Done when</strong>
+        You could hand this README to someone else and they'd understand what every file is for, why it exists, and which exam domain it demonstrates — and you've read it once yourself as an actual study session, not just as a formality.
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="page-footer">
+    Claude Architect Lab build plan · sequences <a href="plan.html">plan.html</a>'s design into ten sessions · written for /workspaces/Fun · not part of the toy gallery
+  </footer>
+
+</div>
+</body>
+</html>

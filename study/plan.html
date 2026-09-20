@@ -706,6 +706,9 @@
                                            same "verify" idea, one via code, one via an LLM subagent
 
   tests/                                  node:test + node:assert, no added framework, NEVER calls the live API
+    get-state-requirements.test.mjs       unit tests for the state-lookup tool directly (schema, the "unknown
+                                           state" path) — ahead of mcp-server.test.mjs, which re-covers it only
+                                           as part of the full round-trip once the server exists
     agent-loop.test.mjs                   loop logic via stubbed Messages.create: turn cap, verify-phase branching
     structured-output.test.mjs            retry-on-invalid-output logic
     context-budget.test.mjs               compaction trigger threshold math; before/after token + cache accounting
@@ -904,6 +907,13 @@
         <li>Re-check current per-token pricing before treating section 10's numbers as anything more than a study exercise</li>
         <li>Read the finished README top to bottom as a study session — for each row in the exam-domain table, confirm the file actually demonstrates the concept, not just that it runs</li>
       </ol>
+      <div class="callout decision">
+        <strong class="label">Spreading this across sessions</strong>
+        This checklist is the summary; <a href="build-plan.html">build-plan.html</a>
+        breaks it into ten self-contained sessions — each ending at a point
+        where something runs — so the actual build doesn't have to happen
+        in one sitting.
+      </div>
     </section>
 
   </main>

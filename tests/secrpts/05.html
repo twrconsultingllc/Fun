@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>build-plan.html — security &amp; quality review</title>
+<meta name="description" content="Security and code-quality review of the new study/build-plan.html page, plus the plan.html cross-reference fixes it prompted, against this repo's existing scan conventions.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+  .open-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--open);
+  }
+  .open-note b { color: var(--open); }
+
+  .page-table-wrap { overflow-x: auto; margin: 12px 0; }
+  table.page-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .page-table th, .page-table td {
+    border: 1px solid var(--panel-border);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .page-table th {
+    background: var(--code-bg);
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1><code>build-plan.html</code> — security &amp; code-quality review</h1>
+    <p class="sub">A new page, <code>study/build-plan.html</code>, sequences <code>plan.html</code>'s design into ten build sessions. Reviewed per the process in <code>CLAUDE.md</code> ("New pages get a numbered security &amp; quality review") — following the conventions <a href="01.html" style="color: var(--accent);">01.html</a>, <a href="02.html" style="color: var(--accent);">02.html</a>, and <a href="03.html" style="color: var(--accent);">03.html</a> already established, and the follow-up pattern <a href="04.html" style="color: var(--accent);">04.html</a> used for a same-day revision.</p>
+    <div class="meta">Review performed 2026-09-20 · repo: <code>twrconsultingllc/Fun</code> · new page: <code>study/build-plan.html</code> · also touches: <code>study/plan.html</code> (a cross-link and one directory-layout addition, both made during this review)</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">2 of 2 actionable findings fixed, nothing left open. 8 additional items confirmed clean, not counted as actionable.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">CSP, referrer, description, and viewport meta tags present and correctly scoped</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <code>build-plan.html</code> was written with the full meta-tag set from the start (<code>03.html</code> had to add these after the fact to the two earlier study pages) — <code>Content-Security-Policy</code>, <code>referrer</code>, and <code>description</code> all present in the <code>&lt;head&gt;</code>, matching the same minimal shape as <code>plan.html</code> and <code>usecase.html</code>: <code>script-src 'self'</code> with no <code>'unsafe-inline'</code> (there is no <code>&lt;script&gt;</code> tag on the page at all), <code>style-src 'self' 'unsafe-inline'</code> for its handful of inline <code>style="…"</code> attributes.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No external resources, scripts, forms, inline handlers, or secrets</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped the file directly: no <code>&lt;script&gt;</code>, no <code>on*="…"</code> handler, no <code>eval(</code>/<code>fetch(</code>/<code>XMLHttpRequest</code>, no <code>&lt;form&gt;</code>, no API key or <code>.env</code> reference, and — unlike the two earlier study pages — <strong>no external <code>href="http…"</code> link at all</strong>. The only link on the page is a relative, same-origin reference to <code>plan.html</code> (plus seven anchored references into specific sections of it), which needs no <code>target</code>/<code>rel</code> hardening the way the external NMLS link does — that hardening exists specifically for links that open a new browsing context to a different origin, and this one does neither.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Cross-page anchor links actually resolve, not just internal ones</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p>This page introduces something the earlier two didn't have to worry about: links that jump into a specific section of a <em>different</em> file (<code>plan.html#dataset</code>, <code>plan.html#clients</code>, etc.), rather than only within the same page. A typo or a stale reference here fails silently — the browser just scrolls to the top of the target page instead of erroring — so it's a real risk category, not a formality.</p>
+        <p>Extracted all seven <code>href="plan.html#…"</code> references and checked each fragment against <code>plan.html</code>'s actual <code>id</code> attributes directly, rather than trusting that the two pages were written to agree: <code>#versions</code>, <code>#dataset</code>, <code>#clients</code>, <code>#queries</code>, <code>#task</code>, <code>#cost</code>, and <code>#mapping</code> all exist. Also re-ran the same-page checks <code>03.html</code> established: all 12 of <code>build-plan.html</code>'s own <code>section id</code> values are unique, and all 12 <code>nav.toc</code> entries resolve to one of them.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Not linked from <code>index.html</code>, as intended</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped <code>index.html</code> for any reference to <code>build-plan</code> — none. This is study/reference material, not a toy for the gallery, same as its two companion pages.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Contrast, computed against this page's actual composited backgrounds — not assumed from the earlier fix</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p><code>build-plan.html</code> reuses <code>plan.html</code>'s color variables verbatim, which already went through <code>03.html</code>'s contrast fix — but reusing a palette isn't the same guarantee as reusing the exact markup it was fixed on, since a new page can put an old color on a new background. Rather than assume the earlier fix covers this page by inheritance, computed WCAG relative-luminance contrast directly for every text/background pair this page actually uses, including the one composited background <code>03.html</code>'s methodology specifically calls for (a tinted <code>rgba()</code> callout background over the real page background, not the flat background alone):</p>
+        <div class="page-table-wrap">
+        <table class="page-table">
+          <thead><tr><th>Pair</th><th>Dark mode</th><th>Light mode</th></tr></thead>
+          <tbody>
+            <tr><td><code>--text-dim</code> on page background</td><td>8.01:1</td><td>5.94:1</td></tr>
+            <tr><td><code>--text-dim</code> on panel</td><td>7.39:1</td><td>6.38:1</td></tr>
+            <tr><td><code>--accent-2</code> (session kickers) on page background</td><td>8.92:1</td><td>5.54:1</td></tr>
+            <tr><td><code>--link</code> (prose links) on page background</td><td>9.34:1</td><td>5.37:1</td></tr>
+            <tr><td><code>--text-dim</code> on the tinted <code>.callout.warning</code> composite</td><td>7.09:1</td><td>5.27:1</td></tr>
+            <tr><td><code>--text</code> on the same composite</td><td>13.51:1</td><td>13.44:1</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p>Every pair clears 4.5:1 with real margin in both modes — the worst case is 5.27:1 in light mode. No regression from reusing the palette on new markup.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Two unused CSS rules carried over from copying <code>plan.html</code>'s stylesheet</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        <code>build-plan.html</code>'s stylesheet was built by starting from <code>plan.html</code>'s and adding a page-specific <code>.session-meta</code> rule. Checking which classes the copied stylesheet actually renders against which classes appear in the markup turned up two that don't: <code>.badge</code> and <code>.badge.risk</code> were copied over but never applied to any element on this page — <code>plan.html</code> uses them for its package-version-status table, which this page has no equivalent of.
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> removed both unused rules. <code>caption</code> and the bare <code>table</code>/<code>th</code>/<code>td</code> selectors were left alone — those are generic element styling that legitimately applies to the one <code>&lt;table&gt;</code> this page does use (the session index), not a copy-pasted component nothing on the page reaches.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Heading hierarchy and id uniqueness</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        A single <code>h1</code>, with every section using <code>h2</code> directly underneath it and no <code>h3</code> anywhere — this page's content didn't need a third level, unlike <code>plan.html</code>'s package-version section. All <code>id</code> attributes (12 sections plus the two navigation anchors) are unique.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Every file name this page references was cross-checked against <code>plan.html</code>'s actual directory layout — one didn't match</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        <p>This page's whole premise is sequencing <code>plan.html</code>'s design, so a file name that drifts from that source of truth is a real content bug, not a stylistic quibble — it would send someone building Session 2 looking for a test file plan.html never named. Extracted all 33 distinct <code>.mjs</code>/<code>.md</code>/<code>.json</code> file references from <code>build-plan.html</code> and checked each one against <code>plan.html</code>'s directory-layout section verbatim.</p>
+        <p>32 matched. One didn't: Session 2 introduced <code>tests/get-state-requirements.test.mjs</code> to unit-test the state-lookup tool directly, ahead of the MCP server existing — a reasonable sequencing choice (test a tool's own exported function before wiring it into a server), but <code>plan.html</code>'s <code>tests/</code> listing never named that file; its only per-concept test files are <code>agent-loop.test.mjs</code>, <code>structured-output.test.mjs</code>, <code>context-budget.test.mjs</code>, <code>mcp-server.test.mjs</code>, <code>client-tools.test.mjs</code>, and <code>hooks.test.mjs</code>.</p>
+        <p>Rather than quietly rename it out of <code>build-plan.html</code> to avoid the mismatch, the underlying idea is correct and worth keeping — a state-lookup unit test ahead of the MCP server is good sequencing, not a mistake.</p>
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> added <code>tests/get-state-requirements.test.mjs</code> to <code>plan.html</code>'s directory-layout section (07) as a real entry, with a note on why it exists separately from <code>mcp-server.test.mjs</code>'s later round-trip coverage of the same tool — so the two pages now agree, instead of <code>build-plan.html</code> quietly diverging from the document it's supposed to be sequencing.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Time estimates and "done when" language checked for fabricated precision</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Read every session's time estimate and completion criterion specifically looking for false precision — a plan like this is easy to write with confident-sounding numbers that are actually guesses. Every estimate is a range ("45–60 min," "90–120 min") rather than a fabricated point figure, and every "Done when" callout is a concrete, checkable condition (a test suite passing, a specific manual run producing a specific kind of output) rather than a vague "feels done" statement.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>plan.html</code> now links forward to this page</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <code>plan.html</code>'s next-steps checklist (section 12) already told the reader what to do; it didn't tell them this page existed to break that checklist into sessions. Added one <code>callout.decision</code> pointing from there to <code>build-plan.html</code>, keeping the two documents in sync the same way <code>CLAUDE.md</code> already asks for elsewhere in this repo when a page's behavior changes and a companion document describes it.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand as each item gets fixed,
+    or ask Claude to re-scan this page and refresh this report. See
+    <code>01.html</code> for the rest of the repo, <code>02.html</code> for the pattern-lab pages, and
+    <code>03.html</code>/<code>04.html</code> for the two earlier study-page reviews this one follows.
+  </footer>
+
+</div>
+</body>
+</html>
