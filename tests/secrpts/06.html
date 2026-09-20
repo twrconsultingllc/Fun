@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>ui-plan.html — security &amp; quality review</title>
+<meta name="description" content="Security and code-quality review of the new study/ui-plan.html page, against this repo's existing scan conventions.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+  .open-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--open);
+  }
+  .open-note b { color: var(--open); }
+
+  .page-table-wrap { overflow-x: auto; margin: 12px 0; }
+  table.page-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .page-table th, .page-table td {
+    border: 1px solid var(--panel-border);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .page-table th {
+    background: var(--code-bg);
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1><code>ui-plan.html</code> — security &amp; code-quality review</h1>
+    <p class="sub">A new page, <code>study/ui-plan.html</code>, describes a possible future companion UI for the Claude Architect Lab and includes a small static, non-functional mockup of it. Reviewed per the process in <code>CLAUDE.md</code> ("New pages get a numbered security &amp; quality review") — following the conventions <a href="01.html" style="color: var(--accent);">01.html</a> through <a href="05.html" style="color: var(--accent);">05.html</a> already established.</p>
+    <div class="meta">Review performed 2026-09-20 · repo: <code>twrconsultingllc/Fun</code> · new page: <code>study/ui-plan.html</code></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">1 of 1 actionable finding fixed, nothing left open. 6 additional items confirmed clean, not counted as actionable.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">CSP, referrer, description, and viewport meta tags present and correctly scoped</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <code>ui-plan.html</code> uses the exact same head block as <code>plan.html</code> and <code>build-plan.html</code>: <code>script-src 'self'</code> with no <code>'unsafe-inline'</code>, <code>style-src 'self' 'unsafe-inline'</code> for its inline <code>style="…"</code> width attributes, <code>referrer</code> set to <code>strict-origin-when-cross-origin</code>, and its own page-specific <code>description</code>. This is deliberate: even though this page's whole subject is a <em>future</em> UI that would need a looser, <code>'unsafe-inline'</code> CSP to actually run, this page itself has zero JavaScript, so it correctly keeps the stricter policy its two siblings use rather than adopting the future page's CSP prematurely.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No external resources, scripts, forms, inline handlers, or secrets</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped the file directly: zero <code>&lt;script&gt;</code> tags, zero <code>on*="…"</code> handlers, no <code>eval(</code>/<code>fetch(</code>/<code>XMLHttpRequest</code>, no <code>&lt;form&gt;</code>, no external <code>href="http…"</code> or <code>src="http…"</code>, no <code>@import</code>, and no API key/<code>.env</code> reference. Every link is a same-origin, same-directory relative reference (<code>plan.html</code>, <code>build-plan.html</code>, and their anchors, plus this page's own <code>#section</code> anchors) — no <code>target</code>/<code>rel</code> hardening needed, same reasoning <code>05.html</code> already established for <code>build-plan.html</code>.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The page's mockup buttons and textarea are genuinely inert, not fake-interactive</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        This page's central risk, given its subject matter, is describing a future interactive page while accidentally shipping something that <em>looks</em> interactive today. Checked directly: the mockup's <code>&lt;button&gt;</code> elements carry a real <code>disabled</code> attribute (not just a CSS style making them look inert while remaining clickable), and its <code>&lt;textarea&gt;</code> carries a real <code>disabled</code> attribute too — both are genuinely non-interactive at the HTML level, not simulated via CSS or JS. The page's own <code>.callout.warning</code> disclaimer directly above the mockup states this plainly before a reader reaches it. The mockup's three <code>&lt;details&gt;</code> elements are the one exception worth naming explicitly rather than leaving implicit: their open/close toggle <em>is</em> genuinely live, because that's native, JS-free HTML behavior every browser provides — it isn't something the future build would need to add, so it doesn't contradict the "not functional" framing.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Same-page and cross-page anchor links all resolve</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Extracted every <code>href</code> in the file and checked each fragment against its real target rather than assuming the two pages agree. All 8 <code>nav.toc</code> entries (<code>#why</code>, <code>#scope</code>, <code>#decisions</code>, <code>#console-design</code>, <code>#dataset-design</code>, <code>#process</code>, <code>#open-questions</code>, <code>#mockup</code>) resolve to one of this page's own 8 <code>section id</code> values, and all 8 are unique. The two cross-page references — <code>plan.html#decisions</code> and <code>build-plan.html#s5</code> — were checked directly against those files' actual <code>id</code> attributes: both exist.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Not linked from <code>index.html</code>, as intended</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped <code>index.html</code> for any reference to <code>ui-plan</code> — none. This is study/reference material, not a toy for the gallery, same as its two companion pages.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Five unused CSS rules carried over from copying <code>build-plan.html</code>'s stylesheet</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        <code>ui-plan.html</code>'s stylesheet started as a copy of <code>build-plan.html</code>'s, with page-specific mockup rules added on top. Checking which selectors the copied stylesheet actually matches against the markup turned up five that don't: <code>h3</code> (this page only uses <code>h1</code>, <code>h2</code>, and its own new <code>h4</code>), <code>caption</code> (no <code>&lt;caption&gt;</code> element anywhere), <code>.session-meta</code> and <code>.session-meta strong</code> (a per-session metadata row that <code>build-plan.html</code> needs and this page doesn't), and <code>.badge.done</code>/<code>.badge.in-progress</code> (this page only ever shows the base, neutral <code>.badge</code> — a "Not started" marker — since it deliberately doesn't track its own status the way <code>build-plan.html</code> does).
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> removed all five. The base <code>.badge</code> rule, and the generic <code>table</code>/<code>th</code>/<code>td</code> selectors, were left alone — both are actually used on this page.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Contrast computed for the new color pairings this page introduces, not assumed from the inherited palette</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p>This page reuses <code>build-plan.html</code>'s already-verified palette, but it puts that palette into two combinations neither sibling page has: plain paragraph text (not just short inline <code>&lt;code&gt;</code> snippets) sitting on a <code>--code-bg</code> background inside the mockup's <code>&lt;details&gt;</code> containers, and a disabled-button treatment (<code>--text-dim</code> text on a <code>--panel-border</code> background) that doesn't exist anywhere else in this repo. Computed WCAG relative-luminance contrast directly for each:</p>
+        <div class="page-table-wrap">
+        <table class="page-table">
+          <thead><tr><th>Pair</th><th>Dark mode</th><th>Light mode</th></tr></thead>
+          <tbody>
+            <tr><td><code>--text</code> on <code>--code-bg</code> (mockup details body text)</td><td>15.70:1</td><td>13.16:1</td></tr>
+            <tr><td><code>--text-dim</code> on <code>--code-bg</code> (checklist "pending" marker)</td><td>8.24:1</td><td>5.54:1</td></tr>
+            <tr><td><code>--good</code> on <code>--code-bg</code> (checklist "done" marker)</td><td>9.59:1</td><td>5.01:1</td></tr>
+            <tr><td><code>--text-dim</code> on <code>--panel-border</code> (disabled button)</td><td>5.94:1</td><td>4.87:1</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p>Every pair clears the 4.5:1 WCAG AA threshold for normal text in both modes. The tightest margins are both in light mode — <code>--good</code> on <code>--code-bg</code> at 5.01:1 and the disabled button at 4.87:1 — worth knowing if either color is ever darkened further, but both pass with real margin today.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Command table cross-checked against the real <code>claude-architect-lab</code> project, not just plan prose</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        This page's session-command table is its main reason to exist, so a stale command would be a real content bug. Checked all 10 rows directly against <code>claude-architect-lab/package.json</code>'s actual <code>scripts</code> block and <code>claude-architect-lab/tests/</code>'s actual file listing rather than trusting memory: all six <code>npm run lab:1</code>–<code>lab:6</code> entries match the real script names exactly, and the three hand-assembled <code>node --test</code> commands for Sessions 2–4 reference test files that all actually exist (<code>get-state-requirements.test.mjs</code>, <code>client-tools.test.mjs</code>, <code>mcp-server.test.mjs</code>).
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">This page doesn't duplicate <code>build-plan.html</code>'s session-status tracking</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Checked for the specific drift risk this page's own "Decisions already made" section calls out: no <code>.badge.done</code>/<code>.badge.in-progress</code> usage anywhere (consistent with the unused-CSS finding above), and no session-status prose duplicated from <code>build-plan.html</code> — every session reference here is either a command or a link to that session's real entry there.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Heading hierarchy and id uniqueness</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        A single <code>h1</code>, every one of the 8 sections using <code>h2</code> directly underneath it, and a page-specific <code>h4</code> used only inside the mockup section for its three sub-labels — no skipped levels. All <code>id</code> attributes (8 sections plus the two mockup <code>&lt;details&gt;</code>/table structures, which don't need their own ids) are unique.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand as each item gets fixed,
+    or ask Claude to re-scan this page and refresh this report. See
+    <code>01.html</code> for the rest of the repo, <code>02.html</code> for the pattern-lab pages, and
+    <code>03.html</code>/<code>04.html</code>/<code>05.html</code> for the earlier study-page reviews this one follows.
+  </footer>
+
+</div>
+</body>
+</html>

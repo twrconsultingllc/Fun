@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
+<title>Claude Architect Lab — UI Plan</title>
+<meta name="description" content="A plan — not an implementation — for a future companion UI to the Claude Architect Lab: a session console and a live dataset browser, plus a small static mockup of what it would look like." />
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --panel-border: #262c38;
+    --text: #e4e7ee;
+    --text-dim: #a2a9b8;
+    --accent: #f2a65a;
+    --accent-2: #7fb9e0;
+    --good: #7bc696;
+    --code-bg: #0b0d12;
+    --table-stripe: #1b202a;
+    --link: #f2a65a;
+    --max-width: 960px;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f7f7f5;
+      --panel: #ffffff;
+      --panel-border: #e3e1da;
+      --text: #24262b;
+      --text-dim: #5b5f6b;
+      --accent: #9b531a;
+      --accent-2: #1b6a94;
+      --good: #1f7445;
+      --code-bg: #f1efe8;
+      --table-stripe: #f1f0eb;
+      --link: #9b531a;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    line-height: 1.65;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 220px minmax(0, var(--max-width));
+    gap: 2.5rem;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 6rem;
+  }
+
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: 1fr; }
+    nav.toc { position: static !important; order: 2; }
+  }
+
+  header.masthead {
+    grid-column: 1 / -1;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--panel-border);
+    margin-bottom: 0.5rem;
+  }
+
+  header.masthead .eyebrow {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  header.masthead h1 {
+    font-size: 2.1rem;
+    margin: 0.35rem 0 0.5rem;
+    line-height: 1.2;
+  }
+
+  header.masthead p.tagline {
+    color: var(--text-dim);
+    font-size: 1.05rem;
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  nav.toc {
+    position: sticky;
+    top: 2rem;
+    align-self: start;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.86rem;
+  }
+
+  nav.toc h2 {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin: 0 0 0.6rem;
+  }
+
+  nav.toc ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: toc;
+  }
+
+  nav.toc li {
+    counter-increment: toc;
+    margin-bottom: 0.5rem;
+  }
+
+  nav.toc a {
+    color: var(--text-dim);
+    text-decoration: none;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  nav.toc a::before {
+    content: counter(toc);
+    color: var(--accent);
+    font-weight: 700;
+    min-width: 1.2em;
+  }
+
+  nav.toc a:hover { color: var(--text); }
+
+  main { min-width: 0; }
+
+  section {
+    margin-bottom: 3rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  section:last-of-type { border-bottom: none; }
+
+  h2 {
+    font-size: 1.5rem;
+    margin: 0 0 0.3rem;
+    scroll-margin-top: 1.5rem;
+  }
+
+  h2 .kicker {
+    display: block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent-2);
+    margin-bottom: 0.4rem;
+  }
+
+  h4 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin: 1.2rem 0 0.5rem;
+  }
+
+  p { margin: 0.8rem 0; }
+
+  a { color: var(--link); }
+
+  code {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    background: var(--code-bg);
+    padding: 0.12em 0.4em;
+    border-radius: 4px;
+    font-size: 0.88em;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.2rem 0;
+    font-size: 0.92rem;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid var(--panel-border);
+    vertical-align: top;
+  }
+
+  th {
+    background: var(--panel);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+  }
+
+  tbody tr:nth-child(even) { background: var(--table-stripe); }
+
+  ul, ol { padding-left: 1.4rem; }
+  li { margin: 0.35rem 0; }
+
+  .callout {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-left: 4px solid var(--accent-2);
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    margin: 1.2rem 0;
+    font-size: 0.94rem;
+  }
+
+  .callout.decision { border-left-color: var(--good); }
+  .callout.warning {
+    border-left-color: var(--accent);
+    background: rgba(242, 166, 90, 0.08);
+    font-size: 0.98rem;
+  }
+  .callout.notes { border-left-color: var(--text-dim); }
+  .callout strong.label {
+    display: block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 0.35rem;
+  }
+
+  .badge {
+    display: inline-block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.15em 0.55em;
+    border-radius: 999px;
+    background: var(--panel-border);
+    color: var(--text-dim);
+    vertical-align: middle;
+  }
+
+  footer.page-footer {
+    grid-column: 1 / -1;
+    color: var(--text-dim);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.8rem;
+    text-align: center;
+    padding-top: 1rem;
+  }
+
+  /* Mockup-only styling below — purely decorative, no behavior. */
+  .mockup-frame {
+    border: 1px dashed var(--panel-border);
+    border-radius: 8px;
+    padding: 1.2rem;
+    margin: 1rem 0;
+    background: var(--panel);
+  }
+
+  details.mockup-details {
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 0.7rem 1rem;
+    margin: 0.7rem 0;
+    background: var(--code-bg);
+  }
+
+  details.mockup-details summary {
+    cursor: default;
+    font-weight: 600;
+  }
+
+  details.mockup-details textarea {
+    width: 100%;
+    margin-top: 0.6rem;
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 0.5rem;
+    resize: vertical;
+  }
+
+  .mockup-frame button[disabled] {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.78rem;
+    padding: 0.3em 0.7em;
+    border-radius: 4px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel-border);
+    color: var(--text-dim);
+    cursor: not-allowed;
+  }
+
+  .checklist-mockup {
+    list-style: none;
+    padding-left: 0;
+    margin: 0.4rem 0;
+    font-size: 0.9rem;
+  }
+
+  .checklist-mockup li.done::before { content: "✔ "; color: var(--good); }
+  .checklist-mockup li.pending::before { content: "◻ "; color: var(--text-dim); }
+
+  @media print {
+    nav.toc { display: none; }
+    .layout { grid-template-columns: 1fr; }
+    section { break-inside: avoid; border-bottom: none; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <header class="masthead">
+    <span class="eyebrow">Study reference · describes a future UI, not yet built · not linked from index.html</span>
+    <h1>Claude Architect Lab — UI Plan <span class="badge">Not started</span></h1>
+    <p class="tagline">
+      The lab is a CLI-only Node project by design (see
+      <a href="plan.html#decisions">plan.html section 03</a>) — there is no
+      web UI today, and none of what's on this page has been built. This is
+      a plan for a possible future companion page, in the same spirit as
+      <a href="build-plan.html">build-plan.html</a> sequencing
+      <a href="plan.html">plan.html</a>'s design: it describes the shape of
+      the thing so it can be built later without re-deriving the design
+      from scratch.
+    </p>
+  </header>
+
+  <nav class="toc" aria-label="Table of contents">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#why">Why a UI, and why this is only a plan</a></li>
+      <li><a href="#scope">Scope</a></li>
+      <li><a href="#decisions">Decisions already made</a></li>
+      <li><a href="#console-design">Session console design</a></li>
+      <li><a href="#dataset-design">Dataset browser design</a></li>
+      <li><a href="#process">Testing &amp; process, for when it's built</a></li>
+      <li><a href="#open-questions">Open questions</a></li>
+      <li><a href="#mockup">Visual mockup (static, non-functional)</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section id="why">
+      <h2><span class="kicker">Why this page exists</span>Why a UI, and why this is only a plan</h2>
+      <p>
+        The Claude Architect Lab has no backend and no web deployment —
+        every session in <a href="build-plan.html">build-plan.html</a> is
+        triggered by hand, from a terminal, and its output is whatever
+        prints to stdout. That's a deliberate scope choice
+        (<a href="plan.html#decisions">plan.html section 03</a>: "no
+        web/Vercel deployment, the exam doesn't test deployment"), not an
+        oversight.
+      </p>
+      <p>
+        A static page can't change that — it can't spawn
+        <code>node agent-loop.mjs</code>, can't call the Anthropic API with
+        a real key, and can't run any lab session live. What it
+        <em>can</em> usefully do is act as a cheat sheet (the exact command
+        for each session, one click from a copy) and a live viewer for the
+        lab's own sample data. This page writes that design down now, as a
+        future <code>study/lab-console.html</code>, without building it —
+        so the next time there's an appetite to build it, the decisions
+        below don't need to be re-made.
+      </p>
+    </section>
+
+    <section id="scope">
+      <h2><span class="kicker">What it would do</span>Scope</h2>
+      <p>Two pieces, combined into one future page:</p>
+      <ul>
+        <li><strong>A session console</strong> — a cheat-sheet table, one row per <a href="build-plan.html">build-plan.html</a> session, showing the exact command(s) to run and a link back to that session's real entry.</li>
+        <li><strong>A dataset browser</strong> — a live, read-only view of the lab's two real sample JSON files: <code>state-mtl-requirements.json</code> and <code>clients.json</code>.</li>
+      </ul>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="kicker">Locked in for the future build</span>Decisions already made</h2>
+      <div class="callout decision">
+        <strong class="label">File shape</strong>
+        Single HTML file, inline <code>&lt;script&gt;</code>, CSP loosened
+        to <code>script-src 'self' 'unsafe-inline'</code> for that page
+        specifically — matching every other interactive toy in this repo
+        (<code>snake.html</code>, <code>tricalc.html</code>), not the
+        stricter script-less CSP this page and <code>build-plan.html</code>
+        use. Chosen over a strict-CSP/external-.js approach because it
+        matches a proven, already-reviewed pattern in this repo rather than
+        being new ground.
+      </div>
+      <div class="callout decision">
+        <strong class="label">Build-plan.html stays the one source of truth</strong>
+        The future console must never show its own Done/In-progress badges
+        or duplicate session notes — only a link to
+        <a href="build-plan.html">build-plan.html</a>'s real entry. Forking
+        a second status tracker is exactly the drift this repo's
+        build-plan-sync rule in <code>CLAUDE.md</code> exists to prevent.
+      </div>
+      <div class="callout decision">
+        <strong class="label">Scratch notes, not a second record</strong>
+        A personal per-session textarea, saved to <code>localStorage</code>
+        only, explicitly labeled as non-authoritative — handy while running
+        a session live, never synced anywhere, never confused with
+        <code>build-plan.html</code>'s real notes.
+      </div>
+      <div class="callout decision">
+        <strong class="label">Live data, not a hardcoded copy</strong>
+        The two datasets get fetched from their real repo-relative paths
+        (<code>../claude-architect-lab/mcp-server/data/*.json</code>)
+        rather than duplicated into the page's JS — both files are already
+        committed and not <code>.gitignore</code>d, so GitHub Pages serves
+        them normally. A hardcoded copy would drift the moment the lab's
+        own sessions change the sample data.
+      </div>
+    </section>
+
+    <section id="console-design">
+      <h2><span class="kicker">Section 1 of 2</span>Session console design</h2>
+      <p>
+        One row per session. Every command below runs from
+        <code>claude-architect-lab/</code>, and is verified against this
+        project's real <code>package.json</code> and test file names — not
+        guessed:
+      </p>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Session</th><th>Command(s)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Scaffolding &amp; both datasets</td><td><code>npm install</code></td></tr>
+          <tr><td>2</td><td>Read-only lookup tools</td><td><code>node --test tests/get-state-requirements.test.mjs tests/client-tools.test.mjs</code></td></tr>
+          <tr><td>3</td><td>Gap analysis &amp; the mutating tool</td><td><code>node --test tests/client-tools.test.mjs</code></td></tr>
+          <tr><td>4</td><td>The MCP server</td><td><code>node --test tests/mcp-server.test.mjs</code></td></tr>
+          <tr><td>5</td><td>The hand-rolled agent loop</td><td><code>npm run lab:1</code></td></tr>
+          <tr><td>6</td><td>Structured output &amp; review loop</td><td><code>npm run lab:2</code> and <code>npm run lab:3</code></td></tr>
+          <tr><td>7</td><td>Context budget: compaction &amp; caching</td><td><code>npm run lab:4</code></td></tr>
+          <tr><td>8</td><td>Orchestrator &amp; the stretch tool</td><td><code>npm run lab:5</code></td></tr>
+          <tr><td>9</td><td>Claude Agent SDK version</td><td><code>npm run lab:6</code></td></tr>
+          <tr><td>10</td><td>README, cross-check, cost reality-check</td><td><code>npm test</code></td></tr>
+        </tbody>
+      </table>
+      <p>
+        Each row would also link to <code>build-plan.html#s{n}</code> for
+        that session's real status and notes. The planned copy-to-clipboard
+        button reuses <code>tricalc.html</code>'s existing
+        <code>navigator.clipboard.writeText</code> pattern with a
+        <code>document.execCommand('copy')</code> fallback, verbatim — no
+        need to invent a new one.
+      </p>
+    </section>
+
+    <section id="dataset-design">
+      <h2><span class="kicker">Section 2 of 2</span>Dataset browser design</h2>
+      <p>
+        On page load, two independent <code>fetch()</code> calls (not
+        gated behind a button, since both files are tiny) against the real
+        dataset paths, each rendering through three states:
+      </p>
+      <ul>
+        <li><strong>loading</strong> — plain dimmed placeholder text.</li>
+        <li><strong>error</strong> — a plain-language headline, an actionable note for the likely real cause (opened via <code>file://</code> instead of a server, so <code>fetch</code> is blocked), the raw error message tucked in a collapsed details, and a "Try again" button that just re-fetches.</li>
+        <li><strong>ready</strong> — the data itself, with the JSON's own top-level <code>disclaimer</code> string surfaced above it — that field exists specifically to say the data is a sample, and dropping it would be a mistake.</li>
+      </ul>
+      <p>
+        State requirements render as a filterable table (10 rows). Clients
+        render as one collapsible card each (3 total) rather than a flat
+        table row, since a client's nested control persons and per-state
+        engagements/checklists don't fit one row cleanly.
+      </p>
+    </section>
+
+    <section id="process">
+      <h2><span class="kicker">When it's actually built</span>Testing &amp; process</h2>
+      <p>
+        The future page would need a <code>window.__labConsole</code>
+        read-only test hook, matching this repo's existing
+        <code>window.__swarm</code> / <code>window.__raceday</code> /
+        <code>window.__snake</code> convention, and a new
+        <code>tests/lab-console.dom.test.mjs</code> registered in
+        <code>tests/run.mjs</code>. Per root <code>CLAUDE.md</code>, it
+        would also need its own numbered security/quality review published
+        as the next <code>tests/secrpts/NN.html</code> before that future
+        work could be called done — the same process this very page went
+        through.
+      </p>
+    </section>
+
+    <section id="open-questions">
+      <h2><span class="kicker">Not decided yet</span>Open questions</h2>
+      <ul>
+        <li>The CSP departure from this page's own stricter policy is deliberate, not an oversight — worth restating plainly if it's ever questioned during that future review.</li>
+        <li>Fetching a same-origin local JSON file for app data has no precedent elsewhere in this repo — every other interactive toy hardcodes its data inline. This would be the first.</li>
+        <li>Whether to cross-link the future page from <code>plan.html</code>'s and <code>build-plan.html</code>'s footers is left for that later decision, not made now.</li>
+      </ul>
+    </section>
+
+    <section id="mockup">
+      <h2><span class="kicker">What it might look like</span>Visual mockup (static, non-functional)</h2>
+      <div class="callout warning">
+        <strong class="label">Mockup only — not functional</strong>
+        Everything below is hand-written static HTML. The button is a real,
+        genuinely disabled <code>&lt;button&gt;</code>, the textarea can't
+        be typed into, and no data is actually being fetched — this is
+        purely an illustration of layout and visual language, not a working
+        preview.
+      </div>
+
+      <h4>Session console — example rows</h4>
+      <div class="mockup-frame">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Session</th><th>Command</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>Scaffolding &amp; both datasets</td>
+              <td><code>npm install</code></td>
+              <td><button type="button" disabled>Copy</button></td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>The hand-rolled agent loop</td>
+              <td><code>npm run lab:1</code></td>
+              <td><button type="button" disabled>Copy</button></td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td>Structured output &amp; review loop</td>
+              <td><code>npm run lab:2</code><br /><code>npm run lab:3</code></td>
+              <td><button type="button" disabled>Copy</button><br /><button type="button" disabled>Copy</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Scratch notes — one open, one closed</h4>
+      <div class="mockup-frame">
+        <details class="mockup-details" open>
+          <summary>Session 5 — The hand-rolled agent loop</summary>
+          <div class="callout notes">
+            <strong class="label">Personal scratch notes — not authoritative</strong>
+            <p>Private to your browser only. The real record is <a href="build-plan.html#s5">build-plan.html</a>.</p>
+          </div>
+          <textarea rows="3" disabled>Example note: remember the max-turn cap needs to be higher for the 5-state expansion case.</textarea>
+        </details>
+        <details class="mockup-details">
+          <summary>Session 6 — Structured output &amp; review loop</summary>
+        </details>
+      </div>
+
+      <h4>Dataset browser — example state rows and one client card</h4>
+      <div class="mockup-frame">
+        <table>
+          <thead>
+            <tr><th>State</th><th>Surety Bond Range (USD)</th><th>Net Worth Requirement (USD)</th><th>Typical Review Time</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>California</td><td>50,000–500,000 (sample range only)</td><td>100,000 (sample only)</td><td>12–20 weeks (sample only)</td></tr>
+            <tr><td>Texas</td><td>300,000–2,000,000 (sample range only)</td><td>500,000 (sample only)</td><td>16–24 weeks (sample only)</td></tr>
+          </tbody>
+        </table>
+
+        <details class="mockup-details" open>
+          <summary>Meridian Payments LLC (sample) — meridian-payments</summary>
+          <p><strong>Business profile</strong> — LLC, formed in Delaware. Licensed in California, New York. Net worth: 650,000 (sample). Annual volume: 18,000,000 (sample).</p>
+          <p><strong>Control persons</strong> — Dana Whitfield (sample), CEO / Managing Member, 40%. Priya Anand (sample), COO / Member, 35%.</p>
+          <p><strong>Texas engagement</strong> — status: gathering_documents</p>
+          <ul class="checklist-mockup">
+            <li class="done">Surety bond quote obtained</li>
+            <li class="done">Net worth statement prepared</li>
+            <li class="pending">NMLS filing drafted</li>
+            <li class="pending">Background checks for control persons</li>
+          </ul>
+        </details>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="page-footer">
+    Claude Architect Lab UI plan · a future companion to <a href="plan.html">plan.html</a> and <a href="build-plan.html">build-plan.html</a> · nothing on this page is built yet · not part of the toy gallery
+  </footer>
+
+</div>
+</body>
+</html>
