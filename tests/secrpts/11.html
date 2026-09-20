@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>ui-plan.html rewrite — security &amp; quality review</title>
+<meta name="description" content="Security and code-quality review of study/ui-plan.html's rewrite from a future-UI plan into an agent-loops deep dive, plus the twelve sibling pages edited to match, against this repo's existing scan conventions.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  .page-table-wrap { overflow-x: auto; margin: 12px 0; }
+  table.page-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .page-table th, .page-table td {
+    border: 1px solid var(--panel-border);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .page-table th {
+    background: var(--code-bg);
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1><code>ui-plan.html</code> rewrite — security &amp; code-quality review</h1>
+    <p class="sub"><code>study/ui-plan.html</code> was rewritten from a plan for a never-built future companion UI into a deep dive walking through the agentic/LLM loops in the Meridian Payments use case, and twelve sibling pages (<code>study/index.html</code>, <code>study/ui-mockups.html</code>, and ten <code>study/mockup-*.html</code> files) had their cross-references to it updated to match. Reviewed per the process in <code>CLAUDE.md</code> ("New pages get a numbered security &amp; quality review") — following the conventions <a href="01.html" style="color: var(--accent);">01.html</a> through <a href="10.html" style="color: var(--accent);">10.html</a> already established.</p>
+    <div class="meta">Review performed 2026-09-20 · repo: <code>twrconsultingllc/Fun</code> · rewritten page: <code>study/ui-plan.html</code> · edited for cross-reference accuracy: <code>study/index.html</code>, <code>study/ui-mockups.html</code>, ten <code>study/mockup-*.html</code> files</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">1 of 1 actionable finding fixed, nothing left open. 10 additional items confirmed clean, not counted as actionable.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Head block unchanged and correctly scoped across all thirteen files touched</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The rewrite only replaced <code>ui-plan.html</code>'s <code>&lt;body&gt;</code> content and trimmed a few now-unused CSS rules (see 01 below) — the head block is untouched: <code>script-src 'self'</code> with no <code>'unsafe-inline'</code>, <code>style-src 'self' 'unsafe-inline'</code>, <code>referrer</code> set to <code>strict-origin-when-cross-origin</code>, and a <code>description</code> meta rewritten to describe the page's new subject rather than the old one. The twelve sibling files only had prose inside existing elements edited (a card's <code>&lt;p&gt;</code>, a <code>&lt;div class="callout"&gt;</code>'s text, one shared sentence in a disclaimer box) — none of their head blocks changed, so none needed re-verifying from scratch.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No scripts, inline handlers, forms, or external resources introduced anywhere in the batch</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped all thirteen touched files for <code>&lt;script</code>, <code>on[a-z]+="</code>, <code>&lt;form</code>, <code>href="http</code>, <code>src="http</code>, <code>@import</code>, <code>eval(</code>, and <code>fetch(</code> — zero matches outside the expected <code>&lt;meta&gt;</code> tags themselves. The rewritten <code>ui-plan.html</code> is pure static prose, tables, and <code>&lt;pre&gt;&lt;code&gt;</code> blocks (illustrative pseudocode and a hand-traced sequence, never anything that executes) — a step down in surface area from the old version, which at least had genuinely-disabled mockup form controls to verify; this version has no interactive elements to check at all.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Every link in the rewritten page resolves — same-page anchors and cross-page anchors alike</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Extracted all <code>href</code> values from the new <code>ui-plan.html</code>: 11 <code>nav.toc</code> entries, each matching one of the page's own 11 unique <code>section id</code> values, plus a same-page self-reference. Two plain cross-page links (<code>plan.html</code>, <code>build-plan.html</code>, <code>ui-mockups.html</code>) and one cross-page anchor (<code>plan.html#task</code>) were checked directly against the target files' real <code>id</code> attributes rather than assumed — <code>plan.html</code>'s <code>&lt;section id="task"&gt;</code> exists.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Still not linked from the toy gallery, as intended</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped the repo root's <code>index.html</code> for any reference to <code>ui-plan</code> — none, unchanged from before the rewrite. This remains study/reference material.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The old page's "future UI" cross-references were updated everywhere they existed, not just at the source</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p>Repurposing <code>ui-plan.html</code> without touching what points at it would have left twelve pages describing content that no longer exists — a stale description is worse than no description, the same principle <code>CLAUDE.md</code> already applies to user guides and the build-plan tracker. Grepped the whole repo for <code>ui-plan.html</code> before and after, and checked each of the thirteen hits by hand:</p>
+        <ul>
+          <li><code>study/index.html</code>'s card title and description were rewritten from "UI plan" / "a future companion console and dataset browser" to "Inside the agent loops" / a description matching the new content, and its status label changed from "Not started" to "Design walkthrough — not a captured run".</li>
+          <li><code>study/ui-mockups.html</code>'s two references (its top disclaimer callout and its page footer) no longer describe <code>ui-plan.html</code> as planning "an actual (much narrower) companion page for the real CLI lab" — both now describe it as walking through what the agents actually do internally.</li>
+          <li>The ten <code>study/mockup-*.html</code> files share one identical disclaimer sentence; all ten were updated in the same pass (checked by grepping for the old wording afterward — zero remaining matches) rather than some being missed.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The page's central factual claim was checked against the real tracker, not assumed</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The new page's whole framing rests on one claim: that Sessions 1–4 in <code>build-plan.html</code> are <code>Done</code> and Sessions 5–9 (the ones that would write <code>agent-loop.mjs</code>, <code>structured-output.mjs</code>, <code>review-loop.mjs</code>, <code>context-budget.mjs</code>, <code>orchestrator.mjs</code>, and <code>sdk-version/agent.mjs</code>) are <code>Not started</code>. Read <code>build-plan.html</code>'s session-index table and each session's own meta row directly rather than trusting memory — both agree with the claim. This is the fact the whole "design walkthrough, not a captured trace" framing depends on, so it was checked first, not assumed.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Four CSS rules left over from the old mockup-driven page, now unused</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        The rewrite kept the shared <code>plan.html</code>/<code>build-plan.html</code> stylesheet as its base but dropped the old mockup section entirely (no more disabled buttons, checklists, or scratch-note <code>&lt;details&gt;</code>). Checking which selectors the carried-over stylesheet still matches turned up four that no longer do: <code>.badge</code> (the new page doesn't carry a status badge in its <code>&lt;h1&gt;</code>, unlike its siblings), <code>.callout.decision</code> and <code>.callout.notes</code> (only the base <code>.callout</code> and the <code>.callout.warning</code> variant are used now), and the unused <code>--good</code> custom property in both color-scheme blocks, which only those two removed callout variants had referenced.
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> removed all four. Verified afterward that every remaining custom property (<code>--bg</code>, <code>--panel</code>, <code>--panel-border</code>, <code>--text</code>, <code>--text-dim</code>, <code>--accent</code>, <code>--accent-2</code>, <code>--code-bg</code>, <code>--table-stripe</code>, <code>--link</code>, <code>--max-width</code>) and every remaining selector (<code>.callout</code>, <code>.callout.warning</code>, <code>h4</code>, <code>pre</code>/<code>pre code</code>, the base table rules) is actually matched by the markup.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Contrast computed directly for every text/background pairing this page actually uses, not assumed from the inherited palette</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p>Reusing <code>plan.html</code>'s and <code>build-plan.html</code>'s already-reviewed palette isn't the same guarantee as reusing the exact markup it was checked on — the previous review of this page (<a href="06.html" style="color: var(--accent);">06.html</a>) computed contrast for pairings that no longer exist here (the mockup's disabled button, the checklist's done/pending markers) and never checked some pairings this new content does use, like body prose and pre-formatted code blocks against the page's real backgrounds. Computed WCAG relative-luminance contrast directly for every pair, including the one composited background (the <code>.callout.warning</code>'s translucent <code>rgba()</code> tint over the real page background, not the flat background alone):</p>
+        <div class="page-table-wrap">
+        <table class="page-table">
+          <thead><tr><th>Pair</th><th>Dark mode</th><th>Light mode</th></tr></thead>
+          <tbody>
+            <tr><td><code>--text</code> on <code>--bg</code> (body copy)</td><td>15.26:1</td><td>14.11:1</td></tr>
+            <tr><td><code>--text-dim</code> on <code>--bg</code> (tagline, footer)</td><td>8.01:1</td><td>5.94:1</td></tr>
+            <tr><td><code>--accent</code> on <code>--bg</code> (links, eyebrow)</td><td>9.34:1</td><td>5.37:1</td></tr>
+            <tr><td><code>--accent-2</code> on <code>--bg</code> (section kickers)</td><td>8.92:1</td><td>5.54:1</td></tr>
+            <tr><td><code>--text-dim</code> on <code>--panel</code> (table headers)</td><td>7.39:1</td><td>6.38:1</td></tr>
+            <tr><td><code>--text</code> on <code>--table-stripe</code> (striped rows)</td><td>13.18:1</td><td>13.27:1</td></tr>
+            <tr><td><code>--text</code> on <code>--code-bg</code> (inline <code>code</code>, <code>pre</code> blocks)</td><td>15.70:1</td><td>13.16:1</td></tr>
+            <tr><td><code>--text-dim</code> on <code>--code-bg</code></td><td>8.24:1</td><td>5.54:1</td></tr>
+            <tr><td><code>--text</code> on composited warning-callout background</td><td>13.50:1</td><td>12.68:1</td></tr>
+            <tr><td><code>--text-dim</code> on composited warning-callout background (label)</td><td>7.09:1</td><td>5.34:1</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p>Every pair clears the 4.5:1 WCAG AA threshold for normal text in both modes, most by a wide margin. The tightest is <code>--accent</code> on <code>--bg</code> in light mode at 5.37:1 — comfortably past the threshold, but worth knowing if that accent color is ever darkened toward the page's background.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Tool names, file names, and figures in the walkthrough cross-checked against plan.html, not invented</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The new page's whole value is in accurately describing mechanics <code>plan.html</code> already designed, so a wrong tool name or a fabricated figure would be a real content bug, not a cosmetic one. Checked every tool name (<code>get_client</code>, <code>get_state_requirements</code>, <code>client_gap_analysis</code>, <code>update_checklist_item</code>), every file name (<code>agent-loop.mjs</code>, <code>structured-output.mjs</code>, <code>review-loop.mjs</code>, <code>validate-client-checklist.mjs</code>, <code>context-budget.mjs</code>, <code>orchestrator.mjs</code>, <code>sdk-version/agent.mjs</code>, <code>.claude/agents/mtl-compliance-reviewer.md</code>), and every SDK concept (<code>PreToolUse</code>, <code>permissionMode</code>'s six values) against <code>plan.html</code>'s own sections 02 and 07–09 directly — all present, none invented. Meridian's sample financials (net worth 650,000, bonds posted CA 50,000 / NY 500,000) match <code>plan.html</code> section 05's own example JSON exactly; the Texas bond range cited in the turn-trace (300,000–2,000,000, sample) matches the sample figure this same page's own prior mockup table already carried before the rewrite, not a new number invented for this pass.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Heading hierarchy and id uniqueness</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        A single <code>h1</code>, all 11 sections using <code>h2</code> directly underneath it, and two page-specific <code>h4</code> sub-labels used only inside the "economic loop" section to separate its two distinct loops (compaction vs. caching) — no skipped levels. All 11 section <code>id</code> attributes are unique, matching the 11 <code>nav.toc</code> entries one-to-one.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No test regression from the rewrite or its twelve sibling edits</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <code>tests/ui-mockups.dom.test.mjs</code> is the only automated test that touches any of the thirteen edited files, and it only asserts that a link to <code>ui-plan.html</code> exists on <code>ui-mockups.html</code> — it doesn't assert on <code>ui-plan.html</code>'s own content, so the rewrite didn't require a test change. Ran the full suite (<code>npm test</code> from <code>tests/</code>) after every edit in this batch: 787 passed, 0 failed, both before and after the CSS cleanup in item 01 above.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand as each item gets fixed,
+    or ask Claude to re-scan this page and refresh this report. See
+    <code>01.html</code> for the rest of the repo, <code>02.html</code> for the pattern-lab pages, and
+    <code>03.html</code> through <code>10.html</code> for the earlier study-page and mockup reviews this one follows.
+  </footer>
+
+</div>
+</body>
+</html>

@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
-<title>Claude Architect Lab — UI Plan</title>
-<meta name="description" content="A plan — not an implementation — for a future companion UI to the Claude Architect Lab: a session console and a live dataset browser, plus a small static mockup of what it would look like." />
+<title>Claude Architect Lab — Inside the Agent Loops</title>
+<meta name="description" content="A deep dive into the agentic and LLM mechanics behind the Meridian Payments money-transmitter-licensing use case: the gather-act-verify loop, structured-output retries, the draft-critique-revise chain, two independent verify paths, context compaction and prompt caching, the research/writing orchestrator split, and the Agent SDK's hook-based control loop." />
 <style>
   :root {
     --bg: #0f1115;
@@ -16,7 +16,6 @@
     --text-dim: #a2a9b8;
     --accent: #f2a65a;
     --accent-2: #7fb9e0;
-    --good: #7bc696;
     --code-bg: #0b0d12;
     --table-stripe: #1b202a;
     --link: #f2a65a;
@@ -32,7 +31,6 @@
       --text-dim: #5b5f6b;
       --accent: #9b531a;
       --accent-2: #1b6a94;
-      --good: #1f7445;
       --code-bg: #f1efe8;
       --table-stripe: #f1f0eb;
       --link: #9b531a;
@@ -90,7 +88,7 @@
   header.masthead p.tagline {
     color: var(--text-dim);
     font-size: 1.05rem;
-    max-width: 62ch;
+    max-width: 66ch;
     margin: 0;
   }
 
@@ -185,6 +183,23 @@
     font-size: 0.88em;
   }
 
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    overflow-x: auto;
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: 1em;
+  }
+
   table {
     width: 100%;
     border-collapse: collapse;
@@ -223,13 +238,11 @@
     font-size: 0.94rem;
   }
 
-  .callout.decision { border-left-color: var(--good); }
   .callout.warning {
     border-left-color: var(--accent);
     background: rgba(242, 166, 90, 0.08);
     font-size: 0.98rem;
   }
-  .callout.notes { border-left-color: var(--text-dim); }
   .callout strong.label {
     display: block;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -240,20 +253,6 @@
     margin-bottom: 0.35rem;
   }
 
-  .badge {
-    display: inline-block;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding: 0.15em 0.55em;
-    border-radius: 999px;
-    background: var(--panel-border);
-    color: var(--text-dim);
-    vertical-align: middle;
-  }
-
   footer.page-footer {
     grid-column: 1 / -1;
     color: var(--text-dim);
@@ -262,62 +261,6 @@
     text-align: center;
     padding-top: 1rem;
   }
-
-  /* Mockup-only styling below — purely decorative, no behavior. */
-  .mockup-frame {
-    border: 1px dashed var(--panel-border);
-    border-radius: 8px;
-    padding: 1.2rem;
-    margin: 1rem 0;
-    background: var(--panel);
-  }
-
-  details.mockup-details {
-    border: 1px solid var(--panel-border);
-    border-radius: 6px;
-    padding: 0.7rem 1rem;
-    margin: 0.7rem 0;
-    background: var(--code-bg);
-  }
-
-  details.mockup-details summary {
-    cursor: default;
-    font-weight: 600;
-  }
-
-  details.mockup-details textarea {
-    width: 100%;
-    margin-top: 0.6rem;
-    font-family: inherit;
-    font-size: 0.9rem;
-    color: var(--text);
-    background: var(--panel);
-    border: 1px solid var(--panel-border);
-    border-radius: 4px;
-    padding: 0.5rem;
-    resize: vertical;
-  }
-
-  .mockup-frame button[disabled] {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 0.78rem;
-    padding: 0.3em 0.7em;
-    border-radius: 4px;
-    border: 1px solid var(--panel-border);
-    background: var(--panel-border);
-    color: var(--text-dim);
-    cursor: not-allowed;
-  }
-
-  .checklist-mockup {
-    list-style: none;
-    padding-left: 0;
-    margin: 0.4rem 0;
-    font-size: 0.9rem;
-  }
-
-  .checklist-mockup li.done::before { content: "✔ "; color: var(--good); }
-  .checklist-mockup li.pending::before { content: "◻ "; color: var(--text-dim); }
 
   @media print {
     nav.toc { display: none; }
@@ -330,274 +273,384 @@
 <div class="layout">
 
   <header class="masthead">
-    <span class="eyebrow">Study reference · describes a future UI, not yet built · not linked from index.html</span>
-    <h1>Claude Architect Lab — UI Plan <span class="badge">Not started</span></h1>
+    <span class="eyebrow">Study reference · a design walkthrough, not a captured run · not linked from index.html</span>
+    <h1>Claude Architect Lab — Inside the Agent Loops</h1>
     <p class="tagline">
-      The lab is a CLI-only Node project by design (see
-      <a href="plan.html#decisions">plan.html section 03</a>) — there is no
-      web UI today, and none of what's on this page has been built. This is
-      a plan for a possible future companion page, in the same spirit as
-      <a href="build-plan.html">build-plan.html</a> sequencing
-      <a href="plan.html">plan.html</a>'s design: it describes the shape of
-      the thing so it can be built later without re-deriving the design
-      from scratch.
+      This page used to sketch a possible future companion web UI for the lab.
+      Nothing in that plan was ever built, and a UI isn't actually what's
+      interesting about this project — the loops are. This page has been
+      rewritten to walk through, in detail, everything the agent and the
+      underlying LLM calls are doing inside the one scenario the whole lab is
+      built around: Meridian Payments, a sample client already licensed in
+      California and New York, expanding into Texas, Florida, and Illinois
+      (<a href="plan.html#task">plan.html section 08</a>). Every loop, every
+      retry, every point where one call's output feeds back into the next
+      decision — traced turn by turn.
     </p>
   </header>
 
   <nav class="toc" aria-label="Table of contents">
     <h2>On this page</h2>
     <ol>
-      <li><a href="#why">Why a UI, and why this is only a plan</a></li>
-      <li><a href="#scope">Scope</a></li>
-      <li><a href="#decisions">Decisions already made</a></li>
-      <li><a href="#console-design">Session console design</a></li>
-      <li><a href="#dataset-design">Dataset browser design</a></li>
-      <li><a href="#process">Testing &amp; process, for when it's built</a></li>
-      <li><a href="#open-questions">Open questions</a></li>
-      <li><a href="#mockup">Visual mockup (static, non-functional)</a></li>
+      <li><a href="#not-a-trace">Design walkthrough, not a captured trace</a></li>
+      <li><a href="#core-loop">The core loop: gather → act → verify</a></li>
+      <li><a href="#turn-trace">Turn by turn through the Meridian scenario</a></li>
+      <li><a href="#retry-loop">The retry loop: forcing structured output</a></li>
+      <li><a href="#chain-loop">The chain loop: draft → critique → revise</a></li>
+      <li><a href="#two-verifies">Two verify loops, two different mechanisms</a></li>
+      <li><a href="#economic-loop">The economic loop: budget, compaction, caching</a></li>
+      <li><a href="#delegation-loop">The delegation loop: two workers, one orchestrator</a></li>
+      <li><a href="#control-loop">The control loop: Agent SDK hooks</a></li>
+      <li><a href="#loop-map">All the loops, one map</a></li>
+      <li><a href="#status">What's actually running today</a></li>
     </ol>
   </nav>
 
   <main>
 
-    <section id="why">
-      <h2><span class="kicker">Why this page exists</span>Why a UI, and why this is only a plan</h2>
+    <section id="not-a-trace">
+      <h2><span class="kicker">Read this before the rest</span>Design walkthrough, not a captured trace</h2>
+      <div class="callout warning">
+        <strong class="label">Nothing below came from a real API call</strong>
+        <a href="build-plan.html">build-plan.html</a>'s session tracker shows
+        Sessions 1–4 as <code>Done</code> — the sample datasets, the
+        read-only lookup tools, the gap-analysis and mutating tools, and the
+        MCP server. Sessions 5–9 — the ones that actually write
+        <code>agent-loop.mjs</code>, <code>structured-output.mjs</code>,
+        <code>review-loop.mjs</code>, <code>context-budget.mjs</code>,
+        <code>orchestrator.mjs</code>, and <code>sdk-version/agent.mjs</code>
+        — are still <code>Not started</code>. So every loop described on
+        this page is a step-by-step working-through of the mechanics
+        <a href="plan.html">plan.html</a> already designed, applied by hand
+        to the concrete Meridian scenario so the loops are legible before
+        the code exists — not a transcript pulled from a run that happened.
+        Turn counts, token counts, and dollar figures below are illustrative,
+        sized to plan.html section 10's own estimates, not measured. Once
+        Sessions 5–9 actually run, this page is worth re-checking line by
+        line against the real output — the same "verify, don't assume"
+        discipline this project already applies to package versions and
+        cost figures.
+      </div>
+    </section>
+
+    <section id="core-loop">
+      <h2><span class="kicker">The engine underneath everything else</span>The core loop: gather → act → verify</h2>
       <p>
-        The Claude Architect Lab has no backend and no web deployment —
-        every session in <a href="build-plan.html">build-plan.html</a> is
-        triggered by hand, from a terminal, and its output is whatever
-        prints to stdout. That's a deliberate scope choice
-        (<a href="plan.html#decisions">plan.html section 03</a>: "no
-        web/Vercel deployment, the exam doesn't test deployment"), not an
-        oversight.
+        Every other loop on this page is a variation on, or an addition to,
+        one basic shape: <code>agent-loop.mjs</code>'s hand-rolled loop over
+        the raw <code>@anthropic-ai/sdk</code>. Each iteration sends the full
+        conversation so far to <code>Messages.create</code>, and what comes
+        back decides what happens next:
+      </p>
+      <pre><code>let turns = 0
+while (turns++ < MAX_TURNS) {
+  const response = await anthropic.messages.create({
+    model, system: systemPrompt, tools: toolDefs, messages,
+  })
+  messages.push({ role: "assistant", content: response.content })
+
+  const toolUses = response.content.filter(b => b.type === "tool_use")
+  if (toolUses.length === 0) {
+    // model produced a plain-text answer — a CANDIDATE final answer,
+    // not yet a returned one; hand it to the verify phase below
+    return await verify(response, messages)
+  }
+
+  // otherwise: run each requested tool, feed the results back in,
+  // and loop again — this is the "gather" or "act" half of the cycle
+  const results = await Promise.all(toolUses.map(runTool))
+  messages.push({ role: "user", content: results })
+}
+throw new Error("max turns exceeded without a verified answer")</code></pre>
+      <p>
+        Two things make this a <em>loop</em> rather than a straight-line
+        pipeline. First, the model itself decides how many gather/act
+        iterations it needs — asking for one state's requirements, then
+        deciding it needs the client's profile too, then deciding it needs
+        two more states — before it ever emits plain text. Second,
+        <code>MAX_TURNS</code> exists specifically to close off the failure
+        mode where the model keeps calling tools indefinitely without ever
+        converging: a feedback control on the loop itself, not just on its
+        content.
       </p>
       <p>
-        A static page can't change that — it can't spawn
-        <code>node agent-loop.mjs</code>, can't call the Anthropic API with
-        a real key, and can't run any lab session live. What it
-        <em>can</em> usefully do is act as a cheat sheet (the exact command
-        for each session, one click from a copy) and a live viewer for the
-        lab's own sample data. This page writes that design down now, as a
-        future <code>study/lab-console.html</code>, without building it —
-        so the next time there's an appetite to build it, the decisions
-        below don't need to be re-made.
+        The "verify" step is what keeps this from being just "call tools
+        until the model stops." A plain-text response is a
+        <strong>candidate</strong> answer, not an answer — it still has to
+        pass through the two independent checks in
+        <a href="#two-verifies">"Two verify loops"</a> below before anything
+        gets returned to the person who asked the question.
       </p>
     </section>
 
-    <section id="scope">
-      <h2><span class="kicker">What it would do</span>Scope</h2>
-      <p>Two pieces, combined into one future page:</p>
-      <ul>
-        <li><strong>A session console</strong> — a cheat-sheet table, one row per <a href="build-plan.html">build-plan.html</a> session, showing the exact command(s) to run and a link back to that session's real entry.</li>
-        <li><strong>A dataset browser</strong> — a live, read-only view of the lab's two real sample JSON files: <code>state-mtl-requirements.json</code> and <code>clients.json</code>.</li>
-      </ul>
-    </section>
-
-    <section id="decisions">
-      <h2><span class="kicker">Locked in for the future build</span>Decisions already made</h2>
-      <div class="callout decision">
-        <strong class="label">File shape</strong>
-        Single HTML file, inline <code>&lt;script&gt;</code>, CSP loosened
-        to <code>script-src 'self' 'unsafe-inline'</code> for that page
-        specifically — matching every other interactive toy in this repo
-        (<code>snake.html</code>, <code>tricalc.html</code>), not the
-        stricter script-less CSP this page and <code>build-plan.html</code>
-        use. Chosen over a strict-CSP/external-.js approach because it
-        matches a proven, already-reviewed pattern in this repo rather than
-        being new ground.
-      </div>
-      <div class="callout decision">
-        <strong class="label">Build-plan.html stays the one source of truth</strong>
-        The future console must never show its own Done/In-progress badges
-        or duplicate session notes — only a link to
-        <a href="build-plan.html">build-plan.html</a>'s real entry. Forking
-        a second status tracker is exactly the drift this repo's
-        build-plan-sync rule in <code>CLAUDE.md</code> exists to prevent.
-      </div>
-      <div class="callout decision">
-        <strong class="label">Scratch notes, not a second record</strong>
-        A personal per-session textarea, saved to <code>localStorage</code>
-        only, explicitly labeled as non-authoritative — handy while running
-        a session live, never synced anywhere, never confused with
-        <code>build-plan.html</code>'s real notes.
-      </div>
-      <div class="callout decision">
-        <strong class="label">Live data, not a hardcoded copy</strong>
-        The two datasets get fetched from their real repo-relative paths
-        (<code>../claude-architect-lab/mcp-server/data/*.json</code>)
-        rather than duplicated into the page's JS — both files are already
-        committed and not <code>.gitignore</code>d, so GitHub Pages serves
-        them normally. A hardcoded copy would drift the moment the lab's
-        own sessions change the sample data.
-      </div>
-    </section>
-
-    <section id="console-design">
-      <h2><span class="kicker">Section 1 of 2</span>Session console design</h2>
+    <section id="turn-trace">
+      <h2><span class="kicker">The core loop, applied</span>Turn by turn through the Meridian scenario</h2>
       <p>
-        One row per session. Every command below runs from
-        <code>claude-architect-lab/</code>, and is verified against this
-        project's real <code>package.json</code> and test file names — not
-        guessed:
+        Working the loop above through the actual task —
+        <em>"Meridian Payments is our client. They're already licensed in
+        California and New York and want to expand into Texas, Florida, and
+        Illinois — produce an expansion checklist, flag any gaps against
+        their actual financials, and track it as a case"</em> — looks like
+        this:
       </p>
       <table>
         <thead>
-          <tr><th>#</th><th>Session</th><th>Command(s)</th></tr>
+          <tr><th>Turn</th><th>Actor</th><th>What happens</th><th>Loop phase</th></tr>
         </thead>
         <tbody>
-          <tr><td>1</td><td>Scaffolding &amp; both datasets</td><td><code>npm install</code></td></tr>
-          <tr><td>2</td><td>Read-only lookup tools</td><td><code>node --test tests/get-state-requirements.test.mjs tests/client-tools.test.mjs</code></td></tr>
-          <tr><td>3</td><td>Gap analysis &amp; the mutating tool</td><td><code>node --test tests/client-tools.test.mjs</code></td></tr>
-          <tr><td>4</td><td>The MCP server</td><td><code>node --test tests/mcp-server.test.mjs</code></td></tr>
-          <tr><td>5</td><td>The hand-rolled agent loop</td><td><code>npm run lab:1</code></td></tr>
-          <tr><td>6</td><td>Structured output &amp; review loop</td><td><code>npm run lab:2</code> and <code>npm run lab:3</code></td></tr>
-          <tr><td>7</td><td>Context budget: compaction &amp; caching</td><td><code>npm run lab:4</code></td></tr>
-          <tr><td>8</td><td>Orchestrator &amp; the stretch tool</td><td><code>npm run lab:5</code></td></tr>
-          <tr><td>9</td><td>Claude Agent SDK version</td><td><code>npm run lab:6</code></td></tr>
-          <tr><td>10</td><td>README, cross-check, cost reality-check</td><td><code>npm test</code></td></tr>
+          <tr><td>1</td><td>Human</td><td>Submits the task text above as the first user message.</td><td>Input</td></tr>
+          <tr><td>2</td><td>Model</td><td>Emits <code>tool_use: get_client("meridian-payments")</code> — it has no profile for this client yet, so it can't reason about a gap.</td><td>Gather</td></tr>
+          <tr><td>3</td><td>Tool result</td><td>Returns Meridian's record: licensed in CA and NY, net worth 650,000 (sample), bonds posted CA 50,000 / NY 500,000 (sample).</td><td>Gather</td></tr>
+          <tr><td>4</td><td>Model</td><td>Emits three parallel <code>tool_use</code> blocks — <code>get_state_requirements</code> for Texas, Florida, and Illinois — now that it knows which states actually matter.</td><td>Gather</td></tr>
+          <tr><td>5</td><td>Tool results</td><td>Three requirement records come back (bond ranges, net-worth minimums, review times — each tagged "sample only").</td><td>Gather</td></tr>
+          <tr><td>6</td><td>Model</td><td>Emits <code>tool_use: client_gap_analysis("meridian-payments", ["Texas","Florida","Illinois"])</code> — diffing Meridian's actual financials against each target state, not a generic client-free gap.</td><td>Act</td></tr>
+          <tr><td>7</td><td>Tool result</td><td>Structured diff comes back: e.g. Texas needs a bond in the 300,000–2,000,000 range (sample) against Meridian's 50,000 posted for CA — a real gap, not assumed.</td><td>Act</td></tr>
+          <tr><td>8</td><td>Model</td><td>No further tool calls — drafts the expansion checklist and a short memo as plain text. This is the candidate answer.</td><td>Candidate answer</td></tr>
+          <tr><td>9</td><td>Code verify</td><td><code>validate-client-checklist.mjs</code> checks the draft deterministically: is every target state present, does every checklist item carry a valid status, is nothing silently dropped.</td><td>Verify (code)</td></tr>
+          <tr><td>10</td><td>Subagent verify</td><td>The <code>mtl-compliance-reviewer</code> subagent reviews the same draft a second, different way — completeness of tone and caveats, not just schema shape.</td><td>Verify (judgment)</td></tr>
+          <tr><td>11</td><td>Model (conditional)</td><td>If either verify step flags a problem — a missing state, a checklist item with no supporting tool call — that failure is fed back in as a new user turn and the loop returns to turn 6, not turn 1: the gathered data is still valid, only the act/answer step needs redoing.</td><td>Feedback → Act</td></tr>
+          <tr><td>12</td><td>Model</td><td>Once both verify steps pass, emits <code>tool_use: update_checklist_item</code> once per checklist line — the one tool in this project with a side effect, so each call gets its own confirmation in the response rather than being trusted silently.</td><td>Act (side-effecting)</td></tr>
+          <tr><td>13</td><td>Return</td><td>The verified memo goes back to the human; Meridian's case file in <code>clients.json</code> now reflects the new Texas/Florida/Illinois engagements.</td><td>Output</td></tr>
         </tbody>
       </table>
       <p>
-        Each row would also link to <code>build-plan.html#s{n}</code> for
-        that session's real status and notes. The planned copy-to-clipboard
-        button reuses <code>tricalc.html</code>'s existing
-        <code>navigator.clipboard.writeText</code> pattern with a
-        <code>document.execCommand('copy')</code> fallback, verbatim — no
-        need to invent a new one.
+        Thirteen turns for one scenario, and only two of them (1 and 13) ever
+        touch the human. Everything in between is the agent deciding, on its
+        own, what it still doesn't know and what to check before it commits
+        to an answer.
       </p>
     </section>
 
-    <section id="dataset-design">
-      <h2><span class="kicker">Section 2 of 2</span>Dataset browser design</h2>
+    <section id="retry-loop">
+      <h2><span class="kicker">When the shape of the answer matters as much as its content</span>The retry loop: forcing structured output</h2>
       <p>
-        On page load, two independent <code>fetch()</code> calls (not
-        gated behind a button, since both files are tiny) against the real
-        dataset paths, each rendering through three states:
+        Turn 8 above glosses over something <code>structured-output.mjs</code>
+        exists specifically to handle: the checklist can't just be readable
+        prose, because <code>update_checklist_item</code> and the case file
+        need it as strict JSON — one object per target state, a fixed set of
+        fields, no free-form drift. The model is asked for that shape via
+        <code>output_config.format</code> (the current structured-output API,
+        not the deprecated forced-<code>tool_choice</code> trick), and a
+        small loop of its own handles the case where the first attempt
+        doesn't validate:
+      </p>
+      <pre><code>attempt 1 → model returns JSON missing a required "targetSubmissionDate"
+          → schema validation fails locally, no API round trip wasted on it
+          → the validation error itself becomes the next user turn:
+            "Your last response was missing targetSubmissionDate for
+             Illinois. Return the full checklist again with that field
+             included."
+attempt 2 → model returns JSON with a "status" value not in the
+             fixed enum ("in_review" instead of "under_regulator_review")
+          → same pattern: the specific error goes back in, not a generic
+             "try again"
+attempt 3 → valid → loop exits, structured checklist moves on to
+             validate-client-checklist.mjs</code></pre>
+      <p>
+        The loop is bounded — a small fixed retry cap, matching the
+        <code>MAX_TURNS</code> idea from the core loop — because an
+        unbounded "keep asking until it's valid" retry is exactly the kind
+        of silent-forever failure mode the core loop's turn cap already
+        exists to prevent. Past the cap, the failure surfaces to a human
+        instead of looping quietly.
+      </p>
+    </section>
+
+    <section id="chain-loop">
+      <h2><span class="kicker">Not a tool loop — a fixed chain over text</span>The chain loop: draft → critique → revise</h2>
+      <p>
+        <code>review-loop.mjs</code> is a genuinely different shape from
+        everything above it: no tools, no branching, no "loop until X" — a
+        fixed three-step <em>chain</em> of separate model calls over one
+        piece of text, the compliance memo:
+      </p>
+      <ol>
+        <li><strong>Draft</strong> — the checklist from the core loop above gets turned into a short, readable memo, written as if for a client or for legal.</li>
+        <li><strong>Self-critique</strong> — a second call, with a deliberately different prompt ("find gaps, vague language, or missing caveats in this memo — don't rewrite it, just list problems"), reviewing the draft from step 1.</li>
+        <li><strong>Revise</strong> — a third call incorporates the critique from step 2 into a final version of the same memo.</li>
+      </ol>
+      <p>
+        This always runs all three steps, in that order, every time — unlike
+        the core loop's open-ended "keep gathering until the model stops"
+        shape, or the retry loop's "keep trying until it validates" shape.
+        It's prompt chaining, not agency: the value comes from asking the
+        same model to look at its own output from a different angle, in a
+        separate call that doesn't share the first call's momentum, rather
+        than from the model deciding anything about how many steps to take.
+      </p>
+    </section>
+
+    <section id="two-verifies">
+      <h2><span class="kicker">The same job, done two different ways, on purpose</span>Two verify loops, two different mechanisms</h2>
+      <p>
+        Turns 9 and 10 in the trace above aren't redundant — they're the
+        lab's deliberate illustration that "verify" doesn't have to mean
+        one specific thing, and doesn't have to mean asking the model to
+        grade its own homework:
+      </p>
+      <table>
+        <thead>
+          <tr><th></th><th><code>validate-client-checklist.mjs</code></th><th><code>mtl-compliance-reviewer</code> subagent</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Mechanism</td><td>Deterministic code — the same input always produces the same result</td><td>A second, separate LLM call with its own system prompt and (in the SDK version) its own scoped toolset</td></tr>
+          <tr><td>Catches</td><td>Structural failures: a missing target state, an invalid enum value, a required field left blank</td><td>Judgment failures: a caveat that got dropped in revision, a claim stated more confidently than the underlying data supports, an awkward or unclear passage</td></tr>
+          <tr><td>Can't catch</td><td>Anything about tone, clarity, or whether a technically-valid checklist still reads badly</td><td>Isn't guaranteed to notice a missing field the way a schema check mechanically will — LLM review is judgment, not a parser</td></tr>
+          <tr><td>Cost per check</td><td>Free — no API call</td><td>One more model call, priced like any other turn</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Running both, rather than picking one, is the point: each one is
+        blind to exactly the class of problem the other one exists to
+        catch.
+      </p>
+    </section>
+
+    <section id="economic-loop">
+      <h2><span class="kicker">A feedback loop measured in tokens and dollars, not turns</span>The economic loop: budget, compaction, caching</h2>
+      <p>
+        <code>context-budget.mjs</code> runs a scenario that deliberately
+        stresses the loop above: instead of the model selectively fetching
+        three states it already knows it needs (turn 4 in the trace),
+        this version looks up <strong>every</strong> state and
+        <strong>every</strong> client one at a time, on purpose, to make two
+        separate feedback loops visible.
+      </p>
+      <h4>Loop 1 — compaction</h4>
+      <p>
+        After every <code>Messages.create</code> call, the response's own
+        usage block (<code>input_tokens</code>, <code>output_tokens</code>)
+        gets added to a running total. Once that total crosses a threshold
+        — a fraction of the model's context window, sized against
+        plan.html's own estimate that a full ten-state, three-client sweep
+        runs a few thousand tokens — older tool-result turns get summarized
+        into one condensed synthetic message, freeing budget before the
+        next call. The trigger is the running total itself feeding back
+        into whether the next iteration's <code>messages</code> array gets
+        rewritten before it's sent — the same "measure, then act on the
+        measurement" shape as the retry loop above, just on token counts
+        instead of a schema check.
+      </p>
+      <h4>Loop 2 — prompt caching</h4>
+      <p>
+        A <code>cache_control</code> breakpoint marks the static prefix of
+        the system prompt — the parts that don't change between calls: tool
+        schemas and (per plan.html section 10) the full ten-state dataset.
+        The first call that includes this prefix is a cache
+        <strong>write</strong>, priced at a premium (1.25× normal input
+        price on the default five-minute TTL, 2× on a one-hour TTL); every
+        later call that reuses the same prefix is a cache
+        <strong>read</strong>, priced at a 0.1× discount. This only becomes
+        a real feedback loop — not just a discount — because
+        <code>context-budget.mjs</code> measures before-and-after token
+        counts across the whole ten-state, three-client sweep rather than
+        asserting the saving: at this lab's small scale (~2,300 tokens of
+        static context) the saving is real but modest; plan.html section 10
+        works out that the same pattern against a real firm's full dataset
+        (40,000–60,000 tokens) is where caching stops being a rounding
+        error and starts being roughly a 10× reduction in per-query cost.
+        The loop only pays for itself once the same prefix is actually read
+        back more than once or twice — which is exactly what gets measured,
+        not assumed.
+      </p>
+    </section>
+
+    <section id="delegation-loop">
+      <h2><span class="kicker">A loop that calls two smaller loops</span>The delegation loop: two workers, one orchestrator</h2>
+      <p>
+        <code>orchestrator.mjs</code> takes the same Meridian scenario and
+        splits it across two narrowly-scoped workers, each running its own
+        instance of the core gather-act-verify loop internally:
       </p>
       <ul>
-        <li><strong>loading</strong> — plain dimmed placeholder text.</li>
-        <li><strong>error</strong> — a plain-language headline, an actionable note for the likely real cause (opened via <code>file://</code> instead of a server, so <code>fetch</code> is blocked), the raw error message tucked in a collapsed details, and a "Try again" button that just re-fetches.</li>
-        <li><strong>ready</strong> — the data itself, with the JSON's own top-level <code>disclaimer</code> string surfaced above it — that field exists specifically to say the data is a sample, and dropping it would be a mistake.</li>
+        <li><strong>Research worker</strong> — sees only the lookup tools (<code>get_state_requirements</code>, <code>get_client</code>, <code>client_gap_analysis</code>). Its job ends at turn 7 in the trace above: a structured JSON gap analysis, nothing else.</li>
+        <li><strong>Writing worker</strong> — sees <em>only</em> the research worker's structured JSON output, never the raw tool-call transcript that produced it. Its job is turns 8 onward: draft the checklist and memo, running its own draft-critique-revise chain internally.</li>
       </ul>
       <p>
-        State requirements render as a filterable table (10 rows). Clients
-        render as one collapsible card each (3 total) rather than a flat
-        table row, since a client's nested control persons and per-state
-        engagements/checklists don't fit one row cleanly.
+        The orchestrator's own loop is one level up: decompose the task,
+        run both workers (the writing worker only starts once the research
+        worker's structured output is ready), then merge the result. The
+        boundary between the two workers is deliberately narrow —
+        structured data only, never raw tool-call noise — as its own
+        feedback control: a malformed or overly verbose tool result in the
+        research worker's transcript has no way to leak into the writing
+        worker's prompt, because the writing worker never sees that
+        transcript at all. That narrowing is the actual "structuring
+        multi-agent architectures" exam point plan.html section 08 calls
+        out — not incidental plumbing.
       </p>
     </section>
 
-    <section id="process">
-      <h2><span class="kicker">When it's actually built</span>Testing &amp; process</h2>
+    <section id="control-loop">
+      <h2><span class="kicker">Verification moved inside the loop itself</span>The control loop: Agent SDK hooks</h2>
       <p>
-        The future page would need a <code>window.__labConsole</code>
-        read-only test hook, matching this repo's existing
-        <code>window.__swarm</code> / <code>window.__raceday</code> /
-        <code>window.__snake</code> convention, and a new
-        <code>tests/lab-console.dom.test.mjs</code> registered in
-        <code>tests/run.mjs</code>. Per root <code>CLAUDE.md</code>, it
-        would also need its own numbered security/quality review published
-        as the next <code>tests/secrpts/NN.html</code> before that future
-        work could be called done — the same process this very page went
-        through.
+        <code>sdk-version/agent.mjs</code> runs the same Meridian scenario a
+        third way, through <code>@anthropic-ai/claude-agent-sdk</code>'s
+        managed <code>query()</code> loop instead of the hand-rolled one at
+        the top of this page. The interesting difference isn't the tools —
+        it's where the "verify" moment sits. A <code>PreToolUse</code> hook
+        fires before <strong>every</strong> tool call the SDK loop makes and
+        can inspect the proposed call and its input before it runs,
+        returning allow, deny, or a modified input. That's the same idea as
+        turns 9–10 in the trace above — a check that can reject or redirect
+        an action — but happening per-call, inline in the loop itself,
+        instead of once at the very end against a finished draft.
+        <code>permissionMode</code> adds the same idea at a coarser grain
+        (<code>default</code>, <code>dontAsk</code>, <code>acceptEdits</code>,
+        <code>bypassPermissions</code>, <code>plan</code>, <code>auto</code>)
+        — a policy decided once per session instead of once per call. And
+        the project's <code>.claude/agents/mtl-compliance-reviewer.md</code>
+        subagent is the SDK's declarative version of the second-opinion
+        verify loop from the section above: the same "one more LLM call
+        with a narrower job" idea, wired through config instead of a
+        hand-written function call.
       </p>
     </section>
 
-    <section id="open-questions">
-      <h2><span class="kicker">Not decided yet</span>Open questions</h2>
-      <ul>
-        <li>The CSP departure from this page's own stricter policy is deliberate, not an oversight — worth restating plainly if it's ever questioned during that future review.</li>
-        <li>Fetching a same-origin local JSON file for app data has no precedent elsewhere in this repo — every other interactive toy hardcodes its data inline. This would be the first.</li>
-        <li>Whether to cross-link the future page from <code>plan.html</code>'s and <code>build-plan.html</code>'s footers is left for that later decision, not made now.</li>
-      </ul>
+    <section id="loop-map">
+      <h2><span class="kicker">Everything above, in one place</span>All the loops, one map</h2>
+      <table>
+        <thead>
+          <tr><th>Loop</th><th>Where it lives</th><th>What triggers the next iteration</th><th>What it guards against</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Gather → act → verify</td><td><code>agent-loop.mjs</code></td><td>The model emits a tool call vs. plain text</td><td>Guessing an answer before the needed facts are gathered</td></tr>
+          <tr><td>Turn cap</td><td><code>agent-loop.mjs</code></td><td>A fixed <code>MAX_TURNS</code> counter</td><td>The gather/act cycle never converging</td></tr>
+          <tr><td>Structured-output retry</td><td><code>structured-output.mjs</code></td><td>The returned JSON fails schema validation</td><td>A checklist a downstream tool or file can't parse</td></tr>
+          <tr><td>Draft → critique → revise</td><td><code>review-loop.mjs</code></td><td>Fixed three-step chain, always runs</td><td>Client-facing text that papers over a caveat or gap</td></tr>
+          <tr><td>Code verify</td><td><code>validate-client-checklist.mjs</code></td><td>A schema or rule failure</td><td>A structurally incomplete checklist</td></tr>
+          <tr><td>Subagent verify</td><td><code>mtl-compliance-reviewer.md</code></td><td>The reviewer's own judgment</td><td>A checklist that's structurally fine but reads badly or overstates confidence</td></tr>
+          <tr><td>Compaction</td><td><code>context-budget.mjs</code></td><td>Running token usage crosses a threshold</td><td>Context overflow or degraded reasoning over a bloated history</td></tr>
+          <tr><td>Prompt caching</td><td><code>context-budget.mjs</code></td><td>The same static prefix gets reused across calls</td><td>Paying full input price for identical reference data every query</td></tr>
+          <tr><td>Delegation</td><td><code>orchestrator.mjs</code></td><td>Task decomposed into two scoped workers</td><td>One worker's raw tool-call noise leaking into the other's prompt</td></tr>
+          <tr><td>PreToolUse hook</td><td><code>sdk-version/agent.mjs</code></td><td>Fires before every tool call</td><td>An unreviewed tool call executing with no checkpoint</td></tr>
+        </tbody>
+      </table>
     </section>
 
-    <section id="mockup">
-      <h2><span class="kicker">What it might look like</span>Visual mockup (static, non-functional)</h2>
-      <div class="callout warning">
-        <strong class="label">Mockup only — not functional</strong>
-        Everything below is hand-written static HTML. The button is a real,
-        genuinely disabled <code>&lt;button&gt;</code>, the textarea can't
-        be typed into, and no data is actually being fetched — this is
-        purely an illustration of layout and visual language, not a working
-        preview.
-      </div>
-
-      <h4>Session console — example rows</h4>
-      <div class="mockup-frame">
-        <table>
-          <thead>
-            <tr><th>#</th><th>Session</th><th>Command</th><th></th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>1</td>
-              <td>Scaffolding &amp; both datasets</td>
-              <td><code>npm install</code></td>
-              <td><button type="button" disabled>Copy</button></td>
-            </tr>
-            <tr>
-              <td>5</td>
-              <td>The hand-rolled agent loop</td>
-              <td><code>npm run lab:1</code></td>
-              <td><button type="button" disabled>Copy</button></td>
-            </tr>
-            <tr>
-              <td>6</td>
-              <td>Structured output &amp; review loop</td>
-              <td><code>npm run lab:2</code><br /><code>npm run lab:3</code></td>
-              <td><button type="button" disabled>Copy</button><br /><button type="button" disabled>Copy</button></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h4>Scratch notes — one open, one closed</h4>
-      <div class="mockup-frame">
-        <details class="mockup-details" open>
-          <summary>Session 5 — The hand-rolled agent loop</summary>
-          <div class="callout notes">
-            <strong class="label">Personal scratch notes — not authoritative</strong>
-            <p>Private to your browser only. The real record is <a href="build-plan.html#s5">build-plan.html</a>.</p>
-          </div>
-          <textarea rows="3" disabled>Example note: remember the max-turn cap needs to be higher for the 5-state expansion case.</textarea>
-        </details>
-        <details class="mockup-details">
-          <summary>Session 6 — Structured output &amp; review loop</summary>
-        </details>
-      </div>
-
-      <h4>Dataset browser — example state rows and one client card</h4>
-      <div class="mockup-frame">
-        <table>
-          <thead>
-            <tr><th>State</th><th>Surety Bond Range (USD)</th><th>Net Worth Requirement (USD)</th><th>Typical Review Time</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>California</td><td>50,000–500,000 (sample range only)</td><td>100,000 (sample only)</td><td>12–20 weeks (sample only)</td></tr>
-            <tr><td>Texas</td><td>300,000–2,000,000 (sample range only)</td><td>500,000 (sample only)</td><td>16–24 weeks (sample only)</td></tr>
-          </tbody>
-        </table>
-
-        <details class="mockup-details" open>
-          <summary>Meridian Payments LLC (sample) — meridian-payments</summary>
-          <p><strong>Business profile</strong> — LLC, formed in Delaware. Licensed in California, New York. Net worth: 650,000 (sample). Annual volume: 18,000,000 (sample).</p>
-          <p><strong>Control persons</strong> — Dana Whitfield (sample), CEO / Managing Member, 40%. Priya Anand (sample), COO / Member, 35%.</p>
-          <p><strong>Texas engagement</strong> — status: gathering_documents</p>
-          <ul class="checklist-mockup">
-            <li class="done">Surety bond quote obtained</li>
-            <li class="done">Net worth statement prepared</li>
-            <li class="pending">NMLS filing drafted</li>
-            <li class="pending">Background checks for control persons</li>
-          </ul>
-        </details>
-      </div>
+    <section id="status">
+      <h2><span class="kicker">Circling back to the caveat at the top</span>What's actually running today</h2>
+      <p>
+        Per <a href="build-plan.html">build-plan.html</a>: the sample
+        datasets, the read-only lookup tools, the gap-analysis and mutating
+        tools, and the MCP server (Sessions 1–4) are real, tested code —
+        <code>node --test</code> passes with zero network calls, and none of
+        it was guessed at. Every loop described on this page — the core
+        agent loop, the structured-output retry, the review chain, both
+        verify paths, the compaction/caching pair, the orchestrator split,
+        and the SDK hook — belongs to Sessions 5–9, which
+        <a href="build-plan.html">build-plan.html</a> still shows as
+        <code>Not started</code>. This page is the design those sessions
+        will build against; it isn't a substitute for actually running
+        them, and its illustrative numbers shouldn't be quoted as measured
+        ones until they are.
+      </p>
     </section>
 
   </main>
 
   <footer class="page-footer">
-    Claude Architect Lab UI plan · a future companion to <a href="plan.html">plan.html</a> and <a href="build-plan.html">build-plan.html</a> · nothing on this page is built yet · not part of the toy gallery · see <a href="ui-mockups.html">ui-mockups.html</a> for a separate, more speculative set of clickable product-UI mockups — a different exercise from this page's grounded CLI-companion plan
+    Claude Architect Lab — inside the agent loops · a companion to <a href="plan.html">plan.html</a>'s design and <a href="build-plan.html">build-plan.html</a>'s session tracker · see <a href="ui-mockups.html">ui-mockups.html</a> for a separate, speculative set of clickable product-UI mockups — an unrelated exercise from this page's loop-by-loop mechanics
   </footer>
 
 </div>
