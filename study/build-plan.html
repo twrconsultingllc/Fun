@@ -367,7 +367,7 @@
         </thead>
         <tbody>
           <tr><td>1</td><td>Scaffolding &amp; both datasets</td><td><span class="badge done">Done</span></td><td>No</td><td>45–60 min</td><td>—</td></tr>
-          <tr><td>2</td><td>Read-only lookup tools</td><td><span class="badge">Not started</span></td><td>No</td><td>60–90 min</td><td>Session 1</td></tr>
+          <tr><td>2</td><td>Read-only lookup tools</td><td><span class="badge done">Done</span></td><td>No</td><td>60–90 min</td><td>Session 1</td></tr>
           <tr><td>3</td><td>Gap analysis &amp; the mutating tool</td><td><span class="badge">Not started</span></td><td>No</td><td>90 min</td><td>Session 2</td></tr>
           <tr><td>4</td><td>The MCP server</td><td><span class="badge">Not started</span></td><td>Optional (one manual check)</td><td>60–90 min</td><td>Session 3</td></tr>
           <tr><td>5</td><td>The hand-rolled agent loop</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong></td><td>90–120 min</td><td>Session 3</td></tr>
@@ -421,7 +421,7 @@
     <section id="s2">
       <h2><span class="kicker">Session 2</span>Read-only lookup tools</h2>
       <div class="session-meta">
-        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
+        <span><strong>Status:</strong> <span class="badge done">Done</span></span>
         <span><strong>Needs API key:</strong> No</span>
         <span><strong>Est. time:</strong> 60–90 min</span>
         <span><strong>Depends on:</strong> Session 1</span>
@@ -442,7 +442,10 @@
       </div>
       <div class="callout notes">
         <strong class="label">Session notes</strong>
-        <p>None yet.</p>
+        <p>Added <code>src/lib/load-data.mjs</code> (cached JSON loaders for both datasets) and <code>src/lib/constants.mjs</code> (the <code>ENGAGEMENT_STATUSES</code> enum) — a small shared layer plan.html's directory listing didn't call out, needed because all four tools read the same two files and <code>list-clients.mjs</code> needed the status enum for its filter's zod schema. Not a divergence from the design, just an implementation detail plan.html left unspecified.</p>
+        <p>The "never guess" rule from plan.html section 04 got applied at two levels, not just one: <code>get-state-requirements.mjs</code> and <code>get-client.mjs</code> return an explicit <code>found: false</code> for an unrecognized state/client id, and <code>get-client-progress.mjs</code> does the same one level deeper — a known client with no engagement in the requested state gets an explicit "no engagement found" result rather than <code>undefined</code> or a thrown error.</p>
+        <p><strong>Real bug found:</strong> the <code>"test": "node --test tests/"</code> script written in Session 1 doesn't actually work in this environment's Node v24.20.0 — passing a bare directory path makes the test runner try to <code>require()</code> it as an entry module instead of globbing it for test files, which fails outright. Fixed by changing the script to <code>node --test tests/**/*.test.mjs</code>, which does glob correctly. This means Session 1's own "Done when" line was satisfied (nothing executed <code>npm test</code> yet), but the script it left behind was silently broken until this session actually ran it — worth remembering that "the script exists" isn't the same as "the script works."</p>
+        <p>All 16 tests across both files pass; zero network calls, zero mutation (that's Session 3).</p>
       </div>
     </section>
 

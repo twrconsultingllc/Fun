@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Claude Certified Architect (Foundations) exam-prep project: agent loop, custom tools, MCP server, and Claude Agent SDK, built around a money-transmitter-licensing consulting scenario. See study/plan.html and study/build-plan.html in the repo root.",
   "scripts": {
-    "test": "node --test tests/",
+    "test": "node --test tests/**/*.test.mjs",
     "lab:1": "node src/agent-loop.mjs",
     "lab:2": "node src/structured-output.mjs",
     "lab:3": "node src/review-loop.mjs",
