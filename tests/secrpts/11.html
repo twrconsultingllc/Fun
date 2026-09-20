@@ -195,7 +195,7 @@
       <span><span class="dot open"></span> Open</span>
     </div>
     <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
-    <div class="progress-label">1 of 1 actionable finding fixed, nothing left open. 10 additional items confirmed clean, not counted as actionable.</div>
+    <div class="progress-label">2 of 2 actionable findings fixed, nothing left open. 9 additional items confirmed clean, not counted as actionable.</div>
   </header>
 
   <section>
@@ -243,16 +243,20 @@
 
     <div class="item">
       <div class="item-head">
-        <div class="item-title">The old page's "future UI" cross-references were updated everywhere they existed, not just at the source</div>
-        <span class="badge fixed">Confirmed clean</span>
+        <div class="item-title">The old page's "future UI" cross-references were updated everywhere they existed — first pass missed two spots in study/index.html's own head</div>
+        <span class="badge fixed">Fixed</span>
       </div>
       <div class="item-body">
-        <p>Repurposing <code>ui-plan.html</code> without touching what points at it would have left twelve pages describing content that no longer exists — a stale description is worse than no description, the same principle <code>CLAUDE.md</code> already applies to user guides and the build-plan tracker. Grepped the whole repo for <code>ui-plan.html</code> before and after, and checked each of the thirteen hits by hand:</p>
+        <p>Repurposing <code>ui-plan.html</code> without touching what points at it would have left pages describing content that no longer exists — a stale description is worse than no description, the same principle <code>CLAUDE.md</code> already applies to user guides and the build-plan tracker. The first pass grepped the whole repo for <code>ui-plan.html</code> and updated every hit:</p>
         <ul>
           <li><code>study/index.html</code>'s card title and description were rewritten from "UI plan" / "a future companion console and dataset browser" to "Inside the agent loops" / a description matching the new content, and its status label changed from "Not started" to "Design walkthrough — not a captured run".</li>
           <li><code>study/ui-mockups.html</code>'s two references (its top disclaimer callout and its page footer) no longer describe <code>ui-plan.html</code> as planning "an actual (much narrower) companion page for the real CLI lab" — both now describe it as walking through what the agents actually do internally.</li>
           <li>The ten <code>study/mockup-*.html</code> files share one identical disclaimer sentence; all ten were updated in the same pass (checked by grepping for the old wording afterward — zero remaining matches) rather than some being missed.</li>
         </ul>
+        <p>That grep was for the literal string <code>ui-plan.html</code>, which is why it missed two spots in <code>study/index.html</code> that describe the page <em>without linking to it by filename</em>: the page's own <code>&lt;meta name="description"&gt;</code> still called it "the future UI plan" and listed only "four study/ pages" (missing <code>ui-mockups.html</code>, which predates this rewrite but was never folded into that count), and the visible <code>&lt;h1&gt;</code> still read "Four documents, one exam-prep project" directly above a lede paragraph that already correctly said "five pages." Caught on a user-requested re-check of the whole <code>study/</code> folder, not the original pass.</p>
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> the meta description now names all five pages accurately (concept pitch, study plan, build plan, agent-loops deep dive, UI mockups) and doesn't call the new page a plan for anything future; the <code>&lt;h1&gt;</code> now reads "Five documents," matching the lede and the five-card grid beneath it.
       </div>
     </div>
 
