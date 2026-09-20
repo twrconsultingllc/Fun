@@ -369,7 +369,7 @@
           <tr><td>1</td><td>Scaffolding &amp; both datasets</td><td><span class="badge done">Done</span></td><td>No</td><td>45–60 min</td><td>—</td></tr>
           <tr><td>2</td><td>Read-only lookup tools</td><td><span class="badge done">Done</span></td><td>No</td><td>60–90 min</td><td>Session 1</td></tr>
           <tr><td>3</td><td>Gap analysis &amp; the mutating tool</td><td><span class="badge done">Done</span></td><td>No</td><td>90 min</td><td>Session 2</td></tr>
-          <tr><td>4</td><td>The MCP server</td><td><span class="badge">Not started</span></td><td>Optional (one manual check)</td><td>60–90 min</td><td>Session 3</td></tr>
+          <tr><td>4</td><td>The MCP server</td><td><span class="badge done">Done</span></td><td>Optional (one manual check)</td><td>60–90 min</td><td>Session 3</td></tr>
           <tr><td>5</td><td>The hand-rolled agent loop</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong></td><td>90–120 min</td><td>Session 3</td></tr>
           <tr><td>6</td><td>Structured output &amp; review loop</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong> (for the manual runs)</td><td>60–90 min</td><td>Session 5</td></tr>
           <tr><td>7</td><td>Context budget: compaction &amp; caching</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong> (for the real run)</td><td>90 min</td><td>Session 4</td></tr>
@@ -486,7 +486,7 @@
     <section id="s4">
       <h2><span class="kicker">Session 4</span>The MCP server</h2>
       <div class="session-meta">
-        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
+        <span><strong>Status:</strong> <span class="badge done">Done</span></span>
         <span><strong>Needs API key:</strong> Optional — one manual check only</span>
         <span><strong>Est. time:</strong> 60–90 min</span>
         <span><strong>Depends on:</strong> Session 3</span>
@@ -507,7 +507,11 @@
       </div>
       <div class="callout notes">
         <strong class="label">Session notes</strong>
-        <p>None yet.</p>
+        <p><code>server.mjs</code> registers exactly seven MCP tools: the four from Session 2 plus <code>gap_analysis</code>, <code>client_gap_analysis</code>, and <code>update_checklist_item</code> from Session 3. <code>validate-expansion-checklist.mjs</code> and <code>validate-client-checklist.mjs</code> are deliberately not registered — both plan.html section 07 and this plan's own Session 3 called that out ahead of time, so there was no ambiguity to resolve here. <code>evaluate_change_impact</code> (the Session 8 stretch tool) doesn't exist yet either.</p>
+        <p>Verified the actual <code>@modelcontextprotocol/sdk</code> v1.30.0 API against the installed package rather than assuming a remembered shape: <code>registerTool</code>'s <code>inputSchema</code> accepts a full <code>z.object({...})</code> directly (not just a raw shape), so every Session 2/3 tool's existing <code>inputSchema</code> export plugs straight in with no reshaping.</p>
+        <p>Both resources are wired: <code>mtl://dataset</code> (static, the full state dataset) and <code>mtl-clients://{clientId}</code> (a <code>ResourceTemplate</code>, one client's full case file) — the "pull everything up front" counterpart to the tools' "look up one thing." An unknown <code>clientId</code> in the templated resource returns an explicit not-found body, same pattern as the tools.</p>
+        <p><code>tests/mcp-server.test.mjs</code> uses <code>InMemoryTransport.createLinkedPair()</code> for a real <code>Client</code>&lt;-&gt;<code>Server</code> round-trip against all seven tools and both resources — 12 new tests, 52 total across the whole suite, zero subprocesses, zero network calls.</p>
+        <p>Did the optional manual check: spawned the real server as a subprocess via <code>StdioClientTransport</code>, listed its tools and static resources, called <code>client_gap_analysis</code>, and read the <code>mtl-clients://</code> resource — all matched the in-memory test results exactly. The throwaway script isn't committed (it lived outside the repo, deleted after the check).</p>
       </div>
     </section>
 
