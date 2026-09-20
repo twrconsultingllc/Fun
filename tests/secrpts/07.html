@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>study/index.html — security &amp; quality review</title>
+<meta name="description" content="Security and code-quality review of the new study/index.html overview page, against this repo's existing scan conventions.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+  .open-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--open);
+  }
+  .open-note b { color: var(--open); }
+
+  .page-table-wrap { overflow-x: auto; margin: 12px 0; }
+  table.page-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .page-table th, .page-table td {
+    border: 1px solid var(--panel-border);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .page-table th {
+    background: var(--code-bg);
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1><code>study/index.html</code> — security &amp; code-quality review</h1>
+    <p class="sub">A new page, <code>study/index.html</code>, ties together the four existing <code>study/</code> pages (<code>usecase.html</code>, <code>plan.html</code>, <code>build-plan.html</code>, <code>ui-plan.html</code>) with a short intro paragraph and one link to each. Reviewed per the process in <code>CLAUDE.md</code> ("New pages get a numbered security &amp; quality review") — following the conventions <a href="01.html" style="color: var(--accent);">01.html</a> through <a href="06.html" style="color: var(--accent);">06.html</a> already established.</p>
+    <div class="meta">Review performed 2026-09-20 · repo: <code>twrconsultingllc/Fun</code> · new page: <code>study/index.html</code></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">No actionable findings. 7 items checked and confirmed clean.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">CSP, referrer, description, and viewport meta tags present and correctly scoped</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <code>study/index.html</code> uses the exact same head block as its three siblings: <code>script-src 'self'</code> with no <code>'unsafe-inline'</code>, <code>style-src 'self' 'unsafe-inline'</code> for its inline width styles, <code>referrer</code> set to <code>strict-origin-when-cross-origin</code>, and its own page-specific <code>title</code> and <code>description</code>.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No external resources, scripts, forms, inline handlers, or secrets</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped the file directly: zero <code>&lt;script&gt;</code> tags, zero <code>on*="…"</code> handlers, no <code>http://</code>/<code>https://</code> reference anywhere in the file (not even as inert text — this page makes no external claims to caveat), no <code>@import</code>, no <code>&lt;form&gt;</code>, and no API key/<code>.env</code> reference.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">All four links are same-origin, same-directory, and resolve to real files</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Every <code>href</code> on the page (<code>usecase.html</code>, <code>plan.html</code>, <code>build-plan.html</code>, <code>ui-plan.html</code>) is a plain relative reference into the same <code>study/</code> directory — no <code>target</code>/<code>rel</code> hardening needed, same reasoning <code>05.html</code> and <code>06.html</code> already established for this directory's cross-links. Confirmed all four files actually exist at those paths with an <code>ls</code> of <code>study/</code>, rather than assuming the filenames from memory.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Not linked from <code>index.html</code>, consistent with its three siblings</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped the repo root's <code>index.html</code> for any reference to <code>study/</code> — none, for this page or any of the four it links to. This is study/reference material, not a toy for the public gallery, and stays off the landing page the same way <code>usecase.html</code>, <code>plan.html</code>, <code>build-plan.html</code>, and <code>ui-plan.html</code> already do.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Heading hierarchy is clean</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        A single <code>h1</code>, followed by four <code>h2</code>s (one per card) with no intervening level and no skipped level. No duplicate or stray <code>id</code> attributes — the page uses none, since it's a single short screen with no in-page navigation to anchor.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Contrast computed for every color pairing this page introduces, not assumed from the inherited palette</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p>This page reuses the <code>plan.html</code>/<code>build-plan.html</code>/<code>ui-plan.html</code> palette exactly (same hex values in both color-scheme blocks), but it puts <code>--good</code> and <code>--text-dim</code> directly on a <code>--panel</code> background as small status labels — a pairing neither sibling page uses (they only pair those colors against <code>--code-bg</code>). Computed WCAG relative-luminance contrast directly for each rather than assuming the inherited palette still clears the bar in a new combination:</p>
+        <div class="page-table-wrap">
+        <table class="page-table">
+          <thead><tr><th>Pair</th><th>Dark mode</th><th>Light mode</th></tr></thead>
+          <tbody>
+            <tr><td><code>--good</code> on <code>--panel</code> ("4 of 10 sessions done")</td><td>8.60:1</td><td>5.77:1</td></tr>
+            <tr><td><code>--text-dim</code> on <code>--panel</code> ("Not started" status, card body text)</td><td>7.39:1</td><td>6.38:1</td></tr>
+            <tr><td><code>--accent</code> (link) on <code>--panel</code> (card title links)</td><td>8.61:1</td><td>5.76:1</td></tr>
+            <tr><td><code>--text</code> on <code>--bg</code> (lede paragraph)</td><td>15.26:1</td><td>14.11:1</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p>Every pair clears the 4.5:1 WCAG AA threshold for normal text in both modes, including the two small (0.72rem/0.9rem) status and body labels, which only need to meet the normal-text bar since neither is bold enough or large enough to qualify for the relaxed large-text threshold.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Session-count and status claims cross-checked against the pages they summarize, not restated from memory</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        This page's two factual claims — build-plan.html at "4 of 10 sessions done" and ui-plan.html as "Not started" — were checked directly against those files rather than trusted from context. <code>build-plan.html</code>'s session-index table and each session's own <code>Status</code> meta row agree: Sessions 1–4 carry <code>badge done</code>, Sessions 5–10 carry the bare <code>badge</code> (not started). <code>ui-plan.html</code>'s own <code>&lt;h1&gt;</code> carries a bare <code>&lt;span class="badge"&gt;Not started&lt;/span&gt;</code>, matching the claim here. Both counts will need a manual re-check the next time a build-plan session is marked <code>Done</code>, since this overview restates the count as static text rather than deriving it live — worth knowing, not a defect: a static summary page for a project with no live data source works the same way <code>04.html</code>'s and <code>05.html</code>'s snapshots do.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No unused CSS</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        This page's stylesheet was written fresh for its own markup rather than copied from a sibling and trimmed, so it was checked selector-by-selector against the HTML instead of assuming it was already clean: every rule (<code>.eyebrow</code>, <code>.lede</code>, <code>.cards</code>, <code>.card</code> and its <code>h2</code>/<code>p</code>/<code>.status</code> children, <code>footer.page-footer</code>) matches an element that actually appears on the page, and nothing is declared and never used.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand as anything changes, or ask
+    Claude to re-scan this page and refresh this report. See
+    <code>01.html</code> for the rest of the repo, <code>02.html</code> for the pattern-lab pages, and
+    <code>03.html</code>–<code>06.html</code> for the earlier study-page reviews this one follows.
+  </footer>
+
+</div>
+</body>
+</html>
