@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Full Monty review #1 — sitewide security &amp; quality audit</title>
+<meta name="description" content="The first periodic 'Full Monty' sitewide security and code-quality re-audit of the whole Fun repo, including the tests/ directory and a check for the real personal email address anywhere in the repo or its git history.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+  .fix-note .commit {
+    color: var(--text-dim);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .open-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--open);
+  }
+  .open-note b { color: var(--open); }
+
+  .page-table-wrap { overflow-x: auto; margin: 12px 0; }
+  table.page-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .page-table th, .page-table td {
+    border: 1px solid var(--panel-border);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .page-table th {
+    background: var(--code-bg);
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .page-table td.num {
+    text-align: center;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Full Monty review #1 — sitewide security &amp; quality audit</h1>
+    <p class="sub">The first run of the periodic "Full Monty" review defined in <code>CLAUDE.md</code>: a from-scratch sweep of the entire repo, not just what changed recently — re-checking every prior fix for regression, auditing the <code>tests/</code> directory itself (which GitHub Pages serves publicly, the same as any toy page), and confirming the user's real email address appears nowhere in the repo or its git history.</p>
+    <div class="meta">Review performed 2026-09-20 · repo: <code>twrconsultingllc/Fun</code> · scope: entire repository, all branches' history for secret/email scans · follows: <a href="01.html" style="color: var(--accent);">01.html</a> (the original sitewide scan) through <a href="12.html" style="color: var(--accent);">12.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">1 of 1 actionable finding fixed. 1 pre-existing item remains open, unchanged since 01.html and architecturally blocked, not newly introduced. 9 additional items re-verified clean.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Path-traversal bypass in <code>preview-server.mjs</code> — never reviewed before</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        <p>This small local dev static-file server (loopback-only, <code>127.0.0.1:4173</code>, never deployed anywhere) had never appeared in any prior numbered review — exactly the kind of file a page-by-page review misses because it isn't a page. Its traversal guard was the classic prefix-check bug: <code>path.join(root, urlPath)</code> correctly collapses <code>../</code> sequences, but the check <code>!filePath.startsWith(root)</code> has no boundary after the prefix, so a request resolving to a <em>sibling</em> path that merely starts with the same string as <code>root</code> (e.g. <code>root</code> = <code>/workspaces/Fun</code>, target = <code>/workspaces/Fun-secret-notes.txt</code>) would pass the check and be served.</p>
+        <p>Confirmed the bug is real before fixing it — tested <code>path.join('/workspaces/Fun', '/../Fun-secret-notes.txt')</code> directly in Node: it resolves to <code>/workspaces/Fun-secret-notes.txt</code>, which <code>.startsWith('/workspaces/Fun')</code> evaluates to <code>true</code>, incorrectly passing the guard.</p>
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> changed the check to <code>filePath !== root &amp;&amp; !filePath.startsWith(root + path.sep)</code>, which requires a real path-separator boundary after the root instead of a bare string prefix. Verified against the actual running server, not just the logic in isolation: started it for real and sent both a URL-encoded traversal attempt (<code>curl</code> default) and a raw, unencoded one (<code>curl --path-as-is</code>, since a compliant HTTP client normalizes <code>../</code> client-side before sending — the real attack vector is a raw TCP client that doesn't) — both now return <code>403 Forbidden</code>, while a legitimate request for <code>/</code> still returns <code>200</code> with the real <code>index.html</code>. Real-world severity was always low (loopback-only local tool, never exposed to a network, never referenced by any deployment or test), but it's a genuine, textbook boundary-check bug (CWE-22-shaped) that deserved fixing regardless of today's blast radius.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The user's real email address does not appear anywhere in the repo or its full git history</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Checked four separate places rather than just one: <code>git grep</code> for the literal address across every currently tracked file (zero hits); <code>git log --all -p</code> across <em>every</em> commit ever made, not just the current tree, in case a file once contained it and was later edited or removed (zero hits); every <code>package.json</code>'s <code>author</code>/<code>email</code> field (both battle-bots apps ship an empty <code>"author": ""</code>, and the other two <code>package.json</code> files have no author field at all); and a broader sweep for any personal-looking email pattern (<code>gmail</code>/<code>yahoo</code>/<code>outlook</code>/<code>hotmail</code>/<code>icloud</code>/the org's own domain) anywhere in tracked files — also zero hits. The only place <code>twrconsultingllc</code> appears at all is as the GitHub account/repo name in URLs and report metadata, never as part of an email address.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Every commit uses the GitHub-provided noreply address, not the real one</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <code>git log --all --format='%ae' | sort -u</code> returns exactly one author address across the entire history: <code>328415829+twrconsultingllc@users.noreply.github.com</code>. The local <code>git config user.email</code> in this environment is set to that same address, so future commits from here will keep matching — this isn't a one-time-lucky state, it's the actual configured default.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No secrets, API keys, tokens, or committed <code>.env</code> files anywhere — tree or history</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped every tracked file and the full <code>git log --all -p</code> diff history for common key/token shapes (<code>sk-…</code>, <code>AIza…</code>, <code>ghp_…</code>, Slack <code>xox…</code> tokens, AWS <code>AKIA…</code> keys, PEM private-key headers) and for hardcoded <code>apikey</code>/<code>password</code>/<code>secret</code> literal assignments outside <code>process.env</code> reads — zero matches in either the current tree or anywhere in history. No <code>.env</code> file has ever been added and later removed. <code>node_modules/</code> has never been tracked in any subproject. <code>claude-architect-lab/.env.example</code> is the one intentional exception — a placeholder with no real value, exactly the case the root <code>.gitignore</code>'s <code>!.env.example</code> rule exists for.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The <code>tests/</code> directory itself — first time it's been audited as its own subject rather than a tool for auditing other pages</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p>GitHub Pages serves the whole repo as static files, so everything under <code>tests/</code> — every <code>*.mjs</code> suite, <code>tests/lib/</code>'s three helper modules, <code>tests/secrpts/</code>'s own reports, <code>package.json</code>/<code>package-lock.json</code> — is exactly as publicly fetchable as any toy page, confirmed already by this project's own <code>build-plan.html</code> notes about <code>npm run test:live</code> reaching these files. Read <code>tests/lib/bots-modules.mjs</code>, <code>harness.mjs</code>, and <code>page.mjs</code> directly rather than assuming test code is automatically safe: no secrets, no tokens, no real hostnames beyond the repo's own public GitHub Pages URL, and the one file that writes to disk (<code>bots-modules.mjs</code>, when staging a remote target's files for <code>test:live</code>) writes only to a temp directory via <code>mkdtemp</code>, never anywhere that gets committed.</p>
+        <p>The one category worth naming plainly rather than treating as automatically fine: <code>tests/secrpts/01.html</code> through <code>12.html</code> are, by design, detailed public write-ups of past vulnerabilities — including exact payload shapes (e.g. the battle-bots XSS's <code>&lt;img src=x onerror=...&gt;</code> example) and an explicit statement that GitHub Pages has zero mechanism to fix clickjacking. Checked that the payload example is HTML-entity-escaped in the actual source (<code>&amp;lt;img src=x onerror=...&amp;gt;</code>) so it's inert text, not executable markup, and confirmed every documented issue is either already fixed or, for the two GitHub Pages header gaps, an honestly-disclosed and still-accurate architectural limit rather than a live secret being handed to an attacker. Publishing this level of detail is a real tradeoff for a site with no user data, no auth, and no money moved — worth the user's awareness that these reports function as a public disclosure log, not something to silently hide, since CLAUDE.md's own stance is that an honest "Open" is better than a false "Fixed."</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Every prior security fix re-verified against the live tree, none regressed</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Re-checked, rather than assumed, that everything <a href="01.html" style="color: var(--accent);">01.html</a> fixed is still in place: CSP <em>and</em> referrer meta tags present on all 17 root-level GitHub Pages files and all 16 <code>study/</code> pages (33 total, up from the 13 checked in <code>01.html</code> — the rest were added and correctly covered by later reviews); <code>escapeHtml()</code> and the <code>SKILL_CATALOG</code> server-side whitelist still present in <code>battle-bots/public/game.js</code> and <code>battle-bots/api/get-actions.js</code>; SRI <code>integrity</code> hashes still present on pinned CDN <code>&lt;script&gt;</code> tags in <code>index.html</code>, <code>race-day.html</code>, and <code>tricalc.html</code>; both <code>battle-bots/vercel.json</code> and <code>battle-bots-V2/vercel.json</code> still carry their <code>headers</code> block.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The eleven <code>study/mockup-*.html</code> pages' many <code>innerHTML</code> writes never receive untrusted input</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        These pages build DOM strings with concatenated data (client names, statuses, checklist text) and assign them via <code>innerHTML</code> in over a dozen places — worth re-checking directly rather than trusting the earlier mockup-batch review's conclusion by memory. Grepped every one of the eleven files for <code>location.search</code>/<code>location.hash</code>, <code>URLSearchParams</code>, <code>postMessage</code>, and <code>localStorage.getItem</code>/<code>sessionStorage.getItem</code> — zero matches. Every value reaching <code>innerHTML</code> traces back to a literal array baked directly into that page's own <code>&lt;script&gt;</code> block, never anything from a URL, a message, or storage — so there is no untrusted-input path into any of them.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>claude-architect-lab</code>'s sample data still contains nothing real-shaped</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Re-scanned <code>clients.json</code> and <code>state-mtl-requirements.json</code> for SSN-, phone-, and date-of-birth-shaped patterns — the only matches were future target/effective dates, all correctly tagged <code>(sample)</code>. Every one of the 46 tagged fields in <code>clients.json</code> and 40 in <code>state-mtl-requirements.json</code> still carries its <code>(sample)</code> marker.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No X-Frame-Options / Permissions-Policy on GitHub Pages</div>
+        <span class="badge open">Open — unchanged, architecturally blocked</span>
+      </div>
+      <div class="item-body">
+        Restating rather than re-discovering: <a href="01.html" style="color: var(--accent);">01.html</a> already established that GitHub Pages has no mechanism to set either header (no meta-tag equivalent exists for either), so every GitHub Pages page in this repo remains clickable-in-an-iframe and unprotected by a Permissions-Policy, while both Vercel apps have had the full header set since commit <code>3268413</code>. This is genuinely unchanged, not a fix that slipped — the only way to close it is migrating hosting off GitHub Pages, which is a hosting decision for the user, not a code fix this review can make.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">All twelve existing <code>tests/secrpts/</code> reports still comply with the fixed template</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <code>CLAUDE.md</code>'s fixed-template rule exists specifically so no report ever needs its own security review, but that only holds if every report actually keeps following it. Spot-checked all twelve (<code>01.html</code>–<code>12.html</code>) for the exact required head block, zero <code>&lt;script&gt;</code> tags, zero inline event handlers, and no cross-links outside the same directory — all twelve still comply. Worth re-checking each time a Full Monty review runs, since template drift wouldn't fail any test.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Sitewide inventory, for the next Full Monty review to diff against</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p>Recorded here so the next periodic review has a baseline count to compare against, rather than re-discovering the repo's shape from zero each time:</p>
+        <div class="page-table-wrap">
+        <table class="page-table">
+          <thead><tr><th>Area</th><th>Count</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Root-level GitHub Pages HTML files</td><td class="num">17</td><td>Includes the landing page and the hash-named ARG payoff page.</td></tr>
+            <tr><td><code>study/</code> HTML pages</td><td class="num">16</td><td>5 reference/plan pages + 11 mockup/index pages.</td></tr>
+            <tr><td><code>tests/secrpts/</code> reports</td><td class="num">13</td><td>Including this one.</td></tr>
+            <tr><td>Separate Vercel deployments</td><td class="num">2</td><td><code>battle-bots</code> (V1) and <code>battle-bots-V2</code>, each with its own <code>vercel.json</code>.</td></tr>
+            <tr><td>Unbuilt local subproject</td><td class="num">1</td><td><code>claude-architect-lab/</code> — not deployed anywhere, per its own README and CLAUDE.md's notes.</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand as each item gets fixed,
+    or ask Claude for another Full Monty review to refresh this page. See
+    <code>01.html</code> for the original sitewide scan this one re-verifies against, and
+    <code>02.html</code> through <code>12.html</code> for every page-specific review since.
+  </footer>
+
+</div>
+</body>
+</html>

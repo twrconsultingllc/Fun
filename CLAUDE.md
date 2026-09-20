@@ -150,6 +150,46 @@ This applies to any new page, including reference/study material under
 exempt a page from this, since it's still served from GitHub Pages and still
 worth getting right.
 
+## "Full Monty review" — the trigger phrase for a sitewide re-audit
+
+The rule above ("new pages get a numbered review") only ever looks at what
+just changed. When the user says **"let's do a full monty review"** (or
+"full monty" on its own), that means something different and broader:
+review the *entire* repo again from scratch, not just recent changes —
+every page, every deployed file, every subproject — and publish the result
+as the next sequentially numbered `tests/secrpts/NN.html` report, in the
+same format the numbered reviews already use.
+
+A Full Monty review must always specifically check two things that are
+easy to skip because they don't look like "a page":
+
+- **The `tests/` directory itself.** GitHub Pages serves the whole repo as
+  static files, so everything under `tests/` — test source, `tests/lib/`
+  helpers, `tests/secrpts/` reports, `package.json`/`package-lock.json` —
+  is publicly fetchable, not just the toy pages. Check it the same way any
+  other page gets checked: no secrets, no tokens, no real personal data,
+  and no test file that would hand an attacker something they couldn't
+  already get from the toy pages themselves. Don't assume "it's just
+  tests" makes it exempt.
+- **The user's real email address never appears anywhere in the repo** —
+  not in a file, not in a commit message, not in git's author/committer
+  metadata (`git log --all --format='%ae'`), not in git history for a file
+  that was later removed. Commits and pull requests from this project use
+  the GitHub-provided noreply address instead, per the attribution
+  reminder this session already follows — a Full Monty review is the
+  point to actually verify that's held, not just assume it.
+
+Beyond those two, treat it as a real from-scratch sweep, not a rubber
+stamp: re-verify that prior fixes (CSP/referrer meta tags, the battle-bots
+XSS fix, SRI hashes, `vercel.json` headers, `.gitignore` scope) haven't
+regressed, and also look at anything that was never covered by an earlier
+numbered report — small utility scripts (e.g. `preview-server.mjs`) are
+easy to forget precisely because they aren't a page. Grep for the actual
+bug pattern and compute real values (WCAG contrast, live `curl` checks)
+the same way every other numbered review already does — a Full Monty
+review is not exempt from "verify claims instead of assuming them" just
+because its scope is bigger.
+
 ## `tests/secrpts/` reports follow a fixed template — they don't need their own review
 
 A numbered report in `tests/secrpts/` is itself a new page, and reviewing a
