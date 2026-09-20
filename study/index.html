@@ -80,20 +80,49 @@
     gap: 1rem;
   }
 
-  .card {
+  a.card {
+    display: block;
+    position: relative;
     background: var(--panel);
     border: 1px solid var(--panel-border);
     border-radius: 12px;
-    padding: 1.3rem 1.4rem;
+    padding: 1.3rem 3rem 1.3rem 1.4rem;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  a.card:hover,
+  a.card:focus-visible {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+  }
+
+  a.card:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  a.card .arrow {
+    position: absolute;
+    top: 1.3rem;
+    right: 1.3rem;
+    color: var(--accent);
+    font-size: 1.1rem;
+    transition: transform 0.15s ease;
+  }
+
+  a.card:hover .arrow,
+  a.card:focus-visible .arrow {
+    transform: translateX(3px);
   }
 
   .card h2 {
     font-size: 1.05rem;
     margin: 0 0 0.4rem;
+    color: var(--link);
   }
-
-  .card h2 a { text-decoration: none; }
-  .card h2 a:hover { text-decoration: underline; }
 
   .card p {
     font-size: 0.9rem;
@@ -134,27 +163,31 @@
     </p>
 
     <div class="cards">
-      <div class="card">
-        <h2><a href="usecase.html">Concept pitch</a></h2>
+      <a class="card" href="usecase.html">
+        <h2>Concept pitch</h2>
         <p>The non-technical version: what problem this solves, the five assistants that make it up, and what it would cost to run — written for someone who'll never see the code.</p>
-      </div>
+        <span class="arrow" aria-hidden="true">→</span>
+      </a>
 
-      <div class="card">
-        <h2><a href="plan.html">Study plan</a></h2>
+      <a class="card" href="plan.html">
+        <h2>Study plan</h2>
         <p>The technical plan: exam domains covered, the sample datasets, the agent loop, the MCP server, and a production cost model.</p>
-      </div>
+        <span class="arrow" aria-hidden="true">→</span>
+      </a>
 
-      <div class="card">
-        <h2><a href="build-plan.html">Build plan</a></h2>
+      <a class="card" href="build-plan.html">
+        <h2>Build plan</h2>
         <p>The session-by-session tracker that turns the study plan into ten self-contained work sessions, each with a status badge and notes.</p>
         <span class="status">4 of 10 sessions done</span>
-      </div>
+        <span class="arrow" aria-hidden="true">→</span>
+      </a>
 
-      <div class="card">
-        <h2><a href="ui-plan.html">UI plan</a></h2>
+      <a class="card" href="ui-plan.html">
+        <h2>UI plan</h2>
         <p>A plan — not an implementation — for a future companion console and dataset browser, with a small static mockup of what it would look like.</p>
         <span class="status" style="color: var(--text-dim);">Not started</span>
-      </div>
+        <span class="arrow" aria-hidden="true">→</span>
+      </a>
     </div>
 
     <footer class="page-footer">

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>study/index.html full-card links — security &amp; quality review</title>
+<meta name="description" content="Security and code-quality review of making each of study/index.html's four cards fully clickable, against this repo's existing scan conventions.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+  .open-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--open);
+  }
+  .open-note b { color: var(--open); }
+
+  .page-table-wrap { overflow-x: auto; margin: 12px 0; }
+  table.page-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .page-table th, .page-table td {
+    border: 1px solid var(--panel-border);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .page-table th {
+    background: var(--code-bg);
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1><code>study/index.html</code> full-card links — security &amp; code-quality review</h1>
+    <p class="sub">Follow-up review after each of <code>study/index.html</code>'s four cards was changed from a small clickable title inside an otherwise inert box to a fully clickable box, addressing a reported usability problem (the link target wasn't obvious). Reviewed per the process in <code>CLAUDE.md</code> ("New pages get a numbered security &amp; quality review") — following the conventions <a href="01.html" style="color: var(--accent);">01.html</a> through <a href="07.html" style="color: var(--accent);">07.html</a> already established.</p>
+    <div class="meta">Review performed 2026-09-20 · repo: <code>twrconsultingllc/Fun</code> · changed page: <code>study/index.html</code></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">No actionable findings. 6 items checked and confirmed clean.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The change is layout/CSS only — head block, script/form/external-resource posture unchanged</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Re-checked from scratch rather than assuming the earlier <code>07.html</code> findings still hold: the CSP, referrer, viewport, and description meta tags are byte-for-byte unchanged, and there are still zero <code>&lt;script&gt;</code> tags, zero <code>on*="…"</code> handlers, no <code>http://</code>/<code>https://</code> reference anywhere in the file, no <code>@import</code>, and no <code>&lt;form&gt;</code>.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No nested interactive content from wrapping each card in a single <code>&lt;a&gt;</code></div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Making a whole box clickable by wrapping it in an <code>&lt;a&gt;</code> is the one way this kind of change commonly breaks HTML: if the box still contains its own inner <code>&lt;a&gt;</code>, browsers auto-close the outer anchor at the first nested one and the two links silently fight over the same click. Checked directly: each card's heading, description, and status/arrow spans are plain <code>&lt;h2&gt;</code>/<code>&lt;p&gt;</code>/<code>&lt;span&gt;</code> elements with no anchor inside — a script count confirms exactly one <code>&lt;a&gt;</code> per card block, the card itself. The old markup had the opposite risk profile (the anchor buried inside the heading), which is exactly the pattern this change removed.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">All four link targets are unchanged and still resolve</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The four <code>href</code> values (<code>usecase.html</code>, <code>plan.html</code>, <code>build-plan.html</code>, <code>ui-plan.html</code>) moved from each card's <code>&lt;h2&gt;</code> onto the card's own <code>&lt;a&gt;</code> wrapper without changing, and all four still resolve to real files in the same directory.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Keyboard and screen-reader behavior improved, not just mouse hover</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        A whole-card link is only a real accessibility win if it also works without a mouse. The new CSS pairs every <code>:hover</code> rule with a matching <code>:focus-visible</code> rule (border highlight, lift, and the arrow's shift), and adds an explicit <code>outline</code> on <code>:focus-visible</code> so keyboard users see exactly the same affordance sighted mouse users get — the earlier version only styled the small nested title link's hover state, with no visible focus ring of its own. Screen readers now announce each card as one link with its full heading-plus-description text as the accessible name, rather than a static box containing an unrelated short link.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The decorative arrow is correctly hidden from assistive tech</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Each card's new <code>→</code> affordance is marked <code>aria-hidden="true"</code>, so it doesn't get read aloud or duplicated into the link's accessible name — it's a purely visual cue for sighted users, and the heading and description text already carry the actual meaning.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Contrast re-checked for the heading text's new color, and for the hover/focus box-shadow in both color schemes</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p>The card heading now renders in <code>--link</code> instead of the previous default <code>--text</code>, since the whole card being a link is signaled partly by tinting its title the same color as any other link on the page. This exact pairing (<code>--link</code>/<code>--accent</code> on <code>--panel</code>) was already computed clean in <code>07.html</code> at 8.61:1 (dark) and 5.76:1 (light) for the arrow; it applies unchanged to the heading, which uses the same two hex values. The hover/focus <code>box-shadow: rgba(0,0,0,0.18)</code> is a pure decorative shadow, not a text/background contrast pair, so it isn't a WCAG contrast concern in either color scheme — it reads as a visible but subtle lift in both dark and light mode since it's layered under the panel's own background rather than replacing it.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand as anything changes, or ask
+    Claude to re-scan this page and refresh this report. See
+    <code>01.html</code> for the rest of the repo, <code>02.html</code> for the pattern-lab pages,
+    <code>03.html</code>–<code>06.html</code> for the earlier study-page reviews, and <code>07.html</code>
+    for this same page's first review, which this one follows up on.
+  </footer>
+
+</div>
+</body>
+</html>
