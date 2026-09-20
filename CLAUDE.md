@@ -183,12 +183,14 @@ Beyond those two, treat it as a real from-scratch sweep, not a rubber
 stamp: re-verify that prior fixes (CSP/referrer meta tags, the battle-bots
 XSS fix, SRI hashes, `vercel.json` headers, `.gitignore` scope) haven't
 regressed, and also look at anything that was never covered by an earlier
-numbered report — small utility scripts (e.g. `preview-server.mjs`) are
-easy to forget precisely because they aren't a page. Grep for the actual
-bug pattern and compute real values (WCAG contrast, live `curl` checks)
-the same way every other numbered review already does — a Full Monty
-review is not exempt from "verify claims instead of assuming them" just
-because its scope is bigger.
+numbered report — small utility scripts are easy to forget precisely
+because they aren't a page (the first Full Monty review, `tests/secrpts/13.html`,
+found a real path-traversal bug this way in a local-dev-only script that
+had never been reviewed before). Grep for the actual bug pattern and
+compute real values (WCAG contrast, live `curl` checks) the same way
+every other numbered review already does — a Full Monty review is not
+exempt from "verify claims instead of assuming them" just because its
+scope is bigger.
 
 ## `tests/secrpts/` reports follow a fixed template — they don't need their own review
 

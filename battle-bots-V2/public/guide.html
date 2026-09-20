@@ -451,7 +451,7 @@
       <li>Pick a match mode, write a strategy line for each team, then hit <strong>Initiate Match</strong>.</li>
     </ol>
 
-    <div class="note"><b>The plain static server won't do.</b> <code>preview-server.mjs</code> at the repo root serves files only — no <code>/api</code>. Under it the model list comes back empty and every tick logs an error, so the bots just hold their default stance.</div>
+    <div class="note"><b>A plain static file server won't do.</b> Serving this folder with something that only returns files, and no <code>/api</code> route, means the model list comes back empty and every tick logs an error, so the bots just hold their default stance.</div>
   </section>
 
   <section id="panel">
