@@ -368,7 +368,7 @@
         <tbody>
           <tr><td>1</td><td>Scaffolding &amp; both datasets</td><td><span class="badge done">Done</span></td><td>No</td><td>45–60 min</td><td>—</td></tr>
           <tr><td>2</td><td>Read-only lookup tools</td><td><span class="badge done">Done</span></td><td>No</td><td>60–90 min</td><td>Session 1</td></tr>
-          <tr><td>3</td><td>Gap analysis &amp; the mutating tool</td><td><span class="badge">Not started</span></td><td>No</td><td>90 min</td><td>Session 2</td></tr>
+          <tr><td>3</td><td>Gap analysis &amp; the mutating tool</td><td><span class="badge done">Done</span></td><td>No</td><td>90 min</td><td>Session 2</td></tr>
           <tr><td>4</td><td>The MCP server</td><td><span class="badge">Not started</span></td><td>Optional (one manual check)</td><td>60–90 min</td><td>Session 3</td></tr>
           <tr><td>5</td><td>The hand-rolled agent loop</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong></td><td>90–120 min</td><td>Session 3</td></tr>
           <tr><td>6</td><td>Structured output &amp; review loop</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong> (for the manual runs)</td><td>60–90 min</td><td>Session 5</td></tr>
@@ -452,7 +452,7 @@
     <section id="s3">
       <h2><span class="kicker">Session 3</span>Gap analysis &amp; the mutating tool</h2>
       <div class="session-meta">
-        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
+        <span><strong>Status:</strong> <span class="badge done">Done</span></span>
         <span><strong>Needs API key:</strong> No</span>
         <span><strong>Est. time:</strong> 90 min</span>
         <span><strong>Depends on:</strong> Session 2</span>
@@ -474,7 +474,12 @@
       </div>
       <div class="callout notes">
         <strong class="label">Session notes</strong>
-        <p>None yet.</p>
+        <p><strong>What happens if <code>update_checklist_item</code> runs twice with identical input:</strong> nothing, the second time. It mutates the in-memory client dataset (never <code>clients.json</code> on disk — see the design-decision comment at the top of the tool file), and only when the requested status actually differs from the checklist item's current status; if it's already at the requested status, the tool returns <code>changed:false</code> and leaves <code>engagement.lastUpdated</code> untouched. Confirmed with a test that calls it twice back-to-back and checks <code>lastUpdated</code> stayed identical the second time, plus a separate test confirming the committed <code>clients.json</code> on disk is untouched after the whole suite runs.</p>
+        <p>Added two more small shared helpers beyond Session 2's: <code>src/lib/gap.mjs</code> (parses the datasets' human-readable dollar strings like <code>"50,000-500,000 (sample range only)"</code> back into numbers, then compares them) and <code>src/lib/checklist.mjs</code> (the "is this checklist complete against the standard 4 items" logic shared by <code>validate-expansion-checklist.mjs</code> and <code>validate-client-checklist.mjs</code>).</p>
+        <p><strong>Divergence worth noting:</strong> plan.html's test-file list only explicitly assigns <code>client-gap-analysis</code> to <code>client-tools.test.mjs</code>; it never itemizes a home for <code>gap-analysis.mjs</code>, <code>validate-expansion-checklist.mjs</code>, or <code>validate-client-checklist.mjs</code>. Rather than leave them untested or spin up a new file for a handful of small tool tests, all four went into <code>client-tools.test.mjs</code> alongside the mutation tests this session's instructions already called for extending there.</p>
+        <p>One real ordering constraint documented in the test file itself: every tool in this file reads the same in-memory client dataset cached by <code>load-data.mjs</code>, and <code>update-checklist-item</code> is the only one that mutates it — its tests run last in the file, after every assertion that depends on the original (pre-mutation) checklist data.</p>
+        <p>Used Northstar-in-Washington as a real test case — it's the exact example question from plan.html section 06 ("Would Northstar Remittance qualify for a Washington MTL today, and what's the gap?"). The answer the tool actually gives: net worth clears the sample minimum, but no bond has been posted anywhere — a real, sensible-reading gap.</p>
+        <p>All 40 tests across both files pass; zero network calls.</p>
       </div>
     </section>
 
