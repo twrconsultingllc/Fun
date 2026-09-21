@@ -6,7 +6,7 @@
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
 <title>Sentinel — Build Plan</title>
-<meta name="description" content="Step-by-step build plan for the Sentinel tracker-detector Android app, turning plan.html's design into seven self-contained sessions — from the Android Studio toolchain scaffold on a Windows PC through on-device validation on a Samsung phone." />
+<meta name="description" content="Step-by-step build plan for the Sentinel tracker-detector Android app, turning plan.html's design into seven self-contained sessions — from the GitHub Codespaces toolchain scaffold through on-device validation on a Samsung phone bridged over ADB." />
 <style>
   :root {
     --bg: #0f1115;
@@ -364,11 +364,12 @@
       self-contained work sessions, following that page's own
       <a href="plan.html#order">section 10 build order</a> exactly. The
       actual Kotlin/Gradle project lives in its own standalone repo,
-      developed in Android Studio on a Windows PC and tested on a Samsung
-      phone (no tablet involved) — this page just tracks that separate
-      project's progress from inside <code>Fun/droid/</code>, the way
-      <a href="../study/build-plan.html">the Claude Architect Lab build
-      plan</a> tracks that project.
+      developed entirely inside a <strong>GitHub Codespace</strong> and
+      tested on a Samsung phone bridged over ADB (no tablet, no Android
+      Studio, no local install of Claude Code) — this page just tracks
+      that separate project's progress from inside <code>Fun/droid/</code>,
+      the way <a href="../study/build-plan.html">the Claude Architect Lab
+      build plan</a> tracks that project.
     </p>
   </header>
 
@@ -388,8 +389,8 @@
     both. <span class="badge claude">Claude</span> marks anything this
     assistant can do directly once it has a terminal in the right place —
     writing code, editing Gradle/manifest config, seeding data, running
-    <code>gradlew.bat test</code>/<code>assembleDebug</code> — from inside a
-    terminal on the Windows PC, once one exists there.
+    <code>./gradlew test</code>/<code>assembleDebug</code> — from inside the
+    GitHub Codespace's own terminal, once one exists there.
     <span class="badge you">You</span> marks
     anything no coding agent can do on your behalf: tapping through an
     app-store install or a system permission dialog, flipping an Android
@@ -404,7 +405,7 @@
     <ol>
       <li><a href="#how">How to use this plan</a></li>
       <li><a href="#index">Session index</a></li>
-      <li><a href="#s1">Session 1 — Windows toolchain &amp; Hello Compose</a></li>
+      <li><a href="#s1">Session 1 — Codespace toolchain &amp; Hello Compose</a></li>
       <li><a href="#s2">Session 2 — Data model &amp; correlation engine</a></li>
       <li><a href="#s3">Session 3 — BLE parsing &amp; MAC-rotation linking</a></li>
       <li><a href="#s4">Session 4 — Foreground scanning service &amp; permissions</a></li>
@@ -419,20 +420,24 @@
     <section id="how">
       <h2><span class="kicker">Before you start</span>How to use this plan</h2>
       <p>
-        Development happens on a <strong>Windows PC</strong> running Android
-        Studio — not on a tablet via Termux, which is how this plan
-        originally started. A <strong>Samsung phone</strong> (assumed to
-        have NFC hardware) is the one physical device used for on-device
-        testing, connected over USB or wireless ADB; Android Studio's
-        bundled emulator covers most iteration in between. There's no
-        tablet anywhere in this version of the plan.
+        Development happens entirely inside a <strong>GitHub Codespace</strong>
+        (a cloud Linux dev container, opened via VS Code or github.dev) —
+        not Android Studio on a Windows PC, and not a tablet via Termux,
+        which is how this plan went through two earlier revisions. Neither
+        Android Studio nor Claude Code is installed directly on the Windows
+        laptop; a <strong>Samsung phone</strong> (assumed to have NFC
+        hardware) is the one physical device used for on-device testing,
+        reached from the Codespace over an ADB bridge (see
+        <a href="plan.html#toolchain">plan.html section 08</a>) since a
+        cloud container can't see a USB-connected phone by itself. There's
+        no emulator and no tablet anywhere in this version of the plan.
       </p>
       <ul>
-        <li><strong>Start each new session by reading this plan and the "Done when" line of whatever session you finished last</strong> — a fresh Claude Code session on the Windows PC has no memory of prior sessions, so re-orienting from this document is faster than re-deriving context from code.</li>
+        <li><strong>Start each new session by reading this plan and the "Done when" line of whatever session you finished last</strong> — a fresh Claude Code session inside a Codespace has no memory of prior sessions, so re-orienting from this document is faster than re-deriving context from code.</li>
         <li><strong>Don't open a session's next steps as extra credit.</strong> Each session ends at a real boundary — Session 1 stops at a launching "Hello Compose" APK, not a taste of Room; Session 4 stops at a running foreground service, not the UI. Resist folding the next session in just because time is left.</li>
-        <li><strong>Sessions 2 and 3 need no device at all</strong> — they're pure JVM logic (the correlation engine, the clusterer, the BLE payload parser) verified with <code>gradlew.bat test</code>, the same "no live dependency" split <a href="../study/build-plan.html">the Claude Architect Lab plan</a> uses for its own no-API-key sessions. Sessions 1, 4, 5, 6 can mostly run against the emulator; only Session 5's NFC half and Session 7 strictly require the Samsung phone.</li>
+        <li><strong>Sessions 2 and 3 need no device at all</strong> — they're pure JVM logic (the correlation engine, the clusterer, the BLE payload parser) verified with <code>./gradlew test</code>, the same "no live dependency" split <a href="../study/build-plan.html">the Claude Architect Lab plan</a> uses for its own no-API-key sessions. Every other session needs the Samsung phone and its ADB bridge, since there's no emulator to fall back on in this version of the toolchain.</li>
         <li>Every session below cross-references the exact section of <a href="plan.html">plan.html</a> it implements — this page sequences the work, it doesn't redesign it. If something here seems to contradict that page, plan.html is the source of truth; treat the mismatch as a bug in this page.</li>
-        <li><strong>This page doubles as the tracker.</strong> Each session has a <code>Status</code> line (<span class="badge">Not started</span>, <span class="badge in-progress">In progress</span>, or <span class="badge done">Done</span>) in its meta row, and a <strong>Session notes</strong> callout underneath its "Done when" line. When a session is finished, flip its badge to <span class="badge done">Done</span> in both places (the session's own meta row and the session-index table) and log anything worth remembering — a Windows/Gradle gotcha beyond what plan.html already documents, a real device quirk, a divergence from plan.html, a dead end. Leave a session's notes as "None yet." if nothing came up.</li>
+        <li><strong>This page doubles as the tracker.</strong> Each session has a <code>Status</code> line (<span class="badge">Not started</span>, <span class="badge in-progress">In progress</span>, or <span class="badge done">Done</span>) in its meta row, and a <strong>Session notes</strong> callout underneath its "Done when" line. When a session is finished, flip its badge to <span class="badge done">Done</span> in both places (the session's own meta row and the session-index table) and log anything worth remembering — a Codespaces/ADB-bridge gotcha beyond what plan.html already documents, a real device quirk, a divergence from plan.html, a dead end. Leave a session's notes as "None yet." if nothing came up.</li>
       </ul>
     </section>
 
@@ -443,12 +448,12 @@
           <tr><th>#</th><th>Session</th><th>Status</th><th>Needs hardware</th><th>Who does most of it</th><th>Est. time</th><th>Depends on</th></tr>
         </thead>
         <tbody>
-          <tr><td>1</td><td>Windows toolchain &amp; Hello Compose</td><td><span class="badge">Not started</span></td><td>Windows PC (emulator)</td><td>Mixed</td><td>60–90 min</td><td>—</td></tr>
+          <tr><td>1</td><td>Codespace toolchain &amp; Hello Compose</td><td><span class="badge">Not started</span></td><td>Samsung phone (via ADB bridge)</td><td>Mixed</td><td>60–90 min</td><td>—</td></tr>
           <tr><td>2</td><td>Data model &amp; correlation engine</td><td><span class="badge">Not started</span></td><td>No (pure JVM)</td><td><span class="badge claude">Claude</span></td><td>90–120 min</td><td>Session 1</td></tr>
           <tr><td>3</td><td>BLE parsing &amp; MAC-rotation linking</td><td><span class="badge">Not started</span></td><td>No (pure JVM)</td><td><span class="badge claude">Claude</span></td><td>60–90 min</td><td>Session 2</td></tr>
           <tr><td>4</td><td>Foreground scanning service &amp; permissions</td><td><span class="badge">Not started</span></td><td>Samsung phone</td><td>Mixed</td><td>90–120 min</td><td>Sessions 2, 3</td></tr>
           <tr><td>5</td><td>WiFi polish &amp; the NFC screen</td><td><span class="badge">Not started</span></td><td>Samsung phone</td><td>Mixed</td><td>60–90 min</td><td>Session 4</td></tr>
-          <tr><td>6</td><td>Compose UI wired to live data</td><td><span class="badge">Not started</span></td><td>Emulator or Samsung phone</td><td><span class="badge claude">Claude</span></td><td>90 min</td><td>Sessions 4, 5</td></tr>
+          <tr><td>6</td><td>Compose UI wired to live data</td><td><span class="badge">Not started</span></td><td>Samsung phone</td><td><span class="badge claude">Claude</span></td><td>90 min</td><td>Sessions 4, 5</td></tr>
           <tr><td>7</td><td>On-device validation</td><td><span class="badge">Not started</span></td><td>Samsung phone + a BLE tracker</td><td><span class="badge you">You</span></td><td>spans hours, not one sitting</td><td>Everything above</td></tr>
         </tbody>
       </table>
@@ -464,10 +469,10 @@
     </section>
 
     <section id="s1">
-      <h2><span class="kicker">Session 1</span>Windows toolchain &amp; Hello Compose</h2>
+      <h2><span class="kicker">Session 1</span>Codespace toolchain &amp; Hello Compose</h2>
       <div class="session-meta">
         <span><strong>Status:</strong> <span class="badge">Not started</span></span>
-        <span><strong>Needs hardware:</strong> the Windows PC, plus the Samsung phone for the final on-screen check</span>
+        <span><strong>Needs hardware:</strong> the Samsung phone, reached from the Codespace over the ADB bridge</span>
         <span><strong>Est. time:</strong> 60–90 min</span>
         <span><strong>Depends on:</strong> nothing</span>
       </div>
@@ -477,138 +482,128 @@
         <a href="plan.html#order">plan.html section 10</a>'s own first step.
       </p>
       <ol>
-        <li><span class="who"><span class="badge you">You</span></span><strong>Install
-          Android Studio on the Windows PC and step through its first-run
-          setup wizard.</strong> The one step in this whole session that's
-          entirely yours from the very first click — nothing exists yet for
-          Claude to run, and installers/GUI wizards are GUI-only.
+        <li><span class="who"><span class="badge you">You</span></span><strong>Create the
+          GitHub repo and open a Codespace on it.</strong> The one step in
+          this whole session that's entirely yours from the very first
+          click — nothing exists yet for Claude to run, and this is all
+          browser/GUI.
           <ol class="substeps" type="a">
-            <li>Download and run the Android Studio installer from its
-              official site, then launch it once installed.</li>
-            <li>Step through the Setup Wizard: accept the SDK license, and
-              let it install its default SDK platform, build-tools, and
-              platform-tools. This also installs a matching JDK bundled
-              with Android Studio — no separate JDK download needed.</li>
-            <li>Open <strong>Device Manager</strong> and create at least
-              one emulator (AVD) — a recent API level is fine. This is what
-              most of Sessions 1, 4, and 6 will run against, so it's worth
-              having ready now.</li>
+            <li>Create a new (or reuse an existing) GitHub repository for
+              the project.</li>
+            <li>From the repo's page: <code>&lt;&gt; Code</code> button →
+              <strong>Codespaces</strong> tab → <strong>Create codespace on
+              main</strong>. This opens a full VS Code environment — in the
+              browser, or the desktop VS Code app connected to it, your
+              choice — backed by a cloud Linux container. Git and
+              <code>gh</code> are already authenticated inside it; there's
+              no separate git-identity or <code>gh auth login</code> step
+              to do here, unlike the two earlier versions of this plan.</li>
           </ol>
         </li>
+        <li><span class="who"><span class="badge you">You</span></span><strong>Install
+          the Claude Code CLI in the Codespace's terminal, then log in.</strong>
+          Nothing exists yet for a Claude Code session to run the remaining
+          steps below with — the same bootstrapping reason step 1 above was
+          entirely yours. Linux is a directly supported platform, same
+          self-contained installer as macOS, no Node.js needed:
+          <ol class="substeps" type="a">
+            <li><pre><code>curl -fsSL https://claude.ai/install.sh | bash</code></pre>
+            </li>
+            <li>Run <code>claude</code> and log in — pick one:
+              <ul>
+                <li><strong>Your Claude.ai account (Pro/Max).</strong>
+                  Normally opens a browser via the Codespace's own
+                  port-forwarding and completes automatically; if the
+                  browser shows a login code instead of redirecting back,
+                  paste that code into the "Paste code here if prompted"
+                  terminal prompt instead.</li>
+                <li><strong>An Anthropic Console API key instead.</strong>
+                  Generate one at <code>platform.claude.com</code>, then
+                  either <code>export ANTHROPIC_API_KEY="…"</code> before
+                  running <code>claude</code>, or — better for a Codespace,
+                  since it survives a rebuild — add it as a
+                  <strong>Codespaces secret</strong> (repo/org Settings →
+                  Secrets → Codespaces) so it's already set as an
+                  environment variable next time.</li>
+              </ul>
+              Note for later: <code>~/.claude</code> (the logged-in
+              session) is cleared on a full Codespace <em>rebuild</em> (a
+              plain stop/resume keeps it) — an occasional re-login after a
+              rebuild is normal, not a bug.</li>
+          </ol>
+        </li>
+        <li><span class="who"><span class="badge claude">Claude</span></span>Install
+          the Android command-line SDK and a JDK — no Android Studio, no
+          emulator, the same standard pattern CI pipelines already use to
+          build Android apps in Linux containers:
+          <pre><code>sudo apt-get update &amp;&amp; sudo apt-get install -y openjdk-17-jdk unzip</code></pre>
+          then download the Android cmdline-tools into
+          <code>~/android-sdk/cmdline-tools/latest</code>, export
+          <code>ANDROID_HOME</code>/<code>ANDROID_SDK_ROOT</code> + PATH,
+          and run <code>sdkmanager</code> for <code>platform-tools</code>,
+          a current <code>platforms;android-XX</code>, and matching
+          <code>build-tools</code>.</li>
         <li><span class="who"><span class="badge you">You</span></span><strong>Prepare
-          the Samsung phone and connect it to the PC.</strong>
+          the Samsung phone and bridge it to the Codespace.</strong> This
+          is the one genuinely new problem this toolchain has that the
+          Windows/Android-Studio version didn't: a cloud container can't
+          see a USB-connected phone on its own. Neither option below has
+          been tested end-to-end for this exact plan yet — treat this step
+          as something to validate this session, not a guarantee.
           <ol class="substeps" type="a">
             <li>Confirm the phone is on Android 12+ (Settings → About
               phone → Android version) — <a href="plan.html#platform">plan.html
               section 07</a>'s <code>minSdk 31</code> decision depends on
-              it.</li>
-            <li>Enable Developer Options (Settings → About phone → tap
-              "Build number" 7 times), then turn on
-              <strong>USB debugging</strong> under the new Developer
-              Options menu.</li>
-            <li>Connect the phone to the PC with a USB cable, and accept
-              the "Allow USB debugging?" prompt on the phone's own screen —
-              or set up <strong>Wireless debugging</strong> instead
-              (Developer Options → Wireless debugging → pair) if a cable is
-              inconvenient for a given session.</li>
-          </ol>
-        </li>
-        <li><span class="who"><span class="badge you">You</span></span><strong>Install
-          the Claude Code CLI on Windows, then log in.</strong> Nothing
-          exists yet for a Claude Code session to run the remaining steps
-          below with — the same bootstrapping reason steps 1 and 2 above
-          were entirely yours. Windows is a directly supported platform —
-          no Node.js install and no workaround needed, unlike the
-          Termux/Android path this plan used to document.
-          <ol class="substeps" type="a">
-            <li>Open PowerShell and run the official installer:
-              <pre><code>irm https://claude.ai/install.ps1 | iex</code></pre>
-            </li>
-            <li><em>Recommended:</em> also install <strong>Git for
-              Windows</strong> if it isn't already on the machine, so
-              Claude Code has a real Bash available for shell commands.
-              Without it, Claude Code falls back to PowerShell for shell
-              commands, which mostly works but is a rougher fit for
-              Unix-style commands (like <code>./gradlew</code> invocations
-              documented elsewhere as the Git-Bash form).</li>
-            <li>Run <code>claude</code> and log in — pick one:
-              <ul>
-                <li><strong>Your Claude.ai account (Pro/Max).</strong> It
-                  opens a browser for login normally on Windows — sign in
-                  when it appears.</li>
-                <li><strong>An Anthropic Console API key instead.</strong>
-                  Generate one at <code>platform.claude.com</code> first,
-                  then set it before running <code>claude</code>:
-                  <pre><code>$env:ANTHROPIC_API_KEY = "…"</code></pre>
-                  No browser step, but this bills per-token from Console
-                  credits rather than a Pro/Max subscription.</li>
-              </ul>
-            </li>
-          </ol>
-        </li>
-        <li><span class="who"><span class="badge claude">Claude</span><span class="badge you">You</span></span><strong>Connect
-          this Windows terminal to GitHub and a new repo for the project.</strong>
-          <ol class="substeps" type="a">
-            <li>Install the GitHub CLI — Claude, now that the step above
-              gives it a shell to run in:
-              <pre><code>winget install --id GitHub.cli</code></pre>
-            </li>
-            <li>Log in — a fresh terminal may be needed after the install
-              above picks up the new PATH entry:
-              <pre><code>gh auth login</code></pre>
-              Choose <code>GitHub.com</code> → <code>HTTPS</code> →
-              <code>Login with a web browser</code>, then sign in when the
-              browser opens (you).</li>
-            <li>Set your git identity — your call whether to use a real
-              address or a GitHub-provided
-              <code>@users.noreply.github.com</code> one, since this is its
-              own repo with no <code>CLAUDE.md</code> of its own yet (a
-              decision only you can make; Claude can type it once you've
-              decided):
-              <pre><code>git config --global user.name "…"
-git config --global user.email "…"</code></pre>
-            </li>
-            <li>Once the project exists (the scaffolding step below),
-              create and push the repo in one shot from inside its
-              directory:
-              <pre><code>gh repo create sentinel --private --source=. --remote=origin --push</code></pre>
-              — or create an empty repo on github.com first and run
-              <code>git remote add origin …</code> /
-              <code>git push -u origin main</code> by hand instead.</li>
+              it. Enable Developer Options (tap "Build number" 7 times),
+              then turn on <strong>USB debugging</strong>.</li>
+            <li><strong>Option 1 — a local ADB-server bridge via
+              <code>gh</code> (recommended default).</strong> On the
+              Windows PC, install just the small
+              <strong>Android SDK Platform-Tools</strong> zip (not all of
+              Android Studio) to get <code>adb.exe</code>, plus the
+              <strong>GitHub CLI</strong> if it isn't already there.
+              Connect the phone by USB, confirm <code>adb.exe devices</code>
+              sees it, then run:
+              <pre><code>gh codespace ports forward 5037:5037 -c &lt;codespace-name&gt;</code></pre>
+              which forwards port 5037 from the Codespace to the Windows
+              PC's local ADB server. Inside the Codespace, point its own
+              <code>adb</code> at that forwarded port
+              (<code>ADB_SERVER_SOCKET=tcp:localhost:5037</code>) so
+              <code>adb install</code>/<code>adb logcat</code> run from
+              Claude's own terminal reach the real phone.</li>
+            <li><strong>Option 2 — Wireless Debugging + ngrok.</strong> Pair
+              the phone's <strong>Wireless debugging</strong> feature from
+              a local machine once, then use an ngrok TCP tunnel so the
+              Codespace can <code>adb pair</code>/<code>adb connect</code>
+              to it directly, with nothing needing to keep running on the
+              Windows side afterward. Needs a free ngrok account, and
+              briefly exposes the phone's debug port to a public address
+              each session.</li>
           </ol>
         </li>
         <li><span class="who"><span class="badge claude">Claude</span></span>Scaffold
-          a minimal Kotlin/Gradle/Compose project directly (not via Android
-          Studio's New Project wizard — Claude writes the Gradle files and
-          <code>MainActivity.kt</code> straight into a folder) — package
-          root <code>com.twrconsulting.sentinel</code> (placeholder), just
+          a minimal Kotlin/Gradle/Compose project directly (Claude writes
+          the Gradle files and <code>MainActivity.kt</code> straight into a
+          folder, no wizard) — package root
+          <code>com.twrconsulting.sentinel</code> (placeholder), just
           <code>MainActivity</code> showing "Hello Compose," nothing else —
           in its own standalone git repo, not inside <code>Fun</code>.
-          Connect it to GitHub using the step above once the folder exists,
-          then open that folder in Android Studio so its Gradle sync and
-          Device Manager are available for the rest of this session.</li>
-        <li><span class="who"><span class="badge claude">Claude</span></span>Build
-          from the command line:
-          <pre><code>gradlew.bat assembleDebug</code></pre>
-          (or <code>./gradlew assembleDebug</code> from Git Bash — Gradle's
-          wrapper script is POSIX shell, so Git Bash runs the Unix-style
-          form directly). If this is the very first build and Gradle needs
-          to fetch an SDK component Android Studio didn't already install,
-          it may prompt for a license acceptance that only Android Studio's
-          own UI can answer — opening the project in Android Studio once
-          and letting it sync resolves that.</li>
-        <li><span class="who"><span class="badge claude">Claude</span><span class="badge you">You</span></span>Install
-          and launch it — Claude runs <code>adb install</code> (or uses
-          Android Studio's Run button) targeting either the emulator or the
-          Samsung phone; either way, confirming the app actually launches
-          means looking at the screen (you) — the emulator window, or the
-          phone itself.</li>
+          Push it with <code>gh repo create sentinel --private --source=.
+          --remote=origin --push</code>, or push to the repo already
+          created in step 1.</li>
+        <li><span class="who"><span class="badge claude">Claude</span><span class="badge you">You</span></span>Build,
+          install, and launch — all from the Codespace's terminal:
+          <pre><code>./gradlew assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk</code></pre>
+          Claude runs both; confirming it actually launches means looking
+          at the phone's screen (you).</li>
       </ol>
       <div class="callout decision">
         <strong class="label">Done when</strong>
-        A "Hello Compose" APK builds on the Windows PC and launches, on
-        either the emulator or the Samsung phone. This proves the whole
-        toolchain end to end — nothing else gets built until this works.
+        A "Hello Compose" APK builds inside the Codespace and launches on
+        the Samsung phone over the ADB bridge. This proves the whole
+        toolchain end to end, bridge included — nothing else gets built
+        until this works.
       </div>
       <div class="callout notes">
         <strong class="label">Session notes</strong>
@@ -660,7 +655,7 @@ git config --global user.email "…"</code></pre>
           database from auto-backup rules now, while the database is first
           created — this data is a de facto location history and shouldn't
           have a window where it's backed up by default.</li>
-        <li><span class="who"><span class="badge claude">Claude</span></span><code>gradlew.bat test</code>
+        <li><span class="who"><span class="badge claude">Claude</span></span><code>./gradlew test</code>
           against synthetic sighting fixtures: at minimum, one stationary
           device across many sightings in a single cluster that never
           flags, one tracker-like device seen across 3+ clusters with a
@@ -669,9 +664,9 @@ git config --global user.email "…"</code></pre>
       </ol>
       <div class="callout decision">
         <strong class="label">Done when</strong>
-        <code>gradlew.bat test</code> passes with synthetic fixtures covering
+        <code>./gradlew test</code> passes with synthetic fixtures covering
         at least one true-flag case and one true-negative (stationary
-        device) case — no device or emulator needed for this session.
+        device) case — no device needed for this session.
       </div>
       <div class="callout notes">
         <strong class="label">Session notes</strong>
@@ -770,9 +765,9 @@ git config --global user.email "…"</code></pre>
           upsert keyed on <code>stableDeviceKey</code>, using Session 2's
           schema and Session 3's parser/linker.</li>
         <li><span class="who"><span class="badge claude">Claude</span><span class="badge you">You</span></span>Build
-          and install (<code>gradlew.bat assembleDebug</code> then
-          <code>adb install</code>, or Android Studio's Run button) —
-          Claude. Confirming it worked needs a human: tapping through the
+          and install (<code>./gradlew assembleDebug</code> then
+          <code>adb install</code> over the phone bridge) — Claude.
+          Confirming it worked needs a human: tapping through the
           live system permission dialogs Android pops up (no agent can
           dismiss those), then looking at the phone to confirm the
           foreground-service notification shows and real BLE/WiFi sightings
@@ -800,7 +795,7 @@ git config --global user.email "…"</code></pre>
       <h2><span class="kicker">Session 5</span>WiFi polish &amp; the NFC screen</h2>
       <div class="session-meta">
         <span><strong>Status:</strong> <span class="badge">Not started</span></span>
-        <span><strong>Needs hardware:</strong> the Samsung phone (WiFi + NFC), plus the emulator for the "no NFC hardware" negative check</span>
+        <span><strong>Needs hardware:</strong> the Samsung phone (WiFi + NFC) — the "no NFC hardware" negative check is a unit test, no second device needed</span>
         <span><strong>Est. time:</strong> 60–90 min</span>
         <span><strong>Depends on:</strong> Session 4</span>
       </div>
@@ -826,11 +821,12 @@ git config --global user.email "…"</code></pre>
           <code>FLAG_MUTABLE</code> — the specific gotcha plan.html section
           07 calls out; the usual post-Android-12 <code>FLAG_IMMUTABLE</code>
           default breaks tag delivery here.</li>
-        <li><span class="who"><span class="badge you">You</span></span>Confirm
-          the emulator (which has no NFC radio at all) shows a graceful "no
-          NFC hardware" state instead of crashing — a visual check, and a
-          convenient built-in negative test now that there's no second
-          physical device to borrow for it.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span>Unit
+          test the "no NFC hardware" state with a mocked/null
+          <code>NfcAdapter.getDefaultAdapter()</code> — there's no emulator
+          or second physical device in this toolchain to run a live
+          negative check on, so this is verified in code instead
+          (<code>./gradlew test</code>).</li>
         <li><span class="who"><span class="badge you">You</span></span>Test
           real tag reads on the Samsung phone — physically tapping a tag to
           it and reading the result on screen. (This assumes the phone has
@@ -840,7 +836,8 @@ git config --global user.email "…"</code></pre>
       <div class="callout decision">
         <strong class="label">Done when</strong>
         The NFC screen reads a real tag's UID/tech list/NDEF on the Samsung
-        phone, and shows a graceful unavailable state on the emulator.
+        phone, and the mocked-<code>NfcAdapter</code> unit test confirms
+        the graceful unavailable state.
       </div>
       <div class="callout notes">
         <strong class="label">Session notes</strong>
@@ -852,7 +849,7 @@ git config --global user.email "…"</code></pre>
       <h2><span class="kicker">Session 6</span>Compose UI wired to live data</h2>
       <div class="session-meta">
         <span><strong>Status:</strong> <span class="badge">Not started</span></span>
-        <span><strong>Needs hardware:</strong> emulator or Samsung phone</span>
+        <span><strong>Needs hardware:</strong> the Samsung phone</span>
         <span><strong>Est. time:</strong> 90 min</span>
         <span><strong>Depends on:</strong> Sessions 4, 5</span>
       </div>
@@ -887,7 +884,7 @@ git config --global user.email "…"</code></pre>
       </ol>
       <p>
         Every step above is code Claude can write; actually looking at the
-        five screens (emulator or Samsung phone) and confirming they feel right is
+        five screens on the Samsung phone and confirming they feel right is
         <span class="who"><span class="badge you">You</span></span> — see
         this session's "Done when" line below.
       </p>
@@ -920,7 +917,7 @@ git config --global user.email "…"</code></pre>
       </p>
       <ol>
         <li><span class="who"><span class="badge claude">Claude</span></span>Run
-          the full <code>gradlew.bat test</code> suite one more time
+          the full <code>./gradlew test</code> suite one more time
           (correlation engine, clusterer, signature matcher, parser, linking
           heuristic) as a baseline before the real-hardware checks.</li>
         <li><span class="who"><span class="badge you">You</span></span>Place
@@ -940,15 +937,16 @@ git config --global user.email "…"</code></pre>
           you're the one putting the phone through a real screen-off/Doze
           period and switching apps on it.</li>
         <li><span class="who"><span class="badge you">You</span></span>Re-confirm
-          the NFC screen on the Samsung phone and the graceful unavailable
-          state on the emulator, now as part of the full app rather than a
-          standalone test harness.</li>
+          the NFC screen's real tag read on the Samsung phone, now as part
+          of the full app rather than a standalone test harness (the
+          graceful-unavailable state stays covered by Session 5's unit
+          test).</li>
         <li><span class="who"><span class="badge claude">Claude</span><span class="badge you">You</span></span>Write
           down real-world findings in this session's notes: any false
           positives/negatives encountered, whether the co-traveler hard case
           (plan.html section 09) actually showed up, whether the default
           flag threshold of roughly 55 felt right in practice, and any
-          Windows/Gradle/Android Studio gotchas hit beyond what
+          Codespaces/ADB-bridge/Gradle gotchas hit beyond what
           <a href="plan.html#toolchain">plan.html section 08</a> already
           documents. You supply the raw observations; Claude can help write
           them up.</li>

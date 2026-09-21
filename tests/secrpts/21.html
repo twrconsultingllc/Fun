@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #21 — droid/plan.html &amp; droid/build-plan.html Codespaces pivot</title>
+<meta name="description" content="Security and code-quality review of the Sentinel plan's third toolchain revision: droid/plan.html's build-environment section was rewritten again, from Android Studio on Windows to a GitHub Codespace, and droid/build-plan.html's Session 1 and every other session's hardware/tooling references were updated to match — including a new ADB-bridge decision (a gh-port-forward option vs. a Wireless-Debugging-plus-ngrok option) and replacing the emulator-based NFC negative test with a mocked-NfcAdapter unit test.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #21 — <code>droid/plan.html</code> &amp; <code>droid/build-plan.html</code> Codespaces pivot</h1>
+    <p class="sub">The user wants to avoid installing both Android Studio and Claude Code directly on the Windows laptop, using a GitHub Codespace (cloud Linux dev container) for everything instead. This is the third toolchain this pair of documents has described (Termux on a tablet → Android Studio on Windows → a GitHub Codespace). Both files' build-environment sections, hardware requirements, and command syntax (<code>gradlew.bat</code> → <code>./gradlew</code>, since the container is Linux again) were updated, a new "bridge the phone to the Codespace" decision was added (two options, since a cloud container can't see a USB device), and the NFC "unavailable" negative test — previously assigned to an Android Studio emulator that no longer exists in this version — was moved to a mocked-<code>NfcAdapter</code> unit test.</p>
+    <div class="meta">Review performed 2026-09-21 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>droid/plan.html</code> and <code>droid/build-plan.html</code> in full · follows: <a href="20.html" style="color: var(--accent);">20.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">0 actionable findings. 6 items verified clean.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No new external links, scripts, or inline handlers</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Re-parsed both files with jsdom after this edit: zero <code>&lt;script&gt;</code> elements in either, and every <code>&lt;a href&gt;</code> is still a same-page <code>#anchor</code> or a same-directory relative link. The new content names real external services by plain text only — <code>claude.ai</code>, <code>platform.claude.com</code>, ngrok, <code>github.com</code> (via <code>gh</code>) — never as a real <code>&lt;a href&gt;</code>, matching the page's existing convention. Grepped both files directly for <code>href="http</code>, <code>src="http</code>, <code>&lt;script</code>, and the <code>on[a-z]+="</code> inline-handler shape: no hits beyond the expected head <code>&lt;meta&gt;</code> lines.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The new ADB-bridge commands don't hardcode anything sensitive</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The <code>gh codespace ports forward 5037:5037 -c &lt;codespace-name&gt;</code> command uses a literal, correctly HTML-entity-escaped <code>&lt;codespace-name&gt;</code> placeholder rather than a real or invented codespace name; the earlier <code>ANTHROPIC_API_KEY</code>/<code>git config</code> placeholders from review #20 are untouched. No real credential, token, codespace identifier, or email appears anywhere in either file.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Every shell snippet's special characters are correctly entity-escaped</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        This edit introduced the first <code>&amp;&amp;</code>-chained shell command on either page (<code>sudo apt-get update &amp;&amp; sudo apt-get install -y openjdk-17-jdk unzip</code>, added to both files identically). Checked the raw source: both instances use <code>&amp;amp;&amp;amp;</code>, not a literal <code>&amp;</code>. The new <code>&lt;codespace-name&gt;</code> placeholder likewise uses <code>&amp;lt;</code>/<code>&amp;gt;</code>, not raw angle brackets. Head block and CSP are unchanged from review #20 in both files.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Document structure stays well-formed in both files</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Checked tag balance across both full files: in <code>build-plan.html</code>, <code>&lt;li&gt;</code> 63/63, <code>&lt;ol&gt;</code> 11/11, <code>&lt;ul&gt;</code> 2/2, <code>&lt;pre&gt;</code> 4/4, <code>&lt;code&gt;</code> 87/87; in <code>plan.html</code>, <code>&lt;li&gt;</code> 46/46, <code>&lt;ol&gt;</code> 4/4, <code>&lt;ul&gt;</code> 5/5, <code>&lt;pre&gt;</code> 5/5, <code>&lt;code&gt;</code> 88/88. Every internal <code>#anchor</code> link in both files (checked programmatically, not by eye) resolves to a real <code>&lt;section id="…"&gt;</code>, including the cross-file <code>plan.html#toolchain</code> references from <code>build-plan.html</code>.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The eliminated emulator is fully retired, not left as a dangling assumption</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped both files for <code>emulator</code> after the edit: every remaining hit is either a statement that no emulator exists in this toolchain, or the specific replacement decision (the NFC negative path moving to a mocked-<code>NfcAdapter</code> unit test) — none is a stale instruction to use an emulator that no longer has anywhere to run. Session 1's and Session 6's "Needs hardware" lines, and Session 6's on-screen-check sentence, were each checked individually rather than trusting one global pass, since three separate sessions previously referenced the emulator by name.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Command syntax correctly reverted from Windows to Linux form</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Every <code>gradlew.bat</code> invocation from the Windows/Android-Studio revision (Sessions 1, 2, 4, 7, plus <code>plan.html</code>'s verification section) was changed back to <code>./gradlew</code>, correct for a Codespace's Linux container — grepped both files for <code>gradlew.bat</code> after the edit and found zero remaining hits. The install commands are appropriately platform-specific rather than copied forward: <code>curl -fsSL https://claude.ai/install.sh | bash</code> for the in-Codespace Claude Code install (replacing the Windows PowerShell one-liner), and <code>sudo apt-get install</code> for the JDK (replacing Termux's <code>pkg install</code> and Android Studio's bundled JDK).
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The ADB-bridge decision is presented as genuinely unverified, not asserted as working</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Both the "Option 1 / Option 2" decision in <code>plan.html</code> section 08 and the matching step in <code>build-plan.html</code> Session 1 explicitly state that neither bridging approach has been tested end-to-end for this plan, and frame the step as something to validate during the session rather than a guaranteed recipe — consistent with this repo's "note honestly what's left open" standard, and appropriate given this is the one genuinely new, more speculative mechanism this revision introduces (unlike the aapt2/same-device-install eliminations in review #20, which were confirmed structural non-issues on the platforms they moved to).
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand if anything regresses, or
+    ask Claude for another review. See <code>20.html</code> for the review immediately before this pivot, and
+    <code>CLAUDE.md</code>'s "New pages *and* page updates get a numbered security &amp; quality review"
+    section for the rule this review exists to satisfy.
+  </footer>
+
+</div>
+</body>
+</html>
