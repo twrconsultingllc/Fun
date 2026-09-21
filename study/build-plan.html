@@ -375,7 +375,7 @@
           <tr><td>7</td><td>Context budget: compaction &amp; caching</td><td><span class="badge in-progress">In progress</span></td><td><strong>Yes</strong> (for the real run)</td><td>90 min</td><td>Session 4</td></tr>
           <tr><td>8</td><td>Orchestrator &amp; the stretch tool</td><td><span class="badge in-progress">In progress</span></td><td><strong>Yes</strong> (for the manual run)</td><td>90–120 min</td><td>Sessions 3, 6</td></tr>
           <tr><td>9</td><td>Claude Agent SDK version</td><td><span class="badge in-progress">In progress</span></td><td><strong>Yes</strong></td><td>90 min</td><td>Session 4</td></tr>
-          <tr><td>10</td><td>README, cross-check, cost reality-check</td><td><span class="badge">Not started</span></td><td>No</td><td>60 min</td><td>Everything above</td></tr>
+          <tr><td>10</td><td>README, cross-check, cost reality-check</td><td><span class="badge in-progress">In progress</span></td><td>No</td><td>60 min</td><td>Everything above</td></tr>
         </tbody>
       </table>
       <p>
@@ -691,7 +691,7 @@
     <section id="s10">
       <h2><span class="kicker">Session 10</span>README, cross-check, cost reality-check</h2>
       <div class="session-meta">
-        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
+        <span><strong>Status:</strong> <span class="badge in-progress">In progress</span></span>
         <span><strong>Needs API key:</strong> No</span>
         <span><strong>Est. time:</strong> 60 min</span>
         <span><strong>Depends on:</strong> everything above</span>
@@ -713,7 +713,11 @@
       </div>
       <div class="callout notes">
         <strong class="label">Session notes</strong>
-        <p>None yet.</p>
+        <p>This session's own "Depends on: everything above" is real, not a formality: Sessions 5–9 all still have a pending real-API-run step (see their own notes), so this can't honestly flip to <span class="badge done">Done</span> yet either. What's genuinely completable without the API — the README's actual content — is done; folding in Session 7's real measured numbers is not, because those numbers don't exist yet.</p>
+        <p><code>README.md</code> is filled in for real: Setup, a "Running the lab sessions" table naming every <code>lab:N</code> script and its file, the exam-domain crib sheet from <a href="plan.html#mapping">plan.html section 09</a> with the real file paths (which turned out to match the planned ones exactly — no path divergence), and a "Known divergences from the plan" section compiled from what every session above actually recorded, not re-derived from memory.</p>
+        <p>The crib sheet's "Verified?" column is a real cross-check, not a restatement of plan.html's claims: it names the actual current test count for each file (re-run just now, not recalled — 7/4/10 for agent-loop/structured-output/context-budget respectively) and says plainly where verification stops (e.g., <code>sdk-version/agent.mjs</code>'s Claude Code Configuration domain claims "authentication" as a covered concept, but this file only ever demonstrates the same <code>ANTHROPIC_API_KEY</code> env var every other file uses, not a distinct auth flow — that's now stated honestly rather than left implied).</p>
+        <p>Re-checked current per-token pricing live against <code>platform.claude.com/docs/en/about-claude/pricing</code> (2026-09-21) rather than trusting the earlier session's numbers to still be current: <strong>zero drift</strong> on every figure in plan.html section 10, including both cache multipliers. One near-miss worth recording precisely because it didn't happen: Sonnet 5's $2/$10 pricing was introductory through 2026-08-31 with a scheduled increase to $3/$15 that was ultimately never applied. Had it gone through, both plan.html section 10 and <code>context-budget.mjs</code>'s <code>PRICING_USD_PER_MTOK</code> would have needed a real fix, not just a re-verification — exactly the scenario the "verified, not recalled" habit exists for.</p>
+        <p><strong>Still open:</strong> the README's cost-model section states plainly that the real measured compaction/caching numbers are pending Session 7's live run, rather than inventing placeholder figures. Once Sessions 5–9's real runs all happen, this session needs one more short pass: fold those real findings in, re-read the finished README as an actual study session per this session's own "Done when" line, and only then flip this badge to <span class="badge done">Done</span>.</p>
       </div>
     </section>
 
