@@ -6,7 +6,7 @@
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
 <title>Sentinel — Build Plan</title>
-<meta name="description" content="Step-by-step build plan for the Sentinel tracker-detector Android app, turning plan.html's design into seven self-contained sessions — from the Termux toolchain scaffold through on-device validation on the Galaxy Tab S11 Ultra and a phone with NFC." />
+<meta name="description" content="Step-by-step build plan for the Sentinel tracker-detector Android app, turning plan.html's design into seven self-contained sessions — from the Android Studio toolchain scaffold on a Windows PC through on-device validation on a Samsung phone." />
 <style>
   :root {
     --bg: #0f1115;
@@ -183,6 +183,20 @@
     font-size: 0.88em;
   }
 
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    margin: 0.7rem 0;
+    overflow-x: auto;
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+
+  pre code { background: none; padding: 0; font-size: 1em; }
+
   table {
     width: 100%;
     border-collapse: collapse;
@@ -349,11 +363,12 @@
       The design in <a href="plan.html">plan.html</a> turned into seven
       self-contained work sessions, following that page's own
       <a href="plan.html#order">section 10 build order</a> exactly. The
-      actual Kotlin/Gradle project lives in its own standalone repo, built
-      and tested via Termux directly on the Galaxy Tab S11 Ultra — this page
-      just tracks that separate project's progress from inside
-      <code>Fun/droid/</code>, the way <a href="../study/build-plan.html">the
-      Claude Architect Lab build plan</a> tracks that project.
+      actual Kotlin/Gradle project lives in its own standalone repo,
+      developed in Android Studio on a Windows PC and tested on a Samsung
+      phone (no tablet involved) — this page just tracks that separate
+      project's progress from inside <code>Fun/droid/</code>, the way
+      <a href="../study/build-plan.html">the Claude Architect Lab build
+      plan</a> tracks that project.
     </p>
   </header>
 
@@ -373,9 +388,9 @@
     both. <span class="badge claude">Claude</span> marks anything this
     assistant can do directly once it has a terminal in the right place —
     writing code, editing Gradle/manifest config, seeding data, running
-    <code>./gradlew test</code>/<code>assembleDebug</code> — including from
-    inside a Termux shell on the tablet itself, if that's where a session
-    happens to be running. <span class="badge you">You</span> marks
+    <code>gradlew.bat test</code>/<code>assembleDebug</code> — from inside a
+    terminal on the Windows PC, once one exists there.
+    <span class="badge you">You</span> marks
     anything no coding agent can do on your behalf: tapping through an
     app-store install or a system permission dialog, flipping an Android
     Settings toggle, physically carrying hardware between locations, or
@@ -389,7 +404,7 @@
     <ol>
       <li><a href="#how">How to use this plan</a></li>
       <li><a href="#index">Session index</a></li>
-      <li><a href="#s1">Session 1 — Termux toolchain &amp; Hello Compose</a></li>
+      <li><a href="#s1">Session 1 — Windows toolchain &amp; Hello Compose</a></li>
       <li><a href="#s2">Session 2 — Data model &amp; correlation engine</a></li>
       <li><a href="#s3">Session 3 — BLE parsing &amp; MAC-rotation linking</a></li>
       <li><a href="#s4">Session 4 — Foreground scanning service &amp; permissions</a></li>
@@ -404,22 +419,20 @@
     <section id="how">
       <h2><span class="kicker">Before you start</span>How to use this plan</h2>
       <p>
-        Unlike a pure-software plan, most of these sessions need real
-        hardware in hand — the Galaxy Tab S11 Ultra for Sessions 1, 2, 4, 5,
-        6, and 7, plus a phone with NFC hardware for the NFC half of
-        Sessions 5 and 7. There's no CLI-sandbox or emulator fallback for
-        the on-device sessions: this environment has no Android SDK, no
-        emulator, and no ADB link (the same limit <a href="plan.html#verify">plan.html
-        section 11</a> already states), so those steps genuinely have to
-        happen on the tablet itself, via Termux.
+        Development happens on a <strong>Windows PC</strong> running Android
+        Studio — not on a tablet via Termux, which is how this plan
+        originally started. A <strong>Samsung phone</strong> (assumed to
+        have NFC hardware) is the one physical device used for on-device
+        testing, connected over USB or wireless ADB; Android Studio's
+        bundled emulator covers most iteration in between. There's no
+        tablet anywhere in this version of the plan.
       </p>
       <ul>
-        <li><strong>Start each new session by reading this plan and the "Done when" line of whatever session you finished last</strong> — a fresh Claude Code session run from Termux has no memory of prior sessions, so re-orienting from this document is faster than re-deriving context from code.</li>
+        <li><strong>Start each new session by reading this plan and the "Done when" line of whatever session you finished last</strong> — a fresh Claude Code session on the Windows PC has no memory of prior sessions, so re-orienting from this document is faster than re-deriving context from code.</li>
         <li><strong>Don't open a session's next steps as extra credit.</strong> Each session ends at a real boundary — Session 1 stops at a launching "Hello Compose" APK, not a taste of Room; Session 4 stops at a running foreground service, not the UI. Resist folding the next session in just because time is left.</li>
-        <li><strong>Sessions 2 and 3 need no device at all</strong> — they're pure JVM logic (the correlation engine, the clusterer, the BLE payload parser) verified with <code>./gradlew test</code>, the same "no live dependency" split <a href="../study/build-plan.html">the Claude Architect Lab plan</a> uses for its own no-API-key sessions. Everything from Session 4 onward needs the tablet.</li>
-        <li><strong>Termux/SDK package versions drift.</strong> Re-check current <code>aapt2</code>/NDK/cmdline-tools behavior against <a href="plan.html#termux">plan.html section 08</a> before assuming a fix documented there still applies exactly as written — that section already required one real workaround (the <code>aapt2FromMavenOverride</code> escape hatch) that wouldn't have been obvious from a fresh Android Studio setup.</li>
+        <li><strong>Sessions 2 and 3 need no device at all</strong> — they're pure JVM logic (the correlation engine, the clusterer, the BLE payload parser) verified with <code>gradlew.bat test</code>, the same "no live dependency" split <a href="../study/build-plan.html">the Claude Architect Lab plan</a> uses for its own no-API-key sessions. Sessions 1, 4, 5, 6 can mostly run against the emulator; only Session 5's NFC half and Session 7 strictly require the Samsung phone.</li>
         <li>Every session below cross-references the exact section of <a href="plan.html">plan.html</a> it implements — this page sequences the work, it doesn't redesign it. If something here seems to contradict that page, plan.html is the source of truth; treat the mismatch as a bug in this page.</li>
-        <li><strong>This page doubles as the tracker.</strong> Each session has a <code>Status</code> line (<span class="badge">Not started</span>, <span class="badge in-progress">In progress</span>, or <span class="badge done">Done</span>) in its meta row, and a <strong>Session notes</strong> callout underneath its "Done when" line. When a session is finished, flip its badge to <span class="badge done">Done</span> in both places (the session's own meta row and the session-index table) and log anything worth remembering — a Termux gotcha beyond what plan.html already documents, a real device quirk, a divergence from plan.html, a dead end. Leave a session's notes as "None yet." if nothing came up.</li>
+        <li><strong>This page doubles as the tracker.</strong> Each session has a <code>Status</code> line (<span class="badge">Not started</span>, <span class="badge in-progress">In progress</span>, or <span class="badge done">Done</span>) in its meta row, and a <strong>Session notes</strong> callout underneath its "Done when" line. When a session is finished, flip its badge to <span class="badge done">Done</span> in both places (the session's own meta row and the session-index table) and log anything worth remembering — a Windows/Gradle gotcha beyond what plan.html already documents, a real device quirk, a divergence from plan.html, a dead end. Leave a session's notes as "None yet." if nothing came up.</li>
       </ul>
     </section>
 
@@ -430,13 +443,13 @@
           <tr><th>#</th><th>Session</th><th>Status</th><th>Needs hardware</th><th>Who does most of it</th><th>Est. time</th><th>Depends on</th></tr>
         </thead>
         <tbody>
-          <tr><td>1</td><td>Termux toolchain &amp; Hello Compose</td><td><span class="badge">Not started</span></td><td>Tablet</td><td>Mixed</td><td>60–90 min</td><td>—</td></tr>
+          <tr><td>1</td><td>Windows toolchain &amp; Hello Compose</td><td><span class="badge">Not started</span></td><td>Windows PC (emulator)</td><td>Mixed</td><td>60–90 min</td><td>—</td></tr>
           <tr><td>2</td><td>Data model &amp; correlation engine</td><td><span class="badge">Not started</span></td><td>No (pure JVM)</td><td><span class="badge claude">Claude</span></td><td>90–120 min</td><td>Session 1</td></tr>
           <tr><td>3</td><td>BLE parsing &amp; MAC-rotation linking</td><td><span class="badge">Not started</span></td><td>No (pure JVM)</td><td><span class="badge claude">Claude</span></td><td>60–90 min</td><td>Session 2</td></tr>
-          <tr><td>4</td><td>Foreground scanning service &amp; permissions</td><td><span class="badge">Not started</span></td><td>Tablet</td><td>Mixed</td><td>90–120 min</td><td>Sessions 2, 3</td></tr>
-          <tr><td>5</td><td>WiFi polish &amp; the NFC screen</td><td><span class="badge">Not started</span></td><td>Tablet + NFC phone</td><td>Mixed</td><td>60–90 min</td><td>Session 4</td></tr>
-          <tr><td>6</td><td>Compose UI wired to live data</td><td><span class="badge">Not started</span></td><td>Tablet</td><td><span class="badge claude">Claude</span></td><td>90 min</td><td>Sessions 4, 5</td></tr>
-          <tr><td>7</td><td>On-device validation</td><td><span class="badge">Not started</span></td><td>Tablet + NFC phone + a BLE tracker</td><td><span class="badge you">You</span></td><td>spans hours, not one sitting</td><td>Everything above</td></tr>
+          <tr><td>4</td><td>Foreground scanning service &amp; permissions</td><td><span class="badge">Not started</span></td><td>Samsung phone</td><td>Mixed</td><td>90–120 min</td><td>Sessions 2, 3</td></tr>
+          <tr><td>5</td><td>WiFi polish &amp; the NFC screen</td><td><span class="badge">Not started</span></td><td>Samsung phone</td><td>Mixed</td><td>60–90 min</td><td>Session 4</td></tr>
+          <tr><td>6</td><td>Compose UI wired to live data</td><td><span class="badge">Not started</span></td><td>Emulator or Samsung phone</td><td><span class="badge claude">Claude</span></td><td>90 min</td><td>Sessions 4, 5</td></tr>
+          <tr><td>7</td><td>On-device validation</td><td><span class="badge">Not started</span></td><td>Samsung phone + a BLE tracker</td><td><span class="badge you">You</span></td><td>spans hours, not one sitting</td><td>Everything above</td></tr>
         </tbody>
       </table>
       <p>
@@ -451,10 +464,10 @@
     </section>
 
     <section id="s1">
-      <h2><span class="kicker">Session 1</span>Termux toolchain &amp; Hello Compose</h2>
+      <h2><span class="kicker">Session 1</span>Windows toolchain &amp; Hello Compose</h2>
       <div class="session-meta">
         <span><strong>Status:</strong> <span class="badge">Not started</span></span>
-        <span><strong>Needs hardware:</strong> Galaxy Tab S11 Ultra</span>
+        <span><strong>Needs hardware:</strong> the Windows PC, plus the Samsung phone for the final on-screen check</span>
         <span><strong>Est. time:</strong> 60–90 min</span>
         <span><strong>Depends on:</strong> nothing</span>
       </div>
@@ -465,150 +478,137 @@
       </p>
       <ol>
         <li><span class="who"><span class="badge you">You</span></span><strong>Install
-          Termux and its Termux:API companion app on the tablet.</strong> The
-          one step in this whole plan that's entirely yours from the very
-          first tap — nothing exists yet for Claude to run, and app
-          installs and their permission prompts are GUI-only. Broken into
-          order, with the one real decision called out:
+          Android Studio on the Windows PC and step through its first-run
+          setup wizard.</strong> The one step in this whole session that's
+          entirely yours from the very first click — nothing exists yet for
+          Claude to run, and installers/GUI wizards are GUI-only.
           <ol class="substeps" type="a">
-            <li><strong>Decide your install source — pick one:</strong>
-              <ul>
-                <li><strong>Option 1 — F-Droid (recommended default).</strong>
-                  If F-Droid itself isn't already on the tablet, install it
-                  first from <code>f-droid.org</code>; then use F-Droid's
-                  own search to find and install both "Termux" and
-                  "Termux:API". <em>What you get:</em> automatic updates
-                  through F-Droid going forward. <em>Trade-off:</em>
-                  F-Droid's build occasionally lags a version or two behind
-                  GitHub's newest tag.</li>
-                <li><strong>Option 2 — GitHub releases (.apk files).</strong>
-                  Download the newest release APK for each app directly
-                  from <code>github.com/termux/termux-app/releases</code>
-                  and <code>github.com/termux/termux-api/releases</code>,
-                  then sideload them. <em>What you get:</em> always the
-                  newest version the day it ships. <em>Trade-off:</em> no
-                  auto-update — you redownload by hand whenever you want a
-                  newer one — and whichever app you use to download the
-                  APK will need a one-time "allow installs from this
-                  source" toggle in Android Settings before it'll install.</li>
-              </ul>
-              Either option is fine; what matters is picking one and using
-              it for both apps below, not which one you pick.
-              <strong>Not fine either way:</strong> the Google Play Store's
-              "Termux" listing — plan.html section 08 already flags it as a
-              years-stale, abandoned build, and installing it here would
-              cause confusing failures several steps from now (package
-              installs failing, a mismatched <code>aapt2</code>), not
-              immediately.</li>
-            <li>Install <strong>Termux</strong> itself, through the source
-              you picked in (a).</li>
-            <li>Install <strong>Termux:API</strong> the same way, through
-              the same source as (b) — mixing sources works too, but
-              keeping them matched keeps future updates simpler.</li>
-            <li>Open Termux once. Confirm it actually launches to a shell
-              prompt, and grant whatever storage permission it asks for on
-              first run (needed later for things like installing a built
-              APK via <code>termux-open</code>).</li>
+            <li>Download and run the Android Studio installer from its
+              official site, then launch it once installed.</li>
+            <li>Step through the Setup Wizard: accept the SDK license, and
+              let it install its default SDK platform, build-tools, and
+              platform-tools. This also installs a matching JDK bundled
+              with Android Studio — no separate JDK download needed.</li>
+            <li>Open <strong>Device Manager</strong> and create at least
+              one emulator (AVD) — a recent API level is fine. This is what
+              most of Sessions 1, 4, and 6 will run against, so it's worth
+              having ready now.</li>
+          </ol>
+        </li>
+        <li><span class="who"><span class="badge you">You</span></span><strong>Prepare
+          the Samsung phone and connect it to the PC.</strong>
+          <ol class="substeps" type="a">
+            <li>Confirm the phone is on Android 12+ (Settings → About
+              phone → Android version) — <a href="plan.html#platform">plan.html
+              section 07</a>'s <code>minSdk 31</code> decision depends on
+              it.</li>
+            <li>Enable Developer Options (Settings → About phone → tap
+              "Build number" 7 times), then turn on
+              <strong>USB debugging</strong> under the new Developer
+              Options menu.</li>
+            <li>Connect the phone to the PC with a USB cable, and accept
+              the "Allow USB debugging?" prompt on the phone's own screen —
+              or set up <strong>Wireless debugging</strong> instead
+              (Developer Options → Wireless debugging → pair) if a cable is
+              inconvenient for a given session.</li>
           </ol>
         </li>
         <li><span class="who"><span class="badge you">You</span></span><strong>Install
-          the Claude Code CLI itself inside Termux, then log in.</strong>
-          Nothing exists yet for a Claude Code session to run the
-          remaining steps below with — the same bootstrapping reason step
-          1 above was entirely yours.
+          the Claude Code CLI on Windows, then log in.</strong> Nothing
+          exists yet for a Claude Code session to run the remaining steps
+          below with — the same bootstrapping reason steps 1 and 2 above
+          were entirely yours. Windows is a directly supported platform —
+          no Node.js install and no workaround needed, unlike the
+          Termux/Android path this plan used to document.
           <ol class="substeps" type="a">
-            <li><code>pkg install nodejs git -y</code>, then
-              <code>npm install -g @anthropic-ai/claude-code</code>.</li>
-            <li>If the shell doesn't find <code>claude</code> afterward,
-              alias it straight at the installed script and reload the
-              shell: <code>echo "alias claude='node
-              /data/data/com.termux/files/usr/lib/node_modules/@anthropic-ai/claude-code/cli.js'"
-              &gt;&gt; ~/.bashrc &amp;&amp; source ~/.bashrc</code>. Confirm
-              with <code>claude --version</code>.</li>
+            <li>Open PowerShell and run the official installer:
+              <pre><code>irm https://claude.ai/install.ps1 | iex</code></pre>
+            </li>
+            <li><em>Recommended:</em> also install <strong>Git for
+              Windows</strong> if it isn't already on the machine, so
+              Claude Code has a real Bash available for shell commands.
+              Without it, Claude Code falls back to PowerShell for shell
+              commands, which mostly works but is a rougher fit for
+              Unix-style commands (like <code>./gradlew</code> invocations
+              documented elsewhere as the Git-Bash form).</li>
             <li>Run <code>claude</code> and log in — pick one:
               <ul>
-                <li><strong>Your Claude.ai account (Pro/Max).</strong>
-                  Termux has no default browser to catch the OAuth
-                  redirect, so when it shows a login URL, copy it, open
-                  that URL in a browser on any device, sign in, and paste
-                  the code back into the Termux prompt.</li>
+                <li><strong>Your Claude.ai account (Pro/Max).</strong> It
+                  opens a browser for login normally on Windows — sign in
+                  when it appears.</li>
                 <li><strong>An Anthropic Console API key instead.</strong>
                   Generate one at <code>platform.claude.com</code> first,
-                  then <code>export ANTHROPIC_API_KEY="…"</code> before
-                  running <code>claude</code> — no browser step, but bills
-                  per-token from Console credits rather than a Pro/Max
-                  subscription.</li>
+                  then set it before running <code>claude</code>:
+                  <pre><code>$env:ANTHROPIC_API_KEY = "…"</code></pre>
+                  No browser step, but this bills per-token from Console
+                  credits rather than a Pro/Max subscription.</li>
               </ul>
-              <em>Not officially supported:</em> Claude Code's own docs
-              list only macOS, Windows, Ubuntu, Debian, and Alpine —
-              Android/Termux works via a community-tested workaround, not
-              a documented platform, so treat an odd failure here as that
-              first, not a bug in this plan.</li>
+            </li>
           </ol>
         </li>
         <li><span class="who"><span class="badge claude">Claude</span><span class="badge you">You</span></span><strong>Connect
-          this Termux session to GitHub and a new repo for the project.</strong>
+          this Windows terminal to GitHub and a new repo for the project.</strong>
           <ol class="substeps" type="a">
-            <li><code>pkg install gh -y</code> — Claude, now that the step
-              above gives it a shell to run in.</li>
-            <li><code>gh auth login</code> → <code>GitHub.com</code> →
-              <code>HTTPS</code> → <code>Login with a web browser</code> —
-              the same copy-the-URL-paste-the-code flow as logging into
-              Claude Code itself (you).</li>
-            <li><code>git config --global user.name "…"</code> and
-              <code>git config --global user.email "…"</code> — your call
-              whether to use a real address or a GitHub-provided
-              <code>@users.noreply.github.com</code> one, since this is
-              its own repo with no <code>CLAUDE.md</code> of its own yet
-              (a decision only you can make; Claude can type it once
-              you've decided).</li>
+            <li>Install the GitHub CLI — Claude, now that the step above
+              gives it a shell to run in:
+              <pre><code>winget install --id GitHub.cli</code></pre>
+            </li>
+            <li>Log in — a fresh terminal may be needed after the install
+              above picks up the new PATH entry:
+              <pre><code>gh auth login</code></pre>
+              Choose <code>GitHub.com</code> → <code>HTTPS</code> →
+              <code>Login with a web browser</code>, then sign in when the
+              browser opens (you).</li>
+            <li>Set your git identity — your call whether to use a real
+              address or a GitHub-provided
+              <code>@users.noreply.github.com</code> one, since this is its
+              own repo with no <code>CLAUDE.md</code> of its own yet (a
+              decision only you can make; Claude can type it once you've
+              decided):
+              <pre><code>git config --global user.name "…"
+git config --global user.email "…"</code></pre>
+            </li>
             <li>Once the project exists (the scaffolding step below),
               create and push the repo in one shot from inside its
-              directory: <code>gh repo create sentinel --private
-              --source=. --remote=origin --push</code> — or create an
-              empty repo on github.com first and <code>git remote add
-              origin …</code> / <code>git push -u origin main</code> by
-              hand instead.</li>
+              directory:
+              <pre><code>gh repo create sentinel --private --source=. --remote=origin --push</code></pre>
+              — or create an empty repo on github.com first and run
+              <code>git remote add origin …</code> /
+              <code>git push -u origin main</code> by hand instead.</li>
           </ol>
         </li>
-        <li><span class="who"><span class="badge claude">Claude</span></span><code>pkg install openjdk-17 wget unzip git aapt2 termux-api android-tools</code>,
-          run from inside the Termux shell once it exists.</li>
-        <li><span class="who"><span class="badge claude">Claude</span></span>Set
-          up the Android cmdline-tools under <code>~/android-sdk</code>,
-          export <code>ANDROID_HOME</code>/<code>ANDROID_SDK_ROOT</code> +
-          PATH, then run <code>sdkmanager</code> for <code>platform-tools</code>,
-          a current <code>platforms;android-XX</code>, and matching
-          <code>build-tools</code>.</li>
-        <li><span class="who"><span class="badge claude">Claude</span></span>Apply
-          both <code>gradle.properties</code> fixes from
-          <a href="plan.html#termux">plan.html section 08</a> up front:
-          <code>android.aapt2FromMavenOverride</code> pointing at the
-          Termux-native <code>aapt2</code>, and
-          <code>org.gradle.vfs.watch=false</code>.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span>Scaffold
-          a minimal Kotlin/Gradle/Compose project — package root
-          <code>com.twrconsulting.sentinel</code> (placeholder), just
+          a minimal Kotlin/Gradle/Compose project directly (not via Android
+          Studio's New Project wizard — Claude writes the Gradle files and
+          <code>MainActivity.kt</code> straight into a folder) — package
+          root <code>com.twrconsulting.sentinel</code> (placeholder), just
           <code>MainActivity</code> showing "Hello Compose," nothing else —
           in its own standalone git repo, not inside <code>Fun</code>.
-          Connect it to GitHub using the <code>gh</code> setup from the
-          step above once the repo directory exists.</li>
-        <li><span class="who"><span class="badge you">You</span></span>Confirm
-          the test tablet is actually on Android 12+ before going further
-          (Settings → About tablet → Android version);
-          <a href="plan.html#platform">plan.html section 07</a>'s
-          <code>minSdk 31</code> decision depends on it.</li>
-        <li><span class="who"><span class="badge claude">Claude</span><span class="badge you">You</span></span><code>./gradlew assembleDebug</code>
-          (Claude), then either <code>termux-open</code> the debug APK
-          (manual tap-through install) or set up wireless ADB per section 08
-          if faster iteration is worth the one-time pairing step — either
-          way, confirming the app actually launches means looking at the
-          tablet's screen (you).</li>
+          Connect it to GitHub using the step above once the folder exists,
+          then open that folder in Android Studio so its Gradle sync and
+          Device Manager are available for the rest of this session.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span>Build
+          from the command line:
+          <pre><code>gradlew.bat assembleDebug</code></pre>
+          (or <code>./gradlew assembleDebug</code> from Git Bash — Gradle's
+          wrapper script is POSIX shell, so Git Bash runs the Unix-style
+          form directly). If this is the very first build and Gradle needs
+          to fetch an SDK component Android Studio didn't already install,
+          it may prompt for a license acceptance that only Android Studio's
+          own UI can answer — opening the project in Android Studio once
+          and letting it sync resolves that.</li>
+        <li><span class="who"><span class="badge claude">Claude</span><span class="badge you">You</span></span>Install
+          and launch it — Claude runs <code>adb install</code> (or uses
+          Android Studio's Run button) targeting either the emulator or the
+          Samsung phone; either way, confirming the app actually launches
+          means looking at the screen (you) — the emulator window, or the
+          phone itself.</li>
       </ol>
       <div class="callout decision">
         <strong class="label">Done when</strong>
-        A "Hello Compose" APK builds under Termux and launches on the
-        tablet. This proves the whole toolchain end to end — nothing else
-        gets built until this works.
+        A "Hello Compose" APK builds on the Windows PC and launches, on
+        either the emulator or the Samsung phone. This proves the whole
+        toolchain end to end — nothing else gets built until this works.
       </div>
       <div class="callout notes">
         <strong class="label">Session notes</strong>
@@ -660,7 +660,7 @@
           database from auto-backup rules now, while the database is first
           created — this data is a de facto location history and shouldn't
           have a window where it's backed up by default.</li>
-        <li><span class="who"><span class="badge claude">Claude</span></span><code>./gradlew test</code>
+        <li><span class="who"><span class="badge claude">Claude</span></span><code>gradlew.bat test</code>
           against synthetic sighting fixtures: at minimum, one stationary
           device across many sightings in a single cluster that never
           flags, one tracker-like device seen across 3+ clusters with a
@@ -669,7 +669,7 @@
       </ol>
       <div class="callout decision">
         <strong class="label">Done when</strong>
-        <code>./gradlew test</code> passes with synthetic fixtures covering
+        <code>gradlew.bat test</code> passes with synthetic fixtures covering
         at least one true-flag case and one true-negative (stationary
         device) case — no device or emulator needed for this session.
       </div>
@@ -734,7 +734,7 @@
       <h2><span class="kicker">Session 4</span>Foreground scanning service &amp; permissions</h2>
       <div class="session-meta">
         <span><strong>Status:</strong> <span class="badge">Not started</span></span>
-        <span><strong>Needs hardware:</strong> Galaxy Tab S11 Ultra — the first real on-device milestone</span>
+        <span><strong>Needs hardware:</strong> the Samsung phone — the first real on-device milestone</span>
         <span><strong>Est. time:</strong> 90–120 min</span>
         <span><strong>Depends on:</strong> Sessions 2, 3</span>
       </div>
@@ -770,10 +770,11 @@
           upsert keyed on <code>stableDeviceKey</code>, using Session 2's
           schema and Session 3's parser/linker.</li>
         <li><span class="who"><span class="badge claude">Claude</span><span class="badge you">You</span></span>Build
-          and install (<code>termux-open</code> or wireless ADB) — Claude.
-          Confirming it worked needs a human: tapping through the live
-          system permission dialogs Android pops up (no agent can dismiss
-          those), then looking at the tablet to confirm the
+          and install (<code>gradlew.bat assembleDebug</code> then
+          <code>adb install</code>, or Android Studio's Run button) —
+          Claude. Confirming it worked needs a human: tapping through the
+          live system permission dialogs Android pops up (no agent can
+          dismiss those), then looking at the phone to confirm the
           foreground-service notification shows and real BLE/WiFi sightings
           start populating the database (no UI to view them yet — a debug
           log or a direct DB query is enough).</li>
@@ -785,7 +786,7 @@
       </ol>
       <div class="callout decision">
         <strong class="label">Done when</strong>
-        The service runs on the tablet, survives a short screen-off spot
+        The service runs on the Samsung phone, survives a short screen-off spot
         check without being killed (the full multi-hour check is Session
         7), and real sightings are landing in the database.
       </div>
@@ -799,7 +800,7 @@
       <h2><span class="kicker">Session 5</span>WiFi polish &amp; the NFC screen</h2>
       <div class="session-meta">
         <span><strong>Status:</strong> <span class="badge">Not started</span></span>
-        <span><strong>Needs hardware:</strong> Galaxy Tab S11 Ultra (WiFi) + a phone with NFC hardware (NFC half)</span>
+        <span><strong>Needs hardware:</strong> the Samsung phone (WiFi + NFC), plus the emulator for the "no NFC hardware" negative check</span>
         <span><strong>Est. time:</strong> 60–90 min</span>
         <span><strong>Depends on:</strong> Session 4</span>
       </div>
@@ -814,7 +815,7 @@
           per <a href="plan.html#platform">plan.html section 07</a> — this
           is an OS throttle on stock, unrooted Android, not a bug to chase
           away; confirming the real cadence means watching it happen on the
-          tablet.</li>
+          Samsung phone.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span>Implement
           <code>NfcTagReader</code> and the NFC Tag Read screen: UID, tech
           list, NDEF dump if present; MIFARE Classic reports "detected,
@@ -826,18 +827,20 @@
           07 calls out; the usual post-Android-12 <code>FLAG_IMMUTABLE</code>
           default breaks tag delivery here.</li>
         <li><span class="who"><span class="badge you">You</span></span>Confirm
-          the tablet (if it lacks NFC hardware) shows a graceful "no NFC
-          hardware" state instead of crashing — a visual check on the
-          device.</li>
+          the emulator (which has no NFC radio at all) shows a graceful "no
+          NFC hardware" state instead of crashing — a visual check, and a
+          convenient built-in negative test now that there's no second
+          physical device to borrow for it.</li>
         <li><span class="who"><span class="badge you">You</span></span>Test
-          real tag reads on the phone that has NFC hardware — physically
-          tapping a tag to the phone and reading the result on screen.</li>
+          real tag reads on the Samsung phone — physically tapping a tag to
+          it and reading the result on screen. (This assumes the phone has
+          NFC hardware — confirm that if it hasn't already come up; most
+          modern Samsung phones do.)</li>
       </ol>
       <div class="callout decision">
         <strong class="label">Done when</strong>
-        The NFC screen reads a real tag's UID/tech list/NDEF on the phone,
-        and shows a graceful unavailable state on the tablet if it lacks
-        the radio.
+        The NFC screen reads a real tag's UID/tech list/NDEF on the Samsung
+        phone, and shows a graceful unavailable state on the emulator.
       </div>
       <div class="callout notes">
         <strong class="label">Session notes</strong>
@@ -849,7 +852,7 @@
       <h2><span class="kicker">Session 6</span>Compose UI wired to live data</h2>
       <div class="session-meta">
         <span><strong>Status:</strong> <span class="badge">Not started</span></span>
-        <span><strong>Needs hardware:</strong> Galaxy Tab S11 Ultra</span>
+        <span><strong>Needs hardware:</strong> emulator or Samsung phone</span>
         <span><strong>Est. time:</strong> 90 min</span>
         <span><strong>Depends on:</strong> Sessions 4, 5</span>
       </div>
@@ -884,7 +887,7 @@
       </ol>
       <p>
         Every step above is code Claude can write; actually looking at the
-        five screens on the tablet and confirming they feel right is
+        five screens (emulator or Samsung phone) and confirming they feel right is
         <span class="who"><span class="badge you">You</span></span> — see
         this session's "Done when" line below.
       </p>
@@ -904,7 +907,7 @@
       <h2><span class="kicker">Session 7</span>On-device validation</h2>
       <div class="session-meta">
         <span><strong>Status:</strong> <span class="badge">Not started</span></span>
-        <span><strong>Needs hardware:</strong> Galaxy Tab S11 Ultra + a phone with NFC + a real or simulated BLE tracker</span>
+        <span><strong>Needs hardware:</strong> the Samsung phone + a real or simulated BLE tracker</span>
         <span><strong>Est. time:</strong> spans at least one multi-hour period, not a single sitting</span>
         <span><strong>Depends on:</strong> everything above</span>
       </div>
@@ -917,7 +920,7 @@
       </p>
       <ol>
         <li><span class="who"><span class="badge claude">Claude</span></span>Run
-          the full <code>./gradlew test</code> suite one more time
+          the full <code>gradlew.bat test</code> suite one more time
           (correlation engine, clusterer, signature matcher, parser, linking
           heuristic) as a baseline before the real-hardware checks.</li>
         <li><span class="who"><span class="badge you">You</span></span>Place
@@ -934,19 +937,21 @@
           logcat</code> over several hours, including a screen-off/Doze
           period and an app-switch/backgrounding test — Claude can run and
           parse the log if it has a terminal connected to the device, but
-          you're the one putting the tablet through a real screen-off/Doze
+          you're the one putting the phone through a real screen-off/Doze
           period and switching apps on it.</li>
         <li><span class="who"><span class="badge you">You</span></span>Re-confirm
-          the NFC screen on the phone and the graceful unavailable state on
-          the tablet, now as part of the full app rather than a standalone
-          test harness.</li>
+          the NFC screen on the Samsung phone and the graceful unavailable
+          state on the emulator, now as part of the full app rather than a
+          standalone test harness.</li>
         <li><span class="who"><span class="badge claude">Claude</span><span class="badge you">You</span></span>Write
           down real-world findings in this session's notes: any false
           positives/negatives encountered, whether the co-traveler hard case
           (plan.html section 09) actually showed up, whether the default
           flag threshold of roughly 55 felt right in practice, and any
-          Termux/build gotchas hit beyond what section 08 already documents.
-          You supply the raw observations; Claude can help write them up.</li>
+          Windows/Gradle/Android Studio gotchas hit beyond what
+          <a href="plan.html#toolchain">plan.html section 08</a> already
+          documents. You supply the raw observations; Claude can help write
+          them up.</li>
       </ol>
       <div class="callout decision">
         <strong class="label">Done when</strong>

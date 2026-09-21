@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #20 — droid/plan.html &amp; droid/build-plan.html Windows pivot</title>
+<meta name="description" content="Security and code-quality review of the full Sentinel plan pivot away from Termux-on-tablet development: droid/plan.html's build-environment section was rewritten for Android Studio on a Windows PC, and droid/build-plan.html's Session 1 and every session's hardware requirements were rewritten around a Windows PC plus a single Samsung phone, with real shell commands moved into new code blocks.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #20 — <code>droid/plan.html</code> &amp; <code>droid/build-plan.html</code> Windows pivot</h1>
+    <p class="sub">The user decided to stop developing Sentinel via Termux on an Android tablet and switch to Android Studio on a Windows PC, with a single Samsung phone for on-device testing (no tablet at all). This touched both design documents: <code>plan.html</code>'s "Build &amp; test" decision, its data-model NFC assumption, its KSP justification, its whole build-environment section (renamed from Termux to Windows/Android Studio, with the Termux <code>aapt2</code>/same-device-install blockers removed since they don't apply on this platform), and its build-order/verification sections. <code>build-plan.html</code>'s masthead, status/key callouts, session index table, and all seven sessions were updated for the new hardware story, with Session 1 rewritten from scratch around Android Studio setup, phone Developer Options, a native Windows Claude Code install, and a GitHub connection step — real shell commands were moved into new <code>&lt;pre&gt;&lt;code&gt;</code> blocks per the just-added <code>CLAUDE.md</code> rule on copyable commands, instead of staying inline. A matching <code>pre</code>/<code>pre code</code> CSS rule was added to <code>build-plan.html</code>, copied from <code>plan.html</code>'s existing one.</p>
+    <div class="meta">Review performed 2026-09-21 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>droid/plan.html</code> and <code>droid/build-plan.html</code> in full · follows: <a href="19.html" style="color: var(--accent);">19.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">0 actionable findings. 7 items verified clean.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No new external links, scripts, or inline handlers in either file</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Parsed both files with jsdom after the edit: <code>document.querySelectorAll('script')</code> returns zero elements in both, and every <code>&lt;a href&gt;</code> in both files is a same-page <code>#anchor</code> or a same-directory relative link (<code>plan.html</code>/<code>build-plan.html</code> cross-links, or <code>../study/build-plan.html</code>) — none start with <code>http</code>. Grepped both files directly for <code>href="http</code>, <code>src="http</code>, <code>&lt;script</code>, and the <code>on[a-z]+="</code> inline-handler shape as a second check: no hits beyond the expected head <code>&lt;meta&gt;</code> lines.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No real credentials, emails, or keys embedded as examples</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The new Session 1 content walks through setting <code>ANTHROPIC_API_KEY</code>, <code>git config --global user.name/user.email</code>, and a <code>gh repo create</code> invocation — all spots where a realistic-looking placeholder is easy to reach for out of habit. All of them use a literal <code>"…"</code> placeholder instead; no fabricated key, token, or email (real or invented) appears in either file. Consistent with this repo's standing rule that the user's real email never appears anywhere in the repo.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Head blocks and CSP untouched in both files</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        This edit only changed body content (prose, list items, a table, two section rewrites) and added one CSS rule pair (<code>pre</code>/<code>pre code</code>) to <code>build-plan.html</code>'s existing <code>&lt;style&gt;</code> block — the CSP meta tag, referrer policy, viewport, and charset are unchanged in both files from what review #19 already checked. The description meta tags were updated to match the new content, which is expected and not a security-relevant change.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Document structure stays well-formed in both files</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Checked tag balance across both full files after the rewrite, not just the touched sections: in <code>build-plan.html</code>, <code>&lt;li&gt;</code> 70/70, <code>&lt;ol&gt;</code> 12/12, <code>&lt;ul&gt;</code> 2/2, <code>&lt;pre&gt;</code> 7/7, <code>&lt;code&gt;</code> 75/75, <code>&lt;div&gt;</code> and <code>&lt;span&gt;</code> both even; in <code>plan.html</code>, <code>&lt;li&gt;</code> 44/44, <code>&lt;ol&gt;</code> 4/4, <code>&lt;ul&gt;</code> 4/4, <code>&lt;pre&gt;</code> 2/2, <code>&lt;code&gt;</code> 55/55. Every tag opened is closed in both documents.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Renamed anchor (<code>#termux</code> → <code>#toolchain</code>) has no dangling references</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <code>plan.html</code>'s Termux section was renamed <code>id="termux"</code> → <code>id="toolchain"</code> since it no longer describes Termux. Grepped both files for every <code>#anchor</code> used in an <code>&lt;a href&gt;</code> and confirmed each one matches a real <code>&lt;section id="…"&gt;</code> that actually exists in the target file — the two spots in <code>build-plan.html</code> that used to link <code>plan.html#termux</code> (the "package versions drift" bullet, now rewritten, and the Session 1 <code>gradle.properties</code> step, now removed since it no longer applies) were checked individually rather than assumed fixed by the global rename, since a leftover literal <code>#termux</code> string anywhere would have been a real broken link. None found.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">New copyable commands follow the just-added CLAUDE.md convention</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Every real shell one-liner added to <code>build-plan.html</code>'s new Session 1 content (the PowerShell installer line, the <code>$env:ANTHROPIC_API_KEY</code> assignment, <code>winget install --id GitHub.cli</code>, <code>gh auth login</code>, the two-line <code>git config</code> block, <code>gh repo create …</code>, <code>gradlew.bat assembleDebug</code>) is in its own <code>&lt;pre&gt;&lt;code&gt;</code> block containing only the command(s) to run — no leading <code>$</code>, no trailing prose folded into the same block — matching the rule just added to <code>CLAUDE.md</code>. Bare words, single flags, and short fragments discussed in prose (e.g. <code>gh</code>, <code>ANDROID_HOME</code>) correctly stay as inline <code>&lt;code&gt;</code> rather than being over-promoted to blocks.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Hardware/tool references are consistent across both files, not just Session 1</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped both files for <code>Termux</code>, <code>termux</code>, <code>tablet</code>, <code>Tablet</code>, and <code>Galaxy Tab</code> after the edit. Every remaining hit is an intentional historical or explanatory mention (e.g. "not on a tablet via Termux, which is how this plan originally started," or the <code>plan.html#toolchain</code> callout explaining why the section changed) — none is a stale instruction left over from the old plan. Checked every session's "Needs hardware" line individually (Sessions 1 and 6 now cite the emulator, Sessions 4/5/7 cite the Samsung phone, Sessions 2/3 stay device-free) rather than trusting a single global find-and-replace to have caught every case, since the seven sessions previously had seven independently-worded hardware lines.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The emulator's lack of NFC hardware is used deliberately, not glossed over as a gap</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        With the tablet gone, Session 5's "no NFC hardware" negative-path test needed a new home. Both files now state explicitly that the Android Studio emulator has no NFC radio at all, and use that as the negative test instead of a second physical device — a genuine simplification, not a silently dropped test case. This is stated as a real design decision in both <code>plan.html</code>'s v1-scope callout and <code>build-plan.html</code>'s Session 5, rather than only being implied by the hardware line changing.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Resolved Termux-only blockers are removed, not left as stale warnings</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <code>plan.html</code>'s "Known infeasibilities" section used to list same-device silent APK install as <em>not solvable</em> under Termux. That callout was deleted rather than reworded, since it isn't a real constraint of an Android-Studio-to-phone workflow (ADB install is standard) — leaving it in place with a caveat would have read as a false limitation carried over from the old plan. The new toolchain section explicitly states this and the <code>aapt2</code> architecture blocker are eliminated by the platform switch, not merely worked around, which is an honest distinction given this repo's own "note what's genuinely fixed vs. still open" standard.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand if anything regresses, or
+    ask Claude for another review. See <code>19.html</code> for the review immediately before this pivot, and
+    <code>CLAUDE.md</code>'s "New pages *and* page updates get a numbered security &amp; quality review"
+    section for the rule this review exists to satisfy.
+  </footer>
+
+</div>
+</body>
+</html>

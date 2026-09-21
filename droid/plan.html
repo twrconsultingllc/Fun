@@ -6,7 +6,7 @@
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
 <title>Sentinel — Tracker Detector Plan</title>
-<meta name="description" content="Design plan for a native Android signal-detection app (Sentinel): BLE/WiFi ambient scanning plus NFC tag inspection, with a time-and-location repeat-sighting correlation engine to flag possible trackers, built and tested via Termux directly on a Samsung Galaxy Tab S11 Ultra." />
+<meta name="description" content="Design plan for a native Android signal-detection app (Sentinel): BLE/WiFi ambient scanning plus NFC tag inspection, with a time-and-location repeat-sighting correlation engine to flag possible trackers, developed in Android Studio on a Windows PC and tested on a Samsung phone." />
 <style>
   :root {
     --bg: #0f1115;
@@ -337,7 +337,7 @@
       <li><a href="#background">Background scanning</a></li>
       <li><a href="#ui">UI screens (v1)</a></li>
       <li><a href="#platform">Platform mechanics</a></li>
-      <li><a href="#termux">Termux build toolchain</a></li>
+      <li><a href="#toolchain">Windows / Android Studio toolchain</a></li>
       <li><a href="#limits">Known infeasibilities / compromises</a></li>
       <li><a href="#order">Build order</a></li>
       <li><a href="#verify">Verification plan</a></li>
@@ -350,14 +350,20 @@
       <h2><span class="kicker">01 · Locked in</span>Decisions already made</h2>
       <div class="callout decision">
         <strong class="label">Build &amp; test</strong>
-        Termux, running directly on the Galaxy Tab S11 Ultra. No PC, no
-        Android Studio, no emulator required for the primary workflow.
+        Android Studio on a Windows PC — not Termux on a tablet, which is
+        how this plan originally started. The emulator (bundled with Android
+        Studio) covers most iteration; a Samsung phone, connected over
+        USB or wireless ADB, is the one physical device used for real-device
+        and on-device validation. No tablet is involved at all.
       </div>
       <div class="callout decision">
         <strong class="label">v1 scope</strong>
         BLE + WiFi ambient scanning, <em>and</em> a manual NFC tag-inspection
-        screen (tested on a phone that has NFC hardware; the tablet reports
-        "unavailable" gracefully if it lacks the radio).
+        screen — tested on the Samsung phone, which is assumed to have NFC
+        hardware (confirm this; most modern Samsung phones do). The emulator
+        has no NFC radio at all, which conveniently doubles as the "no NFC
+        hardware" negative-path test without needing a second physical
+        device.
       </div>
       <div class="callout decision">
         <strong class="label">Detection logic</strong>
@@ -418,9 +424,9 @@
       <p>
         Use <strong>Hilt</strong> for dependency injection and
         <strong>KSP</strong> (not <code>kapt</code>) for Room's annotation
-        processing — KSP is pure Kotlin/JVM and avoids extra
-        javac/annotation-processor friction in the Termux build environment.
-        Set <code>android:allowBackup="false"</code> and exclude the Room
+        processing — KSP is Google's modern replacement for <code>kapt</code>
+        and noticeably faster, with no real downside now that Room fully
+        supports it. Set <code>android:allowBackup="false"</code> and exclude the Room
         database from Android's auto-backup rules: this data is a de facto
         location history and must never leave the device via cloud backup.
       </p>
@@ -616,73 +622,60 @@
       </p>
     </section>
 
-    <section id="termux">
-      <h2><span class="kicker">08 · Build environment</span>Termux build toolchain</h2>
+    <section id="toolchain">
+      <h2><span class="kicker">08 · Build environment</span>Windows / Android Studio toolchain</h2>
+      <div class="callout decision">
+        <strong class="label">Why this replaced the original Termux plan</strong>
+        This section originally documented a Termux-on-tablet toolchain,
+        including a real <code>aapt2</code> architecture blocker
+        (x86_64-only binary failing under Termux's aarch64 userland) and a
+        hard wall around same-device APK installs without root. Switching
+        development to Android Studio on a Windows PC eliminates both
+        problems entirely rather than working around them — there's no
+        architecture mismatch to patch, and ADB install (silent, from the
+        Run button or the command line) is completely standard on a
+        dev-machine-to-phone setup. This is the current, actual toolchain;
+        nothing below needs a workaround.
+      </div>
       <ol>
-        <li>Install Termux from <strong>F-Droid or GitHub releases</strong>
-          — not the abandoned Play Store build, which is stuck on an old
-          NDK/bionic baseline and won't run current packages. Also install
-          the Termux:API companion app.</li>
-        <li><code>pkg install openjdk-17 wget unzip git aapt2 termux-api android-tools</code></li>
-        <li>Download the Android cmdline-tools into
-          <code>~/android-sdk/cmdline-tools/latest</code>, set
-          <code>ANDROID_HOME</code>/<code>ANDROID_SDK_ROOT</code> + PATH in
-          <code>~/.bashrc</code>, then run <code>sdkmanager</code> for
-          <code>platform-tools</code>, a current <code>platforms;android-XX</code>,
-          and matching <code>build-tools</code>.</li>
-        <li>
-          <strong>Known blocker and fix:</strong> Google's bundled
-          <code>aapt2</code> inside <code>build-tools/</code> is x86_64-only
-          and fails with <code>Exec format error</code> under Termux's
-          aarch64 userland. Fix via the official AGP escape hatch in
-          <code>gradle.properties</code>:
-          <pre><code>android.aapt2FromMavenOverride=/data/data/com.termux/files/usr/bin/aapt2</code></pre>
-          pointing at the Termux-native <code>aapt2</code> package from step
-          2 — don't hand-patch the SDK directory itself, since
-          <code>sdkmanager</code> will overwrite it on update.
-        </li>
-        <li>Also in <code>gradle.properties</code>:
-          <code>org.gradle.vfs.watch=false</code> — Gradle's native
-          file-watcher is glibc-linked and can crash the daemon under
-          bionic.</li>
-        <li>Run <code>termux-wake-lock</code> before long builds, and
-          exclude both Termux and the eventual app from Samsung's
-          battery-optimization/sleep list.</li>
-        <li>
-          <strong>Installing the built APK on the same device without root
-          or a PC:</strong> <code>pm install</code> from a Termux shell will
-          not work — it needs the privileged <code>INSTALL_PACKAGES</code>
-          permission, which a normal app process can't hold. That's a real
-          wall, not a workaround-away detail. Two paths that do work:
-          <ul>
-            <li><code>termux-open ./app/build/outputs/apk/debug/app-debug.apk</code>
-              — fires the system package-installer intent; one-time
-              "install unknown apps" grant for Termux, then a manual
-              tap-through per install.</li>
-            <li><strong>Wireless ADB to the tablet's own IP</strong> —
-              Settings → Developer options → Wireless debugging → pair,
-              then <code>adb pair</code>/<code>adb connect</code> from
-              Termux's <code>android-tools</code> package — gives silent
-              <code>adb install -r</code> and real <code>adb logcat</code>
-              streaming, and is worth setting up purely for iteration
-              speed.</li>
-          </ul>
-        </li>
-        <li>For comfortably editing multi-file Kotlin on a tablet, consider
-          <code>pkg install nodejs</code> + <code>code-server</code> for a
-          browser-based editor UI, and enable Termux's extra-keys row for
-          Esc/Tab/Ctrl/arrows.</li>
+        <li>Install <strong>Android Studio</strong> (latest stable) from
+          its official site. The installer bundles a matching JDK, the
+          Android SDK, platform-tools, and the emulator/AVD manager — there
+          is no separate cmdline-tools/sdkmanager bootstrap to do by hand,
+          unlike the old Termux path.</li>
+        <li>On first launch, step through the Setup Wizard: accept the SDK
+          license, and let it install its default SDK platform, build-tools,
+          and at least one system image for a Compose-capable emulator
+          (a recent API level, arm64 or x86_64 depending on the PC's own
+          CPU).</li>
+        <li>Create at least one <strong>emulator (AVD)</strong> via
+          Android Studio's Device Manager — this is what most Session 1–3
+          iteration runs against, with the Samsung phone reserved for
+          real-radio (BLE/WiFi/NFC) and final validation work.</li>
+        <li>On the Samsung phone: enable Developer Options (Settings →
+          About phone → tap Build number 7 times), then turn on
+          <strong>USB debugging</strong> under Developer Options. Connect it
+          to the PC by USB cable, and accept the "Allow USB debugging?" RSA
+          key prompt on the phone's screen the first time — or set up
+          <strong>Wireless debugging</strong> (Developer Options → Wireless
+          debugging → pair) if a cable is inconvenient for a given session.</li>
+        <li>No <code>gradle.properties</code> escape hatches are needed —
+          the <code>aapt2FromMavenOverride</code> and
+          <code>org.gradle.vfs.watch=false</code> workarounds this section
+          used to require were both specific to Termux's aarch64/bionic
+          userland and don't apply on Windows.</li>
+        <li>Build and run from either Android Studio's Run button (installs
+          to whichever target — emulator or the phone — is selected in the
+          device dropdown) or the command line: <code>gradlew.bat
+          assembleDebug</code> from PowerShell/Command Prompt, or
+          <code>./gradlew assembleDebug</code> from Git Bash (Gradle's
+          wrapper script itself is POSIX shell, so Git Bash can run the
+          Unix-style invocation directly).</li>
       </ol>
     </section>
 
     <section id="limits">
       <h2><span class="kicker">09 · Say the quiet part</span>Known infeasibilities / compromises</h2>
-      <div class="callout blocked">
-        <strong class="label">Not solvable, use the workaround</strong>
-        Same-device <em>silent</em> APK install without ADB or root is not
-        possible. <code>termux-open</code> (manual tap) or wireless ADB
-        (silent) are the two real paths — see section 08.
-      </div>
       <div class="callout blocked">
         <strong class="label">OS-level limit, not a permissions problem</strong>
         True continuous WiFi scanning is blocked by Android's own
@@ -713,10 +706,10 @@
     <section id="order">
       <h2><span class="kicker">10 · For a later session</span>Build order</h2>
       <ol>
-        <li>Scaffold the Gradle/Kotlin project and the Termux toolchain
-          first; get a trivial "Hello Compose" APK built and installed via
-          <code>termux-open</code> to validate the whole pipeline before
-          writing any real feature code.</li>
+        <li>Scaffold the Gradle/Kotlin project via the Android Studio
+          toolchain first; get a trivial "Hello Compose" APK built and
+          running (emulator or the Samsung phone, via the Run button) to
+          validate the whole pipeline before writing any real feature code.</li>
         <li>Room schema and <code>TrackerCorrelationEngine</code>, with JVM
           unit tests against synthetic sighting fixtures — no device
           needed, and correctness here drives everything else.</li>
@@ -726,8 +719,8 @@
           the first real on-device milestone.</li>
         <li>WiFi scanning, then the NFC screen.</li>
         <li>Compose UI screens wired to the above via Room <code>Flow</code>.</li>
-        <li>On-device validation on both the tablet and the phone (for
-          NFC).</li>
+        <li>On-device validation on the Samsung phone — the one physical
+          test device now covers both general validation and NFC.</li>
       </ol>
       <div class="callout decision">
         <strong class="label">Spreading this across sessions</strong>
@@ -742,26 +735,33 @@
     <section id="verify">
       <h2><span class="kicker">11 · How this gets checked</span>Verification plan</h2>
       <p>
-        This is native Android code that must run on real hardware — it
-        can't be verified from a CLI sandbox with no Android SDK, emulator,
-        or ADB link. Once scaffolded:
+        This is native Android code that must run on real hardware to be
+        honestly verified. The <em>authoring</em> sandbox this plan is
+        written from has no Android SDK, emulator, or ADB link at all — but
+        the actual Windows dev machine does, via Android Studio, so more of
+        this can now genuinely run from a terminal there (Claude included)
+        than was possible under the old Termux setup. Once scaffolded:
       </p>
       <ul>
-        <li><code>./gradlew test</code> for the correlation-engine,
-          clusterer, and signature-matcher JVM unit tests (runs fine under
-          Termux, no device needed)</li>
-        <li><code>./gradlew assembleDebug</code>, then
-          <code>termux-open</code> or <code>adb install</code> onto the
-          tablet; confirm permission prompts appear correctly, the
-          foreground-service notification shows, and the Nearby list
-          populates with real BLE/WiFi results</li>
+        <li><code>gradlew.bat test</code> (or <code>./gradlew test</code>
+          from Git Bash) for the correlation-engine, clusterer, and
+          signature-matcher JVM unit tests — no device needed, runs on the
+          Windows PC directly</li>
+        <li><code>gradlew.bat assembleDebug</code>, then install via
+          Android Studio's Run button or <code>adb install</code>, onto
+          either the emulator or the Samsung phone; confirm permission
+          prompts appear correctly, the foreground-service notification
+          shows, and the Nearby list populates with real BLE/WiFi results
+          (the emulator can fake some of this but not real ambient BLE/WiFi
+          — that needs the phone)</li>
         <li>Manually place a known BLE tracker (or a phone advertising a
           similar payload) at 3+ physically distinct locations over time
           and confirm it gets flagged; confirm a stationary device (a home
           router) never gets flagged</li>
-        <li>Test the NFC screen on the phone (tag read), and separately
-          confirm the graceful "unavailable" state on the tablet if it
-          lacks the radio</li>
+        <li>Test the NFC screen on the Samsung phone (real tag read), and
+          separately confirm the graceful "unavailable" state on the
+          emulator, which has no NFC hardware at all — a built-in negative
+          test rather than a second physical device</li>
         <li><code>adb logcat</code> for background-service reliability over
           several hours, including a screen-off/Doze period and an
           app-switch/backgrounding test, to confirm Samsung doesn't

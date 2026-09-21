@@ -62,6 +62,33 @@ the notes only when a session is genuinely done and nothing came up worth
 recording. Treat this the same way as the user-guide-sync rule above: part
 of the task, not an extra to ask permission for.
 
+## Build plans: set off copyable commands and format links clearly
+
+Any build plan or similar step-by-step page in this repo (`study/plan.html` /
+`study/build-plan.html`, `droid/plan.html` / `droid/build-plan.html`, and
+anything of the same shape added later) is meant to be worked from directly —
+the user copies commands out of it into a real terminal. Two things follow
+from that:
+
+- **A command line meant to be copied and run goes in its own block**
+  (`<pre><code>...</code></pre>`), not folded inline into a sentence as
+  `<code>...</code>`. Inline `<code>` is still fine for a bare word, a single
+  flag, a filename, or a short fragment being discussed in prose — the line
+  is whether the reader is meant to select-and-copy it whole to run it.
+  A command block should hold exactly the command(s) to run and nothing else
+  (no leading `$`, no trailing prose folded into the same block), so a
+  triple-click or select-all-in-block copies something that actually runs.
+- **Every link is a real, clearly-formatted `<a href>`**, not a bare URL
+  typed as text and not just a hostname mentioned in passing when the page
+  means for it to be clickable — consistent with how these pages already
+  cross-link each other's sections (e.g. `<a href="plan.html#order">plan.html
+  section 10</a>`).
+
+This came up when `droid/build-plan.html` needed several real shell one-liners
+added (installing the Claude Code CLI, connecting to GitHub) and they were
+initially just inline `<code>`, which reads fine but is awkward to copy
+correctly once a command has flags or quoting in it.
+
 ## Tests belong in the repo
 
 Test suites are deliverables, not working notes. Anything worth running again
