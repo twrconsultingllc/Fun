@@ -374,7 +374,7 @@
           <tr><td>6</td><td>Structured output &amp; review loop</td><td><span class="badge in-progress">In progress</span></td><td><strong>Yes</strong> (for the manual runs)</td><td>60–90 min</td><td>Session 5</td></tr>
           <tr><td>7</td><td>Context budget: compaction &amp; caching</td><td><span class="badge in-progress">In progress</span></td><td><strong>Yes</strong> (for the real run)</td><td>90 min</td><td>Session 4</td></tr>
           <tr><td>8</td><td>Orchestrator &amp; the stretch tool</td><td><span class="badge in-progress">In progress</span></td><td><strong>Yes</strong> (for the manual run)</td><td>90–120 min</td><td>Sessions 3, 6</td></tr>
-          <tr><td>9</td><td>Claude Agent SDK version</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong></td><td>90 min</td><td>Session 4</td></tr>
+          <tr><td>9</td><td>Claude Agent SDK version</td><td><span class="badge in-progress">In progress</span></td><td><strong>Yes</strong></td><td>90 min</td><td>Session 4</td></tr>
           <tr><td>10</td><td>README, cross-check, cost reality-check</td><td><span class="badge">Not started</span></td><td>No</td><td>60 min</td><td>Everything above</td></tr>
         </tbody>
       </table>
@@ -654,7 +654,7 @@
     <section id="s9">
       <h2><span class="kicker">Session 9</span>Claude Agent SDK version</h2>
       <div class="session-meta">
-        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
+        <span><strong>Status:</strong> <span class="badge in-progress">In progress</span></span>
         <span><strong>Needs API key:</strong> Yes</span>
         <span><strong>Est. time:</strong> 90 min</span>
         <span><strong>Depends on:</strong> Session 4</span>
@@ -678,7 +678,13 @@
       </div>
       <div class="callout notes">
         <strong class="label">Session notes</strong>
-        <p>None yet.</p>
+        <p>Items 1–4 are done; item 5 (the real manual run confirming the hook fires and the MCP tool is reachable) is still pending an <code>ANTHROPIC_API_KEY</code>, same split as every session since 5.</p>
+        <p>Re-checked <code>npm view @anthropic-ai/claude-agent-sdk version</code> as this session's own first step: still <strong>0.3.278</strong>, matching what was already installed and pinned back in Session 1 — no drift this time, but worth re-verifying live rather than trusting the earlier check given how often this package ships.</p>
+        <p><code>sdk-version/agent.mjs</code> wires <code>query()</code> with every piece this session's task list names: <code>systemPrompt: { type: "preset", preset: "claude_code", append: "..." }</code>, <code>allowedTools</code> naming the four read-only <code>mcp__mtl__*</code> lookup tools plus <code>Task</code> (needed for the model to delegate to a file-based subagent at all — confirmed by reading the installed SDK's own type comments, not assumed), <code>permissionMode: "default"</code> (no need for <code>bypassPermissions</code>, since naming a tool in <code>allowedTools</code> is itself what auto-allows it without a prompt), one <code>PreToolUse</code> hook, and <code>mcpServers.mtl</code> pointing at Session 4's <code>mcp-server/server.mjs</code> over stdio.</p>
+        <p>The <code>PreToolUse</code> hook is exported as a factory (<code>createPreToolUseHook({ log })</code>) rather than one bound function, specifically so <code>tests/hooks.test.mjs</code> can call it directly with fabricated input and a fake logger — no live call. It logs every tool call it sees and, for any <code>mcp__mtl__*</code> call specifically, returns an explicit <code>permissionDecision: "allow"</code> with a stated reason; for anything else (like <code>Task</code>) it has no opinion and just continues. That gave the stubbed test real, non-trivial behavior to check instead of asserting a no-op stub always returns the same constant.</p>
+        <p><code>.claude/agents/mtl-compliance-reviewer.md</code> is scoped to zero tools (<code>tools: []</code>) — its whole job is reasoning over the checklist/memo text it's handed in the delegating prompt, never looking anything up itself, which keeps it a clean contrast with <code>validate-client-checklist.mjs</code>'s code-based check (same "verify" idea, checked a second way) rather than a second research worker.</p>
+        <p><code>tests/hooks.test.mjs</code>: 4 tests, all against the hook directly with fabricated <code>PreToolUseHookInput</code>-shaped objects — zero live calls. 82/82 tests pass across the whole suite.</p>
+        <p><strong>README caveat still open:</strong> this session's own "Done when" line asks for the README to plainly state that this file's true end-to-end behavior is manual-run-and-eyeball only (the <code>battle-bots-v2.core.test.mjs</code> convention). <code>README.md</code> is deliberately still just section headers per Session 1's own scaffolding note ("filled in during Session 10") — writing prose into it now would preempt that session's actual job, so this caveat is flagged here instead and needs to land in Session 10's "Running the lab sessions" section rather than being dropped.</p>
       </div>
     </section>
 
@@ -699,6 +705,7 @@
         <li>Re-check current per-token pricing against <a href="plan.html#cost">plan.html section 10</a> one more time, and note anything that's drifted since that section was written.</li>
         <li>Read the exam-domain mapping table top to bottom: for each row, confirm the named file actually demonstrates the concept, not just that it runs without error.</li>
         <li>Fold in whatever you wrote down in Session 7 (the real compaction/caching numbers) and Session 8 (whether the judgment-based tool held up) — these are the parts of this project that are actually yours, not just a rebuild of the plan.</li>
+        <li>State plainly in the README that <code>sdk-version/agent.mjs</code>'s true end-to-end behavior is manual-run-and-eyeball only (Session 9's own "Done when" line, deferred here since Session 1 scoped all README prose to this session).</li>
       </ol>
       <div class="callout decision">
         <strong class="label">Done when</strong>
