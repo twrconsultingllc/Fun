@@ -304,6 +304,7 @@
       <li><a href="#loop-map">All the loops, one map</a></li>
       <li><a href="#status">What's actually running today</a></li>
       <li><a href="#failure-modes">What's likely to break in production</a></li>
+      <li><a href="#ongoing-monitoring">Ongoing monitoring &amp; testing, once this is live</a></li>
     </ol>
   </nav>
 
@@ -743,6 +744,117 @@ attempt 3 → valid → loop exits, structured checklist moves on to
         version bump against — building that eval set is arguably the real
         next step once Sessions 5–9 exist, not an afterthought once
         something breaks.
+      </p>
+    </section>
+
+    <section id="ongoing-monitoring">
+      <h2><span class="kicker">Beyond the lab</span>Ongoing monitoring &amp; testing, once this is live</h2>
+      <div class="callout warning">
+        <strong class="label">Also a design sketch, not a built system</strong>
+        Same caveat as <a href="#failure-modes">the failure-modes section</a>
+        above: nothing below exists as code or infrastructure. This lab's
+        <code>tests/</code> suite proves the loops run correctly against
+        <em>sample</em> data, once, in a sandbox with no live traffic — that
+        is a real but narrow kind of confidence. It says nothing about
+        whether the same loops keep behaving correctly next month, against a
+        prompt tweak, a provider's model update, or a real client's actual
+        case file. This section sketches what would have to exist to answer
+        that ongoing question, sized to a firm actually running this in
+        production rather than to the lab's ten-state, three-client scale.
+      </div>
+
+      <h4>Testing the loops on an ongoing basis</h4>
+      <p>
+        <code>npm test</code> is necessary but not sufficient: it's fast,
+        free, and runs on every change, but every one of its assertions is
+        checked against a stubbed <code>Messages.create</code> or a fixed
+        sample dataset — it can prove the retry logic re-prompts correctly
+        on a fabricated invalid response, but it can't tell you whether the
+        real model, today, actually produces a checklist that's correct
+        against Meridian's real numbers. That second question needs a
+        genuinely different kind of test, run against the live API, and
+        the closing paragraph of the failure-modes section above already
+        names why it matters: none of that section's "cheap first
+        response" / "if it keeps happening" escalation ladder can be
+        executed on vibes — it depends on a held-out set of questions with
+        known-correct answers to check any change against.
+      </p>
+      <ul>
+        <li><strong>A small, fixed golden-scenario set</strong> — Meridian's TX/FL/IL expansion, Northstar's Washington gap question, Quickship's pending-ownership-change question: the same three query types <a href="plan.html#queries">plan.html section 06</a> already identified, each with a known-correct expected checklist, gap summary, or touched-states list to diff the real output against.</li>
+        <li><strong>One adversarial case per row of the failure-modes table above</strong> — an unsupported-state question to catch hallucinated coverage, a client whose financials clear every bar to make sure the loop doesn't manufacture a gap, a deliberately ambiguous change-impact scenario to stress <code>evaluate-change-impact.mjs</code>'s "judgment, not lookup" framing. Turning that table from a prediction into an actual test is the whole point of building it before Sessions 5–9's real runs, not after.</li>
+        <li><strong>A separate, slower suite from <code>tests/</code></strong> — this lab's tests are framework-free and run in milliseconds with zero network calls on purpose (the repo root <code>CLAUDE.md</code>'s own convention); a live-API eval suite is the opposite by necessity — it costs real money and takes real wall-clock time per run. It belongs in its own directory (an <code>evals/</code> alongside <code>tests/</code>, say), run on a schedule and before shipping a prompt or model change, never on every commit.</li>
+        <li><strong>Retest triggers, not just a retest schedule</strong> — a version bump to <code>@anthropic-ai/sdk</code> or the pinned model ID, any change to a system prompt or tool description, and any change to a tool's schema or return shape should each force a run of the golden-scenario set before merging, the same "verified, not recalled" discipline this project already applies to package versions and pricing, applied to model <em>behavior</em> instead of a version string.</li>
+        <li><strong>A scoring method that fits each check</strong> — exact-match or schema validation where the answer is genuinely deterministic (does the checklist cover all four standard items, does <code>evaluate_change_impact</code> return the right touched-states set), and an LLM-as-judge rubric only where the output is genuinely prose (does the compliance memo actually state the real gap, not just cover the required states) — reserving the fuzzier, more expensive check for the cases that actually need it rather than defaulting to it everywhere.</li>
+      </ul>
+
+      <h4>Monitoring once real traffic is flowing</h4>
+      <p>
+        Testing answers "does this still work" before a change ships;
+        monitoring answers "is it still working" after it has. The signals
+        below all trace back to a loop already built somewhere on this page
+        — the gap is that today each one is either printed to a console
+        once during a manual run or not measured at all, not persisted or
+        watched over time.
+      </p>
+      <table>
+        <thead>
+          <tr><th>Signal</th><th>Where it comes from</th><th>What it would catch</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Cost and token usage per query, per query-type</td><td><code>context-budget.mjs</code>'s <code>estimateCost()</code> and usage tracking, run continuously instead of once over the sample dataset</td><td>The "cost/latency assumptions breaking at scale" row above, caught from a trend line instead of a surprised invoice</td></tr>
+          <tr><td>Tool-call volume and error rate, per tool</td><td>The same call-and-arguments data the <code>PreToolUse</code> hook already logs to the console in <code>sdk-version/agent.mjs</code>, persisted somewhere queryable instead of scrolling past</td><td>Tool-call thrashing, and which specific tool's schema or description is confusing the model often enough to matter</td></tr>
+          <tr><td>Verify-outcome rates, split by mechanism</td><td>How often <code>validate-client-checklist.mjs</code> rejects a draft, separately from how often the <code>mtl-compliance-reviewer</code> subagent flags something the code check passed</td><td>Whether either verify layer is still pulling its weight, or has quietly become a rubber stamp — the actual measurement behind <a href="#two-verifies">the two-verify-loops section</a>'s design bet</td></tr>
+          <tr><td>Turn-cap and retry-cap hit rate</td><td><code>agent-loop.mjs</code>'s <code>MAX_TURNS</code> and <code>structured-output.mjs</code>'s retry loop, instrumented rather than silently absorbed</td><td>Thrashing and schema-retry oscillation trending up before they show as a wall of user complaints</td></tr>
+          <tr><td>Cache hit rate against the static prefix</td><td><code>context-budget.mjs</code>'s cache-write vs. cache-read accounting</td><td>Caching quietly stopping paying for itself — a prompt change that invalidates the cached prefix more often than intended</td></tr>
+          <tr><td>Groundedness spot checks</td><td>Sampling real final memos and checking every numeric claim against that run's own logged tool results</td><td>The "ungrounded claims" row above — the failure mode most likely to actually reach a client, and hardest to catch from aggregate metrics alone</td></tr>
+          <tr><td>Model-version canary diffs</td><td>Re-running the golden-scenario set against a new model version behind the pinned ID before adopting it</td><td>Model version drift, caught on a schedule instead of from a client noticing the tone or accuracy changed</td></tr>
+        </tbody>
+      </table>
+
+      <h4>What this actually requires</h4>
+      <p>
+        None of the above is free, and most of it isn't code so much as
+        infrastructure and process this lab has had no reason to build yet:
+      </p>
+      <ul>
+        <li><strong>Persistent, queryable logs of every real run</strong> — today, a run's tool calls, verify outcomes, and usage numbers exist only as console output during a manual invocation. Production traffic needs those retained somewhere a dashboard or alert can query, under the same "sample-tagged, no real identifiers" discipline this project already applies to its data (or a real redaction policy, once actual client intake text is involved).</li>
+        <li><strong>An evals harness distinct from <code>node --test</code></strong> — something that can run the same scenario against several model versions or prompt variants and diff the outputs, whether that's a lightweight custom script (in keeping with this repo's framework-free convention) or Anthropic's own evaluation tooling.</li>
+        <li><strong>A staging path before production data</strong> — a way to run a prompt or model change against the golden-scenario and adversarial sets before it ever touches a real client's case file, mirroring this repo's own <code>test</code> vs. <code>test:live</code> split, but for model behavior rather than static pages.</li>
+        <li><strong>Human review capacity, not just automation</strong> — the failure-modes table's own escalation ladder ends in a human for exactly the failure mode it calls the one a licensing firm can't tolerate (hallucinated coverage). That has to be a real, staffed periodic audit of a sample of live outputs, not an aspiration living only in that table's last column.</li>
+        <li><strong>Clear ownership</strong> — someone who actually gets paged when a cost anomaly, a verify-failure spike, or a canary diff fires, since "ownership" doesn't exist as a concept in a lab project run from a single Claude Code session.</li>
+      </ul>
+
+      <h4>What this looks like in production</h4>
+      <p>
+        Put together, a real deployment's daily shape would look less like
+        "run the agent and read the output" and more like this: every real
+        query gets logged with its tool calls, both verify outcomes, final
+        answer, token usage, cost, latency, and the model version that
+        handled it. A scheduled job — nightly, or gated before any prompt or
+        model change ships — runs the full golden-scenario and adversarial
+        eval set against the current pinned model and prompt set, and a
+        failure there blocks the change rather than surfacing after it's
+        already live. A simple dashboard (this doesn't need to be
+        sophisticated at a 40-client firm's scale, per
+        <a href="plan.html#cost">plan.html section 10</a>'s own "API spend
+        is not the constraint" framing) surfaces cost per query-type over
+        time, verify-failure rates, and tool error rates, with alerting on
+        the handful of signals in the table above that genuinely warrant
+        waking someone up — a cost or turn-cap-hit spike, most of all. And
+        the one failure mode the earlier table flags as truly disqualifying
+        — a client-facing claim that turns out to be hallucinated — needs an
+        actual response plan wired to a real trigger (an unusual rate of
+        "unknown state" results, say, or a failed groundedness spot check),
+        not just "swap models" as an abstract fallback with nothing that
+        would actually fire it.
+      </p>
+      <p>
+        The honest scale note, matching this whole page's caveats: none of
+        this belongs at day one of a three-client pilot. It scales in step
+        with real usage and real stakes, the same way plan.html section 10
+        already argues API cost does — the investment worth making here is
+        proportional to how much a wrong answer would actually cost a real
+        firm, not to how sophisticated a monitoring stack looks on paper.
       </p>
     </section>
 
