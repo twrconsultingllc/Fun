@@ -371,7 +371,7 @@
           <tr><td>3</td><td>Gap analysis &amp; the mutating tool</td><td><span class="badge done">Done</span></td><td>No</td><td>90 min</td><td>Session 2</td></tr>
           <tr><td>4</td><td>The MCP server</td><td><span class="badge done">Done</span></td><td>Optional (one manual check)</td><td>60–90 min</td><td>Session 3</td></tr>
           <tr><td>5</td><td>The hand-rolled agent loop</td><td><span class="badge in-progress">In progress</span></td><td><strong>Yes</strong></td><td>90–120 min</td><td>Session 3</td></tr>
-          <tr><td>6</td><td>Structured output &amp; review loop</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong> (for the manual runs)</td><td>60–90 min</td><td>Session 5</td></tr>
+          <tr><td>6</td><td>Structured output &amp; review loop</td><td><span class="badge in-progress">In progress</span></td><td><strong>Yes</strong> (for the manual runs)</td><td>60–90 min</td><td>Session 5</td></tr>
           <tr><td>7</td><td>Context budget: compaction &amp; caching</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong> (for the real run)</td><td>90 min</td><td>Session 4</td></tr>
           <tr><td>8</td><td>Orchestrator &amp; the stretch tool</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong> (for the manual run)</td><td>90–120 min</td><td>Sessions 3, 6</td></tr>
           <tr><td>9</td><td>Claude Agent SDK version</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong></td><td>90 min</td><td>Session 4</td></tr>
@@ -556,7 +556,7 @@
     <section id="s6">
       <h2><span class="kicker">Session 6</span>Structured output &amp; review loop</h2>
       <div class="session-meta">
-        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
+        <span><strong>Status:</strong> <span class="badge in-progress">In progress</span></span>
         <span><strong>Needs API key:</strong> Yes, for the manual runs</span>
         <span><strong>Est. time:</strong> 60–90 min</span>
         <span><strong>Depends on:</strong> Session 5</span>
@@ -577,7 +577,10 @@
       </div>
       <div class="callout notes">
         <strong class="label">Session notes</strong>
-        <p>None yet.</p>
+        <p>Same split as Session 5: everything buildable and testable without a live call is done; the two real runs against the live API are still pending an <code>ANTHROPIC_API_KEY</code>.</p>
+        <p><code>structured-output.mjs</code> uses the current API exactly as plan.html section 07 specifies — <code>client.messages.parse()</code> with <code>output_config.format</code> built by the SDK's own <code>zodOutputFormat()</code> helper (<code>@anthropic-ai/sdk/helpers/zod</code>), not a hand-rolled JSON-schema-plus-forced-tool-choice workaround. Confirmed by reading the installed <code>@anthropic-ai/sdk</code> 0.127.0 source directly: <code>.parse()</code> throws an <code>AnthropicError</code> when the model's output fails schema validation (see <code>lib/parser.mjs</code>), which is exactly the failure the bounded retry in <code>getStructuredChecklist()</code> catches — each retry appends a corrective note to the conversation rather than silently resending the identical prompt. <code>tests/structured-output.test.mjs</code> stubs <code>client.messages.parse()</code> to cover: first-attempt success, one retry then success, and exhausting every attempt and surfacing the last error — 63/63 tests pass across the whole suite, zero network calls.</p>
+        <p><code>review-loop.mjs</code>'s draft → critique → revise chain is real prompt chaining: each step is its own <code>Messages.create</code> call that only ever sees the checklist data plus the previous step's own text output, never the raw agent-loop conversation that produced the checklist. <strong>Deliberately has no <code>tests/review-loop.test.mjs</code></strong> — plan.html section 07's own test-file list never assigns it one, matching the precedent Session 9's <code>sdk-version/agent.mjs</code> already sets for a file that's manual-run-and-eyeball only. Its three-call chaining mechanics were smoke-checked once against a throwaway stubbed client (not committed) to confirm the sequencing before moving on.</p>
+        <p>Both scripts share one gap-analysis-to-prompt builder (<code>buildStructuredChecklistRequest()</code>, newly exported from <code>structured-output.mjs</code>) so <code>review-loop.mjs</code>'s real run chains directly off the same structured checklist rather than re-deriving the gap analysis a second way.</p>
       </div>
     </section>
 
