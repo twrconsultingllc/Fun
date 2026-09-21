@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #17 — droid/build-plan.html Claude/You tagging update</title>
+<meta name="description" content="Security and code-quality review of droid/build-plan.html's update adding per-step Claude/You badges and two new CSS badge classes, so each session's steps show whether Claude can do them or a human has to.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  .page-table-wrap { overflow-x: auto; margin: 12px 0; }
+  table.page-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .page-table th, .page-table td {
+    border: 1px solid var(--panel-border);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .page-table th {
+    background: var(--code-bg);
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .page-table td.num {
+    text-align: center;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #17 — <code>droid/build-plan.html</code> Claude/You tagging update</h1>
+    <p class="sub">A follow-up update to the build plan added in review #16: every numbered step across all seven sessions is now tagged with who does it — <code>Claude</code> for anything this assistant can do directly (writing code, editing config, running Gradle), <code>You</code> for anything inherently physical or GUI-only (app-store installs, tapping through system permission dialogs, Android Settings toggles, moving hardware, tapping an NFC tag). Two new CSS badge classes and a "Who does most of it" table column were added to support it — real markup/style changes, so this is in scope under the "updates count" rule even though no new page was created.</p>
+    <div class="meta">Review performed 2026-09-21 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>droid/build-plan.html</code> only · follows: <a href="16.html" style="color: var(--accent);">16.html</a>, which reviewed the page when it was first added</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">0 actionable findings. 6 items verified clean.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Head block (CSP, referrer, description) untouched by this edit</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        This update only added CSS rules, two new elements (a "Key" callout and a table column), and inline <code>&lt;span class="who"&gt;...&lt;/span&gt;</code> badge markup inside existing list items — the <code>&lt;head&gt;</code> block is byte-for-byte the same as what review #16 already checked: <code>charset="utf-8"</code>, <code>viewport</code>, <code>referrer: strict-origin-when-cross-origin</code>, and the site-standard CSP.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No <code>&lt;script&gt;</code> tags, inline event handlers, or external resources introduced</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped the updated file for <code>&lt;script</code>, the <code>on[a-z]+="</code> inline-handler shape, and any <code>href="http</code>/<code>src="http</code>/<code>target=</code> — zero matches on all four. The new markup is plain <code>&lt;span&gt;</code>/<code>&lt;div&gt;</code> elements styled entirely through the page's existing <code>&lt;style&gt;</code> block; nothing loads from outside the page.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Document structure stays well-formed after the edit</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Counted open/close tags across the whole file after all seven sessions' steps were re-written with the new badge spans: <code>&lt;li&gt;</code> 56/56, <code>&lt;ol&gt;</code> 8/8, <code>&lt;span&gt;</code> 157/157, <code>&lt;div&gt;</code> 24/24, <code>&lt;p&gt;</code> 18/18 — every tag opened is closed, with the heaviest nesting (multiple <code>&lt;span class="badge"&gt;</code> inside a <code>&lt;span class="who"&gt;</code> inside an <code>&lt;li&gt;</code>) checked by hand on the "both" tagged steps in Sessions 1, 4, and 7 specifically, since those are where the markup nests one level deeper than everywhere else on the page.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No duplicate IDs, no broken same-page anchors, after the table and callout additions</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The new "Key" callout and the table's added column introduced no new <code>id</code> attributes. Re-parsed the file: still 9 section ids, zero duplicates, and all 9 table-of-contents anchors resolve — unchanged from review #16's count, as expected since this edit didn't touch section structure.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">WCAG contrast checked for the two new badge classes, in both color schemes</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p>The new <code>.badge.claude</code> (text color <code>var(--accent-2)</code>) and <code>.badge.you</code> (text color <code>var(--bad)</code>) classes render as small (0.7rem) bold text, which doesn't qualify for WCAG's large-text 3:1 exception — the stricter 4.5:1 normal-text threshold applies. An initial pass at the same 0.15 background alpha used by the page's existing <code>.badge.done</code>/<code>.badge.in-progress</code> classes came out to <b>4.49:1</b> for <code>.badge.claude</code> in light mode — under the 4.5:1 bar by a hair, composited against the page background. The alpha was lowered to 0.1 for both new classes specifically to fix this, computed with the same relative-luminance method used in every prior review of this page's palette:</p>
+        <div class="page-table-wrap">
+        <table class="page-table">
+          <thead><tr><th>Pairing (background alpha 0.1, composited over page background)</th><th>Dark mode</th><th>Light mode</th></tr></thead>
+          <tbody>
+            <tr><td><code>badge.claude</code> text on its own translucent background</td><td class="num">7.60:1</td><td class="num">4.82:1</td></tr>
+            <tr><td><code>badge.you</code> text on its own translucent background</td><td class="num">6.18:1</td><td class="num">5.42:1</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p>Both classes now clear 4.5:1 in both modes, with light-mode <code>badge.claude</code> — the tightest pairing — sitting at 4.82:1, a real margin rather than a borderline pass. Composited over the page's other realistic backgrounds (white/panel, the light table stripe) the same pairing scores higher still, so the page-background composite used here is the conservative case, not a favorable one.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Every step's Claude/You classification matches what the step actually requires</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p>Parsed every <code>&lt;li&gt;</code> in the seven session sections (41 total, excluding the unrelated table-of-contents and "How to use this plan" bullets) and classified each by its actual badge markup rather than trusting the prose: 28 are <code>Claude</code>-only, 9 are <code>You</code>-only, and 4 carry both. Read all 41 against the "Key" callout's own definitions rather than assuming the tags were applied consistently. The distinction holds up: every <code>You</code>-only step is something with no CLI/API surface at all — an app-store install, a live Android permission dialog, a Settings toggle, physically moving a tracker between locations, tapping an NFC tag to a phone. Every <code>Claude</code>-only step is source code, build config, or a command with no GUI dependency. The four steps tagged with both (one in Session 1, one in Session 4, two in Session 7) are the ones that genuinely split — e.g. Session 4's install-and-confirm step: <code>gradlew</code>/install tooling is Claude, but dismissing Android's live <code>BLUETOOTH_SCAN</code>/location permission prompts is a real system dialog no agent can click through, so that half is correctly <code>You</code> alone within the same step.</p>
+        <p>One judgment call worth surfacing rather than treating as self-evidently correct: Session 4's "confirm a stationary device never gets flagged" and Session 7's "adb logcat" step both assume Claude cannot independently operate a device over a multi-hour real-world period even if a terminal is connected to it, because the point of those steps is a human physically leaving the tablet in a real screen-off/Doze state and using it normally — not something to hand entirely to an agent even where the commands themselves are automatable. This matches the page's own framing in <a href="../study/build-plan.html">its cross-referenced sibling plan</a>'s "no live dependency" split for no-hardware sessions, extended here to the inverse case.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The session-index table's new "Who does most of it" column matches each session's actual step-level tag mix</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Checked each session's summary value in the table against a literal count of its own steps' tags rather than eyeballing it: Sessions 2, 3, and 6 are all-<code>Claude</code> at the step level, so the table correctly shows a plain <code>Claude</code> badge for each; Session 7 is all-<code>You</code> or mixed-but-<code>You</code>-anchored (only its first step is Claude-only), so the table correctly shows <code>You</code>; Sessions 1, 4, and 5 each mix real <code>You</code>-only steps (an install, a permission dialog, a Settings toggle, physical device checks) with <code>Claude</code>-only steps, so the table correctly labels all three "Mixed" rather than picking one side.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand if anything regresses, or
+    ask Claude for another review. See <code>16.html</code> for the review that covered this page's initial
+    publication, and <code>CLAUDE.md</code>'s "New pages *and* page updates get a numbered security &amp;
+    quality review" section for the rule this review exists to satisfy.
+  </footer>
+
+</div>
+</body>
+</html>

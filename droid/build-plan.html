@@ -284,6 +284,24 @@
     color: var(--accent);
   }
 
+  .badge.claude {
+    background: rgba(127, 185, 224, 0.1);
+    color: var(--accent-2);
+  }
+
+  .badge.you {
+    background: rgba(224, 133, 133, 0.1);
+    color: var(--bad);
+  }
+
+  .who {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: inline-flex;
+    gap: 0.3rem;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+  }
+
   .callout.notes {
     border-left-color: var(--text-dim);
   }
@@ -333,6 +351,25 @@
     gets built.
   </div>
 
+  <div class="callout" style="grid-column: 1 / -1;">
+    <strong class="label">Key: who does each step</strong>
+    Every numbered step below is tagged
+    <span class="who"><span class="badge claude">Claude</span></span> or
+    <span class="who"><span class="badge you">You</span></span>, sometimes
+    both. <span class="badge claude">Claude</span> marks anything this
+    assistant can do directly once it has a terminal in the right place —
+    writing code, editing Gradle/manifest config, seeding data, running
+    <code>./gradlew test</code>/<code>assembleDebug</code> — including from
+    inside a Termux shell on the tablet itself, if that's where a session
+    happens to be running. <span class="badge you">You</span> marks
+    anything no coding agent can do on your behalf: tapping through an
+    app-store install or a system permission dialog, flipping an Android
+    Settings toggle, physically carrying hardware between locations, or
+    tapping an NFC tag to a phone. A step tagged with both means it splits
+    — Claude builds it, you tap through the install or eyeball the result
+    on the real device.
+  </div>
+
   <nav class="toc" aria-label="Table of contents">
     <h2>On this page</h2>
     <ol>
@@ -376,23 +413,26 @@
       <h2><span class="kicker">The whole plan, at a glance</span>Session index</h2>
       <table>
         <thead>
-          <tr><th>#</th><th>Session</th><th>Status</th><th>Needs hardware</th><th>Est. time</th><th>Depends on</th></tr>
+          <tr><th>#</th><th>Session</th><th>Status</th><th>Needs hardware</th><th>Who does most of it</th><th>Est. time</th><th>Depends on</th></tr>
         </thead>
         <tbody>
-          <tr><td>1</td><td>Termux toolchain &amp; Hello Compose</td><td><span class="badge">Not started</span></td><td>Tablet</td><td>60–90 min</td><td>—</td></tr>
-          <tr><td>2</td><td>Data model &amp; correlation engine</td><td><span class="badge">Not started</span></td><td>No (pure JVM)</td><td>90–120 min</td><td>Session 1</td></tr>
-          <tr><td>3</td><td>BLE parsing &amp; MAC-rotation linking</td><td><span class="badge">Not started</span></td><td>No (pure JVM)</td><td>60–90 min</td><td>Session 2</td></tr>
-          <tr><td>4</td><td>Foreground scanning service &amp; permissions</td><td><span class="badge">Not started</span></td><td>Tablet</td><td>90–120 min</td><td>Sessions 2, 3</td></tr>
-          <tr><td>5</td><td>WiFi polish &amp; the NFC screen</td><td><span class="badge">Not started</span></td><td>Tablet + NFC phone</td><td>60–90 min</td><td>Session 4</td></tr>
-          <tr><td>6</td><td>Compose UI wired to live data</td><td><span class="badge">Not started</span></td><td>Tablet</td><td>90 min</td><td>Sessions 4, 5</td></tr>
-          <tr><td>7</td><td>On-device validation</td><td><span class="badge">Not started</span></td><td>Tablet + NFC phone + a BLE tracker</td><td>spans hours, not one sitting</td><td>Everything above</td></tr>
+          <tr><td>1</td><td>Termux toolchain &amp; Hello Compose</td><td><span class="badge">Not started</span></td><td>Tablet</td><td>Mixed</td><td>60–90 min</td><td>—</td></tr>
+          <tr><td>2</td><td>Data model &amp; correlation engine</td><td><span class="badge">Not started</span></td><td>No (pure JVM)</td><td><span class="badge claude">Claude</span></td><td>90–120 min</td><td>Session 1</td></tr>
+          <tr><td>3</td><td>BLE parsing &amp; MAC-rotation linking</td><td><span class="badge">Not started</span></td><td>No (pure JVM)</td><td><span class="badge claude">Claude</span></td><td>60–90 min</td><td>Session 2</td></tr>
+          <tr><td>4</td><td>Foreground scanning service &amp; permissions</td><td><span class="badge">Not started</span></td><td>Tablet</td><td>Mixed</td><td>90–120 min</td><td>Sessions 2, 3</td></tr>
+          <tr><td>5</td><td>WiFi polish &amp; the NFC screen</td><td><span class="badge">Not started</span></td><td>Tablet + NFC phone</td><td>Mixed</td><td>60–90 min</td><td>Session 4</td></tr>
+          <tr><td>6</td><td>Compose UI wired to live data</td><td><span class="badge">Not started</span></td><td>Tablet</td><td><span class="badge claude">Claude</span></td><td>90 min</td><td>Sessions 4, 5</td></tr>
+          <tr><td>7</td><td>On-device validation</td><td><span class="badge">Not started</span></td><td>Tablet + NFC phone + a BLE tracker</td><td><span class="badge you">You</span></td><td>spans hours, not one sitting</td><td>Everything above</td></tr>
         </tbody>
       </table>
       <p>
         This sequence is strictly linear, unlike the Claude Architect Lab
         plan's parallel middle sessions — each session here builds directly
         on the last, matching <a href="plan.html#order">plan.html section
-        10</a>'s own ordering.
+        10</a>'s own ordering. See the key above the table of contents for
+        what the <span class="badge claude">Claude</span>/<span class="badge you">You</span>
+        tags on each session's individual steps mean; "Who does most of
+        it" here is just the session-level summary.
       </p>
     </section>
 
@@ -410,31 +450,41 @@
         <a href="plan.html#order">plan.html section 10</a>'s own first step.
       </p>
       <ol>
-        <li>Install Termux from F-Droid or GitHub releases — not the
-          abandoned Play Store build — plus the Termux:API companion app.</li>
-        <li><code>pkg install openjdk-17 wget unzip git aapt2 termux-api android-tools</code>.</li>
-        <li>Set up the Android cmdline-tools under <code>~/android-sdk</code>,
+        <li><span class="who"><span class="badge you">You</span></span>Install
+          Termux from F-Droid or GitHub releases — not the abandoned Play
+          Store build — plus the Termux:API companion app. An app-store/APK
+          install with tap-through permission prompts; no agent can do this
+          for you.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span><code>pkg install openjdk-17 wget unzip git aapt2 termux-api android-tools</code>,
+          run from inside the Termux shell once it exists.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span>Set
+          up the Android cmdline-tools under <code>~/android-sdk</code>,
           export <code>ANDROID_HOME</code>/<code>ANDROID_SDK_ROOT</code> +
           PATH, then run <code>sdkmanager</code> for <code>platform-tools</code>,
           a current <code>platforms;android-XX</code>, and matching
           <code>build-tools</code>.</li>
-        <li>Apply both <code>gradle.properties</code> fixes from
+        <li><span class="who"><span class="badge claude">Claude</span></span>Apply
+          both <code>gradle.properties</code> fixes from
           <a href="plan.html#termux">plan.html section 08</a> up front:
           <code>android.aapt2FromMavenOverride</code> pointing at the
           Termux-native <code>aapt2</code>, and
           <code>org.gradle.vfs.watch=false</code>.</li>
-        <li>Scaffold a minimal Kotlin/Gradle/Compose project — package root
+        <li><span class="who"><span class="badge claude">Claude</span></span>Scaffold
+          a minimal Kotlin/Gradle/Compose project — package root
           <code>com.twrconsulting.sentinel</code> (placeholder), just
           <code>MainActivity</code> showing "Hello Compose," nothing else —
           in its own standalone git repo, not inside <code>Fun</code>.</li>
-        <li>Confirm the test tablet is actually on Android 12+ before going
-          further; <a href="plan.html#platform">plan.html section 07</a>'s
+        <li><span class="who"><span class="badge you">You</span></span>Confirm
+          the test tablet is actually on Android 12+ before going further
+          (Settings → About tablet → Android version);
+          <a href="plan.html#platform">plan.html section 07</a>'s
           <code>minSdk 31</code> decision depends on it.</li>
-        <li><code>./gradlew assembleDebug</code>, then either
-          <code>termux-open</code> the debug APK (manual tap-through install)
-          or set up wireless ADB per section 08 if faster iteration is worth
-          the one-time pairing step — confirm the app actually launches on
-          the tablet either way.</li>
+        <li><span class="who"><span class="badge claude">Claude</span><span class="badge you">You</span></span><code>./gradlew assembleDebug</code>
+          (Claude), then either <code>termux-open</code> the debug APK
+          (manual tap-through install) or set up wireless ADB per section 08
+          if faster iteration is worth the one-time pairing step — either
+          way, confirming the app actually launches means looking at the
+          tablet's screen (you).</li>
       </ol>
       <div class="callout decision">
         <strong class="label">Done when</strong>
@@ -464,35 +514,40 @@
         ("get this right first").
       </p>
       <ol>
-        <li>Add Hilt (DI) and Room with KSP — not <code>kapt</code> — to the
+        <li><span class="who"><span class="badge claude">Claude</span></span>Add
+          Hilt (DI) and Room with KSP — not <code>kapt</code> — to the
           project's Gradle config.</li>
-        <li>Write the six Room entities from
+        <li><span class="who"><span class="badge claude">Claude</span></span>Write
+          the six Room entities from
           <a href="plan.html#data">plan.html section 03</a>'s table:
           <code>DeviceEntity</code>, <code>SightingEntity</code>,
           <code>KnownTrackerSignatureEntity</code>,
           <code>IgnoredDeviceEntity</code>, <code>FlagEventEntity</code>,
           <code>LocationClusterEntity</code>.</li>
-        <li>Seed <code>KnownTrackerSignatureEntity</code> with the
-          documented public formats: Apple Find My (manufacturer ID
+        <li><span class="who"><span class="badge claude">Claude</span></span>Seed
+          <code>KnownTrackerSignatureEntity</code> with the documented
+          public formats: Apple Find My (manufacturer ID
           <code>0x004C</code>), Samsung SmartTag/SmartTag2
           (<code>0x0075</code>), Tile and Chipolo (service-UUID based).</li>
-        <li>Implement <code>LocationClusterer</code> (incremental centroid
-          clustering, 150m threshold, Haversine distance) and
+        <li><span class="who"><span class="badge claude">Claude</span></span>Implement
+          <code>LocationClusterer</code> (incremental centroid clustering,
+          150m threshold, Haversine distance) and
           <code>TrackerCorrelationEngine</code> plus <code>FlagScorer</code>
           per <a href="plan.html#detection">plan.html section 04</a>: the
           hard gates (≥3 distinct clusters, ≥20 minutes first-to-last span)
           before any scoring, then the 0–100 suspicion score with its
           known-signature bonus and weak-identity discount.</li>
-        <li>Set <code>android:allowBackup="false"</code> and exclude the
-          Room database from auto-backup rules now, while the database is
-          first created — this data is a de facto location history and
-          shouldn't have a window where it's backed up by default.</li>
-        <li><code>./gradlew test</code> against synthetic sighting fixtures:
-          at minimum, one stationary device across many sightings in a
-          single cluster that never flags, one tracker-like device seen
-          across 3+ clusters with a plausible time span that does flag, and
-          one case confirming the known-signature match adds its scoring
-          bonus.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span>Set
+          <code>android:allowBackup="false"</code> and exclude the Room
+          database from auto-backup rules now, while the database is first
+          created — this data is a de facto location history and shouldn't
+          have a window where it's backed up by default.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span><code>./gradlew test</code>
+          against synthetic sighting fixtures: at minimum, one stationary
+          device across many sightings in a single cluster that never
+          flags, one tracker-like device seen across 3+ clusters with a
+          plausible time span that does flag, and one case confirming the
+          known-signature match adds its scoring bonus.</li>
       </ol>
       <div class="callout decision">
         <strong class="label">Done when</strong>
@@ -521,25 +576,29 @@
         address can't be trusted as identity" subsection.
       </p>
       <ol>
-        <li>Implement <code>BleAdvertisementParser</code>: recognize each
-          signature family seeded in Session 2 from its manufacturer
-          payload, since that format is far more stable than a rotating
-          address.</li>
-        <li>Implement the linking heuristic: if a same-family device
-          disappears and a new MAC of the same family appears within
-          roughly 15 minutes, at similar RSSI and location, merge the
-          sightings under the same <code>stableDeviceKey</code> — while
-          still keeping the raw per-sighting address, so nothing is lost if
-          the heuristic mis-links two devices.</li>
-        <li>For unrecognized BLE devices, discount MAC continuity heavily
-          past roughly 20–30 minutes, treating it as a weak, short-term-only
+        <li><span class="who"><span class="badge claude">Claude</span></span>Implement
+          <code>BleAdvertisementParser</code>: recognize each signature
+          family seeded in Session 2 from its manufacturer payload, since
+          that format is far more stable than a rotating address.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span>Implement
+          the linking heuristic: if a same-family device disappears and a
+          new MAC of the same family appears within roughly 15 minutes, at
+          similar RSSI and location, merge the sightings under the same
+          <code>stableDeviceKey</code> — while still keeping the raw
+          per-sighting address, so nothing is lost if the heuristic
+          mis-links two devices.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span>For
+          unrecognized BLE devices, discount MAC continuity heavily past
+          roughly 20–30 minutes, treating it as a weak, short-term-only
           signal.</li>
-        <li>Explicitly do <em>not</em> attempt to cryptographically defeat
-          address rotation (e.g. Apple's Find My rolling-key derivation) —
-          out of scope, matching plan.html section 03's fourth point.</li>
-        <li>Unit tests: a synthetic MAC-rotation sequence that should link
-          (same family, short gap, similar RSSI/location) and one that
-          shouldn't (too long a gap, or a different family).</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span>Explicitly
+          do <em>not</em> attempt to cryptographically defeat address
+          rotation (e.g. Apple's Find My rolling-key derivation) — out of
+          scope, matching plan.html section 03's fourth point.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span>Unit
+          tests: a synthetic MAC-rotation sequence that should link (same
+          family, short gap, similar RSSI/location) and one that shouldn't
+          (too long a gap, or a different family).</li>
       </ol>
       <div class="callout decision">
         <strong class="label">Done when</strong>
@@ -568,35 +627,43 @@
         <a href="plan.html#platform">section 07</a>.
       </p>
       <ol>
-        <li>Add the manifest permissions and <code>uses-feature</code>
-          entries exactly as listed in plan.html section 07:
+        <li><span class="who"><span class="badge claude">Claude</span></span>Add
+          the manifest permissions and <code>uses-feature</code> entries
+          exactly as listed in plan.html section 07:
           <code>BLUETOOTH_SCAN</code> with <code>neverForLocation</code>,
           <code>BLUETOOTH_CONNECT</code>, fine/coarse location, WiFi state,
           NFC as an optional feature, the three
           <code>FOREGROUND_SERVICE*</code> permissions,
           <code>POST_NOTIFICATIONS</code>, and the battery-optimization
           request permission.</li>
-        <li>Implement <code>ScanForegroundService</code> (Android 14+ types
+        <li><span class="who"><span class="badge claude">Claude</span></span>Implement
+          <code>ScanForegroundService</code> (Android 14+ types
           <code>connectedDevice|location</code>) with duty-cycled BLE bursts
           (<code>SCAN_MODE_BALANCED</code>, every 2–5 minutes), one WiFi
           <code>startScan()</code> per cycle, and a passive
           <code>SCAN_RESULTS_AVAILABLE_ACTION</code> receiver to catch scans
           the OS triggers on its own.</li>
-        <li>Implement <code>ScanScheduler</code>/<code>ScanWorker</code> as
-          the periodic WorkManager watchdog that restarts the foreground
-          service if Samsung's OEM battery management kills it.</li>
-        <li>Wire <code>DeviceRepository</code>'s Room
-          <code>@Transaction</code> upsert keyed on
-          <code>stableDeviceKey</code>, using Session 2's schema and Session
-          3's parser/linker.</li>
-        <li>Build, install (<code>termux-open</code> or wireless ADB), and
-          confirm on the tablet: permission prompts appear correctly, the
-          foreground-service notification shows, and real BLE/WiFi
-          sightings start populating the database (no UI to view them yet —
-          confirm via a debug log or a direct DB query).</li>
-        <li>Manually apply the Samsung One UI battery exclusion (Device Care
-          → Battery → Background usage limits) — plan.html section 07 and
-          09 both note this can't be done by the app itself.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span>Implement
+          <code>ScanScheduler</code>/<code>ScanWorker</code> as the periodic
+          WorkManager watchdog that restarts the foreground service if
+          Samsung's OEM battery management kills it.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span>Wire
+          <code>DeviceRepository</code>'s Room <code>@Transaction</code>
+          upsert keyed on <code>stableDeviceKey</code>, using Session 2's
+          schema and Session 3's parser/linker.</li>
+        <li><span class="who"><span class="badge claude">Claude</span><span class="badge you">You</span></span>Build
+          and install (<code>termux-open</code> or wireless ADB) — Claude.
+          Confirming it worked needs a human: tapping through the live
+          system permission dialogs Android pops up (no agent can dismiss
+          those), then looking at the tablet to confirm the
+          foreground-service notification shows and real BLE/WiFi sightings
+          start populating the database (no UI to view them yet — a debug
+          log or a direct DB query is enough).</li>
+        <li><span class="who"><span class="badge you">You</span></span>Manually
+          apply the Samsung One UI battery exclusion (Device Care → Battery
+          → Background usage limits) — plan.html section 07 and 09 both
+          note this can't be done by the app itself, and it's a Settings-UI
+          toggle no agent can flip for you.</li>
       </ol>
       <div class="callout decision">
         <strong class="label">Done when</strong>
@@ -624,21 +691,29 @@
         <a href="plan.html#ui">plan.html section 06</a>.
       </p>
       <ol>
-        <li>Confirm WiFi scanning lands at roughly 30–60 second effective
-          resolution per <a href="plan.html#platform">plan.html section
-          07</a> — this is an OS throttle on stock, unrooted Android, not a
-          bug to chase away.</li>
-        <li>Implement <code>NfcTagReader</code> and the NFC Tag Read screen:
-          UID, tech list, NDEF dump if present; MIFARE Classic reports
-          "detected, sectors not readable without keys" rather than
-          attempting key-cracking.</li>
-        <li>Set the foreground-dispatch <code>PendingIntent</code> to
+        <li><span class="who"><span class="badge you">You</span></span>Confirm
+          WiFi scanning lands at roughly 30–60 second effective resolution
+          per <a href="plan.html#platform">plan.html section 07</a> — this
+          is an OS throttle on stock, unrooted Android, not a bug to chase
+          away; confirming the real cadence means watching it happen on the
+          tablet.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span>Implement
+          <code>NfcTagReader</code> and the NFC Tag Read screen: UID, tech
+          list, NDEF dump if present; MIFARE Classic reports "detected,
+          sectors not readable without keys" rather than attempting
+          key-cracking.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span>Set
+          the foreground-dispatch <code>PendingIntent</code> to
           <code>FLAG_MUTABLE</code> — the specific gotcha plan.html section
           07 calls out; the usual post-Android-12 <code>FLAG_IMMUTABLE</code>
           default breaks tag delivery here.</li>
-        <li>Confirm the tablet (if it lacks NFC hardware) shows a graceful
-          "no NFC hardware" state instead of crashing.</li>
-        <li>Test real tag reads on the phone that has NFC hardware.</li>
+        <li><span class="who"><span class="badge you">You</span></span>Confirm
+          the tablet (if it lacks NFC hardware) shows a graceful "no NFC
+          hardware" state instead of crashing — a visual check on the
+          device.</li>
+        <li><span class="who"><span class="badge you">You</span></span>Test
+          real tag reads on the phone that has NFC hardware — physically
+          tapping a tag to the phone and reading the result on screen.</li>
       </ol>
       <div class="callout decision">
         <strong class="label">Done when</strong>
@@ -666,28 +741,35 @@
         real data flowing in from Sessions 4–5.
       </p>
       <ol>
-        <li><strong>Nearby:</strong> live BLE+WiFi list via Room
-          <code>Flow</code>, signal strength, swipe-to-ignore, manual "scan
-          now" button.</li>
-        <li><strong>Flagged:</strong> sorted-by-score list with the
-          human-readable reason string (e.g. "seen at 4 locations up to
-          6.2km apart over 5h; matches Apple Find My format"), dismiss/view
-          actions.</li>
-        <li><strong>Device Detail:</strong> identity, all linked raw
-          addresses, sighting history on a map via OSMDroid (not Google
-          Maps, to avoid the API-key/Play-Services dependency),
-          ignore/nickname actions.</li>
-        <li><strong>Settings:</strong> scan interval, sensitivity
-          (Low/Medium/High mapped to the flag threshold), cluster-distance
-          (advanced), ignore-list management, data retention/export/clear,
-          scanning kill switch.</li>
-        <li><strong>Onboarding wizard:</strong> auto-suggest ignoring the
-          user's own bonded Bluetooth devices and the currently-connected
-          WiFi network, per plan.html section 04's false-positive
-          suppression.</li>
-        <li>The NFC screen from Session 5 becomes reachable from this UI
-          rather than a standalone test harness.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span><strong>Nearby:</strong>
+          live BLE+WiFi list via Room <code>Flow</code>, signal strength,
+          swipe-to-ignore, manual "scan now" button.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span><strong>Flagged:</strong>
+          sorted-by-score list with the human-readable reason string (e.g.
+          "seen at 4 locations up to 6.2km apart over 5h; matches Apple
+          Find My format"), dismiss/view actions.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span><strong>Device
+          Detail:</strong> identity, all linked raw addresses, sighting
+          history on a map via OSMDroid (not Google Maps, to avoid the
+          API-key/Play-Services dependency), ignore/nickname actions.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span><strong>Settings:</strong>
+          scan interval, sensitivity (Low/Medium/High mapped to the flag
+          threshold), cluster-distance (advanced), ignore-list management,
+          data retention/export/clear, scanning kill switch.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span><strong>Onboarding
+          wizard:</strong> auto-suggest ignoring the user's own bonded
+          Bluetooth devices and the currently-connected WiFi network, per
+          plan.html section 04's false-positive suppression.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span>The
+          NFC screen from Session 5 becomes reachable from this UI rather
+          than a standalone test harness.</li>
       </ol>
+      <p>
+        Every step above is code Claude can write; actually looking at the
+        five screens on the tablet and confirming they feel right is
+        <span class="who"><span class="badge you">You</span></span> — see
+        this session's "Done when" line below.
+      </p>
       <div class="callout decision">
         <strong class="label">Done when</strong>
         All five screens are live against real on-device data, and the
@@ -716,26 +798,37 @@
         against reality.
       </p>
       <ol>
-        <li>Run the full <code>./gradlew test</code> suite one more time
-          (correlation engine, clusterer, signature matcher, parser,
-          linking heuristic) as a baseline before the real-hardware checks.</li>
-        <li>Place a known BLE tracker (or a phone advertising a similar
-          payload) at 3+ physically distinct locations over time; confirm
-          it gets flagged.</li>
-        <li>Confirm a stationary device (a home router) never gets flagged.</li>
-        <li><code>adb logcat</code> over several hours, including a
-          screen-off/Doze period and an app-switch/backgrounding test, to
-          confirm Samsung doesn't silently kill the service once battery
-          exclusions are set.</li>
-        <li>Re-confirm the NFC screen on the phone and the graceful
-          unavailable state on the tablet, now as part of the full app
-          rather than a standalone test harness.</li>
-        <li>Write down real-world findings in this session's notes: any
-          false positives/negatives encountered, whether the co-traveler
-          hard case (plan.html section 09) actually showed up, whether the
-          default flag threshold of roughly 55 felt right in practice, and
-          any Termux/build gotchas hit beyond what section 08 already
-          documents.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span>Run
+          the full <code>./gradlew test</code> suite one more time
+          (correlation engine, clusterer, signature matcher, parser, linking
+          heuristic) as a baseline before the real-hardware checks.</li>
+        <li><span class="who"><span class="badge you">You</span></span>Place
+          a known BLE tracker (or a phone advertising a similar payload) at
+          3+ physically distinct locations over time; confirm it gets
+          flagged. Physically carrying hardware around is inherently a
+          you-task.</li>
+        <li><span class="who"><span class="badge you">You</span></span>Confirm
+          a stationary device (a home router) never gets flagged — check
+          the Flagged screen yourself; Claude can help interpret an exported
+          log if you hand it one, but can't watch the device over time on
+          its own.</li>
+        <li><span class="who"><span class="badge claude">Claude</span><span class="badge you">You</span></span><code>adb
+          logcat</code> over several hours, including a screen-off/Doze
+          period and an app-switch/backgrounding test — Claude can run and
+          parse the log if it has a terminal connected to the device, but
+          you're the one putting the tablet through a real screen-off/Doze
+          period and switching apps on it.</li>
+        <li><span class="who"><span class="badge you">You</span></span>Re-confirm
+          the NFC screen on the phone and the graceful unavailable state on
+          the tablet, now as part of the full app rather than a standalone
+          test harness.</li>
+        <li><span class="who"><span class="badge claude">Claude</span><span class="badge you">You</span></span>Write
+          down real-world findings in this session's notes: any false
+          positives/negatives encountered, whether the co-traveler hard case
+          (plan.html section 09) actually showed up, whether the default
+          flag threshold of roughly 55 felt right in practice, and any
+          Termux/build gotchas hit beyond what section 08 already documents.
+          You supply the raw observations; Claude can help write them up.</li>
       </ol>
       <div class="callout decision">
         <strong class="label">Done when</strong>
