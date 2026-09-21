@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #14 — build-plan.html &amp; agentic-plan.html updates</title>
+<meta name="description" content="Security and code-quality review of the recent substantive updates to study/build-plan.html and study/agentic-plan.html — the first review run under CLAUDE.md's broadened rule that page updates, not just new pages, trigger a numbered review.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  .page-table-wrap { overflow-x: auto; margin: 12px 0; }
+  table.page-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .page-table th, .page-table td {
+    border: 1px solid var(--panel-border);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .page-table th {
+    background: var(--code-bg);
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .page-table td.num {
+    text-align: center;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #14 — <code>build-plan.html</code> &amp; <code>agentic-plan.html</code> updates</h1>
+    <p class="sub">The first review triggered under <code>CLAUDE.md</code>'s broadened rule: page <em>updates</em>, not just brand-new pages, get a numbered review. Both pages had received substantive content across several recent sessions — new session write-ups and status flips on <code>build-plan.html</code>, a whole new section plus two refreshed callouts on <code>agentic-plan.html</code> — with no review ever triggered for any of it, which is the exact gap that prompted the rule change itself.</p>
+    <div class="meta">Review performed 2026-09-21 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>study/build-plan.html</code>, <code>study/agentic-plan.html</code>, and <code>study/index.html</code> where it links to and describes them · follows: <a href="13.html" style="color: var(--accent);">13.html</a>, the first Full Monty review</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">2 of 2 actionable findings fixed. 0 open. 8 additional items verified clean.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Head block (CSP, referrer, description) unchanged and still correct on both pages</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Neither page's edits touched the <code>&lt;head&gt;</code> block. Both still carry the required <code>charset</code>, <code>viewport</code>, <code>referrer: strict-origin-when-cross-origin</code>, and the exact site-standard CSP (<code>default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'</code>) — checked directly against the live file content, not assumed from having written it correctly the first time.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No <code>&lt;script&gt;</code> tags or inline event handlers introduced by any of the recent edits</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped both files for <code>&lt;script</code> and for the <code>on[a-z]+=</code> inline-handler shape — zero real matches on either page (two apparent hits were false positives from the substrings <code>ontent=</code> and <code>onse =</code> inside unrelated words, not actual handlers). Both pages remain pure static HTML/CSS with no executable content, same as every prior review of this project's <code>study/</code> pages found.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No external resources, no off-origin links, no <code>target</code> attributes added</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped both files for <code>href="http</code>, <code>src="http</code>, and any <code>target=</code> attribute — zero matches. Every link added in the recent edits (into <code>plan.html</code>, <code>build-plan.html</code>, and same-page anchors) stays same-origin and same-tab, matching this project's own convention for cross-links between its reference pages.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Every cross-page anchor link added in these updates resolves to a real target</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The new/edited content links to seven distinct anchors in <code>plan.html</code> (<code>#task</code>, <code>#cost</code>, <code>#queries</code>, <code>#mapping</code>, <code>#versions</code>, <code>#dataset</code>, <code>#clients</code>). Checked each one actually has a matching <code>id="…"</code> in <code>plan.html</code> rather than assuming the section numbers referenced in prose match — all seven do. A broken cross-reference here wouldn't be a security bug, but it would be exactly the kind of unverified claim this project's own "verify claims instead of assuming them" standard exists to catch.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>agentic-plan.html</code>'s meta description didn't mention its two newest sections</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        <p>The page's <code>&lt;meta name="description"&gt;</code> still only listed the original loop-by-loop topics (gather-act-verify, retries, review chain, verify paths, compaction/caching, orchestrator, SDK hooks) from before the failure-modes section and, more recently, the ongoing-monitoring-and-testing section were added — the same class of drift <code>CLAUDE.md</code> already names as a past mistake for <code>study/index.html</code>'s description of a different page.</p>
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> appended "predicted production failure modes, and what ongoing monitoring and testing this would need in production" to the description so it actually reflects everything the page now covers.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>study/index.html</code>'s <code>build-plan.html</code> card status was stale</div>
+        <span class="badge fixed">Fixed</span>
+      </div>
+      <div class="item-body">
+        <p>The landing card read "4 of 10 sessions done" — literally still true (exactly Sessions 1–4 carry a <code>Done</code> badge), but misleading by omission now that Sessions 5–9 have real, tested code and stubbed tests written (only each one's live-API run is outstanding) rather than being untouched. A visitor reading only the card would reasonably assume 6 of 10 sessions hadn't been started at all.</p>
+      </div>
+      <div class="fix-note">
+        <b>Fixed:</b> changed the badge to "4 done, 6 in progress," matching <code>build-plan.html</code>'s own current session-index table exactly rather than restating an older snapshot.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">WCAG contrast computed for every text/background pairing used on both pages, dark and light</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p>Both pages share the same design-token palette as the rest of this project's <code>study/</code> reference pages. Computed actual WCAG relative-luminance contrast ratios (not eyeballed) for every foreground/background combination in use, including the translucent badge and callout backgrounds composited over their actual base color:</p>
+        <div class="page-table-wrap">
+        <table class="page-table">
+          <thead><tr><th>Pairing</th><th>Dark mode</th><th>Light mode</th></tr></thead>
+          <tbody>
+            <tr><td>Body text on page background</td><td class="num">15.26:1</td><td class="num">14.11:1</td></tr>
+            <tr><td>Dimmed text (tagline/meta/labels) on page background</td><td class="num">8.01:1</td><td class="num">5.94:1</td></tr>
+            <tr><td>Link/accent color on page background</td><td class="num">9.34:1</td><td class="num">5.37:1</td></tr>
+            <tr><td>Kicker accent-2 on page background</td><td class="num">8.92:1</td><td class="num">5.54:1</td></tr>
+            <tr><td>Dimmed text on panel/callout background</td><td class="num">7.39:1</td><td class="num">6.38:1</td></tr>
+            <tr><td><code>badge.done</code> text on its own translucent background</td><td class="num">6.40:1</td><td class="num">5.21:1</td></tr>
+            <tr><td><code>badge.in-progress</code> text on its own translucent background</td><td class="num">6.48:1</td><td class="num">5.22:1</td></tr>
+            <tr><td>Warning-callout body text on its translucent background</td><td class="num">13.50:1</td><td class="num">13.49:1</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p>Every pairing clears WCAG AA's 4.5:1 threshold for normal text by a comfortable margin — the closest, link color in light mode, still sits at 5.37:1.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No duplicate element IDs, no broken same-page anchors, on either page</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Parsed both pages and checked every <code>id</code> attribute for uniqueness and every same-page <code>href="#…"</code> link against the actual id set — <code>build-plan.html</code> has 12 ids, <code>agentic-plan.html</code> has 13 (up from 12 after this session's new section), zero duplicates, zero dangling links on either page, including the newly added <code>#ongoing-monitoring</code> table-of-contents entry.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Every specific test-count figure quoted across both pages' session notes checked against a real <code>npm test</code> run</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <code>build-plan.html</code>'s session notes cite a running test count after each session (16, 40, 59, 63, 73, 78, then 82), and <code>agentic-plan.html</code>'s refreshed status section now cites "82 tests, zero network calls." Re-ran <code>npm test</code> in <code>claude-architect-lab/</code> directly rather than trusting the numbers already written down — current total is exactly <b>82 passed, 0 failed</b>, matching every figure quoted on both pages.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>agentic-plan.html</code>'s <code>section:last-of-type</code> CSS rule still behaves correctly after appending a new last section</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The stylesheet drops the bottom border specifically from whichever <code>&lt;section&gt;</code> is last, via <code>:last-of-type</code> — a selector that re-targets automatically rather than needing a manual class change. Confirmed the newly appended <code>#ongoing-monitoring</code> section is correctly the one without a bottom border now, and the previously-last <code>#failure-modes</code> section correctly has its border back, with no leftover hardcoded override anywhere in the stylesheet that would have pinned the old section instead.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand if anything regresses, or
+    ask Claude for another review. See <code>13.html</code> for the most recent full sitewide sweep, and
+    <code>CLAUDE.md</code>'s "New pages *and* page updates get a numbered security &amp; quality review" section
+    for the rule this review exists to satisfy.
+  </footer>
+
+</div>
+</body>
+</html>
