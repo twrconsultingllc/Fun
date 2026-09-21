@@ -372,7 +372,7 @@
           <tr><td>4</td><td>The MCP server</td><td><span class="badge done">Done</span></td><td>Optional (one manual check)</td><td>60–90 min</td><td>Session 3</td></tr>
           <tr><td>5</td><td>The hand-rolled agent loop</td><td><span class="badge in-progress">In progress</span></td><td><strong>Yes</strong></td><td>90–120 min</td><td>Session 3</td></tr>
           <tr><td>6</td><td>Structured output &amp; review loop</td><td><span class="badge in-progress">In progress</span></td><td><strong>Yes</strong> (for the manual runs)</td><td>60–90 min</td><td>Session 5</td></tr>
-          <tr><td>7</td><td>Context budget: compaction &amp; caching</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong> (for the real run)</td><td>90 min</td><td>Session 4</td></tr>
+          <tr><td>7</td><td>Context budget: compaction &amp; caching</td><td><span class="badge in-progress">In progress</span></td><td><strong>Yes</strong> (for the real run)</td><td>90 min</td><td>Session 4</td></tr>
           <tr><td>8</td><td>Orchestrator &amp; the stretch tool</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong> (for the manual run)</td><td>90–120 min</td><td>Sessions 3, 6</td></tr>
           <tr><td>9</td><td>Claude Agent SDK version</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong></td><td>90 min</td><td>Session 4</td></tr>
           <tr><td>10</td><td>README, cross-check, cost reality-check</td><td><span class="badge">Not started</span></td><td>No</td><td>60 min</td><td>Everything above</td></tr>
@@ -587,7 +587,7 @@
     <section id="s7">
       <h2><span class="kicker">Session 7</span>Context budget: compaction &amp; caching</h2>
       <div class="session-meta">
-        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
+        <span><strong>Status:</strong> <span class="badge in-progress">In progress</span></span>
         <span><strong>Needs API key:</strong> Yes, for the real measurement run</span>
         <span><strong>Est. time:</strong> 90 min</span>
         <span><strong>Depends on:</strong> Session 4</span>
@@ -610,7 +610,11 @@
       </div>
       <div class="callout notes">
         <strong class="label">Session notes</strong>
-        <p>None yet.</p>
+        <p>Same split as Sessions 5 and 6: steps 1–4 are done; step 5 (the real measurement run, and folding the actual numbers into the README) is still pending an <code>ANTHROPIC_API_KEY</code>.</p>
+        <p><code>context-budget.mjs</code> runs one growing conversation across every state and every client one at a time (10 states + 3 clients = 13 lookups against the current sample data), tracking <code>response.usage</code> after each call. A compaction trigger fires the moment a call's <code>input_tokens</code> crosses <code>DEFAULT_COMPACTION_THRESHOLD_TOKENS</code> (6,000 — deliberately low so it can actually fire against this lab's small dataset, rather than a production-sized number that would never trip at this scale); the triggering call's <code>input_tokens</code> is logged as <code>beforeTokens</code>, the conversation gets collapsed down to a one-line summary plus the most recent exchange, and the very next call's <code>input_tokens</code> is logged as <code>afterTokens</code> — a real measured drop, not an estimate, once step 5 runs for real.</p>
+        <p>The static portion — system prompt plus the full state-requirements dataset — sits behind one <code>cache_control: { type: "ephemeral" }</code> breakpoint, per plan.html section 07. <code>summarizeCacheUsage()</code> separates the first call's <code>cache_creation_input_tokens</code> (the write) from every later call's <code>cache_read_input_tokens</code> (the reads) — the before/after pair plan.html section 10's caching discussion describes, made concrete instead of asserted.</p>
+        <p><code>estimateCost()</code> hardcodes plan.html section 10's published per-token prices (Haiku 4.5 / Sonnet 5 / Opus 5, plus the 1.25x cache-write and 0.1x cache-read multipliers) keyed by the actual Anthropic SDK model ids, and throws rather than guessing if asked to price a model with no entry — this is the tool step 5 will use to convert the real measured token counts into real dollar figures for the README, rather than leaving section 10's numbers as estimates forever.</p>
+        <p><code>tests/context-budget.test.mjs</code> stubs <code>client.messages.create</code> to drive the compaction-trigger and cache-accounting logic through known token sequences — including the edge case of compaction triggering on the very last lookup (logged with a <code>null afterTokens</code> since there's no next call to measure). 73/73 tests pass across the whole suite, zero network calls.</p>
       </div>
     </section>
 
