@@ -129,32 +129,49 @@ easy to get backwards by intuition (as happened once already) — simulate the
 actual `recycle()` math in Node against a few margins before changing one,
 rather than reasoning about it in the abstract.
 
-## New pages get a numbered security & quality review
+## New pages *and* page updates get a numbered security & quality review
 
 When a new page (or a small batch of related pages) is added to this repo,
-review it for security and code-quality issues before calling the work done,
-fix what can be fixed, and publish the result as the next sequentially
-numbered report in `tests/secrpts/` (`01.html` is the original site-wide
-scan; `02.html` reviewed the four pattern-lab pages — follow that file's
-format: CSP/referrer/description meta tags on the report itself, a progress
-bar, Security and Code quality sections, each finding tagged Fixed/Open/
-Partial). Verify claims instead of assuming them — e.g. compute WCAG
-contrast ratios rather than eyeballing colors, grep for the bug pattern
-instead of asserting it isn't there. Note honestly what's left open and why
-(architecturally blocked, e.g. no GitHub Pages equivalent for a header-only
-policy, vs. simply not fixed yet) — a badge that says "Fixed" without a real
-fix behind it is worse than an honest "Open."
+**or an existing page gets a substantive update** — a new section, new
+markup, a new link, a new inline style or script, a structural change to
+what's already there — review it for security and code-quality issues
+before calling the work done, fix what can be fixed, and publish the result
+as the next sequentially numbered report in `tests/secrpts/` (`01.html` is
+the original site-wide scan; `02.html` reviewed the four pattern-lab pages
+— follow that file's format: CSP/referrer/description meta tags on the
+report itself, a progress bar, Security and Code quality sections, each
+finding tagged Fixed/Open/Partial). Verify claims instead of assuming them
+— e.g. compute WCAG contrast ratios rather than eyeballing colors, grep for
+the bug pattern instead of asserting it isn't there. Note honestly what's
+left open and why (architecturally blocked, e.g. no GitHub Pages equivalent
+for a header-only policy, vs. simply not fixed yet) — a badge that says
+"Fixed" without a real fix behind it is worse than an honest "Open."
 
-This applies to any new page, including reference/study material under
-`study/` that isn't part of the toy gallery — being off `index.html` doesn't
-exempt a page from this, since it's still served from GitHub Pages and still
-worth getting right.
+**Updates count, not just brand-new files.** This rule was originally
+written and read as "new pages only," and in practice that let real updates
+slip through with no review ever triggered — two `study/` pages
+(`build-plan.html` and `agentic-plan.html`) each got substantive content
+added across several separate edits (new sessions, new callouts, a whole
+new section) with nothing in `tests/secrpts/` ever reviewing any of it. The
+fix is this paragraph: finishing a page edit is exactly like finishing a
+new page, for purposes of this rule, whenever the edit touched markup, a
+link, or a style/script, not just prose wording. A pure copy fix (a typo, a
+rephrased sentence, a number correction) with no markup/link/script change
+doesn't need its own review — but don't use "it's just an update" as a
+reason to skip one when the edit did add real content or structure, and
+don't wait for a user to ask before doing it, same as the new-page case.
+
+This applies to any page or update, including reference/study material
+under `study/` that isn't part of the toy gallery — being off `index.html`
+doesn't exempt a page from this, since it's still served from GitHub Pages
+and still worth getting right.
 
 ## "Full Monty review" — the trigger phrase for a sitewide re-audit
 
-The rule above ("new pages get a numbered review") only ever looks at what
-just changed. When the user says **"let's do a full monty review"** (or
-"full monty" on its own), that means something different and broader:
+The rule above ("new pages *and* page updates get a numbered review") only
+ever looks at what just changed. When the user says **"let's do a full
+monty review"** (or "full monty" on its own), that means something
+different and broader:
 review the *entire* repo again from scratch, not just recent changes —
 every page, every deployed file, every subproject — and publish the result
 as the next sequentially numbered `tests/secrpts/NN.html` report, in the
@@ -223,10 +240,12 @@ numbered review of its own. Every `tests/secrpts/NN.html` must:
   color; layout-only inline styles (`grid-column`, `margin-top`) are fine.
 
 A report that follows this template has no path to a new vulnerability by
-construction, so it's exempt from the "new pages get a numbered review" rule
-above — publishing `06.html` doesn't require a `07.html` to review it. What
-still needs doing per report is the actual work the report exists to do
-(verifying the claims it makes about the pages it's reviewing), not a
+construction, so it's exempt from the "new pages *and* page updates get a
+numbered review" rule above — publishing `06.html`, or later editing it
+(e.g. flipping a finding from Open to Fixed), doesn't require a `07.html`
+to review it. What still needs doing per report is the actual work the
+report exists to do (verifying the claims it makes about the pages it's
+reviewing), not a
 security check of the report file itself.
 
 ## No browser or WebGL rendering in this environment
