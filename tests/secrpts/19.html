@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #19 — droid/build-plan.html Session 1 Claude Code + GitHub setup steps</title>
+<meta name="description" content="Security and code-quality review of droid/build-plan.html's Session 1, which gained two new You/mixed steps between installing Termux and the existing Claude-run scaffolding steps: installing and logging into the Claude Code CLI itself inside Termux, and connecting that Termux session to GitHub and a new standalone repo.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #19 — <code>droid/build-plan.html</code> Session 1 Claude Code + GitHub setup steps</h1>
+    <p class="sub">Session 1 previously jumped straight from "install the Termux and Termux:API apps" to a Claude-tagged <code>pkg install openjdk-17 …</code> step, with no step ever explaining how a Claude Code session gets onto the tablet in the first place, or how the new standalone Sentinel repo gets connected to GitHub. Two new list items were inserted to close that gap: installing and logging into the Claude Code CLI itself inside Termux (a You-only step, since nothing exists yet for Claude to run it), and connecting that Termux session to GitHub via <code>gh</code> plus creating/pushing the new repo (a mixed Claude/You step). The existing scaffolding step was given one added sentence cross-referencing the new GitHub step. No CSS or head changes were needed — both new steps reuse the existing <code>.badge.you</code>/<code>.badge.claude</code>/<code>.who</code>/<code>ol.substeps</code> styling from reviews #17 and #18.</p>
+    <div class="meta">Review performed 2026-09-21 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>droid/build-plan.html</code>, the two new Session 1 steps and the one added cross-reference sentence in the scaffolding step · follows: <a href="18.html" style="color: var(--accent);">18.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">0 actionable findings. 6 items verified clean.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No new external links, scripts, or inline handlers</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The new text names several external services by plain hostname or CLI-tool name only — <code>platform.claude.com</code>, <code>github.com</code> (implicitly, via <code>gh</code>), <code>code.claude.com/docs</code> (implicitly, via the "Claude Code's own docs" reference) — but none of them is a real <code>&lt;a href&gt;</code>, matching this page's existing zero-external-links convention. Grepped the whole file for <code>href="http</code>, <code>src="http</code>, <code>&lt;script</code>, and the <code>on[a-z]+="</code> inline-handler shape: only the four expected head <code>&lt;meta&gt;</code> lines matched (referrer, CSP, viewport, description), zero real hits, unchanged from review #18.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No real credentials, emails, or keys were embedded as examples</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The new steps discuss an <code>ANTHROPIC_API_KEY</code> environment variable and <code>git config --global user.name/user.email</code>, both spots where it would be easy to paste in a real-looking example value out of habit. Both are written as literal placeholders (<code>"…"</code>) instead — no fabricated key, no example email address (real or invented) appears anywhere in the new text. This matters beyond generic hygiene: this repo's own Full Monty review already treats "the user's real email never appears anywhere in the repo" as a standing check, and this edit doesn't introduce a first instance of one.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Head block and CSP untouched</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        This edit only added two new <code>&lt;li&gt;</code> elements and one sentence inside an existing one — the <code>&lt;head&gt;</code> block (charset, viewport, referrer, CSP, description) is byte-identical to what review #18 already checked.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Document structure stays well-formed through the new nesting</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Checked tag balance across the whole file after the edit, not just a visual skim of the new block: <code>&lt;li&gt;</code> 73/73, <code>&lt;ol&gt;</code> 11/11, <code>&lt;ul&gt;</code> 3/3 (the new "Your Claude.ai account" / "An Anthropic Console API key instead" list is the third <code>&lt;ul&gt;</code> on the page, alongside the two review #18 already counted), <code>&lt;strong&gt;</code> 66/66, <code>&lt;em&gt;</code> 6/6, <code>&lt;code&gt;</code> 96/96, <code>&lt;div&gt;</code> and <code>&lt;span&gt;</code> both even — every tag opened is closed.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Shell snippet's ampersands and angle brackets are correctly entity-escaped</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The alias one-liner (<code>echo "alias claude='…'" &gt;&gt; ~/.bashrc &amp;&amp; source ~/.bashrc</code>) is the first shell snippet on this page to contain <code>&gt;&gt;</code> and <code>&amp;&amp;</code> as literal text rather than markup. Both are written as <code>&amp;gt;&amp;gt;</code> and <code>&amp;amp;&amp;amp;</code> in the source, not raw characters, so the browser renders them as the literal shell text intended rather than risking a stray token being misparsed as markup. Grepped the new block specifically for any un-escaped <code>&amp;</code> not already followed by <code>lt;</code>/<code>gt;</code>/<code>amp;</code>/<code>#</code> — none found.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Who-tagging is internally consistent with the page's own key</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The "install Claude Code CLI, then log in" step is tagged <code>You</code> only, with prose explicitly stating why: nothing exists yet for a Claude Code session to run it with, the same bootstrapping logic the page's "Key" callout already establishes for Session 1's first step. The "connect to GitHub" step is tagged both <code>Claude</code> and <code>You</code>, and the individual sub-steps back that up rather than contradicting it: <code>pkg install gh</code> is attributed to Claude (a shell now exists to run it in, per the step immediately before), <code>gh auth login</code>'s browser hand-off and the git-identity choice are attributed to the human. This matches the page's established convention (from reviews #16–#18) that a combined badge means the step genuinely splits, not that it's tagged both out of laziness.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The unsupported-platform caveat is stated as a caveat, not glossed over</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The new Claude Code install step explicitly says Android/Termux isn't on Claude Code's own documented supported-platform list (macOS, Windows, Ubuntu, Debian, Alpine) and that this is a community-tested workaround — matching this repo's own "note honestly what's left open and why" principle rather than presenting an unofficial path as if it were a first-class supported one. The forward cross-reference added to the scaffolding step ("Connect it to GitHub using the <code>gh</code> setup from the step above") was checked for correct direction: the GitHub-connect step is inserted earlier in the same ordered list, so "the step above" is accurate, not a dangling forward reference.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand if anything regresses, or
+    ask Claude for another review. See <code>18.html</code> for the review that most recently touched this
+    same session's steps, and <code>CLAUDE.md</code>'s "New pages *and* page updates get a numbered security
+    &amp; quality review" section for the rule this review exists to satisfy.
+  </footer>
+
+</div>
+</body>
+</html>

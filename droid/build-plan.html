@@ -511,6 +511,66 @@
               APK via <code>termux-open</code>).</li>
           </ol>
         </li>
+        <li><span class="who"><span class="badge you">You</span></span><strong>Install
+          the Claude Code CLI itself inside Termux, then log in.</strong>
+          Nothing exists yet for a Claude Code session to run the
+          remaining steps below with — the same bootstrapping reason step
+          1 above was entirely yours.
+          <ol class="substeps" type="a">
+            <li><code>pkg install nodejs git -y</code>, then
+              <code>npm install -g @anthropic-ai/claude-code</code>.</li>
+            <li>If the shell doesn't find <code>claude</code> afterward,
+              alias it straight at the installed script and reload the
+              shell: <code>echo "alias claude='node
+              /data/data/com.termux/files/usr/lib/node_modules/@anthropic-ai/claude-code/cli.js'"
+              &gt;&gt; ~/.bashrc &amp;&amp; source ~/.bashrc</code>. Confirm
+              with <code>claude --version</code>.</li>
+            <li>Run <code>claude</code> and log in — pick one:
+              <ul>
+                <li><strong>Your Claude.ai account (Pro/Max).</strong>
+                  Termux has no default browser to catch the OAuth
+                  redirect, so when it shows a login URL, copy it, open
+                  that URL in a browser on any device, sign in, and paste
+                  the code back into the Termux prompt.</li>
+                <li><strong>An Anthropic Console API key instead.</strong>
+                  Generate one at <code>platform.claude.com</code> first,
+                  then <code>export ANTHROPIC_API_KEY="…"</code> before
+                  running <code>claude</code> — no browser step, but bills
+                  per-token from Console credits rather than a Pro/Max
+                  subscription.</li>
+              </ul>
+              <em>Not officially supported:</em> Claude Code's own docs
+              list only macOS, Windows, Ubuntu, Debian, and Alpine —
+              Android/Termux works via a community-tested workaround, not
+              a documented platform, so treat an odd failure here as that
+              first, not a bug in this plan.</li>
+          </ol>
+        </li>
+        <li><span class="who"><span class="badge claude">Claude</span><span class="badge you">You</span></span><strong>Connect
+          this Termux session to GitHub and a new repo for the project.</strong>
+          <ol class="substeps" type="a">
+            <li><code>pkg install gh -y</code> — Claude, now that the step
+              above gives it a shell to run in.</li>
+            <li><code>gh auth login</code> → <code>GitHub.com</code> →
+              <code>HTTPS</code> → <code>Login with a web browser</code> —
+              the same copy-the-URL-paste-the-code flow as logging into
+              Claude Code itself (you).</li>
+            <li><code>git config --global user.name "…"</code> and
+              <code>git config --global user.email "…"</code> — your call
+              whether to use a real address or a GitHub-provided
+              <code>@users.noreply.github.com</code> one, since this is
+              its own repo with no <code>CLAUDE.md</code> of its own yet
+              (a decision only you can make; Claude can type it once
+              you've decided).</li>
+            <li>Once the project exists (the scaffolding step below),
+              create and push the repo in one shot from inside its
+              directory: <code>gh repo create sentinel --private
+              --source=. --remote=origin --push</code> — or create an
+              empty repo on github.com first and <code>git remote add
+              origin …</code> / <code>git push -u origin main</code> by
+              hand instead.</li>
+          </ol>
+        </li>
         <li><span class="who"><span class="badge claude">Claude</span></span><code>pkg install openjdk-17 wget unzip git aapt2 termux-api android-tools</code>,
           run from inside the Termux shell once it exists.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span>Set
@@ -529,7 +589,9 @@
           a minimal Kotlin/Gradle/Compose project — package root
           <code>com.twrconsulting.sentinel</code> (placeholder), just
           <code>MainActivity</code> showing "Hello Compose," nothing else —
-          in its own standalone git repo, not inside <code>Fun</code>.</li>
+          in its own standalone git repo, not inside <code>Fun</code>.
+          Connect it to GitHub using the <code>gh</code> setup from the
+          step above once the repo directory exists.</li>
         <li><span class="who"><span class="badge you">You</span></span>Confirm
           the test tablet is actually on Android 12+ before going further
           (Settings → About tablet → Android version);
