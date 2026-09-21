@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #16 — droid/build-plan.html (new page) &amp; droid/plan.html update</title>
+<meta name="description" content="Security and code-quality review of droid/build-plan.html, a new build-plan page for the Sentinel Android app, and the small cross-link callout it required adding to droid/plan.html's build-order section.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  .page-table-wrap { overflow-x: auto; margin: 12px 0; }
+  table.page-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .page-table th, .page-table td {
+    border: 1px solid var(--panel-border);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .page-table th {
+    background: var(--code-bg);
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .page-table td.num {
+    text-align: center;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #16 — <code>droid/build-plan.html</code> (new page) &amp; <code>droid/plan.html</code> update</h1>
+    <p class="sub">A new build-plan page for the Sentinel Android app (planned but not yet built), turning <code>droid/plan.html</code>'s section 10 "Build order" into seven self-contained work sessions with the same status-tracker convention <code>study/build-plan.html</code> already uses. <code>droid/plan.html</code> itself only changed to add one cross-link callout pointing at the new page — a small, contained update, but it does touch markup, so it's in scope here too per the "updates count, not just brand-new files" rule.</p>
+    <div class="meta">Review performed 2026-09-21 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>droid/build-plan.html</code> (new) and the one added callout in <code>droid/plan.html</code> · follows: <a href="15.html" style="color: var(--accent);">15.html</a>, which reviewed <code>droid/plan.html</code> when it was first added</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">0 actionable findings. 8 items verified clean.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Head block carries the exact required charset/viewport/referrer/CSP, plus a page-specific description</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <code>droid/build-plan.html</code> has <code>charset="utf-8"</code>, a <code>viewport</code> meta, <code>referrer: strict-origin-when-cross-origin</code>, and the same site-standard CSP as every other reference page in this repo (<code>default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'</code>). Its <code>&lt;meta name="description"&gt;</code> describes this page's own content (the seven-session build plan), not a copy of <code>plan.html</code>'s description. <code>droid/plan.html</code>'s head block was untouched by its one-callout edit.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No <code>&lt;script&gt;</code> tags and no inline event handlers on either file</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped both files for <code>&lt;script</code> and for the <code>on[a-z]+="</code> inline-handler shape — zero real matches on either. The handful of apparent hits on the loose handler pattern were false positives from substrings inside ordinary words (<code>content=</code>, <code>connect-src</code>), the same false-positive shape review #14 already documented for this pattern. Both pages stay pure static HTML/CSS.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No external resources, no off-origin links, no <code>target</code> attributes</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped both files for <code>href="http</code>, <code>src="http</code>, and any <code>target=</code> attribute — zero matches. Every link on the new page (to <code>plan.html</code> and its anchors, and one relative link to <code>../study/build-plan.html</code>) stays same-origin and same-tab.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Every cross-page anchor and the one relative cross-directory link resolve to a real target</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <code>build-plan.html</code> links to eight distinct anchors in <code>plan.html</code> (<code>#order</code>, <code>#verify</code>, <code>#termux</code>, <code>#platform</code>, <code>#data</code>, <code>#detection</code>, <code>#background</code>, <code>#ui</code>) across 17 link instances — parsed <code>plan.html</code>'s actual <code>id</code> set and confirmed all eight exist (it has 11 section ids total). The one link outside <code>droid/</code>, <code>../study/build-plan.html</code>, was confirmed to resolve to a real file relative to <code>droid/</code>. <code>plan.html</code>'s new callout links back to <code>build-plan.html</code> in the same directory, which now exists.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Page stays off <code>index.html</code>, consistent with its own "not linked" eyebrow label</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Checked <code>index.html</code> directly — no reference to <code>droid/</code> anywhere in it, before or after this change. Same convention review #15 already confirmed for <code>plan.html</code>, and the same reasoning applies here: a planning/tracking page for an app that doesn't exist yet has no business on the toy gallery.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No duplicate element IDs on either page, and every same-page anchor resolves</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Parsed both files: <code>plan.html</code> has 11 ids (unchanged by its edit — the new callout added no id), <code>build-plan.html</code> has 9. Zero duplicates on either, and every same-page <code>href="#…"</code> table-of-contents link on <code>build-plan.html</code> resolves to a real section id.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Every session's plan.html cross-reference actually matches what that session does</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Read each of the seven sessions against the specific <code>plan.html</code> section it cites, rather than assuming the numbering lines up: Session 1 → section 08 (Termux toolchain), Session 2 → sections 03–04 (data model, detection algorithm), Session 3 → section 03's MAC-rotation subsection, Session 4 → sections 05 and 07 (background scanning, platform mechanics), Session 5 → sections 07 and 06 (WiFi throttling note, NFC row), Session 6 → section 06's full screen table, Session 7 → section 11 (verification plan). This also matches plan.html's own section 10 "Build order" list step-for-step, in the same sequence, rather than reshuffling it.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Status badges are honest: everything reads "Not started," matching the fact that no code exists yet</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Unlike the Claude Architect Lab build plan (which was written retroactively, after several sessions already had real committed work), this page and the app it tracks are both starting from zero — <code>droid/</code> contains only the two plan pages, no Kotlin project. Every session's badge, in both the session-index table and its own meta row, reads <code>Not started</code>, and every "Session notes" callout reads exactly "None yet." — no premature "Done" or "In progress" claim anywhere on the page.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">WCAG contrast computed for every text/background pairing used on the page, including the default "Not started" badge</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p><code>build-plan.html</code> reuses the same design-token palette already verified for <code>study/build-plan.html</code> (review #14) and <code>droid/plan.html</code> (review #15), so most pairings carry over unchanged. This page adds one pairing neither prior review computed: the default (grey, "Not started") badge — <code>--text-dim</code> on the opaque <code>--panel-border</code> background, used seven times in the session-index table alone. Computed it directly rather than assuming it inherited a passing grade from the colored badge variants:</p>
+        <div class="page-table-wrap">
+        <table class="page-table">
+          <thead><tr><th>Pairing</th><th>Dark mode</th><th>Light mode</th></tr></thead>
+          <tbody>
+            <tr><td>Default <code>.badge</code> ("Not started") text on its own background</td><td class="num">5.94:1</td><td class="num">4.87:1</td></tr>
+            <tr><td><code>badge.done</code> / <code>badge.in-progress</code> (carried over from review #14, unchanged tokens)</td><td class="num">6.40:1 / 6.48:1</td><td class="num">5.21:1 / 5.22:1</td></tr>
+            <tr><td>Body text, dimmed text, link/accent, callout text (carried over from reviews #14–15, unchanged tokens)</td><td class="num">≥7.4:1</td><td class="num">≥5.4:1</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p>Every pairing clears WCAG AA's 4.5:1 threshold for normal text — the badge text is 0.7rem bold (about 11px), which doesn't qualify for the 3:1 large-text exception, so the stricter 4.5:1 bar is the right one to check it against. The closest pairing, the default badge in light mode, still clears it at 4.87:1.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title"><code>plan.html</code>'s edit is additive only — no existing content, id, or link was altered</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The only change to <code>droid/plan.html</code> is one new <code>&lt;div class="callout decision"&gt;</code> appended inside the existing <code>#order</code> section, after its existing build-order list — no other line in the file was touched. Its "Spreading this across sessions" wording and cross-link mirror the equivalent callout at the bottom of <code>study/plan.html</code>'s own "Next-steps checklist" section exactly, for consistency between the two design-plan pages in this repo.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand if anything regresses, or
+    ask Claude for another review. See <code>15.html</code> for the review that covered <code>droid/plan.html</code>
+    when it was first added, and <code>CLAUDE.md</code>'s "New pages *and* page updates get a numbered security
+    &amp; quality review" section for the rule this review exists to satisfy.
+  </footer>
+
+</div>
+</body>
+</html>

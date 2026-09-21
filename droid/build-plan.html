@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
+<title>Sentinel — Build Plan</title>
+<meta name="description" content="Step-by-step build plan for the Sentinel tracker-detector Android app, turning plan.html's design into seven self-contained sessions — from the Termux toolchain scaffold through on-device validation on the Galaxy Tab S11 Ultra and a phone with NFC." />
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --panel-border: #262c38;
+    --text: #e4e7ee;
+    --text-dim: #a2a9b8;
+    --accent: #f2a65a;
+    --accent-2: #7fb9e0;
+    --good: #7bc696;
+    --bad: #e08585;
+    --code-bg: #0b0d12;
+    --table-stripe: #1b202a;
+    --link: #f2a65a;
+    --max-width: 960px;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f7f7f5;
+      --panel: #ffffff;
+      --panel-border: #e3e1da;
+      --text: #24262b;
+      --text-dim: #5b5f6b;
+      --accent: #9b531a;
+      --accent-2: #1b6a94;
+      --good: #1f7445;
+      --bad: #a5322a;
+      --code-bg: #f1efe8;
+      --table-stripe: #f1f0eb;
+      --link: #9b531a;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    line-height: 1.65;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 220px minmax(0, var(--max-width));
+    gap: 2.5rem;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 6rem;
+  }
+
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: 1fr; }
+    nav.toc { position: static !important; order: 2; }
+  }
+
+  header.masthead {
+    grid-column: 1 / -1;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--panel-border);
+    margin-bottom: 0.5rem;
+  }
+
+  header.masthead .eyebrow {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  header.masthead h1 {
+    font-size: 2.1rem;
+    margin: 0.35rem 0 0.5rem;
+    line-height: 1.2;
+  }
+
+  header.masthead p.tagline {
+    color: var(--text-dim);
+    font-size: 1.05rem;
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  nav.toc {
+    position: sticky;
+    top: 2rem;
+    align-self: start;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.86rem;
+  }
+
+  nav.toc h2 {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin: 0 0 0.6rem;
+  }
+
+  nav.toc ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: toc;
+  }
+
+  nav.toc li {
+    counter-increment: toc;
+    margin-bottom: 0.5rem;
+  }
+
+  nav.toc a {
+    color: var(--text-dim);
+    text-decoration: none;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  nav.toc a::before {
+    content: counter(toc);
+    color: var(--accent);
+    font-weight: 700;
+    min-width: 1.2em;
+  }
+
+  nav.toc a:hover { color: var(--text); }
+
+  main { min-width: 0; }
+
+  section {
+    margin-bottom: 3rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  section:last-of-type { border-bottom: none; }
+
+  h2 {
+    font-size: 1.5rem;
+    margin: 0 0 0.3rem;
+    scroll-margin-top: 1.5rem;
+  }
+
+  h2 .kicker {
+    display: block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent-2);
+    margin-bottom: 0.4rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    margin: 1.6rem 0 0.6rem;
+    color: var(--text);
+  }
+
+  p { margin: 0.8rem 0; }
+
+  a { color: var(--link); }
+
+  code {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    background: var(--code-bg);
+    padding: 0.12em 0.4em;
+    border-radius: 4px;
+    font-size: 0.88em;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.2rem 0;
+    font-size: 0.92rem;
+  }
+
+  caption {
+    text-align: left;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-bottom: 0.4rem;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid var(--panel-border);
+    vertical-align: top;
+  }
+
+  th {
+    background: var(--panel);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+  }
+
+  tbody tr:nth-child(even) { background: var(--table-stripe); }
+
+  ul, ol { padding-left: 1.4rem; }
+  li { margin: 0.35rem 0; }
+
+  .callout {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-left: 4px solid var(--accent-2);
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    margin: 1.2rem 0;
+    font-size: 0.94rem;
+  }
+
+  .callout.decision { border-left-color: var(--good); }
+  .callout.warning {
+    border-left-color: var(--accent);
+    background: rgba(242, 166, 90, 0.08);
+    font-size: 0.98rem;
+  }
+  .callout.blocked {
+    border-left-color: var(--bad);
+    background: rgba(224, 133, 133, 0.08);
+  }
+  .callout strong.label {
+    display: block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 0.35rem;
+  }
+
+  .session-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1.2rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    margin: 0.4rem 0 1.2rem;
+  }
+
+  .session-meta strong { color: var(--text); }
+
+  .badge {
+    display: inline-block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.15em 0.55em;
+    border-radius: 999px;
+    background: var(--panel-border);
+    color: var(--text-dim);
+  }
+
+  .badge.done {
+    background: rgba(123, 198, 150, 0.15);
+    color: var(--good);
+  }
+
+  .badge.in-progress {
+    background: rgba(242, 166, 90, 0.15);
+    color: var(--accent);
+  }
+
+  .callout.notes {
+    border-left-color: var(--text-dim);
+  }
+
+  .callout.notes p:first-child { margin-top: 0; }
+  .callout.notes p:last-child { margin-bottom: 0; }
+
+  footer.page-footer {
+    grid-column: 1 / -1;
+    color: var(--text-dim);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.8rem;
+    text-align: center;
+    padding-top: 1rem;
+  }
+
+  @media print {
+    nav.toc { display: none; }
+    .layout { grid-template-columns: 1fr; }
+    section { break-inside: avoid; border-bottom: none; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <header class="masthead">
+    <span class="eyebrow">Design plan · not a repo toy · not linked from index.html</span>
+    <h1>Sentinel — Build Plan</h1>
+    <p class="tagline">
+      The design in <a href="plan.html">plan.html</a> turned into seven
+      self-contained work sessions, following that page's own
+      <a href="plan.html#order">section 10 build order</a> exactly. The
+      actual Kotlin/Gradle project lives in its own standalone repo, built
+      and tested via Termux directly on the Galaxy Tab S11 Ultra — this page
+      just tracks that separate project's progress from inside
+      <code>Fun/droid/</code>, the way <a href="../study/build-plan.html">the
+      Claude Architect Lab build plan</a> tracks that project.
+    </p>
+  </header>
+
+  <div class="callout warning" style="grid-column: 1 / -1;">
+    <strong class="label">Status: nothing started yet</strong>
+    As of this writing no Kotlin/Gradle project exists — Session 1 below
+    hasn't been run. Every session's <span class="badge">Not started</span>
+    badge reflects that; update them here as the standalone repo actually
+    gets built.
+  </div>
+
+  <nav class="toc" aria-label="Table of contents">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#how">How to use this plan</a></li>
+      <li><a href="#index">Session index</a></li>
+      <li><a href="#s1">Session 1 — Termux toolchain &amp; Hello Compose</a></li>
+      <li><a href="#s2">Session 2 — Data model &amp; correlation engine</a></li>
+      <li><a href="#s3">Session 3 — BLE parsing &amp; MAC-rotation linking</a></li>
+      <li><a href="#s4">Session 4 — Foreground scanning service &amp; permissions</a></li>
+      <li><a href="#s5">Session 5 — WiFi polish &amp; the NFC screen</a></li>
+      <li><a href="#s6">Session 6 — Compose UI wired to live data</a></li>
+      <li><a href="#s7">Session 7 — On-device validation</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section id="how">
+      <h2><span class="kicker">Before you start</span>How to use this plan</h2>
+      <p>
+        Unlike a pure-software plan, most of these sessions need real
+        hardware in hand — the Galaxy Tab S11 Ultra for Sessions 1, 2, 4, 5,
+        6, and 7, plus a phone with NFC hardware for the NFC half of
+        Sessions 5 and 7. There's no CLI-sandbox or emulator fallback for
+        the on-device sessions: this environment has no Android SDK, no
+        emulator, and no ADB link (the same limit <a href="plan.html#verify">plan.html
+        section 11</a> already states), so those steps genuinely have to
+        happen on the tablet itself, via Termux.
+      </p>
+      <ul>
+        <li><strong>Start each new session by reading this plan and the "Done when" line of whatever session you finished last</strong> — a fresh Claude Code session run from Termux has no memory of prior sessions, so re-orienting from this document is faster than re-deriving context from code.</li>
+        <li><strong>Don't open a session's next steps as extra credit.</strong> Each session ends at a real boundary — Session 1 stops at a launching "Hello Compose" APK, not a taste of Room; Session 4 stops at a running foreground service, not the UI. Resist folding the next session in just because time is left.</li>
+        <li><strong>Sessions 2 and 3 need no device at all</strong> — they're pure JVM logic (the correlation engine, the clusterer, the BLE payload parser) verified with <code>./gradlew test</code>, the same "no live dependency" split <a href="../study/build-plan.html">the Claude Architect Lab plan</a> uses for its own no-API-key sessions. Everything from Session 4 onward needs the tablet.</li>
+        <li><strong>Termux/SDK package versions drift.</strong> Re-check current <code>aapt2</code>/NDK/cmdline-tools behavior against <a href="plan.html#termux">plan.html section 08</a> before assuming a fix documented there still applies exactly as written — that section already required one real workaround (the <code>aapt2FromMavenOverride</code> escape hatch) that wouldn't have been obvious from a fresh Android Studio setup.</li>
+        <li>Every session below cross-references the exact section of <a href="plan.html">plan.html</a> it implements — this page sequences the work, it doesn't redesign it. If something here seems to contradict that page, plan.html is the source of truth; treat the mismatch as a bug in this page.</li>
+        <li><strong>This page doubles as the tracker.</strong> Each session has a <code>Status</code> line (<span class="badge">Not started</span>, <span class="badge in-progress">In progress</span>, or <span class="badge done">Done</span>) in its meta row, and a <strong>Session notes</strong> callout underneath its "Done when" line. When a session is finished, flip its badge to <span class="badge done">Done</span> in both places (the session's own meta row and the session-index table) and log anything worth remembering — a Termux gotcha beyond what plan.html already documents, a real device quirk, a divergence from plan.html, a dead end. Leave a session's notes as "None yet." if nothing came up.</li>
+      </ul>
+    </section>
+
+    <section id="index">
+      <h2><span class="kicker">The whole plan, at a glance</span>Session index</h2>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Session</th><th>Status</th><th>Needs hardware</th><th>Est. time</th><th>Depends on</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Termux toolchain &amp; Hello Compose</td><td><span class="badge">Not started</span></td><td>Tablet</td><td>60–90 min</td><td>—</td></tr>
+          <tr><td>2</td><td>Data model &amp; correlation engine</td><td><span class="badge">Not started</span></td><td>No (pure JVM)</td><td>90–120 min</td><td>Session 1</td></tr>
+          <tr><td>3</td><td>BLE parsing &amp; MAC-rotation linking</td><td><span class="badge">Not started</span></td><td>No (pure JVM)</td><td>60–90 min</td><td>Session 2</td></tr>
+          <tr><td>4</td><td>Foreground scanning service &amp; permissions</td><td><span class="badge">Not started</span></td><td>Tablet</td><td>90–120 min</td><td>Sessions 2, 3</td></tr>
+          <tr><td>5</td><td>WiFi polish &amp; the NFC screen</td><td><span class="badge">Not started</span></td><td>Tablet + NFC phone</td><td>60–90 min</td><td>Session 4</td></tr>
+          <tr><td>6</td><td>Compose UI wired to live data</td><td><span class="badge">Not started</span></td><td>Tablet</td><td>90 min</td><td>Sessions 4, 5</td></tr>
+          <tr><td>7</td><td>On-device validation</td><td><span class="badge">Not started</span></td><td>Tablet + NFC phone + a BLE tracker</td><td>spans hours, not one sitting</td><td>Everything above</td></tr>
+        </tbody>
+      </table>
+      <p>
+        This sequence is strictly linear, unlike the Claude Architect Lab
+        plan's parallel middle sessions — each session here builds directly
+        on the last, matching <a href="plan.html#order">plan.html section
+        10</a>'s own ordering.
+      </p>
+    </section>
+
+    <section id="s1">
+      <h2><span class="kicker">Session 1</span>Termux toolchain &amp; Hello Compose</h2>
+      <div class="session-meta">
+        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
+        <span><strong>Needs hardware:</strong> Galaxy Tab S11 Ultra</span>
+        <span><strong>Est. time:</strong> 60–90 min</span>
+        <span><strong>Depends on:</strong> nothing</span>
+      </div>
+      <p>
+        Goal: validate the entire build-and-install pipeline with a trivial
+        app before writing any real feature code, per
+        <a href="plan.html#order">plan.html section 10</a>'s own first step.
+      </p>
+      <ol>
+        <li>Install Termux from F-Droid or GitHub releases — not the
+          abandoned Play Store build — plus the Termux:API companion app.</li>
+        <li><code>pkg install openjdk-17 wget unzip git aapt2 termux-api android-tools</code>.</li>
+        <li>Set up the Android cmdline-tools under <code>~/android-sdk</code>,
+          export <code>ANDROID_HOME</code>/<code>ANDROID_SDK_ROOT</code> +
+          PATH, then run <code>sdkmanager</code> for <code>platform-tools</code>,
+          a current <code>platforms;android-XX</code>, and matching
+          <code>build-tools</code>.</li>
+        <li>Apply both <code>gradle.properties</code> fixes from
+          <a href="plan.html#termux">plan.html section 08</a> up front:
+          <code>android.aapt2FromMavenOverride</code> pointing at the
+          Termux-native <code>aapt2</code>, and
+          <code>org.gradle.vfs.watch=false</code>.</li>
+        <li>Scaffold a minimal Kotlin/Gradle/Compose project — package root
+          <code>com.twrconsulting.sentinel</code> (placeholder), just
+          <code>MainActivity</code> showing "Hello Compose," nothing else —
+          in its own standalone git repo, not inside <code>Fun</code>.</li>
+        <li>Confirm the test tablet is actually on Android 12+ before going
+          further; <a href="plan.html#platform">plan.html section 07</a>'s
+          <code>minSdk 31</code> decision depends on it.</li>
+        <li><code>./gradlew assembleDebug</code>, then either
+          <code>termux-open</code> the debug APK (manual tap-through install)
+          or set up wireless ADB per section 08 if faster iteration is worth
+          the one-time pairing step — confirm the app actually launches on
+          the tablet either way.</li>
+      </ol>
+      <div class="callout decision">
+        <strong class="label">Done when</strong>
+        A "Hello Compose" APK builds under Termux and launches on the
+        tablet. This proves the whole toolchain end to end — nothing else
+        gets built until this works.
+      </div>
+      <div class="callout notes">
+        <strong class="label">Session notes</strong>
+        <p>None yet.</p>
+      </div>
+    </section>
+
+    <section id="s2">
+      <h2><span class="kicker">Session 2</span>Data model &amp; correlation engine</h2>
+      <div class="session-meta">
+        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
+        <span><strong>Needs hardware:</strong> No — pure JVM, inside the project scaffolded in Session 1</span>
+        <span><strong>Est. time:</strong> 90–120 min</span>
+        <span><strong>Depends on:</strong> Session 1</span>
+      </div>
+      <p>
+        Goal: the Room schema and the core
+        <code>TrackerCorrelationEngine</code>, verified with synthetic
+        fixtures — no scanning code yet, per
+        <a href="plan.html#order">plan.html section 10</a>'s own ordering
+        ("get this right first").
+      </p>
+      <ol>
+        <li>Add Hilt (DI) and Room with KSP — not <code>kapt</code> — to the
+          project's Gradle config.</li>
+        <li>Write the six Room entities from
+          <a href="plan.html#data">plan.html section 03</a>'s table:
+          <code>DeviceEntity</code>, <code>SightingEntity</code>,
+          <code>KnownTrackerSignatureEntity</code>,
+          <code>IgnoredDeviceEntity</code>, <code>FlagEventEntity</code>,
+          <code>LocationClusterEntity</code>.</li>
+        <li>Seed <code>KnownTrackerSignatureEntity</code> with the
+          documented public formats: Apple Find My (manufacturer ID
+          <code>0x004C</code>), Samsung SmartTag/SmartTag2
+          (<code>0x0075</code>), Tile and Chipolo (service-UUID based).</li>
+        <li>Implement <code>LocationClusterer</code> (incremental centroid
+          clustering, 150m threshold, Haversine distance) and
+          <code>TrackerCorrelationEngine</code> plus <code>FlagScorer</code>
+          per <a href="plan.html#detection">plan.html section 04</a>: the
+          hard gates (≥3 distinct clusters, ≥20 minutes first-to-last span)
+          before any scoring, then the 0–100 suspicion score with its
+          known-signature bonus and weak-identity discount.</li>
+        <li>Set <code>android:allowBackup="false"</code> and exclude the
+          Room database from auto-backup rules now, while the database is
+          first created — this data is a de facto location history and
+          shouldn't have a window where it's backed up by default.</li>
+        <li><code>./gradlew test</code> against synthetic sighting fixtures:
+          at minimum, one stationary device across many sightings in a
+          single cluster that never flags, one tracker-like device seen
+          across 3+ clusters with a plausible time span that does flag, and
+          one case confirming the known-signature match adds its scoring
+          bonus.</li>
+      </ol>
+      <div class="callout decision">
+        <strong class="label">Done when</strong>
+        <code>./gradlew test</code> passes with synthetic fixtures covering
+        at least one true-flag case and one true-negative (stationary
+        device) case — no device or emulator needed for this session.
+      </div>
+      <div class="callout notes">
+        <strong class="label">Session notes</strong>
+        <p>None yet.</p>
+      </div>
+    </section>
+
+    <section id="s3">
+      <h2><span class="kicker">Session 3</span>BLE parsing &amp; MAC-rotation linking</h2>
+      <div class="session-meta">
+        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
+        <span><strong>Needs hardware:</strong> No for this session — a real BLE tracker only matters later, in Session 7</span>
+        <span><strong>Est. time:</strong> 60–90 min</span>
+        <span><strong>Depends on:</strong> Session 2</span>
+      </div>
+      <p>
+        Goal: <code>BleAdvertisementParser</code> and the rotation-tolerant
+        identity-linking heuristic from
+        <a href="plan.html#data">plan.html section 03</a>'s "Why raw MAC
+        address can't be trusted as identity" subsection.
+      </p>
+      <ol>
+        <li>Implement <code>BleAdvertisementParser</code>: recognize each
+          signature family seeded in Session 2 from its manufacturer
+          payload, since that format is far more stable than a rotating
+          address.</li>
+        <li>Implement the linking heuristic: if a same-family device
+          disappears and a new MAC of the same family appears within
+          roughly 15 minutes, at similar RSSI and location, merge the
+          sightings under the same <code>stableDeviceKey</code> — while
+          still keeping the raw per-sighting address, so nothing is lost if
+          the heuristic mis-links two devices.</li>
+        <li>For unrecognized BLE devices, discount MAC continuity heavily
+          past roughly 20–30 minutes, treating it as a weak, short-term-only
+          signal.</li>
+        <li>Explicitly do <em>not</em> attempt to cryptographically defeat
+          address rotation (e.g. Apple's Find My rolling-key derivation) —
+          out of scope, matching plan.html section 03's fourth point.</li>
+        <li>Unit tests: a synthetic MAC-rotation sequence that should link
+          (same family, short gap, similar RSSI/location) and one that
+          shouldn't (too long a gap, or a different family).</li>
+      </ol>
+      <div class="callout decision">
+        <strong class="label">Done when</strong>
+        The parser correctly classifies each seeded signature family from a
+        synthetic payload, and the linking-heuristic tests demonstrate both
+        a correct merge and a correct non-merge.
+      </div>
+      <div class="callout notes">
+        <strong class="label">Session notes</strong>
+        <p>None yet.</p>
+      </div>
+    </section>
+
+    <section id="s4">
+      <h2><span class="kicker">Session 4</span>Foreground scanning service &amp; permissions</h2>
+      <div class="session-meta">
+        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
+        <span><strong>Needs hardware:</strong> Galaxy Tab S11 Ultra — the first real on-device milestone</span>
+        <span><strong>Est. time:</strong> 90–120 min</span>
+        <span><strong>Depends on:</strong> Sessions 2, 3</span>
+      </div>
+      <p>
+        Goal: real BLE and WiFi sightings landing in the database from a
+        running foreground service, per
+        <a href="plan.html#background">plan.html section 05</a> and
+        <a href="plan.html#platform">section 07</a>.
+      </p>
+      <ol>
+        <li>Add the manifest permissions and <code>uses-feature</code>
+          entries exactly as listed in plan.html section 07:
+          <code>BLUETOOTH_SCAN</code> with <code>neverForLocation</code>,
+          <code>BLUETOOTH_CONNECT</code>, fine/coarse location, WiFi state,
+          NFC as an optional feature, the three
+          <code>FOREGROUND_SERVICE*</code> permissions,
+          <code>POST_NOTIFICATIONS</code>, and the battery-optimization
+          request permission.</li>
+        <li>Implement <code>ScanForegroundService</code> (Android 14+ types
+          <code>connectedDevice|location</code>) with duty-cycled BLE bursts
+          (<code>SCAN_MODE_BALANCED</code>, every 2–5 minutes), one WiFi
+          <code>startScan()</code> per cycle, and a passive
+          <code>SCAN_RESULTS_AVAILABLE_ACTION</code> receiver to catch scans
+          the OS triggers on its own.</li>
+        <li>Implement <code>ScanScheduler</code>/<code>ScanWorker</code> as
+          the periodic WorkManager watchdog that restarts the foreground
+          service if Samsung's OEM battery management kills it.</li>
+        <li>Wire <code>DeviceRepository</code>'s Room
+          <code>@Transaction</code> upsert keyed on
+          <code>stableDeviceKey</code>, using Session 2's schema and Session
+          3's parser/linker.</li>
+        <li>Build, install (<code>termux-open</code> or wireless ADB), and
+          confirm on the tablet: permission prompts appear correctly, the
+          foreground-service notification shows, and real BLE/WiFi
+          sightings start populating the database (no UI to view them yet —
+          confirm via a debug log or a direct DB query).</li>
+        <li>Manually apply the Samsung One UI battery exclusion (Device Care
+          → Battery → Background usage limits) — plan.html section 07 and
+          09 both note this can't be done by the app itself.</li>
+      </ol>
+      <div class="callout decision">
+        <strong class="label">Done when</strong>
+        The service runs on the tablet, survives a short screen-off spot
+        check without being killed (the full multi-hour check is Session
+        7), and real sightings are landing in the database.
+      </div>
+      <div class="callout notes">
+        <strong class="label">Session notes</strong>
+        <p>None yet.</p>
+      </div>
+    </section>
+
+    <section id="s5">
+      <h2><span class="kicker">Session 5</span>WiFi polish &amp; the NFC screen</h2>
+      <div class="session-meta">
+        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
+        <span><strong>Needs hardware:</strong> Galaxy Tab S11 Ultra (WiFi) + a phone with NFC hardware (NFC half)</span>
+        <span><strong>Est. time:</strong> 60–90 min</span>
+        <span><strong>Depends on:</strong> Session 4</span>
+      </div>
+      <p>
+        Goal: accept WiFi's real throttling ceiling rather than fighting it,
+        and add the manual NFC tag-inspection screen from
+        <a href="plan.html#ui">plan.html section 06</a>.
+      </p>
+      <ol>
+        <li>Confirm WiFi scanning lands at roughly 30–60 second effective
+          resolution per <a href="plan.html#platform">plan.html section
+          07</a> — this is an OS throttle on stock, unrooted Android, not a
+          bug to chase away.</li>
+        <li>Implement <code>NfcTagReader</code> and the NFC Tag Read screen:
+          UID, tech list, NDEF dump if present; MIFARE Classic reports
+          "detected, sectors not readable without keys" rather than
+          attempting key-cracking.</li>
+        <li>Set the foreground-dispatch <code>PendingIntent</code> to
+          <code>FLAG_MUTABLE</code> — the specific gotcha plan.html section
+          07 calls out; the usual post-Android-12 <code>FLAG_IMMUTABLE</code>
+          default breaks tag delivery here.</li>
+        <li>Confirm the tablet (if it lacks NFC hardware) shows a graceful
+          "no NFC hardware" state instead of crashing.</li>
+        <li>Test real tag reads on the phone that has NFC hardware.</li>
+      </ol>
+      <div class="callout decision">
+        <strong class="label">Done when</strong>
+        The NFC screen reads a real tag's UID/tech list/NDEF on the phone,
+        and shows a graceful unavailable state on the tablet if it lacks
+        the radio.
+      </div>
+      <div class="callout notes">
+        <strong class="label">Session notes</strong>
+        <p>None yet.</p>
+      </div>
+    </section>
+
+    <section id="s6">
+      <h2><span class="kicker">Session 6</span>Compose UI wired to live data</h2>
+      <div class="session-meta">
+        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
+        <span><strong>Needs hardware:</strong> Galaxy Tab S11 Ultra</span>
+        <span><strong>Est. time:</strong> 90 min</span>
+        <span><strong>Depends on:</strong> Sessions 4, 5</span>
+      </div>
+      <p>
+        Goal: all five v1 screens from
+        <a href="plan.html#ui">plan.html section 06</a>, live against the
+        real data flowing in from Sessions 4–5.
+      </p>
+      <ol>
+        <li><strong>Nearby:</strong> live BLE+WiFi list via Room
+          <code>Flow</code>, signal strength, swipe-to-ignore, manual "scan
+          now" button.</li>
+        <li><strong>Flagged:</strong> sorted-by-score list with the
+          human-readable reason string (e.g. "seen at 4 locations up to
+          6.2km apart over 5h; matches Apple Find My format"), dismiss/view
+          actions.</li>
+        <li><strong>Device Detail:</strong> identity, all linked raw
+          addresses, sighting history on a map via OSMDroid (not Google
+          Maps, to avoid the API-key/Play-Services dependency),
+          ignore/nickname actions.</li>
+        <li><strong>Settings:</strong> scan interval, sensitivity
+          (Low/Medium/High mapped to the flag threshold), cluster-distance
+          (advanced), ignore-list management, data retention/export/clear,
+          scanning kill switch.</li>
+        <li><strong>Onboarding wizard:</strong> auto-suggest ignoring the
+          user's own bonded Bluetooth devices and the currently-connected
+          WiFi network, per plan.html section 04's false-positive
+          suppression.</li>
+        <li>The NFC screen from Session 5 becomes reachable from this UI
+          rather than a standalone test harness.</li>
+      </ol>
+      <div class="callout decision">
+        <strong class="label">Done when</strong>
+        All five screens are live against real on-device data, and the
+        ignore/dismiss actions actually suppress future flags rather than
+        just updating the display.
+      </div>
+      <div class="callout notes">
+        <strong class="label">Session notes</strong>
+        <p>None yet.</p>
+      </div>
+    </section>
+
+    <section id="s7">
+      <h2><span class="kicker">Session 7</span>On-device validation</h2>
+      <div class="session-meta">
+        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
+        <span><strong>Needs hardware:</strong> Galaxy Tab S11 Ultra + a phone with NFC + a real or simulated BLE tracker</span>
+        <span><strong>Est. time:</strong> spans at least one multi-hour period, not a single sitting</span>
+        <span><strong>Depends on:</strong> everything above</span>
+      </div>
+      <p>
+        Goal: the real-world checks from
+        <a href="plan.html#verify">plan.html section 11</a> — this is
+        native Android code that can't be honestly signed off from a CLI
+        sandbox, so this session is where the actual claims get tested
+        against reality.
+      </p>
+      <ol>
+        <li>Run the full <code>./gradlew test</code> suite one more time
+          (correlation engine, clusterer, signature matcher, parser,
+          linking heuristic) as a baseline before the real-hardware checks.</li>
+        <li>Place a known BLE tracker (or a phone advertising a similar
+          payload) at 3+ physically distinct locations over time; confirm
+          it gets flagged.</li>
+        <li>Confirm a stationary device (a home router) never gets flagged.</li>
+        <li><code>adb logcat</code> over several hours, including a
+          screen-off/Doze period and an app-switch/backgrounding test, to
+          confirm Samsung doesn't silently kill the service once battery
+          exclusions are set.</li>
+        <li>Re-confirm the NFC screen on the phone and the graceful
+          unavailable state on the tablet, now as part of the full app
+          rather than a standalone test harness.</li>
+        <li>Write down real-world findings in this session's notes: any
+          false positives/negatives encountered, whether the co-traveler
+          hard case (plan.html section 09) actually showed up, whether the
+          default flag threshold of roughly 55 felt right in practice, and
+          any Termux/build gotchas hit beyond what section 08 already
+          documents.</li>
+      </ol>
+      <div class="callout decision">
+        <strong class="label">Done when</strong>
+        A real tracker gets flagged after being carried to 3+ locations, a
+        stationary device never gets flagged, the service survives a
+        multi-hour real-world run including a Doze period, and the findings
+        above are written into this session's notes — not just "it didn't
+        crash."
+      </div>
+      <div class="callout notes">
+        <strong class="label">Session notes</strong>
+        <p>None yet.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="page-footer">
+    Sentinel build plan · sequences <a href="plan.html">plan.html</a>'s design into seven sessions · written for /workspaces/Fun/droid · not part of the toy gallery · the actual app lives in its own standalone repo
+  </footer>
+
+</div>
+</body>
+</html>
