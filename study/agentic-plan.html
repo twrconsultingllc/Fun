@@ -317,19 +317,24 @@
         <a href="build-plan.html">build-plan.html</a>'s session tracker shows
         Sessions 1–4 as <code>Done</code> — the sample datasets, the
         read-only lookup tools, the gap-analysis and mutating tools, and the
-        MCP server. Sessions 5–9 — the ones that actually write
+        MCP server. Sessions 5–9 — the ones that write
         <code>agent-loop.mjs</code>, <code>structured-output.mjs</code>,
         <code>review-loop.mjs</code>, <code>context-budget.mjs</code>,
         <code>orchestrator.mjs</code>, and <code>sdk-version/agent.mjs</code>
-        — are still <code>Not started</code>. So every loop described on
-        this page is a step-by-step working-through of the mechanics
+        — now show <code>In progress</code>: the code and every stubbed test
+        that doesn't require a live call are written and passing, but each
+        session's own real manual run against the live API — the step that
+        would actually confirm any of this behaves as designed — hasn't
+        happened yet, for lack of an <code>ANTHROPIC_API_KEY</code> in that
+        working session. So every loop described on this page is still a
+        step-by-step working-through of the mechanics
         <a href="plan.html">plan.html</a> already designed, applied by hand
-        to the concrete Meridian scenario so the loops are legible before
-        the code exists — not a transcript pulled from a run that happened.
+        to the concrete Meridian scenario so the loops are legible before a
+        real run exists — not a transcript pulled from one that happened.
         Turn counts, token counts, and dollar figures below are illustrative,
         sized to plan.html section 10's own estimates, not measured. Once
-        Sessions 5–9 actually run, this page is worth re-checking line by
-        line against the real output — the same "verify, don't assume"
+        those real runs happen, this page is worth re-checking line by line
+        against the actual output — the same "verify, don't assume"
         discipline this project already applies to package versions and
         cost figures.
       </div>
@@ -640,12 +645,18 @@ attempt 3 → valid → loop exits, structured checklist moves on to
         it was guessed at. Every loop described on this page — the core
         agent loop, the structured-output retry, the review chain, both
         verify paths, the compaction/caching pair, the orchestrator split,
-        and the SDK hook — belongs to Sessions 5–9, which
-        <a href="build-plan.html">build-plan.html</a> still shows as
-        <code>Not started</code>. This page is the design those sessions
-        will build against; it isn't a substitute for actually running
-        them, and its illustrative numbers shouldn't be quoted as measured
-        ones until they are.
+        and the SDK hook — now has that same kind of code and test behind
+        it too: Sessions 5–9 are written, and every stubbed test that
+        doesn't require a live call passes (82 tests, zero network calls,
+        across the whole suite as of this writing). What's still missing is
+        the one thing no stub can substitute for — each session's own real
+        manual run against the live API, which
+        <a href="build-plan.html">build-plan.html</a> tracks as the reason
+        every one of Sessions 5–9 (and 10, which depends on all of them) is
+        marked <code>In progress</code> rather than <code>Done</code>. This
+        page is still the design those real runs will be checked against,
+        not a substitute for running them, and its illustrative numbers
+        shouldn't be quoted as measured ones until they are.
       </p>
     </section>
 
