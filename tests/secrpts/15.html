@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #15 — droid/plan.html (new page)</title>
+<meta name="description" content="Security and code-quality review of droid/plan.html, a new static design-plan page for a planned (not yet built) native Android app, added to the Fun repo.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+
+  .page-table-wrap { overflow-x: auto; margin: 12px 0; }
+  table.page-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .page-table th, .page-table td {
+    border: 1px solid var(--panel-border);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .page-table th {
+    background: var(--code-bg);
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .page-table td.num {
+    text-align: center;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #15 — <code>droid/plan.html</code> (new page)</h1>
+    <p class="sub">A brand-new page under a brand-new top-level directory, <code>droid/</code>: a static design-plan document for a native Android signal-detection app the user is planning but has not yet started building. Nothing in this directory is Android code — it's a plan/progress page in the same spirit as <code>study/plan.html</code>, and this review treats it exactly like any other new page under the "new pages get a numbered review" rule, including the "off <code>index.html</code> doesn't exempt it" clause that already applies to <code>study/</code>.</p>
+    <div class="meta">Review performed 2026-09-21 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>droid/plan.html</code> only (its only content so far) · follows: <a href="14.html" style="color: var(--accent);">14.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">0 findings required a fix. 8 items verified clean. 0 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Head block carries the exact site-standard CSP, referrer policy, and a specific description</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <code>droid/plan.html</code> carries <code>charset="utf-8"</code>, a <code>viewport</code> meta, <code>referrer: strict-origin-when-cross-origin</code>, and the same CSP string every other page in this repo's non-<code>secrpts</code> reference pages uses (<code>default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'</code>), matching the pattern in <code>study/plan.html</code>. The <code>&lt;meta name="description"&gt;</code> is specific to this page's actual content (the Sentinel app plan), not a copy-pasted generic string.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Zero <code>&lt;script&gt;</code> tags and zero inline event handlers</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped the file for <code>&lt;script</code>, <code>onclick</code>, <code>onerror</code>, <code>onload</code>, and the general <code>on[a-z]*=</code> inline-handler shape — zero matches. The page is pure static HTML/CSS, same as this repo's other reference/plan pages.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No external resources, no off-origin links, no forms</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Grepped for <code>http://</code>, <code>https://</code>, <code>target=</code>, <code>@import</code>, and CSS <code>url(...)</code> — zero matches. There is no <code>&lt;form&gt;</code> anywhere on the page. Everything the page references (its own inline <code>&lt;style&gt;</code>) is same-origin by construction; nothing is loaded from a CDN or any other external host.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The page correctly discloses it documents a real personal-safety tool, with no operational detail that would help misuse it</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The content describes a defensive anti-stalking/tracker-detection design (the same category as Apple/Google's built-in tracker alerts and the open-source AirGuard app) — recognizing publicly-broadcast BLE advertisement formats and correlating repeat sightings, explicitly ruling out cracking rotating identifiers or requiring root. Nothing on the page is itself executable or a working exploit; it's prose, tables, and non-functional code samples (permission-manifest XML, Kotlin file-tree names, a pseudocode-level scoring sketch) describing an app that does not exist yet in this repo.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No duplicate element IDs, no broken same-page anchors</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The table-of-contents links to 11 anchors (<code>#decisions</code>, <code>#architecture</code>, <code>#data</code>, <code>#detection</code>, <code>#background</code>, <code>#ui</code>, <code>#platform</code>, <code>#termux</code>, <code>#limits</code>, <code>#order</code>, <code>#verify</code>). Parsed the page's <code>id</code> attributes directly: exactly 11 ids exist, each appearing exactly once, and every TOC link resolves to a real target — no dangling links, no duplicates.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">WCAG contrast computed for every text/background pairing used on the page, dark and light</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        <p>The page reuses the same design-token palette as <code>study/plan.html</code>. Computed actual WCAG relative-luminance contrast ratios (not eyeballed) for every foreground/background combination in use:</p>
+        <div class="page-table-wrap">
+        <table class="page-table">
+          <thead><tr><th>Pairing</th><th>Dark mode</th><th>Light mode</th></tr></thead>
+          <tbody>
+            <tr><td>Body text on page background</td><td class="num">15.26:1</td><td class="num">14.11:1</td></tr>
+            <tr><td>Dimmed text (tagline/captions/kickers) on page background</td><td class="num">8.01:1</td><td class="num">5.94:1</td></tr>
+            <tr><td>Link/accent color on page background</td><td class="num">9.34:1</td><td class="num">5.37:1</td></tr>
+            <tr><td>"Good" callout accent on page background</td><td class="num">9.32:1</td><td class="num">5.38:1</td></tr>
+            <tr><td>"Bad" callout accent on page background</td><td class="num">7.08:1</td><td class="num">6.34:1</td></tr>
+            <tr><td>Kicker accent-2 on page background</td><td class="num">8.92:1</td><td class="num">5.54:1</td></tr>
+            <tr><td>Table-header dimmed text on panel background</td><td class="num">7.39:1</td><td class="num">6.38:1</td></tr>
+            <tr><td>Code text on code-block background</td><td class="num">15.70:1</td><td class="num">15.14:1</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p>Every pairing clears WCAG AA's 4.5:1 threshold for normal text; the closest, the light-mode link/accent color, still sits comfortably above it at 5.37:1.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The page is internally consistent about its own status (plan only, nothing built)</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The masthead eyebrow, a dedicated warning callout, and the footer all independently state the same thing — this is a design plan with no code written yet, and the real app will live in its own standalone repo, not in <code>Fun</code>. Nothing elsewhere on the page contradicts this (no "download" link, no claim of a working build, no reference to a repo that doesn't exist).
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Repo root listing checked — this page isn't linked from <code>index.html</code>, matching its stated scope</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Checked <code>index.html</code> directly rather than assuming: it has no reference to <code>droid/</code> or <code>plan.html</code>, consistent with the page's own "not linked from index.html" eyebrow label and with this being a planning document rather than a toy-gallery entry, the same convention already used for <code>study/plan.html</code>.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand if anything regresses, or
+    ask Claude for another review. Nothing under <code>droid/</code> is Android code yet, so there is no
+    build/toolchain/manifest surface to review beyond this one plan page; a future review is due once actual
+    app source is added there. See <code>14.html</code> for the previous review and
+    <code>CLAUDE.md</code>'s "New pages *and* page updates get a numbered security &amp; quality review" section
+    for the rule this review exists to satisfy.
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
+<title>Sentinel — Tracker Detector Plan</title>
+<meta name="description" content="Design plan for a native Android signal-detection app (Sentinel): BLE/WiFi ambient scanning plus NFC tag inspection, with a time-and-location repeat-sighting correlation engine to flag possible trackers, built and tested via Termux directly on a Samsung Galaxy Tab S11 Ultra." />
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --panel-border: #262c38;
+    --text: #e4e7ee;
+    --text-dim: #a2a9b8;
+    --accent: #f2a65a;
+    --accent-2: #7fb9e0;
+    --good: #7bc696;
+    --bad: #e08585;
+    --code-bg: #0b0d12;
+    --table-stripe: #1b202a;
+    --link: #f2a65a;
+    --max-width: 960px;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f7f7f5;
+      --panel: #ffffff;
+      --panel-border: #e3e1da;
+      --text: #24262b;
+      --text-dim: #5b5f6b;
+      --accent: #9b531a;
+      --accent-2: #1b6a94;
+      --good: #1f7445;
+      --bad: #a5322a;
+      --code-bg: #f1efe8;
+      --table-stripe: #f1f0eb;
+      --link: #9b531a;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    line-height: 1.65;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 220px minmax(0, var(--max-width));
+    gap: 2.5rem;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 6rem;
+  }
+
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: 1fr; }
+    nav.toc { position: static !important; order: 2; }
+  }
+
+  header.masthead {
+    grid-column: 1 / -1;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--panel-border);
+    margin-bottom: 0.5rem;
+  }
+
+  header.masthead .eyebrow {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  header.masthead h1 {
+    font-size: 2.1rem;
+    margin: 0.35rem 0 0.5rem;
+    line-height: 1.2;
+  }
+
+  header.masthead p.tagline {
+    color: var(--text-dim);
+    font-size: 1.05rem;
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  nav.toc {
+    position: sticky;
+    top: 2rem;
+    align-self: start;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.86rem;
+  }
+
+  nav.toc h2 {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin: 0 0 0.6rem;
+  }
+
+  nav.toc ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: toc;
+  }
+
+  nav.toc li {
+    counter-increment: toc;
+    margin-bottom: 0.5rem;
+  }
+
+  nav.toc a {
+    color: var(--text-dim);
+    text-decoration: none;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  nav.toc a::before {
+    content: counter(toc);
+    color: var(--accent);
+    font-weight: 700;
+    min-width: 1.2em;
+  }
+
+  nav.toc a:hover { color: var(--text); }
+
+  main { min-width: 0; }
+
+  section {
+    margin-bottom: 3rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  section:last-of-type { border-bottom: none; }
+
+  h2 {
+    font-size: 1.5rem;
+    margin: 0 0 0.3rem;
+    scroll-margin-top: 1.5rem;
+  }
+
+  h2 .kicker {
+    display: block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent-2);
+    margin-bottom: 0.4rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    margin: 1.6rem 0 0.6rem;
+    color: var(--text);
+  }
+
+  p { margin: 0.8rem 0; }
+  a { color: var(--link); }
+
+  code {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    background: var(--code-bg);
+    padding: 0.12em 0.4em;
+    border-radius: 4px;
+    font-size: 0.88em;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    overflow-x: auto;
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+
+  pre code { background: none; padding: 0; font-size: 1em; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.2rem 0;
+    font-size: 0.92rem;
+  }
+
+  caption {
+    text-align: left;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-bottom: 0.4rem;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid var(--panel-border);
+    vertical-align: top;
+  }
+
+  th {
+    background: var(--panel);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+  }
+
+  tbody tr:nth-child(even) { background: var(--table-stripe); }
+
+  ul, ol { padding-left: 1.4rem; }
+  li { margin: 0.35rem 0; }
+
+  .callout {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-left: 4px solid var(--accent-2);
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    margin: 1.2rem 0;
+    font-size: 0.94rem;
+  }
+
+  .callout.decision { border-left-color: var(--good); }
+  .callout.warning {
+    border-left-color: var(--accent);
+    background: rgba(242, 166, 90, 0.08);
+    font-size: 0.98rem;
+  }
+  .callout.blocked {
+    border-left-color: var(--bad);
+    background: rgba(224, 133, 133, 0.08);
+  }
+  .callout strong.label {
+    display: block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 0.35rem;
+  }
+
+  .badge {
+    display: inline-block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.15em 0.55em;
+    border-radius: 999px;
+    background: rgba(123, 198, 150, 0.15);
+    color: var(--good);
+    margin-left: 0.4rem;
+  }
+
+  .badge.risk {
+    background: rgba(242, 166, 90, 0.15);
+    color: var(--accent);
+  }
+
+  .badge.blocked {
+    background: rgba(224, 133, 133, 0.15);
+    color: var(--bad);
+  }
+
+  footer.page-footer {
+    grid-column: 1 / -1;
+    color: var(--text-dim);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.8rem;
+    text-align: center;
+    padding-top: 1rem;
+  }
+
+  @media print {
+    nav.toc { display: none; }
+    .layout { grid-template-columns: 1fr; }
+    section { break-inside: avoid; border-bottom: none; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <header class="masthead">
+    <span class="eyebrow">Design plan · not a repo toy · not linked from index.html</span>
+    <h1>Sentinel — Tracker Detector</h1>
+    <p class="tagline">
+      A native Android app, planned but not yet built, to answer one
+      question: <strong>is a Bluetooth/WiFi device following me?</strong> It
+      scans nearby BLE and WiFi signals, logs sightings with time and
+      location, and flags anything seen repeatedly across places a
+      stationary device (a router, a shop beacon) never would be. It also
+      includes a manual NFC tag-inspection screen. Everything stays on the
+      device — no cloud backend.
+    </p>
+  </header>
+
+  <div class="callout warning" style="grid-column: 1 / -1;">
+    <strong class="label">Status: plan only, nothing built yet</strong>
+    This page records the design so it survives between sessions. No
+    Kotlin/Gradle project exists yet, and the actual app will live in its
+    own standalone git repo — not in this <code>Fun</code> repo, whose
+    single-file-HTML-toy conventions don't fit a native app. This page is
+    the plan and progress record, not the app itself.
+  </div>
+
+  <nav class="toc" aria-label="Table of contents">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#decisions">Decisions already made</a></li>
+      <li><a href="#architecture">App architecture</a></li>
+      <li><a href="#data">Data model &amp; MAC randomization</a></li>
+      <li><a href="#detection">Correlation / detection algorithm</a></li>
+      <li><a href="#background">Background scanning</a></li>
+      <li><a href="#ui">UI screens (v1)</a></li>
+      <li><a href="#platform">Platform mechanics</a></li>
+      <li><a href="#termux">Termux build toolchain</a></li>
+      <li><a href="#limits">Known infeasibilities / compromises</a></li>
+      <li><a href="#order">Build order</a></li>
+      <li><a href="#verify">Verification plan</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section id="decisions">
+      <h2><span class="kicker">01 · Locked in</span>Decisions already made</h2>
+      <div class="callout decision">
+        <strong class="label">Build &amp; test</strong>
+        Termux, running directly on the Galaxy Tab S11 Ultra. No PC, no
+        Android Studio, no emulator required for the primary workflow.
+      </div>
+      <div class="callout decision">
+        <strong class="label">v1 scope</strong>
+        BLE + WiFi ambient scanning, <em>and</em> a manual NFC tag-inspection
+        screen (tested on a phone that has NFC hardware; the tablet reports
+        "unavailable" gracefully if it lacks the radio).
+      </div>
+      <div class="callout decision">
+        <strong class="label">Detection logic</strong>
+        The full time+location repeat-sighting correlation engine for v1 —
+        not just known-tracker-signature matching (though signature matching
+        is folded in as a scoring boost, since it's free extra evidence).
+      </div>
+      <div class="callout decision">
+        <strong class="label">Privacy</strong>
+        All data stays local/on-device. No cloud backend, no telemetry.
+      </div>
+      <div class="callout decision">
+        <strong class="label">Repo</strong>
+        Standalone git repo for the actual Kotlin/Gradle project — this page
+        just tracks the plan inside <code>Fun/droid/</code> because that's
+        where it was asked to live.
+      </div>
+      <p>
+        This is the same problem space Apple's and Google's built-in
+        "unknown tracker alerts" and the open-source <strong>AirGuard</strong>
+        app solve, and the design below follows the same public,
+        non-exploitative approach they use: recognizing publicly-broadcast
+        tracker advertisement formats, and noticing repeat sightings across
+        locations. No cracking of rotating identifiers, no root required.
+      </p>
+    </section>
+
+    <section id="architecture">
+      <h2><span class="kicker">02 · Structure</span>App architecture</h2>
+      <p>
+        Single-module Kotlin app using <strong>Jetpack Compose</strong>.
+        State-heavy, live-updating scan lists map naturally onto Compose +
+        Room <code>Flow</code>, with far less boilerplate than
+        Views/RecyclerView, and there's no legacy code to preserve.
+        Suggested package root: <code>com.twrconsulting.sentinel</code>
+        (placeholder name).
+      </p>
+      <pre><code>app/src/main/java/.../
+  SentinelApplication.kt, MainActivity.kt
+  di/                    Hilt modules (DB, dispatchers, scanner bindings)
+  data/
+    db/entity/           DeviceEntity, SightingEntity, KnownTrackerSignatureEntity,
+                          IgnoredDeviceEntity, FlagEventEntity, LocationClusterEntity
+    db/dao/, converters/, migrations/
+    repository/          DeviceRepository, FlagRepository, SettingsRepository
+    location/            LocationProvider (FusedLocationProviderClient wrapper)
+  scan/
+    ble/BleScanner.kt, BleAdvertisementParser.kt
+    wifi/WifiScanner.kt
+    nfc/NfcTagReader.kt
+    ScanCoordinator.kt, ScanForegroundService.kt, ScanScheduler.kt, ScanWorker.kt
+  detection/
+    TrackerCorrelationEngine.kt   &lt;- core algorithm, get this right first
+    LocationClusterer.kt, SignatureMatcher.kt, FlagScorer.kt, DetectionWorker.kt
+  ui/  (Compose)
+    nearby/, flagged/, detail/, nfc/, settings/  screens + ViewModels
+  util/  PermissionUtils, RssiDistanceEstimator, Haversine, Clock</code></pre>
+      <p>
+        Use <strong>Hilt</strong> for dependency injection and
+        <strong>KSP</strong> (not <code>kapt</code>) for Room's annotation
+        processing — KSP is pure Kotlin/JVM and avoids extra
+        javac/annotation-processor friction in the Termux build environment.
+        Set <code>android:allowBackup="false"</code> and exclude the Room
+        database from Android's auto-backup rules: this data is a de facto
+        location history and must never leave the device via cloud backup.
+      </p>
+    </section>
+
+    <section id="data">
+      <h2><span class="kicker">03 · Schema</span>Data model &amp; MAC randomization</h2>
+      <table>
+        <thead><tr><th>Entity</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>DeviceEntity</code></td><td>kind (BLE/WIFI_AP), stableDeviceKey, lastKnownAddress, displayName, manufacturerId, vendorGuess, first/last seen, sighting count, isIgnored, userLabel</td></tr>
+          <tr><td><code>SightingEntity</code></td><td>per-observation row: raw address at time of sighting, RSSI, timestamp, lat/lon/accuracy (nullable), locationClusterId, raw manufacturer-data payload (hex, for re-parsing)</td></tr>
+          <tr><td><code>KnownTrackerSignatureEntity</code></td><td>seed table of publicly documented BLE advertisement formats — Apple Find My (manufacturer ID <code>0x004C</code>), Samsung SmartTag/SmartTag2 (<code>0x0075</code>), Tile, Chipolo (service-UUID based) — with a match rule and a suspicion-score weight</td></tr>
+          <tr><td><code>IgnoredDeviceEntity</code>, <code>FlagEventEntity</code>, <code>LocationClusterEntity</code></td><td>ignore-list, raised flags, and incremental location clusters (see section 04)</td></tr>
+        </tbody>
+      </table>
+      <h3>Why raw MAC address can't be trusted as identity</h3>
+      <p>
+        Trackers and modern BLE devices rotate their MAC address
+        periodically — a naive "same MAC = same device" match fails. The
+        strategy:
+      </p>
+      <ol>
+        <li>Prefer manufacturer-payload-derived identity for recognized
+          tracker families (the payload format itself is far more stable
+          than the rotating address).</li>
+        <li>Apply a <strong>rotation-tolerant linking heuristic</strong>: if
+          a same-family device disappears and a new MAC of the same family
+          appears within roughly 15 minutes, at similar RSSI and location,
+          merge the sightings under the same <code>stableDeviceKey</code> —
+          while still keeping the raw per-sighting address, so nothing is
+          silently lost if the heuristic mis-links two devices.</li>
+        <li>For unrecognized BLE devices, treat MAC continuity as a
+          <strong>weak, short-term-only</strong> signal, discounted heavily
+          in the correlation engine past ~20–30 minutes.</li>
+        <li>Never attempt to cryptographically defeat address rotation
+          (e.g. breaking Apple's Find My rolling-key derivation) — that's
+          out of scope and unnecessary. Payload-format recognition plus
+          statistical/temporal correlation is exactly the approach AirGuard,
+          Apple's own "Tracker Detect," and Google's "unknown tracker
+          alerts" already use publicly.</li>
+      </ol>
+    </section>
+
+    <section id="detection">
+      <h2><span class="kicker">04 · The core algorithm</span>Correlation / detection algorithm</h2>
+      <p>
+        Runs periodically (<code>DetectionWorker</code>, roughly every 30
+        minutes) over a rolling 24-hour window.
+      </p>
+      <h3>1. Location clustering</h3>
+      <p>
+        Incremental centroid clustering, 150m threshold (tunable) via
+        Haversine distance. This single gate is what naturally suppresses
+        stationary false positives — a home router or shop beacon only ever
+        lands in one cluster, so it can never satisfy the "seen at multiple
+        places" test below.
+      </p>
+      <h3>2. Hard gates before scoring</h3>
+      <ul>
+        <li>At least 3 distinct location clusters</li>
+        <li>At least 20 minutes between first and last sighting</li>
+      </ul>
+      <h3>3. Suspicion score (0–100)</h3>
+      <ul>
+        <li>Points for distinct cluster count (capped)</li>
+        <li>Points for the maximum distance between clusters — a bigger
+          geographic spread is stronger evidence than GPS jitter within one
+          place</li>
+        <li>Points for distinct time-sessions — repeat <em>visits</em> score
+          higher than one long continuous dwell</li>
+        <li>A large bonus for matching a known tracker signature</li>
+        <li>A confidence <em>discount</em> when identity evidence is weak
+          (unrecognized payload plus long-span MAC-only linkage)</li>
+      </ul>
+      <p>
+        Flag threshold defaults to roughly 55, exposed to the user as a
+        simple Low/Medium/High sensitivity setting rather than raw numbers.
+      </p>
+      <h3>4. False-positive suppression</h3>
+      <ul>
+        <li>An onboarding wizard auto-suggests ignoring the user's own
+          bonded Bluetooth devices and the currently-connected WiFi network</li>
+        <li>Swipe-to-ignore from the Nearby list for anything else</li>
+        <li>Dismissed flags don't re-fire unless new anomalous behavior
+          appears</li>
+        <li>A daily-commute "co-traveler" device (e.g. another rider's
+          phone on the same bus every day) is a known hard case even for
+          tools like AirGuard — v1 surfaces full sighting detail so the
+          user can judge and dismiss it, rather than trying to solve it
+          algorithmically</li>
+      </ul>
+    </section>
+
+    <section id="background">
+      <h2><span class="kicker">05 · Keeping it running</span>Background scanning</h2>
+      <p>
+        <strong>Hybrid: a foreground service (primary) plus WorkManager (a
+        watchdog).</strong> WorkManager's 15-minute floor and Doze throttling
+        are too coarse to reliably catch a transient tracker, so
+        <code>ScanForegroundService</code> (Android 14+ types
+        <code>connectedDevice|location</code>) owns duty-cycled scanning:
+        BLE bursts every 2–5 minutes using <code>SCAN_MODE_BALANCED</code>
+        (not low-latency), one WiFi <code>startScan()</code> per cycle, plus
+        a passive <code>SCAN_RESULTS_AVAILABLE_ACTION</code> receiver to
+        catch scans the OS triggers on its own for free. A separate periodic
+        <code>ScanScheduler</code> worker restarts the foreground service if
+        Samsung's OEM battery management kills it. All writes go through
+        <code>DeviceRepository</code> using a Room <code>@Transaction</code>
+        upsert keyed on <code>stableDeviceKey</code>; the UI reads live via
+        Room <code>Flow</code>.
+      </p>
+    </section>
+
+    <section id="ui">
+      <h2><span class="kicker">06 · Screens</span>UI screens (v1)</h2>
+      <table>
+        <thead><tr><th>Screen</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>Nearby</td><td>Live BLE+WiFi list, signal strength, quick-ignore action, manual "scan now" button</td></tr>
+          <tr><td>Flagged</td><td>Sorted-by-score suspicious devices with a human-readable reason ("seen at 4 locations up to 6.2km apart over 5h; matches Apple Find My format"), dismiss/view-details actions</td></tr>
+          <tr><td>Device Detail</td><td>Identity, all linked raw addresses, sighting history (map via OSMDroid — avoids a Google Maps API-key/Play-Services dependency), ignore/nickname actions</td></tr>
+          <tr><td>NFC Tag Read</td><td>"Tap a tag" screen: UID, tech list, NDEF dump if present; MIFARE Classic reports "detected, sectors not readable without keys" rather than attempting key-cracking; clearly labeled as a manual inspection tool, not part of the automatic correlation engine, since passive tags can't "follow" anyone the way BLE/WiFi can; shows a graceful "no NFC hardware" state when unavailable</td></tr>
+          <tr><td>Settings</td><td>Scan interval, sensitivity, cluster-distance (advanced), ignore-list management, data retention/export/clear, scanning kill switch</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="platform">
+      <h2><span class="kicker">07 · Android platform mechanics</span>Permissions, NFC, WiFi throttling, battery</h2>
+      <p>
+        <strong>minSdk 31 (Android 12)</strong> — drops the entire legacy
+        pre-<code>BLUETOOTH_SCAN</code> permission branch; confirm the test
+        phone is on 12+ before finalizing. targetSdk/compileSdk: whatever is
+        newest via <code>sdkmanager --list</code> at build time.
+      </p>
+      <h3>Manifest permissions</h3>
+      <pre><code>&lt;uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+    android:usesPermissionFlags="neverForLocation" /&gt;
+&lt;uses-permission android:name="android.permission.BLUETOOTH_CONNECT" /&gt;
+&lt;uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" /&gt;
+&lt;uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" /&gt;
+&lt;uses-permission android:name="android.permission.ACCESS_WIFI_STATE" /&gt;
+&lt;uses-permission android:name="android.permission.CHANGE_WIFI_STATE" /&gt;
+&lt;uses-permission android:name="android.permission.NFC" /&gt;
+&lt;uses-permission android:name="android.permission.FOREGROUND_SERVICE" /&gt;
+&lt;uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" /&gt;
+&lt;uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" /&gt;
+&lt;uses-permission android:name="android.permission.POST_NOTIFICATIONS" /&gt;
+&lt;uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" /&gt;
+
+&lt;uses-feature android:name="android.hardware.bluetooth_le" android:required="true" /&gt;
+&lt;uses-feature android:name="android.hardware.nfc" android:required="false" /&gt;</code></pre>
+      <p>
+        <code>neverForLocation</code> decouples BLE scanning from the
+        system Location toggle, but <code>ACCESS_FINE_LOCATION</code> is
+        still requested separately, since the app independently wants to
+        tag each sighting with GPS coordinates. Running scans from a
+        foreground service means the while-in-use location grant is enough
+        — <code>ACCESS_BACKGROUND_LOCATION</code> and its separate
+        "Allow all the time" settings flow is likely avoidable, simplifying
+        the permission UX.
+      </p>
+      <h3>NFC gotcha to remember</h3>
+      <p>
+        The foreground-dispatch <code>PendingIntent</code> must be
+        <code>FLAG_MUTABLE</code> on API 31+, or tag delivery silently
+        breaks. <code>FLAG_IMMUTABLE</code> — the usual post-Android-12
+        hardening default reached for everywhere else — is wrong here
+        specifically, because the system needs to populate the actual
+        <code>Tag</code> extra into the fired intent.
+      </p>
+      <h3>WiFi scanning is throttled by the OS, not by permissions</h3>
+      <p>
+        Roughly 4 <code>startScan()</code> calls per 2 minutes while
+        foregrounded, near-zero while backgrounded. Realistic design:
+        request a scan once per 30–60 second cycle, and also passively
+        listen for scans Android triggers on its own for its own
+        connectivity heuristics. True continuous WiFi visibility isn't
+        achievable on stock, unrooted Android.
+      </p>
+      <h3>Battery</h3>
+      <p>
+        Duty-cycled BLE (<code>SCAN_MODE_BALANCED</code>, bursts every few
+        minutes) and periodic balanced-priority location fixes, not
+        continuous high-accuracy GPS. All-day operation is realistic with
+        duty-cycling, but should be validated empirically; scan cadence is
+        a user-facing setting. Samsung's One UI battery management is more
+        aggressive than stock Doze and needs a <strong>manual</strong>,
+        one-time exclusion (Device Care → Battery → Background usage
+        limits) beyond the standard exemption API — an install-checklist
+        item, not something the app can guarantee automatically.
+      </p>
+    </section>
+
+    <section id="termux">
+      <h2><span class="kicker">08 · Build environment</span>Termux build toolchain</h2>
+      <ol>
+        <li>Install Termux from <strong>F-Droid or GitHub releases</strong>
+          — not the abandoned Play Store build, which is stuck on an old
+          NDK/bionic baseline and won't run current packages. Also install
+          the Termux:API companion app.</li>
+        <li><code>pkg install openjdk-17 wget unzip git aapt2 termux-api android-tools</code></li>
+        <li>Download the Android cmdline-tools into
+          <code>~/android-sdk/cmdline-tools/latest</code>, set
+          <code>ANDROID_HOME</code>/<code>ANDROID_SDK_ROOT</code> + PATH in
+          <code>~/.bashrc</code>, then run <code>sdkmanager</code> for
+          <code>platform-tools</code>, a current <code>platforms;android-XX</code>,
+          and matching <code>build-tools</code>.</li>
+        <li>
+          <strong>Known blocker and fix:</strong> Google's bundled
+          <code>aapt2</code> inside <code>build-tools/</code> is x86_64-only
+          and fails with <code>Exec format error</code> under Termux's
+          aarch64 userland. Fix via the official AGP escape hatch in
+          <code>gradle.properties</code>:
+          <pre><code>android.aapt2FromMavenOverride=/data/data/com.termux/files/usr/bin/aapt2</code></pre>
+          pointing at the Termux-native <code>aapt2</code> package from step
+          2 — don't hand-patch the SDK directory itself, since
+          <code>sdkmanager</code> will overwrite it on update.
+        </li>
+        <li>Also in <code>gradle.properties</code>:
+          <code>org.gradle.vfs.watch=false</code> — Gradle's native
+          file-watcher is glibc-linked and can crash the daemon under
+          bionic.</li>
+        <li>Run <code>termux-wake-lock</code> before long builds, and
+          exclude both Termux and the eventual app from Samsung's
+          battery-optimization/sleep list.</li>
+        <li>
+          <strong>Installing the built APK on the same device without root
+          or a PC:</strong> <code>pm install</code> from a Termux shell will
+          not work — it needs the privileged <code>INSTALL_PACKAGES</code>
+          permission, which a normal app process can't hold. That's a real
+          wall, not a workaround-away detail. Two paths that do work:
+          <ul>
+            <li><code>termux-open ./app/build/outputs/apk/debug/app-debug.apk</code>
+              — fires the system package-installer intent; one-time
+              "install unknown apps" grant for Termux, then a manual
+              tap-through per install.</li>
+            <li><strong>Wireless ADB to the tablet's own IP</strong> —
+              Settings → Developer options → Wireless debugging → pair,
+              then <code>adb pair</code>/<code>adb connect</code> from
+              Termux's <code>android-tools</code> package — gives silent
+              <code>adb install -r</code> and real <code>adb logcat</code>
+              streaming, and is worth setting up purely for iteration
+              speed.</li>
+          </ul>
+        </li>
+        <li>For comfortably editing multi-file Kotlin on a tablet, consider
+          <code>pkg install nodejs</code> + <code>code-server</code> for a
+          browser-based editor UI, and enable Termux's extra-keys row for
+          Esc/Tab/Ctrl/arrows.</li>
+      </ol>
+    </section>
+
+    <section id="limits">
+      <h2><span class="kicker">09 · Say the quiet part</span>Known infeasibilities / compromises</h2>
+      <div class="callout blocked">
+        <strong class="label">Not solvable, use the workaround</strong>
+        Same-device <em>silent</em> APK install without ADB or root is not
+        possible. <code>termux-open</code> (manual tap) or wireless ADB
+        (silent) are the two real paths — see section 08.
+      </div>
+      <div class="callout blocked">
+        <strong class="label">OS-level limit, not a permissions problem</strong>
+        True continuous WiFi scanning is blocked by Android's own
+        throttling regardless of what's granted; ~30–60 second effective
+        resolution is the realistic ceiling on stock, unrooted Android.
+      </div>
+      <div class="callout blocked">
+        <strong class="label">Manual step required</strong>
+        Samsung's One UI background-kill behavior needs a manual,
+        device-specific opt-out beyond the standard Android
+        battery-exemption API — there's no way for the app to set this for
+        itself.
+      </div>
+      <div class="callout warning">
+        <strong class="label">Real cost, not eliminated</strong>
+        All-day BLE+WiFi+GPS scanning has a genuine, non-zero battery cost.
+        Duty-cycle settings manage it but don't make it free.
+      </div>
+      <div class="callout warning">
+        <strong class="label">Structurally hard case</strong>
+        A daily "co-traveler" device (e.g. the same commute every day) is a
+        hard case even for mature tools like AirGuard — v1 surfaces full
+        sighting detail for the user to judge, rather than solving it
+        algorithmically.
+      </div>
+    </section>
+
+    <section id="order">
+      <h2><span class="kicker">10 · For a later session</span>Build order</h2>
+      <ol>
+        <li>Scaffold the Gradle/Kotlin project and the Termux toolchain
+          first; get a trivial "Hello Compose" APK built and installed via
+          <code>termux-open</code> to validate the whole pipeline before
+          writing any real feature code.</li>
+        <li>Room schema and <code>TrackerCorrelationEngine</code>, with JVM
+          unit tests against synthetic sighting fixtures — no device
+          needed, and correctness here drives everything else.</li>
+        <li><code>BleAdvertisementParser</code> plus the known-signature
+          seed data.</li>
+        <li><code>ScanForegroundService</code> and the permission flow —
+          the first real on-device milestone.</li>
+        <li>WiFi scanning, then the NFC screen.</li>
+        <li>Compose UI screens wired to the above via Room <code>Flow</code>.</li>
+        <li>On-device validation on both the tablet and the phone (for
+          NFC).</li>
+      </ol>
+    </section>
+
+    <section id="verify">
+      <h2><span class="kicker">11 · How this gets checked</span>Verification plan</h2>
+      <p>
+        This is native Android code that must run on real hardware — it
+        can't be verified from a CLI sandbox with no Android SDK, emulator,
+        or ADB link. Once scaffolded:
+      </p>
+      <ul>
+        <li><code>./gradlew test</code> for the correlation-engine,
+          clusterer, and signature-matcher JVM unit tests (runs fine under
+          Termux, no device needed)</li>
+        <li><code>./gradlew assembleDebug</code>, then
+          <code>termux-open</code> or <code>adb install</code> onto the
+          tablet; confirm permission prompts appear correctly, the
+          foreground-service notification shows, and the Nearby list
+          populates with real BLE/WiFi results</li>
+        <li>Manually place a known BLE tracker (or a phone advertising a
+          similar payload) at 3+ physically distinct locations over time
+          and confirm it gets flagged; confirm a stationary device (a home
+          router) never gets flagged</li>
+        <li>Test the NFC screen on the phone (tag read), and separately
+          confirm the graceful "unavailable" state on the tablet if it
+          lacks the radio</li>
+        <li><code>adb logcat</code> for background-service reliability over
+          several hours, including a screen-off/Doze period and an
+          app-switch/backgrounding test, to confirm Samsung doesn't
+          silently kill the service once battery exclusions are set</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <footer class="page-footer">
+    Sentinel design plan · written for /workspaces/Fun/droid · not part of the toy gallery · the actual app will live in its own standalone repo
+  </footer>
+
+</div>
+</body>
+</html>
