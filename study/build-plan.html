@@ -370,7 +370,7 @@
           <tr><td>2</td><td>Read-only lookup tools</td><td><span class="badge done">Done</span></td><td>No</td><td>60–90 min</td><td>Session 1</td></tr>
           <tr><td>3</td><td>Gap analysis &amp; the mutating tool</td><td><span class="badge done">Done</span></td><td>No</td><td>90 min</td><td>Session 2</td></tr>
           <tr><td>4</td><td>The MCP server</td><td><span class="badge done">Done</span></td><td>Optional (one manual check)</td><td>60–90 min</td><td>Session 3</td></tr>
-          <tr><td>5</td><td>The hand-rolled agent loop</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong></td><td>90–120 min</td><td>Session 3</td></tr>
+          <tr><td>5</td><td>The hand-rolled agent loop</td><td><span class="badge in-progress">In progress</span></td><td><strong>Yes</strong></td><td>90–120 min</td><td>Session 3</td></tr>
           <tr><td>6</td><td>Structured output &amp; review loop</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong> (for the manual runs)</td><td>60–90 min</td><td>Session 5</td></tr>
           <tr><td>7</td><td>Context budget: compaction &amp; caching</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong> (for the real run)</td><td>90 min</td><td>Session 4</td></tr>
           <tr><td>8</td><td>Orchestrator &amp; the stretch tool</td><td><span class="badge">Not started</span></td><td><strong>Yes</strong> (for the manual run)</td><td>90–120 min</td><td>Sessions 3, 6</td></tr>
@@ -518,7 +518,7 @@
     <section id="s5">
       <h2><span class="kicker">Session 5</span>The hand-rolled agent loop</h2>
       <div class="session-meta">
-        <span><strong>Status:</strong> <span class="badge">Not started</span></span>
+        <span><strong>Status:</strong> <span class="badge in-progress">In progress</span></span>
         <span><strong>Needs API key:</strong> Yes, for the final manual run</span>
         <span><strong>Est. time:</strong> 90–120 min — the biggest single session in this plan</span>
         <span><strong>Depends on:</strong> Session 3</span>
@@ -544,7 +544,12 @@
       </div>
       <div class="callout notes">
         <strong class="label">Session notes</strong>
-        <p>None yet.</p>
+        <p>Steps 1 and 2 are done; step 3 (the real run against the live API) is still pending — this session was worked without an <code>ANTHROPIC_API_KEY</code> in hand, so everything that can be built and verified without a live call got done, and the manual run is left for a follow-up session once a key is available.</p>
+        <p><code>src/agent-loop.mjs</code> implements the loop as three explicit phases rather than one open-ended conversation: a <strong>gather</strong> phase (read-only <code>get_client</code> / <code>get_state_requirements</code> tools), one or more <strong>act</strong> phases (<code>client_gap_analysis</code> / <code>update_checklist_item</code>), and a <strong>verify</strong> step that is deliberately code, not another model call — it calls <code>validate-client-checklist.mjs</code> directly, the same "kept off the MCP server" tool from Session 3. Each tool-calling phase (<code>runToolPhase</code>) enforces its own hard turn cap: if the model still wants to call tools once the cap is hit, the phase just ends rather than looping forever. If verify finds the checklist still incomplete, the loop feeds the specific missing items back to the model and runs one more act phase, bounded by <code>MAX_VERIFY_ROUNDS</code> (default 2) — this is the "verify-phase branching" plan.html section 11 calls out.</p>
+        <p>Converting each tool's existing <code>zod</code> <code>inputSchema</code> export into the JSON Schema shape the raw Anthropic Messages API wants for <code>tools[].input_schema</code> needed no new dependency: <code>zod</code> 4.6.5 (already pinned in Session 1) ships a built-in <code>z.toJSONSchema()</code>, which the separate <code>zod-to-json-schema</code> package would have duplicated. Confirmed against the installed package rather than assumed.</p>
+        <p><code>tests/agent-loop.test.mjs</code> stubs <code>Messages.create</code> exactly as plan.html section 11 specifies — zero network calls — and covers: the turn cap firing when the model keeps requesting tools, a real tool handler actually executing and its result round-tripping back into the message list, and the verify-branching retry using the real (unmutated, since each test file is its own Node process) Meridian/Texas sample data — its two starting-pending checklist items get closed out across two stubbed act rounds. 59/59 tests pass across the whole suite.</p>
+        <p>Model id used for the eventual real run: <code>claude-sonnet-5</code>, matching plan.html section 03's "Sonnet 5 for day-to-day iteration" decision and this session's own confirmed-current model roster — not a recalled guess.</p>
+        <p>Committed with step 3 still open — the loop code and its stubbed tests are real, verified work on their own, but the real API run against Meridian's scenario (reading the actual transcript, not just confirming the loop terminates) is a separate follow-up once <code>ANTHROPIC_API_KEY</code> is available. This session's status stays <span class="badge in-progress">In progress</span>, not <span class="badge done">Done</span>, until that happens.</p>
       </div>
     </section>
 
