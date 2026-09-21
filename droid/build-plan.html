@@ -219,6 +219,20 @@
   ul, ol { padding-left: 1.4rem; }
   li { margin: 0.35rem 0; }
 
+  ol.substeps {
+    margin: 0.6rem 0 0.2rem;
+    padding-left: 1.3rem;
+  }
+  ol.substeps > li {
+    margin: 0.7rem 0;
+  }
+  ol.substeps ul {
+    margin: 0.4rem 0;
+  }
+  ol.substeps ul li {
+    margin: 0.5rem 0;
+  }
+
   .callout {
     background: var(--panel);
     border: 1px solid var(--panel-border);
@@ -450,11 +464,53 @@
         <a href="plan.html#order">plan.html section 10</a>'s own first step.
       </p>
       <ol>
-        <li><span class="who"><span class="badge you">You</span></span>Install
-          Termux from F-Droid or GitHub releases — not the abandoned Play
-          Store build — plus the Termux:API companion app. An app-store/APK
-          install with tap-through permission prompts; no agent can do this
-          for you.</li>
+        <li><span class="who"><span class="badge you">You</span></span><strong>Install
+          Termux and its Termux:API companion app on the tablet.</strong> The
+          one step in this whole plan that's entirely yours from the very
+          first tap — nothing exists yet for Claude to run, and app
+          installs and their permission prompts are GUI-only. Broken into
+          order, with the one real decision called out:
+          <ol class="substeps" type="a">
+            <li><strong>Decide your install source — pick one:</strong>
+              <ul>
+                <li><strong>Option 1 — F-Droid (recommended default).</strong>
+                  If F-Droid itself isn't already on the tablet, install it
+                  first from <code>f-droid.org</code>; then use F-Droid's
+                  own search to find and install both "Termux" and
+                  "Termux:API". <em>What you get:</em> automatic updates
+                  through F-Droid going forward. <em>Trade-off:</em>
+                  F-Droid's build occasionally lags a version or two behind
+                  GitHub's newest tag.</li>
+                <li><strong>Option 2 — GitHub releases (.apk files).</strong>
+                  Download the newest release APK for each app directly
+                  from <code>github.com/termux/termux-app/releases</code>
+                  and <code>github.com/termux/termux-api/releases</code>,
+                  then sideload them. <em>What you get:</em> always the
+                  newest version the day it ships. <em>Trade-off:</em> no
+                  auto-update — you redownload by hand whenever you want a
+                  newer one — and whichever app you use to download the
+                  APK will need a one-time "allow installs from this
+                  source" toggle in Android Settings before it'll install.</li>
+              </ul>
+              Either option is fine; what matters is picking one and using
+              it for both apps below, not which one you pick.
+              <strong>Not fine either way:</strong> the Google Play Store's
+              "Termux" listing — plan.html section 08 already flags it as a
+              years-stale, abandoned build, and installing it here would
+              cause confusing failures several steps from now (package
+              installs failing, a mismatched <code>aapt2</code>), not
+              immediately.</li>
+            <li>Install <strong>Termux</strong> itself, through the source
+              you picked in (a).</li>
+            <li>Install <strong>Termux:API</strong> the same way, through
+              the same source as (b) — mixing sources works too, but
+              keeping them matched keeps future updates simpler.</li>
+            <li>Open Termux once. Confirm it actually launches to a shell
+              prompt, and grant whatever storage permission it asks for on
+              first run (needed later for things like installing a built
+              APK via <code>termux-open</code>).</li>
+          </ol>
+        </li>
         <li><span class="who"><span class="badge claude">Claude</span></span><code>pkg install openjdk-17 wget unzip git aapt2 termux-api android-tools</code>,
           run from inside the Termux shell once it exists.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span>Set

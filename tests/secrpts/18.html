@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #18 — droid/build-plan.html Session 1 sub-step breakout</title>
+<meta name="description" content="Security and code-quality review of droid/build-plan.html's Session 1, Step 1 breakout into lettered sub-steps (install source decision, install Termux, install Termux:API, first launch) plus the small CSS added to style the nested list.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #18 — <code>droid/build-plan.html</code> Session 1 sub-step breakout</h1>
+    <p class="sub">Session 1's first step ("Install Termux and its Termux:API companion app") was rewritten from one dense sentence into four lettered sub-steps (a–d), with the F-Droid-vs-GitHub-releases install-source choice pulled out as an explicit decision showing what each option gets you and what it costs. A small amount of CSS was added purely to space the new nested list; no color or badge classes changed.</p>
+    <div class="meta">Review performed 2026-09-21 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>droid/build-plan.html</code>, Session 1's first step and the new <code>ol.substeps</code> CSS only · follows: <a href="17.html" style="color: var(--accent);">17.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">0 actionable findings. 5 items verified clean.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">No new external links, scripts, or handlers — the two named URLs stay as inert <code>&lt;code&gt;</code> text</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The new sub-steps name two real external locations by their plain hostnames — <code>f-droid.org</code> and <code>github.com/termux/termux-app/releases</code> (and the matching <code>termux-api</code> path) — but both are written as inert <code>&lt;code&gt;</code> text, not real <code>&lt;a href&gt;</code> links, matching this page's existing zero-external-links convention. Grepped the whole file for <code>href="http</code>, <code>src="http</code>, <code>&lt;script</code>, and the <code>on[a-z]+="</code> inline-handler shape — zero matches on all four, unchanged from review #17.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Head block untouched</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        This edit only touched one <code>&lt;li&gt;</code>'s contents and added spacing-only CSS rules — the <code>&lt;head&gt;</code> block (charset, viewport, referrer, CSP, description) is identical to what review #17 already checked.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">Document structure stays well-formed through the new four-level nesting</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        This is the deepest nesting on the page so far — <code>&lt;li&gt;</code> → <code>&lt;ol class="substeps"&gt;</code> → <code>&lt;li&gt;</code> → <code>&lt;ul&gt;</code> → <code>&lt;li&gt;</code> — so tag balance was checked by direct count rather than a visual skim: <code>&lt;li&gt;</code> 62/62, <code>&lt;ol&gt;</code> 9/9, <code>&lt;ul&gt;</code> 2/2 (the only two <code>&lt;ul&gt;</code> elements on the whole page are the "How to use this plan" bullets and this new Option-1/Option-2 list), <code>&lt;strong&gt;</code> 62/62, <code>&lt;em&gt;</code> 5/5 — every tag opened is closed.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The sub-steps' who-tag is consistent with the "Key" callout's own rules</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The parent step keeps its single <code>You</code>-only tag rather than getting one per sub-step (a)–(d) — correct, since every one of the four sub-steps is still GUI-only (an install-source choice, two app installs, a first-launch check), with nothing in any of them that Claude could run. Adding four redundant identical badges would have been noise, not information, given the page's own convention (established in review #17) that a tag exists to distinguish Claude-doable steps from human-only ones, not to repeat "You" for every line of a step that's entirely one or the other.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The install-source decision presents both options with a real trade-off, not a false choice</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        Checked that "Option 1" and "Option 2" each state a concrete <em>what you get</em> and <em>trade-off</em> rather than one option being dressed up as strictly better with no real cost — F-Droid trades a possible version lag for automatic updates; GitHub releases trades manual re-downloading (plus a one-time Android "install from this source" toggle) for always having the newest tag. Both read as genuinely defensible choices, which is what the user asked for ("make it very clear what decisions I'm making... and what each choice is") rather than a decision presented as a formality.
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <div class="item-title">The Play Store warning survived the rewrite and still cites its source</div>
+        <span class="badge fixed">Confirmed clean</span>
+      </div>
+      <div class="item-body">
+        The original step's warning against the Play Store's "Termux" listing (an abandoned, years-stale build) is preserved inside sub-step (a) as the "not fine either way" line, still attributed to <code>plan.html</code> section 08 rather than restated as an unsourced claim — this is the same fact plan.html section 08 itself documents, just relocated into the decision block where it's actually relevant (right next to the two options it rules out a third alternative to), not dropped during the restructuring.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check — update the badges here by hand if anything regresses, or
+    ask Claude for another review. See <code>17.html</code> for the review that added the Claude/You tagging
+    this edit builds on, and <code>CLAUDE.md</code>'s "New pages *and* page updates get a numbered security
+    &amp; quality review" section for the rule this review exists to satisfy.
+  </footer>
+
+</div>
+</body>
+</html>
