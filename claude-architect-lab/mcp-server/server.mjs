@@ -8,14 +8,14 @@ import * as getClientProgressTool from "../src/tools/get-client-progress.mjs";
 import * as gapAnalysisTool from "../src/tools/gap-analysis.mjs";
 import * as clientGapAnalysisTool from "../src/tools/client-gap-analysis.mjs";
 import * as updateChecklistItemTool from "../src/tools/update-checklist-item.mjs";
+import * as evaluateChangeImpactTool from "../src/tools/evaluate-change-impact.mjs";
 
 import { loadStateDataset, loadClientDataset } from "../src/lib/load-data.mjs";
 
 // validate-expansion-checklist.mjs and validate-client-checklist.mjs are
 // deliberately NOT registered below — study/plan.html section 07 and
 // study/build-plan.html's Session 3 both call out that the deterministic
-// "verify" tools stay internal, never exposed as MCP tools. evaluate-
-// change-impact.mjs (the Session 8 stretch tool) doesn't exist yet.
+// "verify" tools stay internal, never exposed as MCP tools.
 const TOOLS = [
   {
     name: getStateRequirementsTool.name,
@@ -58,6 +58,12 @@ const TOOLS = [
     description: updateChecklistItemTool.description,
     inputSchema: updateChecklistItemTool.inputSchema,
     handler: updateChecklistItemTool.updateChecklistItem,
+  },
+  {
+    name: evaluateChangeImpactTool.name,
+    description: evaluateChangeImpactTool.description,
+    inputSchema: evaluateChangeImpactTool.inputSchema,
+    handler: evaluateChangeImpactTool.evaluateChangeImpact,
   },
 ];
 

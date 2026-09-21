@@ -18,12 +18,13 @@ function parseToolText(result) {
   return JSON.parse(result.content[0].text);
 }
 
-test("lists exactly the seven Session 2/3 tools — not the internal validate-*.mjs ones", async () => {
+test("lists exactly the eight Session 2/3/8 tools — not the internal validate-*.mjs ones", async () => {
   const client = await connectedClient();
   const { tools } = await client.listTools();
   const names = tools.map((t) => t.name).sort();
   assert.deepEqual(names, [
     "client_gap_analysis",
+    "evaluate_change_impact",
     "gap_analysis",
     "get_client",
     "get_client_progress",
@@ -130,6 +131,20 @@ test("update_checklist_item: mutates through the real protocol and is idempotent
     },
   });
   assert.equal(parseToolText(second).changed, false);
+});
+
+test("evaluate_change_impact: Quickship's pending owner addition over the real protocol", async () => {
+  const client = await connectedClient();
+  const result = await client.callTool({
+    name: "evaluate_change_impact",
+    arguments: { clientId: "quickship-financial" },
+  });
+  const parsed = parseToolText(result);
+  assert.equal(parsed.change.type, "new_control_person");
+  assert.deepEqual(
+    parsed.touchedStates.map((t) => t.state).sort(),
+    ["Arizona", "Colorado", "Georgia", "Washington"],
+  );
 });
 
 test("resource mtl://dataset returns the full state dataset up front", async () => {

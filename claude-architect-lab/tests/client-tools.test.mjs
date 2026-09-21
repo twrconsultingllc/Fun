@@ -21,6 +21,7 @@ import { clientGapAnalysis } from "../src/tools/client-gap-analysis.mjs";
 import { validateExpansionChecklist } from "../src/tools/validate-expansion-checklist.mjs";
 import { validateClientChecklist } from "../src/tools/validate-client-checklist.mjs";
 import { updateChecklistItem } from "../src/tools/update-checklist-item.mjs";
+import { evaluateChangeImpact } from "../src/tools/evaluate-change-impact.mjs";
 
 test("get-client: returns the full case file for a known client", () => {
   const result = getClient({ clientId: "meridian-payments" });
@@ -158,6 +159,47 @@ test("client-gap-analysis: unknown client id returns the get-client not-found sh
 
 test("client-gap-analysis: unknown state returns the get-state-requirements unknown shape", () => {
   const result = clientGapAnalysis({ clientId: "meridian-payments", state: "Wakanda" });
+  assert.equal(result.found, false);
+});
+
+// evaluate-change-impact.mjs is the Session 8 stretch tool and the only
+// exercise of query type 2 from plan.html section 06 ("ongoing client,
+// change in circumstances") — types 1 and 3 are already covered above, by
+// client-gap-analysis (Northstar) and get-client-progress (Meridian) in
+// turn. It's deliberately "thin": it names which states Quickship currently
+// touches and repeats the raw facts about the pending change, but never
+// claims to know which of those states' rules the change actually trips.
+test("evaluate-change-impact: Quickship's pending owner addition — plan.html's own example question", () => {
+  const result = evaluateChangeImpact({ clientId: "quickship-financial" });
+  assert.equal(result.found, true);
+  assert.equal(result.change.type, "new_control_person");
+
+  const byState = Object.fromEntries(result.touchedStates.map((t) => [t.state, t]));
+  assert.equal(byState.Washington.relationship, "currently_licensed");
+  assert.equal(byState.Colorado.relationship, "currently_licensed");
+  assert.equal(byState.Arizona.relationship, "active_engagement");
+  assert.equal(byState.Arizona.engagementStatus, "submitted");
+  assert.equal(byState.Georgia.relationship, "active_engagement");
+  assert.equal(byState.Georgia.engagementStatus, "under_regulator_review");
+});
+
+test("evaluate-change-impact: a client with no pending changes is explicit, not an empty crash", () => {
+  const result = evaluateChangeImpact({ clientId: "meridian-payments" });
+  assert.equal(result.found, true);
+  assert.equal(result.change, null);
+  assert.deepEqual(result.touchedStates, []);
+  assert.match(result.message, /no pending changes/i);
+});
+
+test("evaluate-change-impact: an out-of-range changeIndex is explicit, not a crash", () => {
+  const result = evaluateChangeImpact({ clientId: "quickship-financial", changeIndex: 5 });
+  assert.equal(result.found, true);
+  assert.equal(result.change, null);
+  assert.match(result.message, /no pending change at index 5/i);
+});
+
+test("evaluate-change-impact: unknown client id is explicit, not a crash", () => {
+  const result = evaluateChangeImpact({ clientId: "nope" });
   assert.equal(result.found, false);
 });
 
