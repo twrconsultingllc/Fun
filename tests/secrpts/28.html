@@ -176,8 +176,8 @@
       <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
       <span><span class="dot open"></span> Open</span>
     </div>
-    <div class="progress-bar"><div class="progress-fill" style="width: 67%;"></div></div>
-    <div class="progress-label">6 items: 4 verified clean, 2 open (one accepted trade-off, one that needs the next live run).</div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 83%;"></div></div>
+    <div class="progress-label">6 items: 1 fixed after the first live run, 4 verified clean, 1 open (an accepted trade-off).</div>
   </header>
 
   <section>
@@ -199,8 +199,9 @@
   <section>
     <h2><span class="num">02</span>Correctness &amp; accessibility</h2>
     <div class="item">
-      <div class="item-head"><div class="item-title">13 new feeds, most not yet confirmed</div><span class="badge open">Open</span></div>
-      <div class="item-body">The four Google News searches (Naples; Bonita Springs &amp; Estero; Collier County with Marco Island, Immokalee and Golden Gate Estates; Lee County with Fort Myers, Cape Coral, Sanibel and Lehigh Acres) all end in <code>when:7d</code>, and each keeps up to 10 items. The NWS feed uses county zones <code>FLC021</code> (Collier) and <code>FLC071</code> (Lee). The eight direct feeds are the ones most likely to be dead or moved: WINK, Fox 4, WGCU, Gulfshore Business, Coastal Breeze News, the Naples Daily News and News-Press legacy Gannett feeds, and the City of Naples news flash. None of them could be fetched from the claude.ai container. The next workflow run reports each one in the footer's Feed status, and dead ones get removed in a follow-up.</div>
+      <div class="item-head"><div class="item-title">13 new feeds, most not yet confirmed</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">The four Google News searches (Naples; Bonita Springs &amp; Estero; Collier County with Marco Island, Immokalee and Golden Gate Estates; Lee County with Fort Myers, Cape Coral, Sanibel and Lehigh Acres) all end in <code>when:7d</code>, and each keeps up to 10 items. The NWS feed uses county zones <code>FLC021</code> (Collier) and <code>FLC071</code> (Lee). The eight direct feeds are the ones most likely to be dead or moved: WINK, Fox 4, WGCU, Gulfshore Business, Coastal Breeze News, the Naples Daily News and News-Press legacy Gannett feeds, and the City of Naples news flash. None of them could be fetched from the claude.ai container. The next workflow run reports each one in the footer's Feed status, and dead ones get removed in a follow-up.
+        <div class="fix-note"><b>Fixed (2026-09-26, after the first SW FL run, commit <code>4b388fa</code>):</b> all four Google News searches returned 10 items each, and between them they already carry WINK News, Naples Daily News, The News-Press, Marco Eagle, Gulf Coast News, WGCU, Florida Weekly and Gulfshore Business. All eight direct feeds failed: WINK, Fox 4, WGCU and Gulfshore Business returned HTTP 404, Coastal Breeze returned 429, the two Gannett URLs returned pages that weren't feeds, and City of Naples returned 403. All eight are removed. The NWS Collier/Lee feed "failed" with "no usable items" only because no alerts were active. Both NWS feeds now use a new <code>mayBeEmpty</code> option, so an empty alert feed counts as OK with 0 items and old, expired alerts aren't kept (tested). The searches now also exclude <code>nfhsnetwork.com</code>, <code>maxpreps.com</code> and <code>legacy.com</code>, which had added high school sports streams and obituaries. SW FL is now 5 feeds.</div></div>
     </div>
     <div class="item">
       <div class="item-head"><div class="item-title">Colour contrast for the new category</div><span class="badge fixed">Confirmed clean</span></div>

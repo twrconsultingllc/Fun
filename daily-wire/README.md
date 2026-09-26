@@ -51,10 +51,15 @@ Optional flags:
   Aggregators such as Google News use this.
 - `"maxItems": 10` keeps up to 10 items from this feed instead of the
   default `maxItemsPerFeed` (6).
+- `"mayBeEmpty": true` treats an empty feed as OK rather than failed, and
+  shows nothing for it. Weather-alert feeds use this, because "no active
+  alerts" is normal.
 
 A Google News search feed is
 `https://news.google.com/rss/search?q=<url-encoded query>&hl=en-US&gl=US&ceid=US:en`.
-The SW FL searches end their query with `when:7d` to keep results recent. Their
+The SW FL searches exclude high school sports streams and obituary sites
+(`-site:nfhsnetwork.com -site:maxpreps.com -site:legacy.com`) and end their
+query with `when:7d` to keep results recent. Their
 card links go through `news.google.com` before reaching the story.
 
 A YouTube channel's feed is

@@ -38,19 +38,11 @@
   "images-assets.nasa.gov"
  ],
  "feeds": [
-  { "id": "gn-naples", "source": "Google News: Naples", "url": "https://news.google.com/rss/search?q=%22Naples%2C%20FL%22%20OR%20%22Naples%2C%20Florida%22%20OR%20%22Naples%20Daily%20News%22%20when%3A7d&hl=en-US&gl=US&ceid=US:en", "category": "swfl", "sourceFromItem": true, "noSummary": true, "noImages": true, "maxItems": 10 },
-  { "id": "gn-bonita", "source": "Google News: Bonita Springs & Estero", "url": "https://news.google.com/rss/search?q=%22Bonita%20Springs%22%20OR%20%22Estero%2C%20FL%22%20OR%20%22Estero%2C%20Florida%22%20when%3A7d&hl=en-US&gl=US&ceid=US:en", "category": "swfl", "sourceFromItem": true, "noSummary": true, "noImages": true, "maxItems": 10 },
-  { "id": "gn-collier", "source": "Google News: Collier County", "url": "https://news.google.com/rss/search?q=%22Collier%20County%22%20OR%20%22Marco%20Island%22%20OR%20Immokalee%20OR%20%22Golden%20Gate%20Estates%22%20when%3A7d&hl=en-US&gl=US&ceid=US:en", "category": "swfl", "sourceFromItem": true, "noSummary": true, "noImages": true, "maxItems": 10 },
-  { "id": "gn-lee", "source": "Google News: Lee County", "url": "https://news.google.com/rss/search?q=%22Lee%20County%2C%20FL%22%20OR%20%22Lee%20County%2C%20Florida%22%20OR%20%22Fort%20Myers%22%20OR%20%22Cape%20Coral%22%20OR%20Sanibel%20OR%20%22Lehigh%20Acres%22%20when%3A7d&hl=en-US&gl=US&ceid=US:en", "category": "swfl", "sourceFromItem": true, "noSummary": true, "noImages": true, "maxItems": 10 },
-  { "id": "wink", "category": "swfl", "source": "WINK News", "url": "https://www.winknews.com/feed/" },
-  { "id": "fox4-swfl", "category": "swfl", "source": "Fox 4 Southwest Florida", "url": "https://www.fox4now.com/news/local-news.rss" },
-  { "id": "wgcu", "category": "swfl", "source": "WGCU", "url": "https://www.wgcu.org/news.rss" },
-  { "id": "gulfshore-biz", "category": "swfl", "source": "Gulfshore Business", "url": "https://www.gulfshorebusiness.com/feed/" },
-  { "id": "coastal-breeze", "category": "swfl", "source": "Coastal Breeze News", "url": "https://coastalbreezenews.com/feed/" },
-  { "id": "naples-news", "category": "swfl", "source": "Naples Daily News", "url": "https://rssfeeds.naplesnews.com/naples/home", "paywall": true },
-  { "id": "news-press", "category": "swfl", "source": "The News-Press", "url": "https://rssfeeds.news-press.com/fmp/home", "paywall": true },
-  { "id": "naples-city", "category": "swfl", "source": "City of Naples", "url": "https://www.naplesgov.com/RSSFeed.aspx?ModID=1&CID=All-newsflash.xml" },
-  { "id": "nws-swfl", "category": "swfl", "source": "NWS alerts: Collier & Lee", "url": "https://api.weather.gov/alerts/active.atom?zone=FLC021,FLC071" },
+  { "id": "gn-naples", "source": "Google News: Naples", "url": "https://news.google.com/rss/search?q=%22Naples%2C%20FL%22%20OR%20%22Naples%2C%20Florida%22%20OR%20%22Naples%20Daily%20News%22%20-site%3Anfhsnetwork.com%20-site%3Amaxpreps.com%20-site%3Alegacy.com%20when%3A7d&hl=en-US&gl=US&ceid=US:en", "category": "swfl", "sourceFromItem": true, "noSummary": true, "noImages": true, "maxItems": 10 },
+  { "id": "gn-bonita", "source": "Google News: Bonita Springs & Estero", "url": "https://news.google.com/rss/search?q=%22Bonita%20Springs%22%20OR%20%22Estero%2C%20FL%22%20OR%20%22Estero%2C%20Florida%22%20-site%3Anfhsnetwork.com%20-site%3Amaxpreps.com%20-site%3Alegacy.com%20when%3A7d&hl=en-US&gl=US&ceid=US:en", "category": "swfl", "sourceFromItem": true, "noSummary": true, "noImages": true, "maxItems": 10 },
+  { "id": "gn-collier", "source": "Google News: Collier County", "url": "https://news.google.com/rss/search?q=%22Collier%20County%22%20OR%20%22Marco%20Island%22%20OR%20Immokalee%20OR%20%22Golden%20Gate%20Estates%22%20-site%3Anfhsnetwork.com%20-site%3Amaxpreps.com%20-site%3Alegacy.com%20when%3A7d&hl=en-US&gl=US&ceid=US:en", "category": "swfl", "sourceFromItem": true, "noSummary": true, "noImages": true, "maxItems": 10 },
+  { "id": "gn-lee", "source": "Google News: Lee County", "url": "https://news.google.com/rss/search?q=%22Lee%20County%2C%20FL%22%20OR%20%22Lee%20County%2C%20Florida%22%20OR%20%22Fort%20Myers%22%20OR%20%22Cape%20Coral%22%20OR%20Sanibel%20OR%20%22Lehigh%20Acres%22%20-site%3Anfhsnetwork.com%20-site%3Amaxpreps.com%20-site%3Alegacy.com%20when%3A7d&hl=en-US&gl=US&ceid=US:en", "category": "swfl", "sourceFromItem": true, "noSummary": true, "noImages": true, "maxItems": 10 },
+  { "id": "nws-swfl", "mayBeEmpty": true, "category": "swfl", "source": "NWS alerts: Collier & Lee", "url": "https://api.weather.gov/alerts/active.atom?zone=FLC021,FLC071" },
 
   { "id": "bbc-world", "category": "news", "source": "BBC News", "url": "https://feeds.bbci.co.uk/news/world/rss.xml" },
   { "id": "bbc-us", "category": "news", "source": "BBC US & Canada", "url": "https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml" },
@@ -84,7 +76,7 @@
   { "id": "schneier", "category": "security", "source": "Schneier on Security", "url": "https://www.schneier.com/feed/atom/" },
 
   { "id": "usgs", "category": "live", "source": "USGS Earthquakes", "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.atom" },
-  { "id": "nws-fl", "category": "live", "source": "NWS Florida alerts", "url": "https://api.weather.gov/alerts/active.atom?area=FL" },
+  { "id": "nws-fl", "mayBeEmpty": true, "category": "live", "source": "NWS Florida alerts", "url": "https://api.weather.gov/alerts/active.atom?area=FL" },
 
   { "id": "xkcd", "category": "fun", "source": "xkcd", "url": "https://xkcd.com/atom.xml" },
   { "id": "veritasium", "category": "fun", "source": "Veritasium", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCHnyfMqiRRG1u-2MsSQLbXA" },

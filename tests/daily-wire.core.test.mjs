@@ -52,6 +52,9 @@ export default async function run(t) {
     t.ok('every Google News search is limited to the last 7 days', gnFeeds.every((f) => new URL(f.url).searchParams.get('q').endsWith(' when:7d')));
     t.ok('Google News feeds name the real publisher and skip summaries and images', gnFeeds.every((f) => f.sourceFromItem && f.noSummary && f.noImages));
     t.ok('SW FL weather alerts cover Collier (FLC021) and Lee (FLC071) counties', swfl.some((f) => f.url === 'https://api.weather.gov/alerts/active.atom?zone=FLC021,FLC071'));
+    t.ok('Google News searches exclude sports streams and obituary sites', gnFeeds.every((f) => ['-site:nfhsnetwork.com', '-site:maxpreps.com', '-site:legacy.com'].every((x) => new URL(f.url).searchParams.get('q').includes(x))));
+    t.eq('SW FL is the four searches plus Collier/Lee alerts (direct feeds that 404ed on 2026-09-26 removed)', swfl.map((f) => f.id).join(','), 'gn-naples,gn-bonita,gn-collier,gn-lee,nws-swfl');
+    t.ok('both NWS alert feeds may be empty', config.feeds.filter((f) => f.url.startsWith('https://api.weather.gov/')).every((f) => f.mayBeEmpty === true));
 
     t.section('RSS with media:thumbnail, content:encoded and guid');
     let dropped = {};
@@ -178,6 +181,11 @@ export default async function run(t) {
     t.eq('run 2: flaky feed status says why', run2.data.feeds[1].error, 'timed out');
     t.ok('only timestamps differ between identical runs → no commit', m.contentKey(run1.data) !== m.contentKey(run2.data)
         && m.contentKey(run1.data) === m.contentKey({ ...run1.data, generatedAt: 'x', feeds: run1.data.feeds.map((f) => ({ ...f, checkedAt: 'y' })) }));
+    const emptyDoc = '<feed xmlns="http://www.w3.org/2005/Atom"><title>No active alerts</title></feed>';
+    const alerts = await m.build({ ...cfg, feeds: [feed('alerts', { mayBeEmpty: true }), feed('strict')] }, { items: [{ ...run1.data.items[0], id: 'aaaaaaaaaaaa', feed: 'alerts' }, { ...run1.data.items[0], id: 'bbbbbbbbbbbb', feed: 'strict' }] }, { now: NOW, fetcher: async () => emptyDoc });
+    t.eq('mayBeEmpty: an empty alerts feed is OK with 0 items', alerts.data.feeds[0].ok + '/' + alerts.data.feeds[0].count, 'true/0');
+    t.ok('mayBeEmpty: expired alerts from the last run are not kept', !alerts.data.items.some((i) => i.feed === 'alerts'));
+    t.eq('without mayBeEmpty, an empty feed still fails and keeps its last items', alerts.data.feeds[1].ok + '/' + alerts.data.items.filter((i) => i.feed === 'strict').length, 'false/1');
     const paid = await m.build({ ...cfg, feeds: [feed('good', { paywall: true })] }, null, { now: NOW, fetcher: async () => docs.good });
     t.ok('paywall flag carried into the feed status', paid.data.feeds[0].paywall === true);
     t.ok('dropped image hosts listed in the output', Array.isArray(run1.data.imageHostsDropped));
