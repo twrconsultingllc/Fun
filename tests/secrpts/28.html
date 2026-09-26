@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #28 — daily-wire.html SW FL category</title>
+<meta name="description" content="Security and code-quality review of the SW FL (Southwest Florida) category added to daily-wire.html: 13 local feeds including four Google News searches, and the fetcher options they use.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #28 — <code>daily-wire.html</code> SW FL category</h1>
+    <p class="sub">A new first category, <b>SW FL</b>, for Southwest Florida news centered on Naples and Bonita Springs and covering all of Collier and Lee counties. It draws on 13 feeds: four Google News searches, NWS alerts for both counties, and eight local outlets and city feeds. To support the searches, the fetcher gains two per-feed options: <code>sourceFromItem</code>, which shows the real publisher, and <code>maxItems</code>.</p>
+    <div class="meta">Review performed 2026-09-26 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>daily-wire.html</code> (category, colour tokens, alert panel, description), <code>daily-wire/feeds.config.json</code>, <code>daily-wire/fetch-feeds.mjs</code>, <code>daily-wire/README.md</code>, <code>tests/daily-wire.*.test.mjs</code>, <code>tests/fixtures/daily-wire/google-news.xml</code>, <code>tests/README.md</code> · follows: <a href="27.html">27.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 67%;"></div></div>
+    <div class="progress-label">6 items: 4 verified clean, 2 open (one accepted trade-off, one that needs the next live run).</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No new outside origins on the page</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">The page's CSP is unchanged: <code>connect-src 'self'</code>, and <code>img-src</code> still lists the same 21 hosts. The new category adds no image hosts, because the Google News feeds are set to <code>noImages</code> and the local outlets' picture hosts are left for the next run to report in <code>imageHostsDropped</code>. Every card still goes through the page's own validation: <code>http(s)</code> links only, <code>textContent</code> only, and a known category id. The only new markup is two CSS color tokens and one class.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Google News links tell Google which stories are opened</div><span class="badge open">Open</span></div>
+      <div class="item-body">It's an accepted trade-off, and the user chose it knowing this. Google News search feeds link to <code>news.google.com/rss/articles/…</code>, which redirects to the publisher, so Google sees each click on those cards. <code>rel="noopener noreferrer"</code> and <code>no-referrer</code> still apply, so Google doesn't learn which page the click came from. These feeds are the only practical source for the Gannett papers (Naples Daily News, The News-Press, Marco Eagle), whose own feeds are unreliable. The page only renders what Google returns as plain text, the same as any other feed.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Aggregator publisher names are treated as untrusted text</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><code>sourceFromItem</code> takes each card's source from the item's <code>&lt;source&gt;</code> element. It goes through the same <code>toPlainText()</code> tag scanner as titles, is capped at 80 characters, and the page caps it at 80 again and sets it with <code>textContent</code>. The " - Publisher" suffix is removed only when the title ends with exactly that publisher, so an earlier " - " in a headline stays. Both behaviors are tested.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Correctness &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">13 new feeds, most not yet confirmed</div><span class="badge open">Open</span></div>
+      <div class="item-body">The four Google News searches (Naples; Bonita Springs &amp; Estero; Collier County with Marco Island, Immokalee and Golden Gate Estates; Lee County with Fort Myers, Cape Coral, Sanibel and Lehigh Acres) all end in <code>when:7d</code>, and each keeps up to 10 items. The NWS feed uses county zones <code>FLC021</code> (Collier) and <code>FLC071</code> (Lee). The eight direct feeds are the ones most likely to be dead or moved: WINK, Fox 4, WGCU, Gulfshore Business, Coastal Breeze News, the Naples Daily News and News-Press legacy Gannett feeds, and the City of Naples news flash. None of them could be fetched from the claude.ai container. The next workflow run reports each one in the footer's Feed status, and dead ones get removed in a follow-up.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Colour contrast for the new category</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">Computed WCAG ratios for <code>--swfl</code>, light/dark: the category label on a card is 5.65/8.92; the large source name on a no-picture card is 4.62/6.75, against a 3:1 large-text minimum; muted text on that panel is 5.08/5.47. Headless Chromium screenshots with the SW FL filter on, at 1280 px light and 390 px dark, showed no page errors and no horizontal scroll.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Tests</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><code>wire-core</code> adds a Google News sample feed: suffix removal, a real publisher, fallback when there's no <code>&lt;source&gt;</code>, summaries skipped, and <code>maxItems</code> 10 against the default 6. It also adds config checks: 9 categories with SW FL first, the four searches all limited to 7 days, and the Collier and Lee alert zones. <code>wire-dom</code> checks the SW FL chip comes first, its filter and color class, the publisher shown on cards, and the alert panel for Collier and Lee warnings. The full suite is 1263 passed, 0 failed.</div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. See <a href="27.html">27.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>

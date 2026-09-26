@@ -261,7 +261,11 @@ export function normalizeFeed(xml, feed, config, { now = Date.now(), dropped = {
         if (!it || typeof it !== 'object') continue;
         const link = safeLink(isAtom ? atomLink(it.link) : (textOf(it.link) || atomLink(it.link) || (it.guid && String(it.guid['@_isPermaLink']) !== 'false' ? it.guid : '')), feed.url);
         if (!link || seen.has(link)) continue;
-        const title = toPlainText(it.title, TITLE_MAX);
+        // Aggregator feeds (Google News) name the real publisher per item in
+        // <source>, and append " - Publisher" to every title.
+        const publisher = feed.sourceFromItem ? toPlainText(it.source, 80) : '';
+        let title = toPlainText(it.title, TITLE_MAX);
+        if (publisher && title.endsWith(' - ' + publisher)) title = title.slice(0, -(publisher.length + 3)).trim();
         if (!title) continue;
         seen.add(link);
         const group = asArray(it['media:group'])[0] || {};
@@ -280,7 +284,7 @@ export function normalizeFeed(xml, feed, config, { now = Date.now(), dropped = {
             id: itemId(link),
             feed: feed.id,
             category: feed.category,
-            source: feed.source,
+            source: publisher || feed.source,
             title,
             link,
             date: parseDate(it.pubDate || it.published || it.updated || it['dc:date'] || it['a10:updated'], now),
@@ -288,14 +292,14 @@ export function normalizeFeed(xml, feed, config, { now = Date.now(), dropped = {
             image
         });
     }
-    return selectRecent(items, config, now);
+    return selectRecent(items, config, now, feed);
 }
 
 /* Newest first; drop anything older than maxAgeDays, but always keep the
    newest few so a slow feed (a monthly YouTube channel) never vanishes.
    Undated items can't be judged stale, so they stay (sorted last). */
-export function selectRecent(items, config, now = Date.now()) {
-    const max = config.maxItemsPerFeed || 6;
+export function selectRecent(items, config, now = Date.now(), feed = {}) {
+    const max = feed.maxItems || config.maxItemsPerFeed || 6;
     const keep = config.minItemsPerFeed || 2;
     const cutoff = now - (config.maxAgeDays || 21) * 86400000;
     const sorted = [...items].sort((a, b) => (b.date || '').localeCompare(a.date || ''));

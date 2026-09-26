@@ -184,6 +184,24 @@ export default async function run(t, page) {
         W.render();
         t.ok('read cards come back when the toggle is off', $$('.card.read').length >= 30);
 
+        t.section('SW FL category');
+        W.ingest({
+            generatedAt: iso(5), refreshHours: 6, categories: config.categories, feeds: [],
+            items: [
+                { id: hex(301), feed: 'gn-naples', category: 'swfl', source: 'Naples Daily News', title: 'County approves beach plan', link: 'https://news.google.com/rss/articles/x1', date: iso(20), summary: '', image: null },
+                { id: hex(302), feed: 'nws-swfl', category: 'swfl', source: 'NWS alerts: Collier & Lee', title: 'Rip Current Statement issued September 26 by NWS Miami', link: 'https://api.weather.gov/alerts/x2', date: iso(10), summary: '', image: null },
+                { id: hex(303), feed: 'bbc-world', category: 'news', source: 'BBC News', title: 'World story', link: 'https://example.com/w', date: iso(30), summary: '', image: null }
+            ]
+        });
+        const chipLabels = $$('.chip').map((c) => c.firstChild.textContent);
+        t.eq('SW FL is the first chip after All', chipLabels.slice(0, 2).join(' | '), 'All | SW FL');
+        chip('swfl').click();
+        t.ok('SW FL chip shows only SW FL cards, with the SW FL colour class', $$('.card').length === 2 && $$('.card').every((c) => c.classList.contains('c-swfl')));
+        t.eq('card shows the real publisher', $$('.card')[1].querySelector('.meta span').textContent, 'Naples Daily News');
+        t.eq('Collier/Lee weather alert gets the alert panel', $$('.card')[0].querySelector('.panel .big').textContent, 'Rip Current Statement');
+        t.ok('the page defines a SW FL colour in both themes', (html.match(/--swfl:/g) || []).length === 2 && /\.c-swfl \{ --cat: var\(--swfl\); \}/.test(html));
+        chip('all').click();
+
         t.section('Relative time');
         const now = Date.parse('2026-09-26T18:00:00Z');
         t.eq('30 s → just now', W.ago(now - 30000, now), 'just now');
