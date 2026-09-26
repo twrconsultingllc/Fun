@@ -271,9 +271,12 @@ export function normalizeFeed(xml, feed, config, { now = Date.now(), dropped = {
         const publisher = feed.sourceFromItem ? toPlainText(it.source, 80) : '';
         let title = toPlainText(it.title, TITLE_MAX);
         if (publisher && title.endsWith(' - ' + publisher)) title = title.slice(0, -(publisher.length + 3)).trim();
-        // Skip publishers listed in config.excludeSources (case-insensitive
-        // substring), e.g. sports-stream and obituary sites in local searches.
+        // Aggregator feeds only: skip publishers listed in config.excludeSources
+        // (case-insensitive substring), e.g. sports-stream and obituary sites...
         if (publisher && excluded(publisher, config.excludeSources)) continue;
+        // ...and headlines containing a word in config.excludeTitles, for
+        // outlets that publish obituaries under their own name.
+        if (feed.sourceFromItem && excluded(title, config.excludeTitles)) continue;
         if (!title) continue;
         seen.add(link);
         const group = asArray(it['media:group'])[0] || {};

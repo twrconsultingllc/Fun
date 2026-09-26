@@ -4,6 +4,7 @@
  "minItemsPerFeed": 2,
  "maxAgeDays": 21,
  "excludeSources": ["NFHS Network", "MaxPreps", "Legacy", "obituar"],
+ "excludeTitles": ["obituary", "obituaries"],
  "categories": [
   { "id": "swfl", "label": "SW FL" },
   { "id": "news", "label": "News" },

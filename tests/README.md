@@ -35,7 +35,7 @@ not be loaded — so this drops straight into CI or a pre-push hook.
 
 ## What is covered
 
-1284 assertions across twenty-five suites.
+1287 assertions across twenty-five suites.
 
 ### `academy/` (Full Circle Academy mockup)
 

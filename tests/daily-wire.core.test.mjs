@@ -55,6 +55,7 @@ export default async function run(t) {
     // -site: exclusions turned the results into job ads and listings (2026-09-26 run da0af10).
     t.ok('Google News searches carry no -site: exclusions', gnFeeds.every((f) => !new URL(f.url).searchParams.get('q').includes('-site:')));
     t.eq('excludeSources drops sports streams and obituaries by publisher name', config.excludeSources.join('|'), 'NFHS Network|MaxPreps|Legacy|obituar');
+    t.eq('excludeTitles drops obituaries published under a news outlet\'s own name', config.excludeTitles.join('|'), 'obituary|obituaries');
     t.eq('SW FL is the four searches plus Collier/Lee alerts (direct feeds that 404ed on 2026-09-26 removed)', swfl.map((f) => f.id).join(','), 'gn-naples,gn-bonita,gn-collier,gn-lee,nws-swfl');
     t.ok('both NWS alert feeds may be empty', config.feeds.filter((f) => f.url.startsWith('https://api.weather.gov/')).every((f) => f.mayBeEmpty === true));
 
@@ -107,6 +108,10 @@ export default async function run(t) {
     const filtered = m.normalizeFeed(noisy, gnCfg, { ...config, excludeSources: ['maxpreps', 'obituar'] }, { now: NOW });
     t.eq('excludeSources drops an item by publisher (case-insensitive)', filtered.map((i) => i.source).join(','), 'Naples Daily News,gn');
     t.ok('excluded(): substring match, case-insensitive', m.excluded('Legacy obituary', ['OBITUAR']) && !m.excluded('Naples Daily News', ['MaxPreps']));
+    const obit = (await fixture('google-news')).replace('County approves new beach renourishment plan - Naples Daily News', 'Thomas Coyne Obituary - Naples Daily News');
+    const cfgT = { ...config, excludeTitles: ['obituary'] };
+    t.eq('excludeTitles drops "… Obituary" headlines from aggregator feeds', m.normalizeFeed(obit, gnCfg, cfgT, { now: NOW }).map((i) => i.title).join(' | '), 'Red tide - what to know this weekend | Headline with no publisher suffix');
+    t.eq('excludeTitles leaves ordinary feeds alone', m.normalizeFeed(obit.replace('Thomas Coyne Obituary - Naples Daily News', 'Thomas Coyne Obituary'), feed('plain-rss'), cfgT, { now: NOW }).length, 3);
     t.ok('excluded(): empty or missing list excludes nothing', !m.excluded('Anything', []) && !m.excluded('Anything', undefined));
     const many = Array.from({ length: 12 }, (_, i) => `<item><title>Story ${i}</title><link>https://news.example/${i}</link><pubDate>${new Date(NOW - i * 3600000).toUTCString()}</pubDate></item>`).join('');
     const doc = `<rss><channel>${many}</channel></rss>`;
