@@ -10,6 +10,13 @@ allows `connect-src 'self'`.
 servers. The workflow commits the file only when the headlines changed, as
 `github-actions[bot]`, and GitHub Pages redeploys the site.
 
+The top of the page is a full-width picture from the `nasa-iotd` feed
+(NASA Image of the Day), newest first, with arrows to step back through the
+last few. It uses the same vetted link and image as that item's card, so
+it needs no extra host. If the feed has no pictures, the header shrinks to
+a plain starfield band. If you rename or remove that feed in
+`feeds.config.json`, change `HERO_FEED` in `daily-wire.html` to match.
+
 ## Files
 
 | File | What it is |
