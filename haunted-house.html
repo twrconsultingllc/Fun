@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<meta name="description" content="Haunted House Explorer: search a haunted house room by room for five hidden treasures. Choose a scare level from 1 (friendly, for little kids) to 5 (terrifying, adults only).">
+<title>Haunted House Explorer</title>
+<style>
+    :root {
+        --page: #1d0f33;
+        --text: #fff7ea;
+        --dim: #d9c9ef;
+        --accent: #ff9a2e;
+        --panel: rgba(0, 0, 0, 0.45);
+        --panel-border: rgba(255, 255, 255, 0.18);
+        --wall: #ffd79a;
+        --wall2: #ffc36b;
+        --floor: #c98a4b;
+        --dark: #a0643a;
+        --trim: #8a4f24;
+        --glass: #7ec8ff;
+        --moon: #fff6b0;
+        --rug: #ff7aa8;
+        --fun: #ff5fa2;
+        --fun2: #43c6ff;
+        --web: #e8e3f5;
+        --crack: #0a0707;
+        --drip: #3d0606;
+        --emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+    }
+    body[data-level="1"] { --page: #5b2d91; --accent: #ffb13b; }
+    body[data-level="2"] {
+        --page: #3a2163; --accent: #ff9a2e;
+        --wall: #9e7cc9; --wall2: #7e5fb0; --floor: #5d3f7e; --dark: #3f2a5a; --trim: #2d1d42;
+        --glass: #2b3a7a; --moon: #f4f0c0; --rug: #d9772b;
+    }
+    body[data-level="3"] {
+        --page: #1a1030; --accent: #8fd3ff;
+        --wall: #3f3160; --wall2: #2d2248; --floor: #231a38; --dark: #150f24; --trim: #0f0a1a;
+        --glass: #1a2346; --moon: #d8d6c0; --rug: #4b1f35;
+    }
+    body[data-level="4"] {
+        --page: #0c0a0e; --accent: #d8c7a0; --dim: #b9aebf;
+        --wall: #3a3334; --wall2: #2a2426; --floor: #1a1413; --dark: #0f0b0b; --trim: #080606;
+        --glass: #121820; --moon: #b8b8a8; --rug: #3a1414;
+    }
+    body[data-level="5"] {
+        --page: #030303; --accent: #e0564a; --dim: #b0a4a4;
+        --wall: #2a1d1b; --wall2: #1a1010; --floor: #0e0808; --dark: #070404; --trim: #030202;
+        --glass: #0b0f12; --moon: #a89c8c; --rug: #2a0808;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+        background: var(--page);
+        color: var(--text);
+        font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+        line-height: 1.45;
+        transition: background 0.6s;
+    }
+    button { font: inherit; color: inherit; cursor: pointer; }
+    button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+    .hidden { display: none !important; }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 16px; }
+    .back { color: var(--dim); font-size: 0.9rem; text-decoration: none; }
+    .back:hover, .back:focus-visible { color: var(--text); text-decoration: underline; }
+
+    /* ---------- Title screen ---------- */
+    .title h1 {
+        font-size: clamp(2rem, 7vw, 3.6rem);
+        margin: 12px 0 4px;
+        color: var(--accent);
+        text-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+        letter-spacing: 0.02em;
+    }
+    .title .tagline { margin: 0 0 18px; color: var(--dim); font-size: 1.05rem; }
+    .float-ghost { display: inline-block; font-family: var(--emoji); animation: floaty 3s ease-in-out infinite; }
+    @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    .title h2 { font-size: 1.15rem; margin: 22px 0 10px; }
+    .levels {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px;
+    }
+    .level-card {
+        text-align: left;
+        background: var(--panel);
+        border: 2px solid var(--panel-border);
+        border-radius: 14px;
+        padding: 14px;
+        min-height: 150px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        transition: transform 0.15s, border-color 0.15s;
+    }
+    .level-card:hover { transform: translateY(-2px); }
+    .level-card[aria-pressed="true"] { border-color: var(--accent); background: rgba(0, 0, 0, 0.6); }
+    .level-card .ghosts { font-family: var(--emoji); font-size: 1.3rem; letter-spacing: 2px; }
+    .level-card .lv-name { font-weight: 700; font-size: 1.05rem; }
+    .level-card .lv-age { font-size: 0.82rem; color: var(--accent); font-weight: 700; }
+    .level-card .lv-blurb { font-size: 0.88rem; color: var(--dim); }
+    .level-card[data-lv="5"] .lv-age { color: #ff8a80; }
+    .start-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 20px; }
+    .big-btn {
+        background: var(--accent);
+        color: #1a0d00;
+        border: none;
+        border-radius: 999px;
+        padding: 14px 28px;
+        font-size: 1.2rem;
+        font-weight: 800;
+        box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+    }
+    .big-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35); }
+    .pill {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 0.92rem;
+    }
+    .note {
+        margin-top: 22px;
+        background: var(--panel);
+        border-left: 4px solid var(--accent);
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 0.88rem;
+        color: var(--dim);
+    }
+    .note b { color: var(--text); }
+    .warn-line { margin: 12px 0 0; font-size: 0.92rem; color: #ffd0c8; }
+
+    /* ---------- Age gate ---------- */
+    .modal-back {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.82);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        z-index: 30;
+    }
+    .modal {
+        background: #140606;
+        color: #f7e9e6;
+        border: 2px solid #7a1c14;
+        border-radius: 14px;
+        max-width: 460px;
+        padding: 20px 22px;
+    }
+    .modal h2 { margin: 0 0 8px; color: #ff8a80; }
+    .modal ul { padding-left: 20px; margin: 8px 0 14px; }
+    .modal .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .modal .yes { background: #b3261e; color: #fff; border: none; border-radius: 999px; padding: 10px 18px; font-weight: 700; }
+    .modal .no { background: #2a2a2a; color: #fff; border: 1px solid #555; border-radius: 999px; padding: 10px 18px; font-weight: 700; }
+
+    /* ---------- Game ---------- */
+    .hud {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px 14px;
+        margin-bottom: 10px;
+    }
+    .hud .lv { font-weight: 700; }
+    .hud .lv small { color: var(--dim); font-weight: 400; }
+    .slots { font-family: var(--emoji); font-size: 1.5rem; letter-spacing: 3px; }
+    .slots .slot { opacity: 0.22; filter: grayscale(1); transition: opacity 0.3s, filter 0.3s; }
+    .slots .slot.got { opacity: 1; filter: none; }
+    .hud-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+    .room-title { margin: 4px 0 2px; font-size: 1.35rem; color: var(--accent); }
+    .room-desc { margin: 0 0 10px; color: var(--dim); min-height: 2.9em; }
+
+    .scene-box { position: relative; width: min(100%, calc(54vh * 1.6)); margin: 0 auto; }
+    .scene {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 3px solid rgba(0, 0, 0, 0.5);
+        background: linear-gradient(180deg, var(--wall), var(--wall2));
+        touch-action: manipulation;
+        --fx: 50%;
+        --fy: 50%;
+        --r: 200px;
+    }
+    .art { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .scene[data-room="library"] .art { filter: hue-rotate(-28deg) saturate(0.9); }
+    .scene[data-room="kitchen"] .art { filter: hue-rotate(40deg); }
+    .scene[data-room="nursery"] .art { filter: hue-rotate(-70deg); }
+    .scene[data-room="attic"] .art { filter: hue-rotate(15deg) brightness(0.92); }
+    .scene[data-room="basement"] .art { filter: saturate(0.6) brightness(0.8); }
+    .a-floor { fill: var(--floor); }
+    .a-dark { fill: var(--dark); }
+    .a-trim { fill: var(--trim); }
+    .a-glass { fill: var(--glass); }
+    .a-moon { fill: var(--moon); }
+    .a-rug { fill: var(--rug); opacity: 0.85; }
+    .a-line { stroke: var(--trim); stroke-width: 0.8; fill: none; }
+    .a-fun { fill: var(--fun); }
+    .a-fun2 { fill: var(--fun2); }
+    .a-web { stroke: var(--web); stroke-width: 0.35; fill: none; opacity: 0.8; }
+    .a-crack { stroke: var(--crack); stroke-width: 0.6; fill: none; }
+    .a-drip { fill: var(--drip); }
+
+    .hotspot {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        background: transparent;
+        border: none;
+        border-radius: 12px;
+        padding: 2px 4px;
+        min-width: 48px;
+        min-height: 48px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        line-height: 1.05;
+        z-index: 2;
+    }
+    .hotspot .hs-emoji {
+        font-family: var(--emoji);
+        font-size: clamp(26px, 5.4vw, 52px);
+        filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.4));
+        transition: transform 0.15s;
+    }
+    .hotspot:hover .hs-emoji, .hotspot:focus-visible .hs-emoji { transform: scale(1.15) rotate(-4deg); }
+    .hotspot .hs-label {
+        font-size: clamp(10px, 1.6vw, 13px);
+        font-weight: 700;
+        color: #fff;
+        background: rgba(0, 0, 0, 0.55);
+        padding: 1px 6px;
+        border-radius: 6px;
+        margin-top: 2px;
+        white-space: nowrap;
+    }
+    .hotspot.searched .hs-emoji { opacity: 0.55; }
+    .hotspot.searched .hs-label::after { content: " ✓"; }
+    .hotspot.door .hs-emoji { font-size: clamp(34px, 7vw, 66px); }
+
+    .dark {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 3;
+        background: radial-gradient(circle var(--r) at var(--fx) var(--fy), rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 42%, rgba(0, 0, 0, var(--dk, 0.95)) 100%);
+    }
+    .toast {
+        position: absolute;
+        left: 50%;
+        top: 8%;
+        transform: translateX(-50%);
+        z-index: 4;
+        background: #fff;
+        color: #2b1450;
+        font-weight: 700;
+        border-radius: 16px;
+        padding: 8px 14px;
+        max-width: 86%;
+        text-align: center;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+        animation: pop 0.25s ease-out;
+    }
+    .toast .t-emoji { font-family: var(--emoji); font-size: 1.6rem; display: block; }
+    @keyframes pop { from { transform: translateX(-50%) scale(0.6); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
+    .scene.flicker .art { animation: flicker 1.2s linear 1; }
+    @keyframes flicker { 0%, 100% { opacity: 1; } 30% { opacity: 0.35; } 55% { opacity: 1; } 75% { opacity: 0.45; } }
+
+    .message {
+        margin: 12px auto 0;
+        max-width: 860px;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 12px;
+        padding: 12px 16px;
+        min-height: 3.2em;
+        font-size: 1.05rem;
+    }
+    body[data-level="1"] .message, body[data-level="2"] .message { font-size: 1.15rem; }
+    .whisper { margin: 8px auto 0; max-width: 860px; min-height: 1.5em; font-style: italic; color: var(--accent); text-align: center; }
+    .exits { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 12px; }
+    .exit-btn {
+        background: var(--panel);
+        border: 2px solid var(--panel-border);
+        border-radius: 999px;
+        padding: 10px 18px;
+        font-weight: 700;
+        min-height: 44px;
+    }
+    .exit-btn:hover { border-color: var(--accent); }
+    .dread { max-width: 420px; margin: 12px auto 0; }
+    .dread-label { font-size: 0.85rem; color: var(--dim); display: flex; justify-content: space-between; }
+    .dread-bar { height: 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+    .dread-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #6d5a3a, #c9453a); transition: width 0.4s; }
+    .hide-panel { text-align: center; margin-top: 12px; }
+    .hide-btn {
+        background: #c9453a;
+        color: #fff;
+        border: none;
+        border-radius: 999px;
+        padding: 16px 36px;
+        font-size: 1.4rem;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        animation: pulse 0.6s ease-in-out infinite alternate;
+    }
+    @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.07); } }
+
+    /* ---------- Scares ---------- */
+    .scare {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        padding: 0;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.7);
+    }
+    .scare svg { width: min(90vw, 90vh); height: min(90vw, 90vh); }
+    .scare.boo svg { animation: boo 0.45s ease-out; }
+    .scare.face { background: #000; }
+    .scare.face svg { animation: lunge 0.18s ease-out, shake 0.12s linear 0.18s 6; }
+    @keyframes boo { from { transform: scale(0.2) rotate(-10deg); } to { transform: scale(1) rotate(0); } }
+    @keyframes lunge { from { transform: scale(0.3); } to { transform: scale(1.12); } }
+    @keyframes shake { 0% { transform: scale(1.12) translate(0, 0); } 25% { transform: scale(1.12) translate(-6px, 3px); } 50% { transform: scale(1.12) translate(5px, -4px); } 75% { transform: scale(1.12) translate(-3px, -2px); } 100% { transform: scale(1.12) translate(0, 0); } }
+
+    /* ---------- Win ---------- */
+    .win { text-align: center; padding-top: 30px; }
+    .win .big-emoji { font-family: var(--emoji); font-size: 5rem; display: block; }
+    .win h1 { color: var(--accent); margin: 8px 0; }
+    .win p { font-size: 1.15rem; max-width: 640px; margin: 10px auto; }
+    .win .stats { color: var(--dim); font-size: 0.95rem; }
+    .win .start-row { justify-content: center; }
+    .confetti { font-family: var(--emoji); font-size: 2rem; letter-spacing: 8px; }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+    @media (max-width: 560px) {
+        .hotspot .hs-label { display: none; }
+        .hotspot:focus-visible .hs-label { display: block; }
+    }
+</style>
+</head>
+<body data-level="1">
+
+<!-- ================= Title ================= -->
+<main id="title-screen" class="wrap title">
+    <a class="back" href="index.html">← Back to the arcade</a>
+    <h1><span class="float-ghost" aria-hidden="true">👻</span> Haunted House Explorer</h1>
+    <p class="tagline">Search every room. Find the five hidden treasures. Get out of the house.</p>
+
+    <h2 id="lv-heading">How scary should it be?</h2>
+    <div class="levels" id="levels" role="group" aria-labelledby="lv-heading"></div>
+    <p class="warn-line" id="level-warning" aria-live="polite"></p>
+
+    <div class="start-row">
+        <button class="big-btn" id="start-btn" type="button">Enter the house</button>
+        <button class="pill sound-toggle" type="button" aria-pressed="true">🔊 Sound on</button>
+    </div>
+
+    <div class="note">
+        <b>Grown-ups:</b> the game always opens on level 1. Level 4 has jump scares and loud sudden sounds;
+        level 5 is real horror and asks for age confirmation first. Levels 4 and 5 also have brief light flickers.
+        If your device is set to reduce motion, the flicker and shake effects are turned off.
+    </div>
+</main>
+
+<!-- ================= Age gate ================= -->
+<div id="age-gate" class="modal-back hidden">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="gate-title" aria-describedby="gate-body">
+        <h2 id="gate-title">Level 5 is for adults only</h2>
+        <div id="gate-body">
+            <p>This level is intense horror. It is not for children.</p>
+            <ul>
+                <li>Disturbing themes and descriptions</li>
+                <li>Frequent jump scares with loud, sudden screams</li>
+                <li>Flickering light effects</li>
+                <li>Something hunts you, and it can catch you</li>
+            </ul>
+            <p>Are you 18 or older, with no young kids watching?</p>
+        </div>
+        <div class="row">
+            <button class="yes" id="gate-yes" type="button">I'm 18+, scare me</button>
+            <button class="no" id="gate-no" type="button">No, go back</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= Game ================= -->
+<main id="game-screen" class="wrap hidden">
+    <div class="hud">
+        <div class="lv" id="hud-level"></div>
+        <div class="slots" id="slots" role="img" aria-label=""></div>
+        <div class="hud-btns">
+            <button class="pill" id="hint-btn" type="button">💡 Hint</button>
+            <button class="pill sound-toggle" type="button" aria-pressed="true">🔊 Sound on</button>
+            <button class="pill" id="quit-btn" type="button">🏠 Leave</button>
+        </div>
+    </div>
+    <h2 class="room-title" id="room-title"></h2>
+    <p class="room-desc" id="room-desc"></p>
+    <div class="scene-box">
+        <div class="scene" id="scene">
+            <svg class="art" id="art" viewBox="0 0 160 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+            <div id="hotspots"></div>
+            <div class="dark hidden" id="dark"></div>
+            <div class="toast hidden" id="toast" aria-hidden="true"></div>
+        </div>
+    </div>
+    <p class="message" id="message" aria-live="polite"></p>
+    <p class="whisper" id="whisper" aria-live="polite"></p>
+    <div class="hide-panel hidden" id="hide-panel">
+        <button class="hide-btn" id="hide-btn" type="button">HIDE!</button>
+    </div>
+    <div class="dread hidden" id="dread">
+        <div class="dread-label"><span id="dread-name">Danger</span><span id="dread-pct">0%</span></div>
+        <div class="dread-bar"><div class="dread-fill" id="dread-fill"></div></div>
+    </div>
+    <nav class="exits" id="exits" aria-label="Go to another room"></nav>
+</main>
+
+<!-- ================= Win ================= -->
+<main id="win-screen" class="wrap win hidden">
+    <span class="big-emoji" id="win-emoji" aria-hidden="true"></span>
+    <h1 id="win-title"></h1>
+    <p id="win-text"></p>
+    <p class="stats" id="win-stats"></p>
+    <div class="confetti" id="confetti" aria-hidden="true"></div>
+    <div class="start-row">
+        <button class="big-btn" id="again-btn" type="button">Play again</button>
+        <button class="pill" id="change-btn" type="button">Change scare level</button>
+    </div>
+</main>
+
+<button class="scare hidden" id="scare" type="button" aria-label="Close"></button>
+
+<script>
+(function () {
+    'use strict';
+
+    const GOAL = 5;
+
+    /* ------------------------------------------------------------------
+     * Scare levels. Every level reuses the same house and the same
+     * search-and-escape loop; what changes is the writing, the lighting,
+     * the surprises and (on 4-5) a hunter you have to hide from.
+     * ------------------------------------------------------------------ */
+    const LEVELS = {
+        1: {
+            name: 'Not Scary', age: 'Little kids · 3+', ghosts: '👻',
+            blurb: 'Friendly ghosts, cute animals, bright lights. No scares at all.',
+            item: '🎃', itemName: 'smiley pumpkins', tier: 0,
+            hints: Infinity, light: 0, eventChance: 0.35, event: 'toast',
+            toasts: [
+                ['👻', 'Boo the friendly ghost pops out: “Peek-a-boo! Hee hee!”'],
+                ['🐱', 'A fluffy kitty says “Meow!” and rubs against your leg.'],
+                ['🦉', 'An owl hoots: “Whoo’s there? It’s you! Hooray!”'],
+                ['🐶', 'A puppy in a pumpkin costume wags its tail at you.'],
+                ['🦄', 'A unicorn in a witch hat trots by and waves.']
+            ],
+            ambient: [], hunter: null,
+            intro: 'Boo the friendly ghost is having a Halloween party! Find 5 smiley pumpkins hidden around the house, then open the front door to start the fun. Tap things to look inside them!',
+            found: (w) => `Yay! You found a smiley pumpkin ${w}! 🎃`,
+            door: (n) => `The front door has a big pumpkin sticker on it. Find ${n} more smiley ${n === 1 ? 'pumpkin' : 'pumpkins'} to open it!`,
+            allFound: 'You found all 5 pumpkins! Hurry to the front door in the Front Hall! 🚪',
+            hint: (room) => `Boo whispers: “Try looking in the ${room}!” 👻`,
+            win: { emoji: '🎉', title: 'Party time!', text: 'The door swings open and Boo throws the best Halloween party ever, with pumpkin cupcakes and a ghost conga line. You did it!' }
+        },
+        2: {
+            name: 'A Little Spooky', age: 'Kids · 6+', ghosts: '👻👻',
+            blurb: 'Cartoon bats, dancing skeletons and creaky doors. Silly-spooky, never scary.',
+            item: '🎃', itemName: 'jack-o’-lanterns', tier: 1,
+            hints: Infinity, light: 0, eventChance: 0.35, event: 'toast',
+            toasts: [
+                ['🦇', 'A bat flutters out! Squeak squeak! It does a loop-the-loop.'],
+                ['💀', 'A skeleton pops up and does a silly dance. Rattle rattle!'],
+                ['🕷️', 'A spider drops down on a string, waves all eight legs, and zips back up.'],
+                ['🧟', 'A zombie shuffles past, yawns, and says “Brains... I mean, candy?”'],
+                ['🧙', 'A witch zooms by on her broom. “Nice costume!” she cackles.']
+            ],
+            ambient: [], hunter: null,
+            intro: 'The house is a little spooky, but you’re brave! Find 5 hidden jack-o’-lanterns to light up the front door, then escape.',
+            found: (w) => `You found a jack-o’-lantern ${w}! It grins at you.`,
+            door: (n) => `The front door is dark. It needs ${n} more ${n === 1 ? 'jack-o’-lantern' : 'jack-o’-lanterns'} to light it up.`,
+            allFound: 'That’s all 5 jack-o’-lanterns! Go to the front door in the Front Hall.',
+            hint: (room) => `A friendly bat squeaks: “Look in the ${room}!” 🦇`,
+            win: { emoji: '🎃', title: 'You escaped!', text: 'The jack-o’-lanterns glow, the door creaks open, and you run out into the moonlight. The skeletons wave goodbye from the window.' }
+        },
+        3: {
+            name: 'Spooky', age: 'Kids · 9+', ghosts: '👻👻👻',
+            blurb: 'Dark rooms, a flashlight, spooky whispers and a few surprise BOOs!',
+            item: '🕯️', itemName: 'magic candles', tier: 2,
+            hints: 3, light: 0.3, dim: 0.9, eventChance: 0.22, event: 'boo',
+            toasts: [],
+            ambient: [
+                'You hear footsteps upstairs.',
+                'A door creaks open somewhere.',
+                'Something giggles inside the walls.',
+                'An owl hoots outside. At least, you hope it’s an owl.',
+                'A cold breeze blows past you. All the windows are shut.'
+            ],
+            ambientEvery: 20, hunter: null,
+            intro: 'The front door is sealed by a ghost’s spell. Find 5 magic candles hidden in the house to break it. It’s dark in here, so use your flashlight: move it around to see.',
+            found: (w) => `A magic candle, hidden ${w}! It lights itself with a soft blue flame.`,
+            door: (n) => `A ghostly seal glows across the door. ${n} more ${n === 1 ? 'candle' : 'candles'} needed to break it.`,
+            allFound: 'All 5 candles are lit! Get to the front door in the Front Hall.',
+            hint: (room) => `Your candles flicker toward the ${room}...`,
+            win: { emoji: '🕯️', title: 'The spell is broken!', text: 'The five candles blaze, the ghostly seal shatters like glass, and the door flies open. You’re free, and you’ve got a great story for school.' }
+        },
+        4: {
+            name: 'Scary', age: 'Teens · 13+', ghosts: '👻👻👻👻',
+            blurb: 'Jump scares, loud sounds, flickering lights, and something that hunts you.',
+            item: '🗝️', itemName: 'old keys', tier: 3,
+            hints: 0, light: 0.2, dim: 0.96, eventChance: 0.1, event: 'face',
+            toasts: [],
+            ambient: [
+                'A door slams somewhere below you.',
+                'Something laughs, far away.',
+                'Slow footsteps pace back and forth, one floor up.',
+                'A music box starts playing, then stops mid-note.',
+                'You hear something being dragged across the attic floor.'
+            ],
+            ambientEvery: 16,
+            hunter: { name: 'Something is coming', perSearch: 9, perSecond: 0.5, perMove: 3, hideWindow: 3.5, penalty: false,
+                warn: 'Heavy footsteps are coming this way. HIDE!',
+                safe: 'You hold your breath. The footsteps stop right beside you... then slowly move away.',
+                caught: 'It found you! You scramble away in the dark. Keep searching, and stay quiet.' },
+            intro: 'The front door slammed shut behind you. It has five locks, and five keys are hidden somewhere in the house. Something else lives here, and it heard you come in. When it comes, HIDE.',
+            found: (w) => `An old iron key, hidden ${w}. It’s ice-cold in your hand.`,
+            door: (n) => `${n} ${n === 1 ? 'lock' : 'locks'} still hold the door shut.`,
+            allFound: 'You have all five keys. Get to the front door. Now.',
+            hint: null,
+            win: { emoji: '🚪', title: 'You got out', text: 'The last lock clicks. You burst out into the cold night air and run, and you don’t look back. So you never see the curtain upstairs twitch closed.' }
+        },
+        5: {
+            name: 'Terrifying', age: 'Adults only · 18+', ghosts: '💀💀💀💀💀',
+            blurb: 'Intense horror, disturbing themes, loud screams. She hunts you, and she takes things back.',
+            item: '🦷', itemName: 'teeth', tier: 3,
+            hints: 0, light: 0.14, dim: 0.985, eventChance: 0.15, event: 'face',
+            toasts: [],
+            ambient: [
+                'She’s closer now.',
+                'Don’t turn around.',
+                'A whisper, right at your ear: “give them back.”',
+                'You hear your own voice calling for help. From upstairs.',
+                'Something is breathing in the dark with you.',
+                'The humming stops. That’s worse.'
+            ],
+            ambientEvery: 12,
+            extras: [
+                'Behind you, a floorboard creaks.',
+                'You hear her humming in another room.',
+                'Something wet drips onto the back of your neck.',
+                'The door you came through is closed now. You didn’t close it.',
+                'You hear your name, whispered, from very close.'
+            ],
+            hunter: { name: 'She is listening', perSearch: 12, perSecond: 1, perMove: 5, hideWindow: 2.5, penalty: true,
+                warn: 'The humming stops. She’s in the doorway. HIDE. NOW.',
+                safe: 'Her bare feet stop inches from your face. She sniffs the air. Then, slowly, she walks away.',
+                caught: 'She found you.' },
+            intro: 'She wants her teeth back. Five of them, hidden around her house. Find them all and bring them to the front door, and she might let you leave. Don’t let her find you first.',
+            found: (w) => `A tooth, ${w}. A human tooth. Still warm.`,
+            door: (n) => `Something on the other side of the door whispers: “${n} more.”`,
+            allFound: 'Five teeth. Take them to the front door. She knows you have them.',
+            hint: null,
+            win: { emoji: '🌑', title: 'She let you go', text: 'You leave the last tooth on the doorstep and the door swings open. As you run down the path you hear her behind you, humming, smiling with a full mouth. In the upstairs window, a small girl waves goodbye to you. You don’t have a daughter.' }
+        }
+    };
+
+    /* Hotspot text comes in four tiers: 0 = level 1, 1 = level 2,
+     * 2 = level 3, 3 = levels 4 and 5 (level 5 adds its own extra lines). */
+    const ROOMS = {
+        hall: {
+            name: 'Front Hall', exits: ['library', 'kitchen', 'nursery', 'basement'],
+            desc: [
+                'The Front Hall is bright and cheerful. Streamers hang from the ceiling and a friendly ghost waves hello!',
+                'The Front Hall is a little dusty. A cobweb sways overhead, and somewhere a bat squeaks.',
+                'The Front Hall is dark. The grandfather clock ticks very, very loudly.',
+                'The front door slammed behind you. The hall smells of old dust and something sweet, like flowers left too long in a vase.',
+                'The front door locked itself. Its inside is covered in fingernail scratches. Someone wanted out very badly.'
+            ],
+            hotspots: [
+                { id: 'frontdoor', emoji: '🚪', label: 'Front door', x: 50, y: 52, door: true },
+                { id: 'coats', emoji: '🧥', label: 'Coat rack', where: 'among the coats', x: 16, y: 58, text: [
+                    'Just coats and a super fluffy scarf. So soft!',
+                    'A long black cape! You try it on and feel like a vampire. Bleh bleh!',
+                    'A long black cloak. It’s cold, as if someone just took it off.',
+                    'The coats are soaking wet. A puddle underneath is slowly spreading toward your shoes.'] },
+                { id: 'clock', emoji: '🕰️', label: 'Grandfather clock', where: 'inside the clock', x: 32, y: 50, text: [
+                    'Tick-tock! A little mouse lives inside and waves at you.',
+                    'BONG! The clock strikes thirteen and a cuckoo bat pops out. Silly clock!',
+                    'The clock strikes thirteen. The hands spin backwards, then stop.',
+                    'Inside the clock case, the pendulum has been replaced with a small, swinging shoe.'] },
+                { id: 'painting', emoji: '🖼️', label: 'Painting', where: 'behind the painting', x: 70, y: 28, text: [
+                    'A painting of a smiling pumpkin family. They look so happy!',
+                    'A painting of a grumpy old lady. Her eyes follow you around... then she winks.',
+                    'A portrait of a stern old woman. When you look away and back, she’s smiling.',
+                    'A family portrait. The mother’s face has been scratched out, from the inside of the canvas.'] },
+                { id: 'umbrella', emoji: '☂️', label: 'Umbrella stand', where: 'in the umbrella stand', x: 72, y: 74, text: [
+                    'Rainbow umbrellas! One has polka dots.',
+                    'An umbrella opens by itself with a POP! and spins like a top.',
+                    'An umbrella opens by itself. Under it, it’s raining.',
+                    'Among the umbrellas is a walking cane. Its handle is still warm from someone’s grip.'] }
+            ]
+        },
+        library: {
+            name: 'Library', exits: ['hall'],
+            desc: [
+                'Books everywhere! A sleepy owl reads a picture book by the fire.',
+                'Tall shelves, a crackly fire, and a skeleton in a reading chair who seems to be napping.',
+                'The fire burns green. Books slide back onto the shelves by themselves while you watch.',
+                'Every book on the shelves has the same title, and it’s your name. The chair by the fire is still warm.',
+                'The books are diaries, all written by her. The last entry in every one is today’s date, and it describes you walking in.'
+            ],
+            hotspots: [
+                { id: 'shelf', emoji: '📚', label: 'Bookshelf', where: 'on the bookshelf', x: 18, y: 42, text: [
+                    'Picture books! One is all about a pumpkin who learns to dance.',
+                    'A joke book! What do ghosts eat for dinner? Spook-hetti!',
+                    'A book slides off the shelf and falls open to a page that says: LEAVE.',
+                    'Behind the books, the wall is covered in tally marks. Thousands of them. The newest ones are still wet.'] },
+                { id: 'chair', emoji: '🪑', label: 'Reading chair', where: 'under the chair cushion', x: 48, y: 72, text: [
+                    'A comfy chair with a sleepy kitten curled up in it. Purrrr.',
+                    'The chair has a whoopee cushion on it. PFFFT! Who put that there?',
+                    'The cushion is dented, as if someone invisible is sitting there.',
+                    'You press on the cushion. Something underneath it presses back.'] },
+                { id: 'globe', emoji: '🌍', label: 'Globe', where: 'inside the globe', x: 36, y: 62, text: [
+                    'Spin, spin, spin! The globe is covered in star stickers.',
+                    'The globe spins so fast it wobbles and burps. Excuse me!',
+                    'The globe spins by itself and stops on a country that isn’t on any map.',
+                    'Every country on the globe has been scratched off, except one small dot: this house.'] },
+                { id: 'fireplace', emoji: '🔥', label: 'Fireplace', where: 'in the fireplace', x: 73, y: 60, text: [
+                    'A warm little fire, perfect for toasting marshmallows.',
+                    'The flames turn green and dance a jig. Ooooh, fancy!',
+                    'The flames turn green and whisper something you can’t quite hear.',
+                    'In the cold ashes: a wedding ring, and a child’s baby tooth.'] }
+            ]
+        },
+        kitchen: {
+            name: 'Kitchen', exits: ['hall'],
+            desc: [
+                'The kitchen smells like cookies! A pot of orange soup bubbles happily on the stove.',
+                'A witch’s cauldron bubbles on the stove. It smells like pumpkin pie... mostly.',
+                'Pots clatter on their hooks, though there’s no wind. The stove is lit, but nobody is cooking.',
+                'Dinner is laid out for five. Four plates are empty. The fifth has been set for you.',
+                'The table is set for a family dinner. The food rotted to black decades ago. The chairs are pushed back, as if everyone stood up at once.'
+            ],
+            hotspots: [
+                { id: 'pot', emoji: '🍲', label: 'Soup pot', where: 'in the soup pot', x: 30, y: 50, text: [
+                    'Yummy pumpkin soup! It smells like cinnamon.',
+                    'A bubbling green potion. A frog hops out and croaks hello!',
+                    'The soup bubbles, though the stove underneath is cold.',
+                    'The soup is still simmering. Something pale bobs to the surface, then slowly sinks.'] },
+                { id: 'cupboard', emoji: '🗄️', label: 'Cupboard', where: 'in the cupboard', x: 62, y: 30, text: [
+                    'Cookies! Shaped like bats and cats and moons.',
+                    'Jars labelled EYE OF NEWT and TOE OF FROG. They’re just olives and jelly beans!',
+                    'Jars of dried herbs in spidery handwriting. One label just says: FOR THE GUEST.',
+                    'Jars labelled with names and years. The last jar is empty. Its label has today’s date.'] },
+                { id: 'icebox', emoji: '🧊', label: 'Icebox', where: 'in the icebox', x: 86, y: 56, text: [
+                    'Ice cream! Chocolate, vanilla and pumpkin swirl.',
+                    'A jiggly green jelly that wobbles and giggles when you look at it.',
+                    'The icebox is empty, except for frost in the shape of handprints.',
+                    'The icebox hums. From inside, very faintly, something knocks to be let out.'] },
+                { id: 'sink', emoji: '🚰', label: 'Sink', where: 'in the sink drain', x: 56, y: 62, text: [
+                    'Bubbles! A rubber duck floats in the sink. Quack!',
+                    'The tap gurgles and burps up a bubble shaped like a ghost. Pop!',
+                    'The tap drips. Drip. Drip. The drops land in the shape of a word: BOO.',
+                    'The water runs grey, then brown, then thick with long, grey hair.'] }
+            ]
+        },
+        nursery: {
+            name: 'Upstairs Bedroom', exits: ['hall', 'attic'],
+            desc: [
+                'A cozy bedroom full of stuffed animals. A teddy bear is wearing a tiny witch hat!',
+                'Toys are scattered everywhere. The rocking horse rocks gently... all by itself. Wheee!',
+                'A music box plays a slow tune. All the dolls on the shelf are facing the door.',
+                'A child’s bedroom. The bed is neatly made, but there’s a dent in the pillow, as if someone small is lying there right now.',
+                'Crayon drawings cover every wall: a tall, pale woman, again and again. In the newest one she stands behind someone who looks exactly like you.'
+            ],
+            hotspots: [
+                { id: 'bed', emoji: '🛏️', label: 'Under the bed', where: 'under the bed', x: 30, y: 68, text: [
+                    'A lost sock and a sleepy puppy! Aww.',
+                    'Two glowing eyes blink at you... it’s just the cat! Meow.',
+                    'Nothing under the bed but dust. The dust has small footprints in it.',
+                    'Something under the bed was already looking at you. It smiles, and slides back into the dark.'] },
+                { id: 'toybox', emoji: '🧸', label: 'Toy chest', where: 'in the toy chest', x: 58, y: 74, text: [
+                    'Teddy bears, blocks and a squishy rubber ducky.',
+                    'The jack-in-the-box pops open before you touch it. HA HA!',
+                    'A music box inside starts to play on its own, slow and out of tune.',
+                    'Every doll in the chest has had its eyes carefully removed.'] },
+                { id: 'mirror', emoji: '🪞', label: 'Mirror', where: 'behind the mirror', x: 52, y: 36, text: [
+                    'You make a silly face. Your reflection makes an even sillier one!',
+                    'Your reflection sticks its tongue out at you. How rude!',
+                    'Your reflection waves... a moment after you do.',
+                    'Your reflection doesn’t move when you do. It mouths one word: run.'] },
+                { id: 'window', emoji: '🪟', label: 'Window', where: 'on the windowsill', x: 82, y: 32, text: [
+                    'A big round moon and lots of twinkly stars.',
+                    'A bat flaps past the window and does a loop-the-loop!',
+                    'Fog presses against the glass. Something moves in the garden below.',
+                    'Handprints on the glass. On the outside. Two floors up.'] }
+            ]
+        },
+        attic: {
+            name: 'Attic', exits: ['nursery'],
+            desc: [
+                'The attic is full of old dress-up clothes and twinkly fairy lights.',
+                'The attic is creaky and full of old trunks. A family of bats hangs upside down, snoozing.',
+                'The attic floor groans with every step. A rocking chair creaks back and forth in the corner.',
+                'The only light is a round window. The dress form in the corner was facing the wall when you came up the stairs. It isn’t now.',
+                'It’s cold enough to see your breath. Someone has been living up here: a nest of blankets, and long grey hair, everywhere.'
+            ],
+            hotspots: [
+                { id: 'trunk', emoji: '🧳', label: 'Old trunk', where: 'in the old trunk', x: 24, y: 72, text: [
+                    'Dress-up clothes! A pirate hat and a superhero cape.',
+                    'A vampire costume with plastic fangs. Rawr!',
+                    'Old photographs of people in old-fashioned clothes. One of them is looking right at you.',
+                    'Photos of this house, one for every year for a hundred years. In every one, a pale face at the attic window.'] },
+                { id: 'dressform', emoji: '👗', label: 'Dress form', where: 'in the dress’s pocket', x: 78, y: 58, text: [
+                    'A dress form wearing a sparkly princess costume.',
+                    'A dress form wearing a witch’s hat. It has no head, but it doesn’t seem to mind.',
+                    'A dress form in a dusty wedding gown. It sways, though there’s no breeze.',
+                    'The wedding dress has been stitched onto the form. Very, very tightly.'] },
+                { id: 'boxes', emoji: '📦', label: 'Boxes', where: 'in a box', x: 52, y: 76, text: [
+                    'Boxes of Halloween decorations. Googly eyes everywhere!',
+                    'A box of rubber spiders. They wiggle when you shake it. Eek!',
+                    'Boxes of old letters, all addressed to someone who lived here long ago.',
+                    'Boxes labelled with dates. In each one, a child’s clothes, folded neatly. The last box is empty.'] },
+                { id: 'doll', emoji: '🪆', label: 'Old doll', where: 'in the doll’s hands', x: 50, y: 44, text: [
+                    'A pretty painted doll with a big smile.',
+                    'A doll that says “Mama!” when you tip it over. Then it burps.',
+                    'A porcelain doll. You’d swear its head was facing the other way a second ago.',
+                    'The doll has teeth. Real ones.'] }
+            ]
+        },
+        basement: {
+            name: 'Basement', exits: ['hall'],
+            desc: [
+                'The basement is a game room with a ping-pong table and a friendly spider named Steve.',
+                'The basement is cool and dim. Jars line the shelves, and a spider waves eight hellos.',
+                'Water drips somewhere in the dark. The furnace breathes out warm air like a sleeping animal.',
+                'The stairs creak behind you, one step at a time, but no one is there. The furnace door hangs open.',
+                'The walls are damp and warm. Behind the furnace the bricks have been pulled away, and something has been crawling in and out.'
+            ],
+            hotspots: [
+                { id: 'barrels', emoji: '🛢️', label: 'Barrels', where: 'in a barrel', x: 18, y: 70, text: [
+                    'Barrels full of apples, ready for apple bobbing!',
+                    'A barrel sloshes and a rubber skeleton hand waves out of it. Ha!',
+                    'A barrel sloshes by itself. Probably just rats. Probably.',
+                    'The barrel is sealed with wax. Someone scratched SORRY into the lid, over and over.'] },
+                { id: 'jars', emoji: '🫙', label: 'Jar shelf', where: 'behind the jars', x: 44, y: 40, text: [
+                    'Jars of pickles, jam and jelly beans.',
+                    'Jars of glowing green goo. It’s slime! Squishy.',
+                    'Jars of floating things. They look like pickles... mostly.',
+                    'Jars of floating things. Something in one of them opens its eye.'] },
+                { id: 'furnace', emoji: '♨️', label: 'Furnace', where: 'beside the furnace', x: 72, y: 60, text: [
+                    'The furnace is warm and cozy, and hums a little song.',
+                    'The furnace rumbles like a big hungry tummy. GRUMBLE.',
+                    'The furnace breathes in and out, slow and warm, like a sleeping animal.',
+                    'Inside, the embers glow in the shape of a face, screaming without a sound.'] },
+                { id: 'hole', emoji: '🕳️', label: 'Hole in the wall', where: 'inside the hole in the wall', x: 90, y: 72, text: [
+                    'A mouse hole! A tiny mouse waves and closes its tiny door.',
+                    'A draught whistles out of the hole. Woooo-oo! Just the wind.',
+                    'A cold draught blows out of the hole. It smells like old flowers.',
+                    'You put your ear to the hole. Breathing. Slow, patient breathing, just on the other side.'] }
+            ]
+        }
+    };
+
+    /* Room artwork: simple shapes on a 160×100 canvas, coloured entirely by
+     * the level's CSS variables so the same room gets darker level by level. */
+    const FLOOR = '<rect class="a-floor" x="0" y="70" width="160" height="30"/><rect class="a-trim" x="0" y="69" width="160" height="1.6"/>';
+    const ART = {
+        hall: FLOOR +
+            '<rect class="a-trim" x="11" y="14" width="22" height="34" rx="11"/><rect class="a-glass" x="13" y="16" width="18" height="30" rx="9"/><circle class="a-moon" cx="19" cy="25" r="4"/>' +
+            '<rect class="a-dark" x="66" y="26" width="28" height="44"/><rect class="a-trim" x="69" y="29" width="22" height="41"/>' +
+            '<polygon class="a-dark" points="118,70 160,28 160,70"/><path class="a-line" d="M124 64h8v-6h8v-6h8v-6h8v-6h4"/>' +
+            '<line class="a-line" x1="80" y1="0" x2="80" y2="8"/><ellipse class="a-moon" cx="80" cy="10" rx="7" ry="2.5"/>' +
+            '<ellipse class="a-rug" cx="80" cy="86" rx="34" ry="7"/>',
+        library: FLOOR +
+            '<rect class="a-dark" x="4" y="10" width="50" height="59"/><rect class="a-trim" x="4" y="24" width="50" height="1.5"/><rect class="a-trim" x="4" y="38" width="50" height="1.5"/><rect class="a-trim" x="4" y="52" width="50" height="1.5"/>' +
+            '<path class="a-line" d="M10 12v11M14 12v11M17 12v11M23 12v11M28 12v11M34 12v11M40 12v11M45 12v11M12 26v11M18 26v11M25 26v11M31 26v11M38 26v11M47 26v11M9 40v11M16 40v11M22 40v11M30 40v11M36 40v11M44 40v11"/>' +
+            '<rect class="a-dark" x="100" y="36" width="36" height="34"/><rect class="a-trim" x="108" y="46" width="20" height="24"/><rect class="a-trim" x="96" y="33" width="44" height="4"/>' +
+            '<rect class="a-trim" x="134" y="12" width="18" height="16"/><rect class="a-glass" x="136" y="14" width="14" height="12"/>' +
+            '<ellipse class="a-rug" cx="84" cy="88" rx="40" ry="7"/>',
+        kitchen: FLOOR +
+            '<rect class="a-glass" x="4" y="36" width="152" height="10" opacity="0.35"/>' +
+            '<rect class="a-dark" x="4" y="46" width="118" height="24"/><rect class="a-trim" x="2" y="44" width="122" height="3"/>' +
+            '<rect class="a-dark" x="88" y="12" width="36" height="22"/><path class="a-line" d="M106 12v22"/>' +
+            '<rect class="a-dark" x="128" y="22" width="20" height="48" rx="2"/><path class="a-line" d="M128 40h20"/>' +
+            '<rect class="a-trim" x="16" y="10" width="26" height="20"/><rect class="a-glass" x="18" y="12" width="22" height="16"/><circle class="a-moon" cx="34" cy="17" r="3"/>' +
+            '<path class="a-line" d="M60 0v10M70 0v14M80 0v8"/>',
+        nursery: FLOOR +
+            '<rect class="a-trim" x="118" y="10" width="28" height="30"/><rect class="a-glass" x="120" y="12" width="24" height="26"/><circle class="a-moon" cx="136" cy="20" r="5"/>' +
+            '<rect class="a-dark" x="10" y="54" width="46" height="18" rx="3"/><rect class="a-trim" x="8" y="44" width="5" height="28"/><rect class="a-moon" x="14" y="52" width="12" height="5" rx="2" opacity="0.7"/>' +
+            '<rect class="a-trim" x="72" y="16" width="22" height="34" rx="11"/><rect class="a-glass" x="74" y="18" width="18" height="30" rx="9" opacity="0.6"/>' +
+            '<circle class="a-rug" cx="92" cy="86" r="16"/><circle class="a-fun2" cx="40" cy="20" r="1.4"/><circle class="a-fun" cx="56" cy="12" r="1.4"/><circle class="a-fun2" cx="104" cy="8" r="1.4"/>',
+        attic: FLOOR +
+            '<polygon class="a-dark" points="0,0 62,0 0,56"/><polygon class="a-dark" points="160,0 98,0 160,56"/>' +
+            '<circle class="a-trim" cx="80" cy="18" r="11"/><circle class="a-glass" cx="80" cy="18" r="9"/><path class="a-line" d="M71 18h18M80 9v18"/>' +
+            '<rect class="a-trim" x="0" y="40" width="160" height="2" opacity="0.6"/>' +
+            '<path class="a-line" d="M20 70l6-18h14l6 18M112 70v-20l12-4v24"/>',
+        basement: FLOOR +
+            '<path class="a-line" d="M0 12h160M0 24h160M0 36h160M0 48h160M0 60h160M20 0v12M60 0v12M100 0v12M140 0v12M40 12v12M80 12v12M120 12v12M20 24v12M60 24v12M100 24v12M140 24v12M40 36v12M80 36v12M120 36v12M20 48v12M60 48v12M100 48v12M140 48v12M40 60v9M80 60v9M120 60v9"/>' +
+            '<polygon class="a-dark" points="96,70 96,30 66,0 58,0 58,8 88,38 88,70" opacity="0.85"/>' +
+            '<rect class="a-dark" x="100" y="34" width="28" height="36" rx="3"/><circle class="a-trim" cx="114" cy="54" r="6"/>' +
+            '<rect class="a-trim" x="0" y="4" width="160" height="2.5"/><line class="a-line" x1="36" y1="6" x2="36" y2="16"/><circle class="a-moon" cx="36" cy="18" r="2.4"/>'
+    };
+    /* Per-level dressing laid over any room. */
+    const DRESSING = {
+        1: '<path class="a-fun" d="M0 2L8 10L16 2Z M32 2L40 10L48 2Z M64 2L72 10L80 2Z M96 2L104 10L112 2Z M128 2L136 10L144 2Z"/><path class="a-fun2" d="M16 2L24 10L32 2Z M48 2L56 10L64 2Z M80 2L88 10L96 2Z M112 2L120 10L128 2Z M144 2L152 10L160 2Z"/>',
+        2: '<path class="a-web" d="M0 0L22 0M0 0L0 22M0 0L18 12M0 0L10 20M0 8Q6 6 8 0M0 15Q12 12 15 0M160 0L138 0M160 0L160 22M160 0L142 12M160 0L150 20M160 8Q154 6 152 0M160 15Q148 12 145 0"/>',
+        3: '<path class="a-web" d="M0 0L18 0M0 0L0 18M0 0L14 10M0 7Q5 5 7 0M0 13Q10 10 13 0"/>',
+        4: '<path class="a-crack" d="M30 0l3 8-4 6 5 9-2 7M128 70l-4-10 5-6-3-11M150 20l-8 4-3 9"/>',
+        5: '<path class="a-crack" d="M30 0l3 8-4 6 5 9-2 7M128 70l-4-10 5-6-3-11M150 20l-8 4-3 9M60 40l6 3 2 7"/><path class="a-drip" d="M40 0h3v7a1.5 1.5 0 0 1-3 0Z M92 0h2v11a1 1 0 0 1-2 0Z M118 0h3v5a1.5 1.5 0 0 1-3 0Z"/>'
+    };
+    const GHOST_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><path d="M40 190V90a60 60 0 0 1 120 0v100l-20-16-20 16-20-16-20 16-20-16z" fill="#f5f1ff" stroke="#2b1450" stroke-width="5"/><ellipse cx="78" cy="92" rx="11" ry="16" fill="#2b1450"/><ellipse cx="122" cy="92" rx="11" ry="16" fill="#2b1450"/><ellipse cx="100" cy="134" rx="18" ry="22" fill="#2b1450"/><text x="100" y="40" text-anchor="middle" font-size="34" font-weight="900" fill="#ffb13b" stroke="#2b1450" stroke-width="2">BOO!</text></svg>';
+    const FACE_SVG = '<svg viewBox="0 0 200 200" aria-hidden="true"><defs><radialGradient id="skin" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="#d9d4c8"/><stop offset="1" stop-color="#5e5a52"/></radialGradient></defs><path d="M100 8C52 8 34 52 36 96c2 50 30 96 64 96s62-46 64-96C166 52 148 8 100 8z" fill="url(#skin)"/><path d="M52 44c20 20 40 18 48 0M148 44c-20 20-40 18-48 0" stroke="#2a2723" stroke-width="3" fill="none"/><ellipse cx="72" cy="84" rx="18" ry="24" fill="#000"/><ellipse cx="128" cy="84" rx="18" ry="24" fill="#000"/><circle cx="74" cy="88" r="2.5" fill="#b91c1c"/><circle cx="126" cy="88" r="2.5" fill="#b91c1c"/><path d="M96 104l4 18 4-18" fill="#3a3630"/><ellipse cx="100" cy="158" rx="24" ry="30" fill="#000"/><path d="M80 140l5 8 5-9 5 9 5-9 5 9 5-9 5 8" stroke="#cfc9b8" stroke-width="2" fill="none"/></svg>';
+
+    /* ------------------------------------------------------------------
+     * Sound: everything is synthesised with Web Audio, so there are no
+     * files to load. Absent Web Audio (or muted), every call is a no-op.
+     * ------------------------------------------------------------------ */
+    const Sound = (() => {
+        let ctx = null, master = null, on = true, drone = null, noiseBuf = null;
+        function ensure() {
+            if (!on) return null;
+            if (ctx) { if (ctx.state === 'suspended' && ctx.resume) ctx.resume(); return ctx; }
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return null;
+            try {
+                ctx = new AC();
+                master = ctx.createGain();
+                master.gain.value = 0.6;
+                master.connect(ctx.destination);
+            } catch (e) { ctx = null; }
+            return ctx;
+        }
+        function tone(freq, dur, opts) {
+            const c = ensure(); if (!c) return;
+            const o = Object.assign({ type: 'sine', gain: 0.15, to: null, delay: 0 }, opts);
+            const t = c.currentTime + o.delay;
+            const osc = c.createOscillator(), g = c.createGain();
+            osc.type = o.type;
+            osc.frequency.setValueAtTime(freq, t);
+            if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + dur);
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.exponentialRampToValueAtTime(o.gain, t + Math.min(0.03, dur / 4));
+            g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            osc.connect(g); g.connect(master);
+            osc.start(t); osc.stop(t + dur + 0.05);
+        }
+        function noise(dur, opts) {
+            const c = ensure(); if (!c) return;
+            const o = Object.assign({ gain: 0.15, freq: 1200, q: 1, delay: 0 }, opts);
+            if (!noiseBuf) {
+                noiseBuf = c.createBuffer(1, c.sampleRate * 2, c.sampleRate);
+                const d = noiseBuf.getChannelData(0);
+                for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+            }
+            const t = c.currentTime + o.delay;
+            const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+            src.buffer = noiseBuf;
+            f.type = 'bandpass'; f.frequency.value = o.freq; f.Q.value = o.q;
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.exponentialRampToValueAtTime(o.gain, t + 0.04);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            src.connect(f); f.connect(g); g.connect(master);
+            src.start(t); src.stop(t + dur + 0.05);
+        }
+        const sfx = {
+            chime() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.25, { delay: i * 0.09, gain: 0.12 })); },
+            pop() { tone(500, 0.15, { to: 900, type: 'square', gain: 0.06 }); },
+            creak() { tone(70, 0.7, { to: 130, type: 'sawtooth', gain: 0.035 }); },
+            sparkle() { tone(880, 0.4, { to: 1320, gain: 0.1 }); tone(1320, 0.4, { delay: 0.12, gain: 0.07 }); },
+            key() { tone(1800, 0.12, { type: 'triangle', gain: 0.08 }); tone(1200, 0.2, { delay: 0.08, type: 'triangle', gain: 0.06 }); },
+            thud() { tone(90, 0.5, { to: 40, gain: 0.3 }); noise(0.6, { freq: 400, gain: 0.05, delay: 0.1 }); },
+            boo() { tone(320, 0.7, { to: 120, gain: 0.22 }); noise(0.4, { freq: 800, gain: 0.08 }); },
+            scream(scale) {
+                const s = scale || 1;
+                noise(1.0, { freq: 1800, q: 0.8, gain: 0.45 * s });
+                tone(950, 0.9, { to: 420, type: 'sawtooth', gain: 0.18 * s });
+                tone(1400, 0.8, { to: 600, type: 'square', gain: 0.07 * s });
+            },
+            heartbeat() { tone(60, 0.18, { gain: 0.35 }); tone(55, 0.2, { delay: 0.22, gain: 0.3 }); },
+            whisper() { noise(1.3, { freq: 3200, q: 3, gain: 0.05 }); },
+            win() { [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, 0.35, { delay: i * 0.12, gain: 0.12 })); },
+            grim() { tone(110, 1.4, { to: 55, type: 'triangle', gain: 0.18 }); }
+        };
+        return {
+            play(name, arg) { if (on && sfx[name]) { try { sfx[name](arg); } catch (e) { /* audio is decoration */ } } },
+            unlock() { ensure(); },
+            droneStart(level) {
+                const c = ensure(); if (!c || drone) return;
+                try {
+                    const g = c.createGain();
+                    g.gain.value = level >= 5 ? 0.07 : 0.04;
+                    const a = c.createOscillator(), b = c.createOscillator();
+                    a.frequency.value = 55; b.frequency.value = 58.3; b.type = 'triangle';
+                    a.connect(g); b.connect(g); g.connect(master);
+                    a.start(); b.start();
+                    drone = { a, b, g };
+                } catch (e) { drone = null; }
+            },
+            droneStop() {
+                if (!drone) return;
+                try { drone.a.stop(); drone.b.stop(); drone.g.disconnect(); } catch (e) { /* already stopped */ }
+                drone = null;
+            },
+            setOn(v) { on = !!v; if (!on) this.droneStop(); },
+            get on() { return on; }
+        };
+    })();
+
+    /* ------------------------------------------------------------------
+     * State
+     * ------------------------------------------------------------------ */
+    const $ = (id) => document.getElementById(id);
+    const state = {
+        level: 1, running: false, paused: false, room: 'hall',
+        items: new Map(),   // "room:hotspot" -> collected?
+        found: 0, searched: new Set(), hintsLeft: 0,
+        dread: 0, hunting: false, seconds: 0, searches: 0, ambientIn: 0
+    };
+    let loopTimer = null, huntTimer = null, scareTimer = null, toastTimer = null, flickerTimer = null, scareDone = null;
+
+    const lvl = () => LEVELS[state.level];
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const key = (room, id) => room + ':' + id;
+
+    function shuffle(arr) {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    }
+    function searchable(roomId) { return ROOMS[roomId].hotspots.filter((h) => !h.door); }
+
+    /* Five items in five different rooms, so the whole house gets explored. */
+    function placeItems() {
+        state.items = new Map();
+        shuffle(Object.keys(ROOMS)).slice(0, GOAL).forEach((roomId) => {
+            state.items.set(key(roomId, pick(searchable(roomId)).id), false);
+        });
+    }
+
+    /* ------------------------------------------------------------------
+     * Title screen
+     * ------------------------------------------------------------------ */
+    function buildLevelCards() {
+        const box = $('levels');
+        box.textContent = '';
+        for (let n = 1; n <= 5; n++) {
+            const L = LEVELS[n];
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'level-card';
+            b.dataset.lv = String(n);
+            b.setAttribute('aria-pressed', String(n === state.level));
+            const parts = [['ghosts', L.ghosts], ['lv-name', n + '. ' + L.name], ['lv-age', L.age], ['lv-blurb', L.blurb]];
+            parts.forEach(([cls, text]) => {
+                const s = document.createElement('span');
+                s.className = cls;
+                s.textContent = text;
+                if (cls === 'ghosts') s.setAttribute('aria-hidden', 'true');
+                b.appendChild(s);
+            });
+            b.addEventListener('click', () => selectLevel(n));
+            box.appendChild(b);
+        }
+    }
+
+    function selectLevel(n) {
+        n = Number(n);
+        if (!LEVELS[n]) return false;
+        if (n === 5) { openGate(); return false; }
+        setLevel(n);
+        return true;
+    }
+    function setLevel(n) {
+        state.level = n;
+        document.querySelectorAll('.level-card').forEach((c) => c.setAttribute('aria-pressed', String(Number(c.dataset.lv) === n)));
+        document.body.dataset.level = String(n);
+        $('level-warning').textContent =
+            n === 4 ? 'Level 4 has jump scares and loud sudden sounds. Recommended for teens and up.' :
+            n === 5 ? 'Level 5: adults only. You confirmed you are 18 or older.' : '';
+    }
+
+    let gateReturn = null;
+    function openGate() {
+        gateReturn = document.activeElement;
+        $('age-gate').classList.remove('hidden');
+        $('gate-no').focus();
+    }
+    function closeGate() {
+        $('age-gate').classList.add('hidden');
+        if (gateReturn && gateReturn.focus) gateReturn.focus();
+    }
+    function confirmAdult() { closeGate(); setLevel(5); }
+    function cancelAdult() { closeGate(); }
+
+    /* ------------------------------------------------------------------
+     * Game flow
+     * ------------------------------------------------------------------ */
+    function show(screen) {
+        ['title-screen', 'game-screen', 'win-screen'].forEach((id) => $(id).classList.toggle('hidden', id !== screen));
+    }
+
+    function start(level) {
+        if (level != null) {
+            if (Number(level) === 5 && state.level !== 5) return false; // level 5 only through the age gate
+            setLevel(Number(level));
+        }
+        stopTimers();
+        const L = lvl();
+        Object.assign(state, {
+            running: true, paused: false, room: 'hall', found: 0, searched: new Set(),
+            hintsLeft: L.hints, dread: 0, hunting: false, seconds: 0, searches: 0,
+            ambientIn: L.ambientEvery || 0
+        });
+        placeItems();
+        document.body.dataset.level = String(state.level);
+        show('game-screen');
+        $('hud-level').textContent = '';
+        const strong = document.createElement('span');
+        strong.textContent = 'Level ' + state.level + ': ' + L.name + ' ';
+        const small = document.createElement('small');
+        small.textContent = L.age;
+        $('hud-level').append(strong, small);
+        $('hint-btn').classList.toggle('hidden', !L.hints);
+        $('dread').classList.toggle('hidden', !L.hunter);
+        if (L.hunter) $('dread-name').textContent = L.hunter.name;
+        $('dark').classList.toggle('hidden', !L.light);
+        $('dark').style.setProperty('--dk', String(L.dim || 0.95));
+        $('whisper').textContent = '';
+        $('hide-panel').classList.add('hidden');
+        Sound.unlock();
+        if (state.level >= 4) Sound.droneStart(state.level);
+        renderSlots();
+        renderDread();
+        updateHintButton();
+        goTo('hall', true);
+        setMessage(L.intro);
+        loopTimer = setInterval(() => tick(1), 1000);
+        return true;
+    }
+
+    function stopTimers() {
+        clearInterval(loopTimer); loopTimer = null;
+        clearTimeout(huntTimer); huntTimer = null;
+        clearTimeout(toastTimer); clearTimeout(flickerTimer);
+        if (scareTimer) dismissScare();
+        Sound.droneStop();
+    }
+
+    function quit() {
+        state.running = false;
+        stopTimers();
+        show('title-screen');
+        document.body.dataset.level = String(state.level);
+    }
+
+    function goTo(roomId, silent) {
+        const R = ROOMS[roomId];
+        if (!R || !state.running) return false;
+        if (!silent && state.hunting) return false; // no running from the hunter: hide
+        state.room = roomId;
+        const L = lvl();
+        $('room-title').textContent = R.name;
+        $('room-desc').textContent = R.desc[state.level - 1];
+        const scene = $('scene');
+        scene.dataset.room = roomId;
+        $('art').innerHTML = ART[roomId] + DRESSING[state.level];
+
+        const box = $('hotspots');
+        box.textContent = '';
+        R.hotspots.forEach((h) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'hotspot' + (h.door ? ' door' : '') + (state.searched.has(key(roomId, h.id)) ? ' searched' : '');
+            b.dataset.id = h.id;
+            b.style.left = h.x + '%';
+            b.style.top = h.y + '%';
+            b.setAttribute('aria-label', h.label + (state.searched.has(key(roomId, h.id)) ? ' (searched)' : ''));
+            const e = document.createElement('span');
+            e.className = 'hs-emoji';
+            e.setAttribute('aria-hidden', 'true');
+            e.textContent = h.emoji;
+            const l = document.createElement('span');
+            l.className = 'hs-label';
+            l.setAttribute('aria-hidden', 'true');
+            l.textContent = h.label;
+            b.append(e, l);
+            b.addEventListener('click', () => search(h.id));
+            b.addEventListener('focus', () => aimAt(b));
+            box.appendChild(b);
+        });
+
+        const exits = $('exits');
+        exits.textContent = '';
+        R.exits.forEach((to) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'exit-btn';
+            b.dataset.to = to;
+            b.textContent = (to === 'attic' || (to === 'nursery' && roomId === 'hall') ? '⬆ ' : to === 'basement' ? '⬇ ' : '➜ ') + ROOMS[to].name;
+            b.addEventListener('click', () => goTo(to));
+            exits.appendChild(b);
+        });
+
+        sizeLight();
+        aim(50, 55);
+        if (!silent) {
+            setMessage('');
+            if (state.level >= 2) Sound.play('creak');
+            addDread(L.hunter ? L.hunter.perMove : 0);
+        }
+        return true;
+    }
+
+    function search(id) {
+        if (!state.running || state.paused || state.hunting) return null;
+        const R = ROOMS[state.room];
+        const h = R.hotspots.find((x) => x.id === id);
+        if (!h) return null;
+        const L = lvl();
+
+        if (h.door) {
+            if (state.found >= GOAL) { win(); return 'win'; }
+            setMessage(L.door(GOAL - state.found));
+            Sound.play(state.level >= 4 ? 'thud' : 'pop');
+            return 'locked';
+        }
+
+        const k = key(state.room, id);
+        state.searches++;
+        const firstLook = !state.searched.has(k);
+        state.searched.add(k);
+        markSearched(id);
+
+        if (state.items.has(k) && !state.items.get(k)) {
+            state.items.set(k, true);
+            state.found++;
+            renderSlots();
+            let msg = L.found(h.where);
+            if (state.found >= GOAL) msg += ' ' + L.allFound;
+            setMessage(msg);
+            Sound.play(['chime', 'chime', 'chime', 'sparkle', 'key', 'grim'][state.level]);
+            addDread(L.hunter ? Math.round(L.hunter.perSearch / 2) : 0);
+            return 'found';
+        }
+
+        let msg = h.text[L.tier];
+        if (L.extras && Math.random() < 0.5) msg += ' ' + pick(L.extras);
+        setMessage(msg);
+        addDread(L.hunter ? L.hunter.perSearch : 0);
+        if (!state.hunting && firstLook && Math.random() < L.eventChance) surprise();
+        else if (state.level >= 2 && state.level <= 3) Sound.play('creak');
+        return 'empty';
+    }
+
+    function markSearched(id) {
+        const b = document.querySelector('.hotspot[data-id="' + id + '"]');
+        if (!b) return;
+        b.classList.add('searched');
+        const h = ROOMS[state.room].hotspots.find((x) => x.id === id);
+        b.setAttribute('aria-label', h.label + ' (searched)');
+    }
+
+    function surprise() {
+        const L = lvl();
+        if (L.event === 'toast') {
+            const [emoji, text] = pick(L.toasts);
+            showToast(emoji, text);
+            Sound.play('pop');
+            appendMessage(emoji + ' ' + text);
+        } else if (L.event === 'boo') {
+            scare('boo');
+        } else {
+            scare('face');
+        }
+    }
+
+    function showToast(emoji, text) {
+        const t = $('toast');
+        t.textContent = '';
+        const e = document.createElement('span');
+        e.className = 't-emoji';
+        e.textContent = emoji;
+        t.append(e, document.createTextNode(text));
+        t.classList.remove('hidden');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.add('hidden'), 3200);
+    }
+
+    /* Full-screen scare. `kind` is 'boo' (cartoon ghost, level 3) or 'face'.
+     * Clicking anywhere or waiting dismisses it; the game is paused meanwhile. */
+    function scare(kind, then) {
+        const s = $('scare');
+        s.className = 'scare ' + kind;
+        s.innerHTML = kind === 'boo' ? GHOST_SVG : FACE_SVG;
+        s.classList.remove('hidden');
+        state.paused = true;
+        scareDone = then || null;
+        if (kind === 'boo') Sound.play('boo');
+        else Sound.play('scream', state.level >= 5 ? 1 : 0.7);
+        appendMessage(kind === 'boo' ? '👻 BOO! A ghost swoops right at you, then zooms away giggling.' : 'Something lunges at you out of the dark!');
+        clearTimeout(scareTimer);
+        scareTimer = setTimeout(dismissScare, kind === 'boo' ? 1100 : 1500);
+        s.focus();
+    }
+    function dismissScare() {
+        clearTimeout(scareTimer);
+        scareTimer = null;
+        const s = $('scare');
+        if (s.classList.contains('hidden')) return;
+        s.classList.add('hidden');
+        s.textContent = '';
+        state.paused = false;
+        const done = scareDone;
+        scareDone = null;
+        if (done) done();
+        const first = document.querySelector('.hotspot');
+        if (first && !$('game-screen').classList.contains('hidden')) first.focus({ preventScroll: true });
+    }
+
+    /* ---------- The hunter (levels 4-5) ---------- */
+    function addDread(n) {
+        const H = lvl().hunter;
+        if (!H || !n || state.hunting || !state.running) return;
+        state.dread = Math.min(100, state.dread + n);
+        renderDread();
+        if (state.dread >= 70 && state.dread - n < 70) Sound.play('heartbeat');
+        if (state.dread >= 100) startHunt();
+    }
+    function renderDread() {
+        const pct = Math.round(state.dread);
+        $('dread-fill').style.width = pct + '%';
+        $('dread-pct').textContent = pct + '%';
+    }
+    function startHunt() {
+        const H = lvl().hunter;
+        if (!H || state.hunting || !state.running) return false;
+        state.hunting = true;
+        state.dread = 100;
+        renderDread();
+        setMessage(H.warn);
+        Sound.play('heartbeat');
+        $('hide-panel').classList.remove('hidden');
+        $('hide-btn').focus();
+        flicker();
+        clearTimeout(huntTimer);
+        huntTimer = setTimeout(caught, H.hideWindow * 1000);
+        return true;
+    }
+    function hide() {
+        if (!state.hunting) return false;
+        clearTimeout(huntTimer);
+        state.hunting = false;
+        state.dread = 25;
+        renderDread();
+        $('hide-panel').classList.add('hidden');
+        setMessage(lvl().hunter.safe);
+        Sound.play('heartbeat');
+        return true;
+    }
+    function caught() {
+        if (!state.hunting) return false;
+        clearTimeout(huntTimer);
+        const H = lvl().hunter;
+        state.hunting = false;
+        state.dread = 0;
+        renderDread();
+        $('hide-panel').classList.add('hidden');
+        scare('face', () => {
+            let msg = H.caught;
+            if (H.penalty) {
+                const lost = takeBackItem();
+                msg += lost ? ' You wake on the basement floor. One of the teeth is gone. She hid it again.' : ' You wake on the basement floor, alone.';
+                goTo('basement', true);
+            }
+            setMessage(msg);
+        });
+        return true;
+    }
+    /* Level 5 penalty: one collected item goes back into hiding somewhere new. */
+    function takeBackItem() {
+        const got = [...state.items].filter(([, v]) => v).map(([k]) => k);
+        if (!got.length) return null;
+        const lostKey = pick(got);
+        state.items.delete(lostKey);
+        const usedRooms = new Set([...state.items.keys()].map((k) => k.split(':')[0]));
+        let rooms = Object.keys(ROOMS).filter((r) => !usedRooms.has(r));
+        if (!rooms.length) rooms = Object.keys(ROOMS);
+        const roomId = pick(rooms);
+        const spot = pick(searchable(roomId));
+        const newKey = key(roomId, spot.id);
+        state.items.set(newKey, false);
+        state.searched.delete(newKey);
+        state.found--;
+        renderSlots();
+        return newKey;
+    }
+
+    /* ---------- Clock ---------- */
+    function tick(seconds) {
+        for (let i = 0; i < (seconds || 1); i++) {
+            if (!state.running || state.paused) return;
+            state.seconds++;
+            const L = lvl();
+            if (L.hunter && !state.hunting) addDread(L.hunter.perSecond);
+            if (L.ambientEvery) {
+                state.ambientIn--;
+                if (state.ambientIn <= 0) {
+                    state.ambientIn = L.ambientEvery + Math.floor(Math.random() * 6);
+                    ambient();
+                }
+            }
+        }
+    }
+    function ambient() {
+        const L = lvl();
+        if (!L.ambient.length || state.hunting) return;
+        $('whisper').textContent = pick(L.ambient);
+        Sound.play('whisper');
+        if (state.level >= 4 && Math.random() < 0.4) flicker();
+    }
+    function flicker() {
+        if (state.level < 4) return;
+        const s = $('scene');
+        s.classList.remove('flicker');
+        void s.offsetWidth;
+        s.classList.add('flicker');
+        clearTimeout(flickerTimer);
+        flickerTimer = setTimeout(() => s.classList.remove('flicker'), 1300);
+    }
+
+    /* ---------- Hints (levels 1-3) ---------- */
+    function useHint() {
+        const L = lvl();
+        if (!state.running || !L.hint || state.hintsLeft <= 0) return null;
+        const next = [...state.items].find(([, v]) => !v);
+        let msg;
+        if (!next) msg = L.allFound;
+        else msg = L.hint(ROOMS[next[0].split(':')[0]].name);
+        if (state.hintsLeft !== Infinity) {
+            state.hintsLeft--;
+            msg += ' (' + state.hintsLeft + (state.hintsLeft === 1 ? ' hint' : ' hints') + ' left)';
+        }
+        setMessage(msg);
+        Sound.play('sparkle');
+        updateHintButton();
+        return msg;
+    }
+    function updateHintButton() {
+        const b = $('hint-btn');
+        const L = lvl();
+        b.disabled = !(state.hintsLeft > 0);
+        b.textContent = L.hints === Infinity ? '💡 Hint' : '💡 Hint (' + Math.max(0, state.hintsLeft) + ')';
+    }
+
+    /* ---------- Win ---------- */
+    function win() {
+        const L = lvl();
+        state.running = false;
+        stopTimers();
+        $('win-emoji').textContent = L.win.emoji;
+        $('win-title').textContent = L.win.title;
+        $('win-text').textContent = L.win.text;
+        const m = Math.floor(state.seconds / 60), s = state.seconds % 60;
+        $('win-stats').textContent = 'Level ' + state.level + ' (' + L.name + ') · ' + m + ':' + String(s).padStart(2, '0') + ' · ' + state.searches + ' places searched';
+        $('confetti').textContent = state.level <= 3 ? '🎃 👻 🍬 🦇 🍭 🕸️ 🎉' : '';
+        show('win-screen');
+        Sound.play(state.level <= 3 ? 'win' : 'grim');
+        $('again-btn').focus();
+    }
+
+    /* ---------- Rendering helpers ---------- */
+    function renderSlots() {
+        const L = lvl();
+        const box = $('slots');
+        box.textContent = '';
+        for (let i = 0; i < GOAL; i++) {
+            const s = document.createElement('span');
+            s.className = 'slot' + (i < state.found ? ' got' : '');
+            s.textContent = L.item;
+            box.appendChild(s);
+        }
+        box.setAttribute('aria-label', state.found + ' of ' + GOAL + ' ' + L.itemName + ' found');
+    }
+    function setMessage(text) { $('message').textContent = text; }
+    function appendMessage(text) {
+        const m = $('message');
+        m.textContent = m.textContent ? m.textContent + ' ' + text : text;
+    }
+
+    /* ---------- Flashlight ---------- */
+    function sizeLight() {
+        const L = lvl();
+        const w = $('scene').clientWidth || 800;
+        $('scene').style.setProperty('--r', Math.max(90, Math.round(w * (L.light || 0.3))) + 'px');
+    }
+    function aim(xPct, yPct) {
+        const s = $('scene');
+        s.style.setProperty('--fx', xPct + '%');
+        s.style.setProperty('--fy', yPct + '%');
+    }
+    function aimAt(el) {
+        const x = parseFloat(el.style.left), y = parseFloat(el.style.top);
+        if (Number.isFinite(x) && Number.isFinite(y)) aim(x, y);
+    }
+    function aimFromPointer(ev) {
+        const r = $('scene').getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        aim(((ev.clientX - r.left) / r.width) * 100, ((ev.clientY - r.top) / r.height) * 100);
+    }
+
+    /* ---------- Wiring ---------- */
+    function setSound(v) {
+        Sound.setOn(v);
+        if (v && state.running && state.level >= 4) Sound.droneStart(state.level);
+        document.querySelectorAll('.sound-toggle').forEach((b) => {
+            b.setAttribute('aria-pressed', String(!!v));
+            b.textContent = v ? '🔊 Sound on' : '🔇 Sound off';
+        });
+    }
+
+    function init() {
+        buildLevelCards();
+        setLevel(1);
+        $('start-btn').addEventListener('click', () => start());
+        $('gate-yes').addEventListener('click', confirmAdult);
+        $('gate-no').addEventListener('click', cancelAdult);
+        $('hint-btn').addEventListener('click', useHint);
+        $('quit-btn').addEventListener('click', quit);
+        $('hide-btn').addEventListener('click', hide);
+        $('scare').addEventListener('click', dismissScare);
+        $('again-btn').addEventListener('click', () => start());
+        $('change-btn').addEventListener('click', () => { show('title-screen'); document.body.dataset.level = String(state.level); });
+        document.querySelectorAll('.sound-toggle').forEach((b) => b.addEventListener('click', () => setSound(!Sound.on)));
+        const scene = $('scene');
+        scene.addEventListener('pointermove', aimFromPointer);
+        scene.addEventListener('pointerdown', aimFromPointer);
+        window.addEventListener('resize', sizeLight);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !$('age-gate').classList.contains('hidden')) cancelAdult();
+            else if (e.key === 'Escape' && scareTimer) dismissScare();
+        });
+        $('age-gate').addEventListener('keydown', (e) => {
+            if (e.key !== 'Tab') return;
+            const a = $('gate-yes'), b = $('gate-no');
+            // Two buttons: Tab and Shift+Tab both just swap between them.
+            e.preventDefault();
+            (document.activeElement === a ? b : a).focus();
+        });
+    }
+
+    /* Test hook: lets tests/haunted-house.dom.test.mjs drive the game.
+     * Nothing on the page reads it. */
+    window.__haunted = {
+        LEVELS, ROOMS, GOAL, state, Sound,
+        selectLevel, confirmAdult, cancelAdult, start, quit, goTo, search, tick,
+        startHunt, hide, caught, dismissScare, useHint, setSound,
+        itemSpots: () => [...state.items.keys()]
+    };
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
+</script>
+</body>
+</html>

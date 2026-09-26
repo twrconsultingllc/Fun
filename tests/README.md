@@ -35,7 +35,7 @@ not be loaded — so this drops straight into CI or a pre-push hook.
 
 ## What is covered
 
-861 assertions across twenty-one suites.
+969 assertions across twenty-two suites.
 
 ### `academy/` (Full Circle Academy mockup)
 
@@ -48,6 +48,18 @@ jsdom only fetches external scripts with `resources: 'usable'` (which would
 also try Google Fonts). The suite reads `courses.js` and `academy.js` itself,
 from wherever `--base` points, and inlines them in place of the
 `<script src>` tags, so `npm run test:live` still exercises the deployed files.
+
+### `haunted-house.html`
+
+| Suite | File | Covers |
+|---|---|---|
+| `haunted-house` | `haunted-house.dom.test.mjs` | The 1-5 scare-level picker and the level 5 age gate (Cancel/Escape leave the old level selected, and `start(5)` can't skip the gate), the house map (every exit two-way, every room reachable), content integrity (a description per level for every room, four text tiers for every hotspot, and none of a list of horror words anywhere in levels 1-2), a full level 1 playthrough by clicking the real exit and hotspot buttons, the level 3 flashlight/BOO/limited hints, the level 4-5 hunter (danger rising over time, the hide window, being caught), level 5 taking a found item back, and the no-Web-Audio path. |
+
+The page draws with inline SVG and DOM buttons, so jsdom runs it with no
+stubs. Time-based behaviour (the hunter, scare auto-dismiss) is driven
+through `window.__haunted.tick()` / `caught()` / `dismissScare()` rather
+than real timers. Randomness (where items hide, random surprises) is pinned
+by swapping `Math.random` around the assertions that need it.
 
 ### `fullcircle.html`
 

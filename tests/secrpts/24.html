@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #24 — haunted-house.html (new page)</title>
+<meta name="description" content="Security and code-quality review of haunted-house.html, a new five-level Halloween search-and-escape game with an age-gated adults-only level, plus its landing-page link and test suite.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #24 — <code>haunted-house.html</code> (new page)</h1>
+    <p class="sub">A new single-file game: Haunted House Explorer. You search six rooms for five hidden items and escape through the front door, at a scare level from 1 (friendly, little kids) to 5 (horror, adults only, behind an age gate). Levels 4 and 5 add a hunter you must hide from. The page is linked from <code>index.html</code> as a new section, and a new <code>haunted-house</code> test suite covers it.</p>
+    <div class="meta">Review performed 2026-09-26 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>haunted-house.html</code>, <code>index.html</code> (one new section and one CSS selector), <code>tests/haunted-house.dom.test.mjs</code>, <code>tests/run.mjs</code>, <code>tests/README.md</code> · follows: <a href="23.html">23.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 82%;"></div></div>
+    <div class="progress-label">11 items: 4 found and fixed during the review, 5 verified clean, 2 open (one architectural, one needs a human ear).</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">CSP and referrer meta tags present, no outside origins</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">The page carries the repo's standard policy with nothing widened: <code>default-src 'self'</code>, <code>img-src 'self'</code> (no <code>data:</code>, since there are no images), <code>object-src 'none'</code>, <code>base-uri 'none'</code>, <code>form-action 'self'</code>, plus <code>referrer</code> set to <code>strict-origin-when-cross-origin</code> and a <code>description</code>. A grep for <code>(src|href)="https?:</code>, <code>@import</code> and off-origin <code>url(</code> finds nothing. All art is inline SVG and emoji, and all sound is synthesised with Web Audio, so there's nothing to fetch. <code>'unsafe-inline'</code> stays in <code>script-src</code> for the same reason as every other single-file page: the script is inline by design.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No user-controlled data reaches the DOM as markup</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">The game takes no text input and reads no URL, storage or network data. All game text goes in through <code>textContent</code>. Grep shows 2 <code>innerHTML</code> writes left, and both take constant strings from the script itself: <code>ART[roomId] + DRESSING[state.level]</code> (the room is validated against <code>ROOMS</code> first, and the level against <code>LEVELS</code>) and the two fixed scare SVGs.
+        <div class="fix-note"><b>Fixed:</b> a third write, <code>$('hud-level').innerHTML = ''</code>, was changed to <code>textContent = ''</code> so no <code>innerHTML</code> use is left that isn't constant art.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No network, storage, eval or inline handlers</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">A grep for <code>fetch(</code>, <code>XMLHttpRequest</code>, <code>WebSocket</code>, <code>localStorage</code>, <code>sessionStorage</code>, <code>indexedDB</code>, <code>eval(</code>, <code>new Function</code>, <code>document.write</code> and <code>on*="</code> attributes finds nothing. The suite asserts the last two. Saving nothing is deliberate: the chosen level is never remembered, so the page can't reopen on level 5 for a child after an adult played.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Test hook exposes only game state</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><code>window.__haunted</code> follows the <code>__snake</code>/<code>__swarm</code> pattern. It exposes the level and room tables and the game's own functions, and nothing on the page reads it. A player could use it from DevTools to see where items hide. That's cheating at a toy, not a security issue. Its <code>start(5)</code> refuses to run unless level 5 was already confirmed through the age gate, and the suite asserts that.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Clickjacking (frame-ancestors) not enforceable</div><span class="badge open">Open</span></div>
+      <div class="item-body">Same as every GitHub Pages page in the repo: <code>frame-ancestors</code> is ignored in a meta CSP, and Pages can't send response headers. It's architecturally blocked, and the risk is low because the page has no privileged actions to trick anyone into.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Content &amp; code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Scare levels are separated by construction, and tested</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">The page always opens on level 1. Level 5 needs an explicit "I'm 18+" in a modal whose focus starts on "No, go back", and Cancel and Escape both leave the previous level selected. The age check is self-declared, like any game rating prompt: it keeps a child from wandering in, it isn't verification. The suite pins the content separation:
+        <ul>
+          <li>Hotspot text uses 4 tiers (level 1, level 2, level 3, levels 4-5), and the tiers never get milder as the level rises.</li>
+          <li>Every text levels 1-2 can show (room descriptions, hotspot text, surprises, intro, ending) is checked against a list of horror words (blood, dead, kill, scream, teeth, hair and others), with 0 matches.</li>
+          <li>Levels 1-2 have no hunter, and levels 1-3 never use the full-screen face. Level 3's scare is the cartoon "BOO!" ghost.</li>
+        </ul></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Photosensitivity: flicker stays under 3 flashes per second, and reduced motion turns it off</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">The level 4-5 light flicker is 2 dims in 1.2 s, under WCAG 2.3.1's three-flashes-per-second threshold. It dims toward dark and never flashes bright. The full-screen face is a single appearance followed by a small shake, not a repeated flash. In headless Chromium with <code>reducedMotion: 'reduce'</code>, the computed <code>animation-name</code> for both the scare and the flicker is <code>none</code>. The level 5 gate and the title-screen note both warn about the flicker.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Text contrast (WCAG AA), computed</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">Relative-luminance ratios were computed for each level's palette. Dim text on the page ranges from 6.08 to 11.68, message text on its panel from 14.20 to 19.51, and hotspot labels over the lightest wall (level 1) 5.96. Toast text is 15.93 and the age-gate text 16.77.
+        <div class="fix-note"><b>Fixed:</b> level 5's red accent <code>#c9453a</code> measured 4.32:1 on the page, which fails AA for the normal-size italic whisper line. It became <code>#e0564a</code>: 5.50:1 on the page, and 5.08:1 for the dark button text drawn on it.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Keyboard and screen-reader access</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">Every hotspot, exit and control is a real <code>&lt;button&gt;</code> with an accessible name, and searched spots say "(searched)". Game messages are in <code>aria-live</code> regions, and scares are also described in text. The flashlight follows keyboard focus as well as the pointer, so the dark levels work without a mouse.
+        <div class="fix-note"><b>Fixed:</b> the age gate's focus trap let Shift+Tab from the first button escape the dialog. Tab and Shift+Tab now both swap between its two buttons.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Layout at common sizes</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">Screenshots were taken in headless Chromium at 1100×900 (every level, the hunt, the face scare) and 390×844 (phone), with 0 console errors. Hotspot labels hide under 560 px so they don't overlap, and every tap target is at least 48 px.
+        <div class="fix-note"><b>Fixed:</b> at 1100×900 the room-exit buttons fell below the fold. The scene's height cap went from 64vh to 54vh.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Loudness of the level 4-5 screams not judged by ear</div><span class="badge open">Open</span></div>
+      <div class="item-body">The audio code runs without errors in Chromium, where Web Audio exists, and as a silent no-op in jsdom, where it doesn't. Nothing plays until the player presses "Enter the house". The scream's gain is capped, and there's a mute toggle on both screens. Nobody has listened to it, though, so the actual loudness on real speakers needs a human check on the live site.</div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. The <code>haunted-house</code> suite adds 108 assertions, and the full run is 969 passed, 0 failed. See <a href="23.html">23.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
