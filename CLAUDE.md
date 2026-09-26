@@ -282,20 +282,36 @@ report exists to do (verifying the claims it makes about the pages it's
 reviewing), not a
 security check of the report file itself.
 
-## No browser or WebGL rendering in this environment
+## Browsers and screenshots: depends on where the session runs
 
-There is no puppeteer, chromium-cli, or connected claude-in-chrome browser in
-this sandbox — nothing that can load a page and take a real screenshot. This
-is the same root cause already noted under battle-bots-V2 (`getContext('2d')`
-returns null in jsdom), but it's an environment-wide fact, not specific to
-that app: it applies to every three.js/WebGL page in this repo (race-day.html
-included). Visual changes to a 3D scene can't be screenshotted here — verify
-them by running the no-WebGL test suite (these pages are built to degrade to
-a DOM-only quiz/UI with no renderer, which is exactly what jsdom exercises)
-and, for anything geometry/timing-related, by simulating the actual math in
-Node rather than eyeballing it. Say so explicitly rather than claiming a
-visual check that didn't happen, and ask the user to eyeball the real result
-once it's deployed.
+Whether a real browser is available depends on the environment, so check
+rather than assume:
+
+- **The GitHub Codespace** has no puppeteer, `chromium-cli` or connected
+  claude-in-chrome browser, so nothing there can load a page and take a real
+  screenshot.
+- **Claude Code on the web (claude.ai/code)** containers *do* ship headless
+  Chromium with Playwright (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`; the
+  global package imports from
+  `/opt/node22/lib/node_modules/playwright/index.mjs`). Don't run
+  `playwright install`. There, `getContext('2d')`, `webgl` and `webgl2`
+  all return real contexts (checked 2026-09-26), so a page can be loaded
+  from `file://`, driven with real clicks and screenshotted. That's how
+  `haunted-house.html` was checked at every scare level (`tests/secrpts/24.html`).
+  The container's egress proxy blocks `cdnjs.cloudflare.com` and
+  `*.github.io`, though (Google Fonts gets through). So the three.js pages
+  (race-day.html and others) won't get their library from the CDN, and
+  the live site can't be fetched from there, which means "verify the live
+  site" has to be handed to the user.
+
+Either way, jsdom itself never has a canvas (`getContext('2d')` returns null;
+see battle-bots-V2 above), so the committed `tests/` suites still exercise the
+no-renderer path. Where no browser is available, verify a visual change by
+running the no-WebGL suite and, for anything geometry- or timing-related, by
+simulating the actual math in Node. Always say plainly which kind of check
+happened. A screenshot from headless Chromium counts as a visual check; a
+reading of the code doesn't. Ask the user to look at the deployed result when
+nothing could be rendered.
 
 ## The root `.gitignore`'s `.env.*` also swallows `.env.example`
 
