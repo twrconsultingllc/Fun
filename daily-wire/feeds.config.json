@@ -30,7 +30,11 @@
   "media.springernature.com",
   "krebsonsecurity.com",
   "imgs.xkcd.com",
-  "*.ytimg.com"
+  "*.ytimg.com",
+  "npr.brightspotcdn.com",
+  "d3i6fh83elv35t.cloudfront.net",
+  "assets.science.nasa.gov",
+  "images-assets.nasa.gov"
  ],
  "feeds": [
   { "id": "bbc-world", "category": "news", "source": "BBC News", "url": "https://feeds.bbci.co.uk/news/world/rss.xml" },

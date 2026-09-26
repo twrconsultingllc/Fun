@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
-<title>Review #27 — snake.html (rival spawn fix)</title>
-<meta name="description" content="Security and code-quality review of a fix to snake.html: rival snakes that sometimes failed to spawn, or spawned on obstacles, other rivals or the player start area, and walls stored twice where they cross.">
+<title>Review #27 — snake.html spawn fix, daily-wire.html image hosts</title>
+<meta name="description" content="Security and code-quality review of a fix to snake.html: rival snakes that sometimes failed to spawn, or spawned on obstacles, other rivals or the player start area, and walls stored twice where they cross. Also four image hosts added to daily-wire.html after its first real feed run.">
 <style>
   :root {
     --bg: #0b0e14;
@@ -169,15 +169,15 @@
 <div class="wrap">
 
   <header>
-    <h1>Review #27 — <code>snake.html</code> (rival spawn fix)</h1>
-    <p class="sub">The <code>snake-dom</code> suite failed about once in eight full runs, on "at least one rival snake spawns at level 1". That turned out to be a real bug in the game, not a flaky test. This change fixes how <code>buildEnemies()</code> and <code>buildObstacles()</code> place things, and makes the test check 300 builds instead of one. It only touches the page's script logic: no new markup, links, styles or outside resources.</p>
-    <div class="meta">Review performed 2026-09-26 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>snake.html</code> (<code>spawnEnemyAt()</code>, <code>buildEnemies()</code>, <code>buildObstacles()</code>), <code>tests/snake.dom.test.mjs</code>, <code>tests/README.md</code> · follows: <a href="26.html">26.html</a></div>
+    <h1>Review #27 — <code>snake.html</code> spawn fix, <code>daily-wire.html</code> image hosts</h1>
+    <p class="sub">The <code>snake-dom</code> suite failed about once in eight full runs, on "at least one rival snake spawns at level 1". That turned out to be a real bug in the game, not a flaky test. This change fixes how <code>buildEnemies()</code> and <code>buildObstacles()</code> place things, and makes the test check 300 builds instead of one. It only touches the page's script logic: no new markup, links, styles or outside resources. The same change adds four image hosts to <code>daily-wire.html</code>, which the first real feed run reported as dropped (see <a href="26.html">26.html</a>).</p>
+    <div class="meta">Review performed 2026-09-26 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>snake.html</code> (<code>spawnEnemyAt()</code>, <code>buildEnemies()</code>, <code>buildObstacles()</code>), <code>tests/snake.dom.test.mjs</code>, <code>tests/README.md</code>, <code>daily-wire.html</code> (CSP <code>img-src</code> and <code>IMAGE_HOSTS</code>), <code>daily-wire/feeds.config.json</code> · follows: <a href="26.html">26.html</a></div>
     <div class="legend">
       <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
       <span><span class="dot open"></span> Open</span>
     </div>
     <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
-    <div class="progress-label">5 items: 3 found and fixed, 2 verified clean, 0 open.</div>
+    <div class="progress-label">6 items: 3 found and fixed, 3 verified clean, 0 open.</div>
   </header>
 
   <section>
@@ -208,6 +208,17 @@
     <div class="item">
       <div class="item-head"><div class="item-title">No new surface</div><span class="badge fixed">Confirmed clean</span></div>
       <div class="item-body">The diff changes only placement logic inside the existing inline script. There are no new DOM writes, no <code>innerHTML</code>, no storage, no network access, no new markup, links or styles, and the page's CSP and referrer meta tags are unchanged. The retry loop is capped at 60 attempts per rival and at most 4 rivals, on top of <code>freeCell()</code>'s existing 600-attempt cap, so a crowded board can't hang the page.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">daily-wire.html: four image hosts added after the first real run</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">The first scheduled fetch (commit <code>a812cd2</code>, by <code>github-actions[bot]</code>) reached all 35 feeds, giving 184 items, 94 with pictures. It listed 5 hosts in <code>imageHostsDropped</code>. Four are publishers' own image servers, and they're now allowed in all three places the <code>wire-dom</code> suite keeps in sync (<code>feeds.config.json</code>, the page's <code>IMAGE_HOSTS</code>, and its CSP <code>img-src</code>):
+        <ul>
+          <li><code>npr.brightspotcdn.com</code> (NPR)</li>
+          <li><code>d3i6fh83elv35t.cloudfront.net</code> (PBS NewsHour)</li>
+          <li><code>assets.science.nasa.gov</code> (NASA)</li>
+          <li><code>images-assets.nasa.gov</code> (NASA)</li>
+        </ul>
+        Each is an exact hostname; there's no new wildcard or scheme-wide source, and <code>no-referrer</code> still applies. The PBS host is a CloudFront distribution name, so it covers only that one distribution, not all of CloudFront. The fifth host, <code>static.inaturalist.org</code>, stays blocked until it's clear which feed uses it. That brings the allowlist to 21 hosts, up from 17 in <a href="26.html">26.html</a>.</div>
     </div>
   </section>
 

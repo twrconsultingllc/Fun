@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' https://ichef.bbci.co.uk https://media.npr.org https://i.guim.co.uk https://static01.nyt.com https://cdn.arstechnica.net https://platform.theverge.com https://media.wired.com https://techcrunch.com https://github.blog https://static.simonwillison.net https://www.nasa.gov https://www.quantamagazine.org https://www.sciencedaily.com https://media.springernature.com https://krebsonsecurity.com https://imgs.xkcd.com https://*.ytimg.com; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' https://ichef.bbci.co.uk https://media.npr.org https://i.guim.co.uk https://static01.nyt.com https://cdn.arstechnica.net https://platform.theverge.com https://media.wired.com https://techcrunch.com https://github.blog https://static.simonwillison.net https://www.nasa.gov https://www.quantamagazine.org https://www.sciencedaily.com https://media.springernature.com https://krebsonsecurity.com https://imgs.xkcd.com https://*.ytimg.com https://npr.brightspotcdn.com https://d3i6fh83elv35t.cloudfront.net https://assets.science.nasa.gov https://images-assets.nasa.gov; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
 <meta name="description" content="My Daily Wire: a personal news reader. Headlines from BBC, NPR, Ars Technica, NASA, CISA, USGS, xkcd and more, refreshed every six hours as magazine cards.">
 <title>My Daily Wire</title>
 <style>
@@ -220,7 +220,10 @@
         'cdn.arstechnica.net', 'platform.theverge.com', 'media.wired.com', 'techcrunch.com',
         'github.blog', 'static.simonwillison.net', 'www.nasa.gov', 'www.quantamagazine.org',
         'www.sciencedaily.com', 'media.springernature.com', 'krebsonsecurity.com',
-        'imgs.xkcd.com', '*.ytimg.com'
+        'imgs.xkcd.com', '*.ytimg.com',
+        // added after the first real run reported them in imageHostsDropped
+        'npr.brightspotcdn.com', 'd3i6fh83elv35t.cloudfront.net',
+        'assets.science.nasa.gov', 'images-assets.nasa.gov'
     ];
 
     const DEFAULT_CATEGORIES = [
