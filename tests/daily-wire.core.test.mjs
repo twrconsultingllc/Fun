@@ -52,7 +52,9 @@ export default async function run(t) {
     t.ok('every Google News search is limited to the last 7 days', gnFeeds.every((f) => new URL(f.url).searchParams.get('q').endsWith(' when:7d')));
     t.ok('Google News feeds name the real publisher and skip summaries and images', gnFeeds.every((f) => f.sourceFromItem && f.noSummary && f.noImages));
     t.ok('SW FL weather alerts cover Collier (FLC021) and Lee (FLC071) counties', swfl.some((f) => f.url === 'https://api.weather.gov/alerts/active.atom?zone=FLC021,FLC071'));
-    t.ok('Google News searches exclude sports streams and obituary sites', gnFeeds.every((f) => ['-site:nfhsnetwork.com', '-site:maxpreps.com', '-site:legacy.com'].every((x) => new URL(f.url).searchParams.get('q').includes(x))));
+    // -site: exclusions turned the results into job ads and listings (2026-09-26 run da0af10).
+    t.ok('Google News searches carry no -site: exclusions', gnFeeds.every((f) => !new URL(f.url).searchParams.get('q').includes('-site:')));
+    t.eq('excludeSources drops sports streams and obituaries by publisher name', config.excludeSources.join('|'), 'NFHS Network|MaxPreps|Legacy|obituar');
     t.eq('SW FL is the four searches plus Collier/Lee alerts (direct feeds that 404ed on 2026-09-26 removed)', swfl.map((f) => f.id).join(','), 'gn-naples,gn-bonita,gn-collier,gn-lee,nws-swfl');
     t.ok('both NWS alert feeds may be empty', config.feeds.filter((f) => f.url.startsWith('https://api.weather.gov/')).every((f) => f.mayBeEmpty === true));
 
@@ -101,6 +103,11 @@ export default async function run(t) {
     t.eq('no <source> falls back to the feed name', gnItems[2].source, 'gn');
     t.eq('title without a suffix is left alone', gnItems[2].title, 'Headline with no publisher suffix');
     t.ok('noSummary: Google\'s link-list description is not used', gnItems.every((i) => i.summary === ''));
+    const noisy = (await fixture('google-news')).replace('- WINK News</title>', '- MaxPreps</title>').replace('>WINK News</source>', '>MaxPreps</source>');
+    const filtered = m.normalizeFeed(noisy, gnCfg, { ...config, excludeSources: ['maxpreps', 'obituar'] }, { now: NOW });
+    t.eq('excludeSources drops an item by publisher (case-insensitive)', filtered.map((i) => i.source).join(','), 'Naples Daily News,gn');
+    t.ok('excluded(): substring match, case-insensitive', m.excluded('Legacy obituary', ['OBITUAR']) && !m.excluded('Naples Daily News', ['MaxPreps']));
+    t.ok('excluded(): empty or missing list excludes nothing', !m.excluded('Anything', []) && !m.excluded('Anything', undefined));
     const many = Array.from({ length: 12 }, (_, i) => `<item><title>Story ${i}</title><link>https://news.example/${i}</link><pubDate>${new Date(NOW - i * 3600000).toUTCString()}</pubDate></item>`).join('');
     const doc = `<rss><channel>${many}</channel></rss>`;
     t.eq('per-feed maxItems (10) overrides maxItemsPerFeed (6)', m.normalizeFeed(doc, gnCfg, config, { now: NOW }).length, 10);

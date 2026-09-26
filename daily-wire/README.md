@@ -57,9 +57,11 @@ Optional flags:
 
 A Google News search feed is
 `https://news.google.com/rss/search?q=<url-encoded query>&hl=en-US&gl=US&ceid=US:en`.
-The SW FL searches exclude high school sports streams and obituary sites
-(`-site:nfhsnetwork.com -site:maxpreps.com -site:legacy.com`) and end their
-query with `when:7d` to keep results recent. Their
+The SW FL searches end their query with `when:7d` to keep results recent.
+Don't add `-site:` exclusions to them: on 2026-09-26 that turned the results
+into job ads, real-estate listings and social posts. Instead, the top-level
+`excludeSources` list drops aggregator items whose publisher name contains
+any listed word (case-insensitive), e.g. `"MaxPreps"` or `"obituar"`. Their
 card links go through `news.google.com` before reaching the story.
 
 A YouTube channel's feed is
