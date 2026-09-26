@@ -39,7 +39,7 @@ export default async function run(t) {
     t.ok('every feed is in a known category', config.feeds.every((f) => catIds.has(f.category)));
     t.ok('every category has at least one feed', [...catIds].every((c) => config.feeds.some((f) => f.category === c)));
     t.ok('every feed URL is https', config.feeds.every((f) => new URL(f.url).protocol === 'https:'));
-    const yt = config.feeds.filter((f) => f.url.includes('youtube.com'));
+    const yt = config.feeds.filter((f) => new URL(f.url).hostname === 'www.youtube.com');
     t.eq('four YouTube channels', yt.length, 4);
     t.ok('YouTube channel ids are well-formed (UC + 22 chars)', yt.every((f) => /channel_id=UC[A-Za-z0-9_-]{22}$/.test(f.url)));
     t.ok('weather alerts are for Florida', config.feeds.some((f) => f.url === 'https://api.weather.gov/alerts/active.atom?area=FL'));
@@ -86,11 +86,12 @@ export default async function run(t) {
     const bad = m.normalizeFeed(await fixture('hostile'), feed('evil'), config, { now: NOW, dropped });
     const links = bad.map((i) => i.link);
     t.ok('javascript: link dropped', !links.some((l) => l.startsWith('javascript')));
-    t.ok('link with credentials dropped', !links.some((l) => l.includes('@')));
-    t.ok('item with no title dropped', !links.includes('https://evil.example/untitled'));
+    t.ok('link with credentials dropped', !links.some((l) => new URL(l).username !== ''));
+    t.ok('item with no title dropped', !bad.some((i) => i.link === 'https://evil.example/untitled'));
     t.eq('four items survive', bad.length, 4);
     const first = bad.find((i) => i.link === 'https://evil.example/ok');
-    t.ok('no angle-bracket tag survives in any title or summary', bad.every((i) => !/<[a-z!/]/i.test(i.title.replace('<b>title</b>', '')) && !/<[a-z!/]/i.test(i.summary)));
+    t.ok('no < or > survives in any title or summary', bad.every((i) => !/[<>]/.test(i.title + i.summary)));
+    t.eq('double-escaped <b> in a title is stripped, not shown as a tag', first.title, 'Safe title &c;');
     t.ok('<img onerror> stripped from the title', !/onerror|<img/i.test(first.title));
     t.ok('DOCTYPE entities are NOT expanded (no billion-laughs)', first.title.length < 60 && first.title.includes('&c;'));
     t.ok('<script> and <style> contents removed from the summary', !/alert|body\{/.test(first.summary));
@@ -114,6 +115,11 @@ export default async function run(t) {
     t.eq('numeric entities decoded', m.decodeEntities('&#8217;&#x2014;'), '’—');
     t.eq('invalid code points dropped', m.decodeEntities('a&#0;b&#x110000;c&#xD800;d'), 'abcd');
     t.eq('unknown named entity left alone', m.decodeEntities('&bogus;'), '&bogus;');
+    t.eq('double-escaped <script> removed with its contents', m.toPlainText('&amp;lt;script&amp;gt;alert(1)&amp;lt;/script&amp;gt;Hi'), 'Hi');
+    t.eq('triple-escaped tag still stripped', m.toPlainText('a &amp;amp;lt;img src=x onerror=y&amp;amp;gt; b'), 'a b');
+    // The script block <script>ipt>alert(1)</script> goes whole; the stray '<' of '<scr' is dropped.
+    t.eq('split-up tag (<scr<script>ipt>) leaves no angle bracket or script', m.toPlainText('<scr<script>ipt>alert(1)</script>ok'), 'scr ok');
+    t.eq('plain comparison text loses its angle brackets', m.toPlainText('Is 3 < 5 > 2?'), 'Is 3 5 2?');
     t.eq('truncate cuts on a word with an ellipsis', m.truncate('one two three four five six seven', 20), 'one two three four…');
     t.eq('truncate leaves short text alone', m.truncate('short', 20), 'short');
     t.ok('*.ytimg.com allows i3.ytimg.com', m.hostAllowed('i3.ytimg.com', ['*.ytimg.com']));

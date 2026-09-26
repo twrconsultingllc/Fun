@@ -35,7 +35,7 @@ not be loaded — so this drops straight into CI or a pre-push hook.
 
 ## What is covered
 
-1230 assertions across twenty-five suites.
+1235 assertions across twenty-five suites.
 
 ### `academy/` (Full Circle Academy mockup)
 
@@ -53,7 +53,7 @@ from wherever `--base` points, and inlines them in place of the
 
 | Suite | File | Covers |
 |---|---|---|
-| `wire-core` | `daily-wire.core.test.mjs` | The feed fetcher, `daily-wire/fetch-feeds.mjs`, run against the sample feeds in `fixtures/daily-wire/` with no network: RSS with `media:thumbnail`/`media:content`/`content:encoded`/guid links, GitHub-release Atom, YouTube and xkcd. Plus a hostile feed (`javascript:` and credential links, `<script>`/`<img onerror>` in text, a tracking-pixel host, a `data:` image, a look-alike image host, a future date, a DOCTYPE entity bomb) and an XXE feed, which is refused. Also the config's integrity, and `build()` keeping a failed feed's last items and ignoring timestamps when deciding whether anything changed. |
+| `wire-core` | `daily-wire.core.test.mjs` | The feed fetcher, `daily-wire/fetch-feeds.mjs`, run against the sample feeds in `fixtures/daily-wire/` with no network: RSS with `media:thumbnail`/`media:content`/`content:encoded`/guid links, GitHub-release Atom, YouTube and xkcd. Plus a hostile feed (`javascript:` and credential links, `<script>`/`<img onerror>` in text, a tracking-pixel host, a `data:` image, a look-alike image host, a future date, a DOCTYPE entity bomb) and an XXE feed, which is refused. Double- and triple-escaped tags are stripped too, with no `<` or `>` left in any output. Also the config's integrity, and `build()` keeping a failed feed's last items and ignoring timestamps when deciding whether anything changed. |
 | `wire-dom` | `daily-wire.dom.test.mjs` | The page in jsdom: the CSP (`connect-src 'self'`, no scheme-wide `img-src`), and the image-host allowlist identical in `feeds.config.json`, the page script and the CSP. The committed `feeds.json` renders. Sample data with hostile entries: bad links and ids dropped, HTML shown as text, off-list and `http:` images refused. Also paging, category chips, search, Unread only, Mark shown as read, read state in `localStorage` (tampered and corrupt values ignored), the Paywall pill, the quake panel, feed status, and relative times. |
 
 jsdom has no `fetch`, so the page shows its "could not be loaded" state and

@@ -52,17 +52,25 @@ export function decodeEntities(s) {
     });
 }
 
-/* Feed text is often HTML, sometimes entity-escaped HTML. Decode once so
-   escaped tags become real tags, strip every tag, then decode again for the
-   entities that were inside the markup. The result is plain text only. */
+/* Feed text is often HTML, sometimes entity-escaped HTML, and now and
+   then escaped twice. Decode, strip tags, and repeat until nothing changes,
+   so an escaped tag can't survive as a real one. Any '<' or '>' left after
+   that is dropped too. The result is plain text only. */
+export function stripMarkup(s) {
+    for (let pass = 0; pass < 5; pass++) {
+        const before = s;
+        s = decodeEntities(s);
+        s = s.replace(/<(script|style|iframe|object|noscript)\b[\s\S]*?<\/\1[^>]*>/gi, ' ');
+        s = s.replace(/<!--[\s\S]*?-->/g, ' ');
+        s = s.replace(/<\/?(p|div|br|li|h[1-6]|tr|blockquote)\b[^>]*>/gi, ' ');
+        s = s.replace(/<[a-z!?/][^>]*>/gi, ''); // a tag starts <letter, <!, <? or </
+        if (s === before) break;
+    }
+    return s.replace(/[<>]/g, '');
+}
+
 export function toPlainText(value, max = SUMMARY_MAX) {
-    let s = decodeEntities(textOf(value));
-    s = s.replace(/<(script|style|iframe|object|noscript)\b[\s\S]*?<\/\1\s*>/gi, ' ');
-    s = s.replace(/<!--[\s\S]*?-->/g, ' ');
-    s = s.replace(/<\/?(p|div|br|li|h[1-6]|tr|blockquote)\b[^>]*>/gi, ' ');
-    s = s.replace(/<[^>]*>/g, '');
-    s = s.replace(/</g, ''); // an unclosed tag fragment
-    s = decodeEntities(s);
+    let s = stripMarkup(textOf(value));
     s = s.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u200b-\u200d\u2028\u2029\ufeff]/g, '');
     s = s.replace(/\s+/g, ' ').trim();
     return truncate(s, max);

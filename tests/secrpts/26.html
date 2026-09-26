@@ -176,8 +176,8 @@
       <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
       <span><span class="dot open"></span> Open</span>
     </div>
-    <div class="progress-bar"><div class="progress-fill" style="width: 76%;"></div></div>
-    <div class="progress-label">17 items: 7 found and fixed while building and reviewing, 6 verified clean, 4 open (one accepted trade-off, one architectural, two that need the first live run).</div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 78%;"></div></div>
+    <div class="progress-label">18 items: 8 found and fixed while building and reviewing, 6 verified clean, 4 open (one accepted trade-off, one architectural, two that need the first live run).</div>
   </header>
 
   <section>
@@ -207,6 +207,11 @@
           <li>Look-alike hosts such as <code>imgs.xkcd.com.evil.example</code> are rejected.</li>
         </ul>
         The 5 MB response cap, the 20-second timeout and the "must end on https after redirects" rule are in the code but aren't exercised by a test, because the suite runs with no network.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Double-escaped markup could survive the fetcher's tag stripping (CodeQL)</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">CodeQL flagged <code>toPlainText()</code> on the PR with "incomplete multi-character sanitization", and the flag was right. It stripped tags once and then decoded entities again, so a feed title written as <code>&amp;amp;lt;script&amp;amp;gt;</code> came out as the literal text <code>&lt;script&gt;</code>. The page only ever sets it with <code>textContent</code>, so nothing could run, but the fetcher promises plain text and didn't deliver it.
+        <div class="fix-note"><b>Fixed:</b> a new <code>stripMarkup()</code> decodes and strips repeatedly until the text stops changing (at most 5 passes), then drops any <code>&lt;</code> or <code>&gt;</code> that's left, so no output can contain a tag. The tag pattern now needs a letter, <code>/</code>, <code>!</code> or <code>?</code> after the <code>&lt;</code>, like real HTML. Without that, "3 &lt; 5 &gt; 2" lost its "5". New tests cover double- and triple-escaped tags, a split-up <code>&lt;scr&lt;script&gt;ipt&gt;</code>, and plain comparison text. CodeQL's two other alerts were substring URL checks in the test file. They weren't exploitable, but they're now exact comparisons, so the pattern isn't in the repo.</div></div>
     </div>
     <div class="item">
       <div class="item-head"><div class="item-title">Workflow token was on disk while third-party code ran</div><span class="badge fixed">Fixed</span></div>
@@ -282,7 +287,7 @@
   </section>
 
   <footer>
-    This is a static snapshot, not a live check. The <code>wire-core</code> and <code>wire-dom</code> suites add 135 assertions, and the full run is 1230 passed, 0 failed. See <a href="25.html">25.html</a> for the previous review.
+    This is a static snapshot, not a live check. The <code>wire-core</code> and <code>wire-dom</code> suites add 140 assertions, and the full run is 1235 passed, 0 failed. See <a href="25.html">25.html</a> for the previous review.
   </footer>
 
 </div>
