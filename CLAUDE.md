@@ -343,6 +343,14 @@ nothing could be rendered.
   the fetcher drops them, the page refuses them, or the browser blocks
   them, and none of those shows an error. `wire-dom` fails when the three
   lists drift apart, so run `npm test` after touching any of them.
+- **Don't add `-site:` exclusions to the Google News searches.** The SW FL
+  category's four searches (`news.google.com/rss/search?q=…`) return local
+  news as they stand. Adding `-site:nfhsnetwork.com -site:maxpreps.com
+  -site:legacy.com` to them on 2026-09-26 turned 35 of 40 results into job
+  ads, real-estate listings and social posts. To drop an unwanted source,
+  add its publisher name to `excludeSources` in `feeds.config.json`, which
+  the fetcher matches against each item's publisher. `wire-core` fails if a
+  search gains a `-site:`.
 
 ## The root `.gitignore`'s `.env.*` also swallows `.env.example`
 

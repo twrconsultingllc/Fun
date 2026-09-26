@@ -241,6 +241,11 @@ function atomLink(links) {
     return alt ? alt['@_href'] : all[0] ? all[0]['@_href'] : textOf(links);
 }
 
+export function excluded(publisher, list = []) {
+    const p = publisher.toLowerCase();
+    return list.some((x) => typeof x === 'string' && x && p.includes(x.toLowerCase()));
+}
+
 export function itemId(link) {
     return createHash('sha256').update(link).digest('hex').slice(0, 12);
 }
@@ -266,6 +271,9 @@ export function normalizeFeed(xml, feed, config, { now = Date.now(), dropped = {
         const publisher = feed.sourceFromItem ? toPlainText(it.source, 80) : '';
         let title = toPlainText(it.title, TITLE_MAX);
         if (publisher && title.endsWith(' - ' + publisher)) title = title.slice(0, -(publisher.length + 3)).trim();
+        // Skip publishers listed in config.excludeSources (case-insensitive
+        // substring), e.g. sports-stream and obituary sites in local searches.
+        if (publisher && excluded(publisher, config.excludeSources)) continue;
         if (!title) continue;
         seen.add(link);
         const group = asArray(it['media:group'])[0] || {};
