@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<meta name="description" content="Trick-or-Treat Dash: a Halloween endless runner. Run down the street in costume, jump puddles and pumpkins, collect candy and unlock new costumes.">
+<title>Trick-or-Treat Dash</title>
+<style>
+    :root {
+        --page: #160d2e;
+        --panel: rgba(18, 8, 38, 0.92);
+        --panel-border: rgba(255, 255, 255, 0.16);
+        --text: #fff7ea;
+        --dim: #cbbde6;
+        --accent: #ffb13b;
+        --accent-ink: #1a0d00;
+        --good: #7ee07e;
+        --emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+        background: var(--page);
+        color: var(--text);
+        font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+        line-height: 1.4;
+    }
+    button { font: inherit; color: inherit; cursor: pointer; }
+    button:focus-visible, #stage:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+    button:disabled { cursor: not-allowed; }
+    .hidden { display: none !important; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 12px 16px 24px; }
+    .top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+    .back { color: var(--dim); font-size: 0.9rem; text-decoration: none; }
+    .back:hover, .back:focus-visible { color: var(--text); text-decoration: underline; }
+    h1 { margin: 6px 0 10px; font-size: clamp(1.6rem, 5vw, 2.4rem); color: var(--accent); }
+    .pill {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid var(--panel-border);
+        border-radius: 999px;
+        padding: 7px 14px;
+        font-size: 0.9rem;
+    }
+
+    .hud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        align-items: center;
+        font-weight: 700;
+        font-size: 1.05rem;
+        margin: 4px 0 8px;
+        min-height: 1.6em;
+    }
+    .hud .e { font-family: var(--emoji); }
+    .hud .grow { flex: 1; }
+
+    #stage {
+        position: relative;
+        width: min(100%, calc((100vh - 150px) * 16 / 9));
+        min-width: min(100%, 320px);
+        margin: 0 auto;
+        aspect-ratio: 16 / 9;
+        border-radius: 14px;
+        overflow: hidden;
+        background: #1b1340;
+        border: 3px solid rgba(0, 0, 0, 0.5);
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    #game { display: block; width: 100%; height: 100%; }
+
+    .overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px;
+        background: rgba(10, 4, 24, 0.55);
+        overflow-y: auto;
+    }
+    .card {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 16px;
+        padding: 16px 20px;
+        max-width: 780px;
+        width: 100%;
+        text-align: center;
+        max-height: 100%;
+        overflow-y: auto;
+    }
+    .card h2 { margin: 0 0 4px; color: var(--accent); font-size: clamp(1.2rem, 3.6vw, 1.8rem); }
+    .card p { margin: 6px 0; color: var(--dim); }
+    .card .big { font-size: 1.15rem; color: var(--text); }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 8px 0; }
+    .go {
+        background: var(--accent);
+        color: var(--accent-ink);
+        border: none;
+        border-radius: 999px;
+        padding: 12px 26px;
+        font-size: 1.15rem;
+        font-weight: 800;
+        box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+    }
+    .go:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35); }
+    .choice {
+        background: rgba(255, 255, 255, 0.06);
+        border: 2px solid var(--panel-border);
+        border-radius: 12px;
+        padding: 6px 12px;
+        flex: 1 1 200px;
+        max-width: 320px;
+    }
+    .choice small { display: block; color: var(--dim); font-size: 0.8rem; }
+    .choice[aria-pressed="true"] { border-color: var(--accent); background: rgba(255, 177, 59, 0.14); }
+    .label { font-size: 0.8rem; color: var(--dim); margin-top: 4px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+    .costumes { display: grid; grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); gap: 6px; margin: 6px 0; }
+    .costume {
+        background: rgba(255, 255, 255, 0.06);
+        border: 2px solid var(--panel-border);
+        border-radius: 12px;
+        padding: 4px 2px;
+        font-size: 0.72rem;
+        line-height: 1.2;
+    }
+    .costume .ce { font-family: var(--emoji); font-size: 1.7rem; display: block; }
+    .costume[aria-pressed="true"] { border-color: var(--accent); background: rgba(255, 177, 59, 0.14); }
+    .costume:disabled .ce { filter: grayscale(1) brightness(0.5); }
+    .costume:disabled { color: var(--dim); }
+    .help { font-size: 0.82rem; margin: 4px 0 0; }
+    .card p.lead { margin: 0 0 4px; }
+    .rotate-tip { display: none; text-align: center; color: var(--dim); font-size: 0.9rem; margin: 8px 0 0; }
+    .unlock { color: var(--good); font-weight: 700; font-size: 1.05rem; }
+    .jump-btn {
+        display: none;
+        margin: 10px auto 0;
+        width: 100%;
+        max-width: 420px;
+        padding: 16px;
+        border-radius: 16px;
+        border: none;
+        background: var(--accent);
+        color: var(--accent-ink);
+        font-size: 1.3rem;
+        font-weight: 900;
+    }
+    @media (pointer: coarse) { .jump-btn { display: block; } }
+    body[data-menu="yes"] .jump-btn { display: none; }
+    /* Narrow screens: the 16:9 game area is too short to hold a menu, so the
+       panels drop out of the overlay and sit underneath the game instead. */
+    @media (max-width: 720px), (max-height: 560px) {
+        #stage { aspect-ratio: auto; overflow: visible; background: none; border: none; }
+        #game { height: auto; aspect-ratio: 16 / 9; border-radius: 12px; border: 3px solid rgba(0, 0, 0, 0.5); background: #1b1340; }
+        .overlay { position: static; background: none; padding: 10px 0 0; }
+        .card { max-height: none; }
+    }
+    @media (max-width: 720px) and (orientation: portrait) { .rotate-tip { display: block; } }
+    @media (max-height: 560px) {
+        h1 { display: none; }
+        #stage { width: min(100%, calc((100vh - 80px) * 16 / 9)); }
+        .wrap { padding-top: 6px; }
+    }
+</style>
+</head>
+<body data-menu="yes">
+<div class="wrap">
+    <div class="top">
+        <a class="back" href="index.html">← Back to the arcade</a>
+        <div class="row" style="margin: 0;">
+            <button class="pill" id="pause-btn" type="button" disabled>⏸️ Pause</button>
+            <button class="pill" id="sound-btn" type="button" aria-pressed="true">🔊 Sound on</button>
+        </div>
+    </div>
+    <h1>🎃 Trick-or-Treat Dash</h1>
+
+    <div class="hud" id="hud" aria-label="Score">
+        <span><span class="e" aria-hidden="true">🍬</span> <span id="hud-candy">0</span> candy</span>
+        <span id="hud-lives-wrap"><span class="e" id="hud-lives" aria-label="3 hearts left">❤️❤️❤️</span></span>
+        <span id="hud-dist">0 m</span>
+        <span class="grow"></span>
+        <span id="hud-power" class="e" aria-live="polite"></span>
+        <span>Best: <span id="hud-best">0</span></span>
+    </div>
+
+    <div id="stage" tabindex="0" role="application" aria-label="Trick-or-Treat Dash. Press Space, Up arrow or tap to jump. Press twice for a double jump. P pauses.">
+        <canvas id="game" width="960" height="540" aria-hidden="true"></canvas>
+
+        <!-- Title -->
+        <div class="overlay" id="title-panel">
+            <div class="card">
+                <h2>Ready to trick-or-treat?</h2>
+                <p class="lead">Run down Pumpkin Lane, jump over puddles and pumpkins, and fill your bag with candy!</p>
+                <div class="label" id="mode-label">How hard?</div>
+                <div class="row" role="group" aria-labelledby="mode-label">
+                    <button class="choice" type="button" data-mode="easy" aria-pressed="false">🐢 Easy<small>Slower. No game over. Reach the end of the street!</small></button>
+                    <button class="choice" type="button" data-mode="normal" aria-pressed="true">🏃 Normal<small>Faster every second. 3 hearts. How far can you go?</small></button>
+                </div>
+                <div class="label" id="costume-label">Pick your costume</div>
+                <div class="costumes" id="costumes" role="group" aria-labelledby="costume-label"></div>
+                <p class="help" id="lifetime-line"></p>
+                <div class="row"><button class="go" id="start-btn" type="button">Start running!</button></div>
+                <p class="help"><b>Jump:</b> Space, ↑ or tap. Press again in the air for a <b>double jump</b>.<br>
+                    Duck under the 🦇 bats. Don't jump into them! Grab 🧲 to pull in candy and ⭐ to be unstoppable.</p>
+            </div>
+        </div>
+
+        <!-- Pause -->
+        <div class="overlay hidden" id="pause-panel">
+            <div class="card">
+                <h2>Paused</h2>
+                <div class="row">
+                    <button class="go" id="resume-btn" type="button">Keep running</button>
+                    <button class="pill" id="end-btn" type="button">End this run</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game over -->
+        <div class="overlay hidden" id="over-panel">
+            <div class="card" role="status">
+                <h2 id="over-title">What a haul!</h2>
+                <p class="big" id="over-stats"></p>
+                <p id="over-best"></p>
+                <p class="unlock" id="over-unlock"></p>
+                <div class="row">
+                    <button class="go" id="again-btn" type="button">Run again</button>
+                    <button class="pill" id="menu-btn" type="button">Change costume</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <button class="jump-btn" id="jump-btn" type="button">⬆ JUMP</button>
+    <p class="rotate-tip">📱↻ Tip: turn your phone sideways for a bigger view.</p>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    /* ================================================================
+     * Tuning. World units are canvas pixels (960×540). Heights are
+     * measured UP from the pavement, so y = 0 means standing.
+     * ================================================================ */
+    const CFG = {
+        W: 960, H: 540, GROUND_Y: 452,
+        KID_X: 170, KID_W: 44, KID_H: 60,
+        PX_PER_M: 50, INVULN: 1.3, MAGNET: 8, SHIELD: 6, MAGNET_RANGE: 300,
+        modes: {
+            easy: {
+                name: 'Easy', start: 250, max: 460, accel: 4, hearts: Infinity,
+                finish: 600, reaction: 0.8, oops: 3, forgive: 12,
+                g: 2100, jump: 780, jump2: 680, // floatier: same height, more hang time
+                kinds: ['puddle', 'pumpkin', 'pumpkin', 'tomb']
+            },
+            normal: {
+                name: 'Normal', start: 320, max: 700, accel: 7, hearts: 3,
+                finish: Infinity, reaction: 0.45, oops: 0, forgive: 0,
+                g: 2600, jump: 860, jump2: 760,
+                kinds: ['puddle', 'pumpkin', 'tomb', 'tomb', 'ghost', 'bat', 'bat']
+            }
+        }
+    };
+
+    /* Obstacles: w/h are the hitbox; `lift` raises it off the ground. */
+    const OBST = {
+        puddle: { w: 96, h: 10, lift: 0, label: 'puddle' },
+        pumpkin: { w: 50, h: 46, lift: 0, emoji: '🎃', size: 58, label: 'pumpkin' },
+        tomb: { w: 46, h: 64, lift: 0, emoji: '🪦', size: 74, label: 'tombstone' },
+        ghost: { w: 56, h: 148, lift: 0, emoji: '👻', size: 150, label: 'giant blow-up ghost', tall: true },
+        bat: { w: 48, h: 34, lift: 118, emoji: '🦇', size: 50, label: 'bat', duck: true }
+    };
+
+    const CANDY = {
+        corn: { emoji: '🍬', value: 1 },
+        pop: { emoji: '🍭', value: 2 },
+        bar: { emoji: '🍫', value: 5 },
+        magnet: { emoji: '🧲', value: 0, power: 'magnet' },
+        shield: { emoji: '⭐', value: 0, power: 'shield' }
+    };
+
+    /* Costumes unlock by lifetime candy, saved in this browser only. */
+    const COSTUMES = [
+        { id: 'ghost', emoji: '👻', name: 'Ghost', need: 0 },
+        { id: 'cat', emoji: '🐱', name: 'Black Cat', need: 40 },
+        { id: 'witch', emoji: '🧙', name: 'Witch', need: 120 },
+        { id: 'vampire', emoji: '🧛', name: 'Vampire', need: 250 },
+        { id: 'hero', emoji: '🦸', name: 'Superhero', need: 400 },
+        { id: 'robot', emoji: '🤖', name: 'Robot', need: 600 },
+        { id: 'dino', emoji: '🦖', name: 'Dino', need: 900, flip: true },
+        { id: 'unicorn', emoji: '🦄', name: 'Unicorn', need: 1300, flip: true }
+    ];
+
+    /* ================================================================
+     * Seeded RNG (mulberry32), so the tests can replay a run exactly.
+     * ================================================================ */
+    let seedState = (Date.now() ^ 0x9e3779b9) >>> 0;
+    function rng() {
+        seedState = (seedState + 0x6d2b79f5) >>> 0;
+        let t = seedState;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
+    const pick = (arr) => arr[Math.floor(rng() * arr.length)];
+
+    /* ================================================================
+     * Saved progress. Everything read back is validated, so a hand-edited
+     * or corrupt value falls back to a safe default instead of breaking.
+     * ================================================================ */
+    const STORE_KEY = 'fun.trickOrTreatDash.v1';
+    const save = { best: { easy: 0, normal: 0 }, lifetime: 0, costume: 'ghost', muted: false };
+    const cleanCount = (v) => (Number.isInteger(v) && v >= 0 && v <= 1e7 ? v : 0);
+    function loadSave() {
+        let raw = null;
+        try { raw = JSON.parse(window.localStorage.getItem(STORE_KEY)); } catch (e) { raw = null; }
+        if (!raw || typeof raw !== 'object') return;
+        save.lifetime = cleanCount(raw.lifetime);
+        if (raw.best && typeof raw.best === 'object') {
+            save.best.easy = cleanCount(raw.best.easy);
+            save.best.normal = cleanCount(raw.best.normal);
+        }
+        const c = COSTUMES.find((x) => x.id === raw.costume);
+        save.costume = c && c.need <= save.lifetime ? c.id : 'ghost';
+        save.muted = raw.muted === true;
+    }
+    function writeSave() {
+        try { window.localStorage.setItem(STORE_KEY, JSON.stringify(save)); } catch (e) { /* private mode: progress just isn't kept */ }
+    }
+    const costume = () => COSTUMES.find((c) => c.id === save.costume) || COSTUMES[0];
+
+    /* ================================================================
+     * Sound: tiny Web Audio synth. A no-op without Web Audio or muted.
+     * ================================================================ */
+    const Sound = (() => {
+        let ctx = null, master = null;
+        function ensure() {
+            if (save.muted) return null;
+            if (ctx) { if (ctx.state === 'suspended' && ctx.resume) ctx.resume(); return ctx; }
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return null;
+            try {
+                ctx = new AC();
+                master = ctx.createGain();
+                master.gain.value = 0.5;
+                master.connect(ctx.destination);
+            } catch (e) { ctx = null; }
+            return ctx;
+        }
+        function tone(freq, dur, type, gain, to, delay) {
+            const c = ensure(); if (!c) return;
+            const t = c.currentTime + (delay || 0);
+            const o = c.createOscillator(), g = c.createGain();
+            o.type = type || 'sine';
+            o.frequency.setValueAtTime(freq, t);
+            if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.exponentialRampToValueAtTime(gain || 0.12, t + 0.01);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            o.connect(g); g.connect(master);
+            o.start(t); o.stop(t + dur + 0.03);
+        }
+        const sfx = {
+            jump: () => tone(300, 0.18, 'square', 0.05, 620),
+            jump2: () => tone(480, 0.16, 'square', 0.05, 900),
+            candy: (v) => tone(v >= 5 ? 1320 : v >= 2 ? 1100 : 880, 0.09, 'triangle', 0.08),
+            power: () => [660, 880, 1100, 1320].forEach((f, i) => tone(f, 0.12, 'triangle', 0.08, null, i * 0.06)),
+            bonk: () => tone(180, 0.25, 'sawtooth', 0.09, 70),
+            oops: () => tone(420, 0.3, 'triangle', 0.07, 200),
+            over: () => [523, 440, 349, 262].forEach((f, i) => tone(f, 0.22, 'triangle', 0.09, null, i * 0.16)),
+            finish: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.2, 'triangle', 0.09, null, i * 0.1))
+        };
+        return {
+            play(name, arg) { if (!save.muted && sfx[name]) { try { sfx[name](arg); } catch (e) { /* sound is decoration */ } } },
+            unlock() { ensure(); }
+        };
+    })();
+
+    /* ================================================================
+     * Game state and simulation. `step(dt)` is the whole game: no DOM,
+     * no drawing, so the tests can drive it frame by frame.
+     * ================================================================ */
+    const state = {
+        mode: 'title', diff: 'normal',
+        t: 0, speed: 0, dist: 0, candy: 0, hearts: 3,
+        kid: { y: 0, vy: 0, jumps: 0, held: false, inv: 0 },
+        obstacles: [], candies: [], floaters: [],
+        magnet: 0, shield: 0, untilNext: 0, powerIn: 0,
+        scroll: 0, finished: false, unlocked: []
+    };
+    let manual = false; // tests freeze the real-time loop and call step() themselves
+
+    const M = () => CFG.modes[state.diff];
+    const airTime = () => (2 * M().jump) / M().g;
+
+    function start(diff) {
+        if (diff && CFG.modes[diff]) state.diff = diff;
+        const m = M();
+        Object.assign(state, {
+            mode: 'playing', t: 0, speed: m.start, dist: 0, candy: 0,
+            hearts: m.hearts, obstacles: [], candies: [], floaters: [],
+            magnet: 0, shield: 0, untilNext: 520, powerIn: 1800,
+            scroll: 0, finished: false, unlocked: []
+        });
+        Object.assign(state.kid, { y: 0, vy: 0, jumps: 0, held: false, inv: 0 });
+        trailCandy(CFG.W * 0.55, 380);
+        Sound.unlock();
+        showPanel(null);
+        $('pause-btn').disabled = false;
+        updateHud();
+        focusStage();
+        return true;
+    }
+
+    function jump() {
+        if (state.mode !== 'playing') return false;
+        const k = state.kid;
+        if (k.jumps >= 2) return false;
+        k.vy = k.jumps === 0 ? M().jump : M().jump2;
+        k.jumps++;
+        k.held = true;
+        Sound.play(k.jumps === 1 ? 'jump' : 'jump2');
+        return true;
+    }
+    /* Every jump is a full jump, however short the tap: a variable-height
+     * jump made quick taps on a phone too low to clear a tombstone. */
+    function release() { state.kid.held = false; }
+
+    function kidBox() {
+        const k = state.kid;
+        return { x1: CFG.KID_X - CFG.KID_W / 2 + 6, x2: CFG.KID_X + CFG.KID_W / 2 - 6, y1: k.y + 2, y2: k.y + CFG.KID_H - 4 };
+    }
+    const overlap = (a, b) => a.x1 < b.x2 && a.x2 > b.x1 && a.y1 < b.y2 && a.y2 > b.y1;
+    /* Easy mode trims each obstacle's hitbox (`forgive` px per side), which
+     * widens the jump timing window for small kids. */
+    const obBox = (o) => {
+        const f = M().forgive;
+        return { x1: o.x + f, x2: o.x + o.w - f, y1: o.lift, y2: o.lift + Math.max(4, o.h - f) };
+    };
+    const cBox = (c) => ({ x1: c.x - 15, x2: c.x + 15, y1: c.y - 15, y2: c.y + 15 });
+
+    function step(dt) {
+        if (state.mode !== 'playing') return;
+        dt = Math.min(Math.max(dt, 0), 0.05);
+        const m = M();
+        state.t += dt;
+        state.speed = Math.min(m.max, state.speed + m.accel * dt);
+        const dx = state.speed * dt;
+        state.dist += dx;
+        state.scroll += dx;
+
+        // Kid physics.
+        // Exact constant-gravity kinematics, so jump height doesn't depend on
+        // frame rate (plain Euler loses ~v·dt/2 of height per jump).
+        const k = state.kid;
+        const g = M().g;
+        k.y += k.vy * dt - 0.5 * g * dt * dt;
+        k.vy -= g * dt;
+        if (k.y <= 0) { k.y = 0; k.vy = 0; k.jumps = 0; }
+        if (k.inv > 0) k.inv = Math.max(0, k.inv - dt);
+        if (state.magnet > 0) state.magnet = Math.max(0, state.magnet - dt);
+        if (state.shield > 0) state.shield = Math.max(0, state.shield - dt);
+
+        // Scroll the world.
+        for (const o of state.obstacles) o.x -= dx;
+        for (const c of state.candies) c.x -= dx;
+        state.obstacles = state.obstacles.filter((o) => o.x + o.w > -80);
+        state.candies = state.candies.filter((c) => c.x > -60 && !c.got);
+        for (const f of state.floaters) { f.t += dt; f.y += 40 * dt; }
+        state.floaters = state.floaters.filter((f) => f.t < 0.8);
+
+        // Spawn.
+        state.untilNext -= dx;
+        state.powerIn -= dx;
+        const finishing = state.dist / CFG.PX_PER_M > m.finish - 25;
+        if (state.untilNext <= 0 && !finishing) spawnPattern();
+
+        // Collisions.
+        const kb = kidBox();
+        for (const o of state.obstacles) {
+            if (o.cleared || !overlap(kb, obBox(o))) continue;
+            if (state.shield > 0) { o.cleared = true; floater('POW!', o.x + o.w / 2, o.lift + o.h); Sound.play('bonk'); continue; }
+            if (k.inv > 0) continue;
+            hit(o);
+            if (state.mode !== 'playing') return;
+        }
+        for (const c of state.candies) {
+            if (c.got) continue;
+            if (state.magnet > 0 && !CANDY[c.kind].power) {
+                const ddx = CFG.KID_X - c.x, ddy = k.y + CFG.KID_H / 2 - c.y;
+                const d = Math.hypot(ddx, ddy);
+                if (d < CFG.MAGNET_RANGE && d > 1) { const pull = Math.min(d, 900 * dt); c.x += (ddx / d) * pull; c.y += (ddy / d) * pull; }
+            }
+            if (overlap(kb, cBox(c))) collect(c);
+        }
+
+        if (state.dist / CFG.PX_PER_M >= m.finish) finish();
+    }
+
+    function hit(o) {
+        const k = state.kid;
+        o.cleared = true;
+        k.inv = CFG.INVULN;
+        const m = M();
+        if (Number.isFinite(state.hearts)) {
+            state.hearts--;
+            floater('Bonk!', CFG.KID_X, k.y + CFG.KID_H + 10);
+            Sound.play('bonk');
+            updateHud();
+            if (state.hearts <= 0) gameOver();
+        } else {
+            const lose = Math.min(state.candy, m.oops);
+            state.candy -= lose;
+            floater(lose ? 'Oops! −' + lose : 'Oops!', CFG.KID_X, k.y + CFG.KID_H + 10);
+            Sound.play('oops');
+            updateHud();
+        }
+    }
+
+    function collect(c) {
+        c.got = true;
+        const def = CANDY[c.kind];
+        if (def.power === 'magnet') { state.magnet = CFG.MAGNET; floater('Candy magnet!', c.x, c.y + 20); Sound.play('power'); }
+        else if (def.power === 'shield') { state.shield = CFG.SHIELD; floater('Unstoppable!', c.x, c.y + 20); Sound.play('power'); }
+        else { state.candy += def.value; floater('+' + def.value, c.x, c.y + 10); Sound.play('candy', def.value); }
+        updateHud();
+    }
+
+    function floater(text, x, y) { state.floaters.push({ text, x, y, t: 0 }); }
+
+    /* ---------- Spawning ---------- */
+    /* Distance from this obstacle's front to the next one's. It always
+     * leaves a full jump's worth of travel plus the mode's reaction time
+     * after the kid clears it, measured at the speed it'll be passed at. */
+    function minGap(kind) {
+        const m = M(), def = OBST[kind];
+        const v = Math.min(m.max, state.speed + m.accel * 2);
+        let gap = v * (airTime() + m.reaction) + def.w + CFG.KID_W;
+        if (def.tall) gap += v * 0.35;
+        return gap;
+    }
+
+    function spawnPattern(forceKind) {
+        const kind = forceKind || pick(M().kinds);
+        const def = OBST[kind];
+        const x = CFG.W + 40;
+        state.obstacles.push({ kind, x, w: def.w, h: def.h, lift: def.lift, cleared: false });
+
+        if (def.duck) lineCandy(x - 60, 5, 26);          // stay low and grab these
+        else arcCandy(x + def.w / 2, def.tall ? 262 : 160); // follow the arc over it
+
+        const gap = minGap(kind) + rng() * state.speed * 0.7;
+        const trailStart = x + def.w + 110, trailLen = gap - def.w - 230;
+        if (trailLen > 60) trailCandy(trailStart, trailLen);
+
+        if (state.powerIn <= 0 && !def.duck) {
+            addCandy(rng() < 0.5 ? 'magnet' : 'shield', trailStart + Math.max(0, trailLen) / 2, 120);
+            state.powerIn = 2200 + rng() * 1800;
+        }
+        state.untilNext = gap;
+        return state.obstacles[state.obstacles.length - 1];
+    }
+    function candyKind() { const r = rng(); return r < 0.05 ? 'bar' : r < 0.2 ? 'pop' : 'corn'; }
+    function addCandy(kind, x, y) { const c = { kind, x, y, got: false }; state.candies.push(c); return c; }
+    function trailCandy(x0, len) { for (let x = x0; x <= x0 + len; x += 70) addCandy(candyKind(), x, 26); }
+    function lineCandy(x0, n, y) { for (let i = 0; i < n; i++) addCandy(candyKind(), x0 + i * 42, y); }
+    function arcCandy(cx, peak) {
+        [-72, -36, 0, 36, 72].forEach((d) => addCandy(d === 0 ? 'pop' : 'corn', cx + d, 40 + (peak - 40) * (1 - (d / 90) * (d / 90))));
+    }
+
+    /* ---------- Ending a run ---------- */
+    function endRun(finished) {
+        state.mode = 'over';
+        state.finished = finished;
+        release();
+        const before = save.lifetime;
+        save.lifetime = Math.min(1e7, save.lifetime + state.candy);
+        const prevBest = save.best[state.diff];
+        const newBest = state.candy > prevBest;
+        if (newBest) save.best[state.diff] = state.candy;
+        state.unlocked = COSTUMES.filter((c) => c.need > before && c.need <= save.lifetime);
+        writeSave();
+        $('pause-btn').disabled = true;
+
+        const meters = Math.floor(state.dist / CFG.PX_PER_M);
+        $('over-title').textContent = finished ? 'You made it to the end of the street! 🏁' : state.candy >= 50 ? 'What a haul!' : 'Nice run!';
+        $('over-stats').textContent = '🍬 ' + state.candy + ' candy · ' + meters + ' m';
+        $('over-best').textContent = newBest && prevBest > 0 ? 'New best! (old best: ' + prevBest + ')' : 'Best on ' + M().name + ': ' + save.best[state.diff];
+        $('over-unlock').textContent = state.unlocked.length ? 'New costume unlocked: ' + state.unlocked.map((c) => c.emoji + ' ' + c.name).join(', ') + '!' : '';
+        showPanel('over-panel');
+        Sound.play(finished ? 'finish' : 'over');
+        updateHud();
+        buildCostumes();
+        $('again-btn').focus();
+    }
+    function gameOver() { endRun(false); }
+    function finish() { endRun(true); }
+
+    function togglePause(force) {
+        const want = typeof force === 'boolean' ? force : state.mode === 'playing';
+        if (want && state.mode === 'playing') {
+            state.mode = 'paused';
+            release();
+            showPanel('pause-panel');
+            $('resume-btn').focus();
+            return true;
+        }
+        if (!want && state.mode === 'paused') {
+            state.mode = 'playing';
+            showPanel(null);
+            focusStage();
+            lastTs = 0;
+            return true;
+        }
+        return false;
+    }
+
+    /* ================================================================
+     * Drawing
+     * ================================================================ */
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+    const gy = (h) => CFG.GROUND_Y - h; // world height -> canvas y
+    const motionQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+    const reducedMotion = () => !!(motionQuery && motionQuery.matches);
+
+    const STARS = [];
+    const HOUSES = [];
+    (function buildScenery() {
+        let s = 12345;
+        const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+        for (let i = 0; i < 70; i++) STARS.push({ x: r() * CFG.W, y: r() * 220, s: r() * 1.6 + 0.4 });
+        let x = 0;
+        const roofs = ['#2b1f47', '#33204d', '#261a3f', '#3a2350'];
+        for (let i = 0; i < 8; i++) {
+            const w = 170 + Math.floor(r() * 90), h = 120 + Math.floor(r() * 70);
+            HOUSES.push({ x, w, h, roof: roofs[i % roofs.length], lit: r() < 0.75, pumpkin: r() < 0.6, windows: 1 + Math.floor(r() * 3) });
+            x += w + 40 + Math.floor(r() * 60);
+        }
+        HOUSES.span = x;
+    })();
+
+    function resizeCanvas() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = CFG.W * dpr;
+        canvas.height = CFG.H * dpr;
+        if (ctx && ctx.setTransform) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function emoji(ch, x, y, size, flip) {
+        ctx.font = size + 'px ' + EMOJI_FONT;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        if (flip) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(-1, 1);
+            ctx.fillText(ch, 0, 0);
+            ctx.restore();
+        } else ctx.fillText(ch, x, y);
+    }
+
+    function draw() {
+        if (!ctx) return;
+        const W = CFG.W, H = CFG.H, G = CFG.GROUND_Y;
+        ctx.globalAlpha = 1;
+        // Sky and moon.
+        const sky = ctx.createLinearGradient(0, 0, 0, G);
+        sky.addColorStop(0, '#120a2e');
+        sky.addColorStop(1, '#3b2466');
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#fff6d6';
+        for (const st of STARS) ctx.fillRect(st.x, st.y, st.s, st.s);
+        ctx.beginPath(); ctx.arc(800, 90, 46, 0, Math.PI * 2); ctx.fillStyle = '#fff1b8'; ctx.fill();
+        ctx.beginPath(); ctx.arc(784, 78, 9, 0, Math.PI * 2); ctx.arc(812, 104, 6, 0, Math.PI * 2); ctx.fillStyle = '#eadb9c'; ctx.fill();
+
+        // Far hills with bare trees (slow parallax).
+        const far = -((state.scroll * 0.15) % W);
+        ctx.fillStyle = '#231645';
+        for (let k = 0; k < 2; k++) {
+            const o = far + k * W;
+            ctx.beginPath();
+            ctx.moveTo(o, G - 40);
+            ctx.quadraticCurveTo(o + 160, G - 150, o + 330, G - 70);
+            ctx.quadraticCurveTo(o + 520, G - 10, o + 700, G - 110);
+            ctx.quadraticCurveTo(o + 850, G - 170, o + W, G - 40);
+            ctx.lineTo(o + W, G); ctx.lineTo(o, G); ctx.fill();
+        }
+
+        // Houses (mid parallax).
+        const mid = -((state.scroll * 0.45) % HOUSES.span);
+        for (let k = 0; k < 3; k++) {
+            for (const hs of HOUSES) {
+                const x = mid + k * HOUSES.span + hs.x;
+                if (x > W || x + hs.w < 0) continue;
+                const top = G - 20 - hs.h;
+                ctx.fillStyle = '#1c1235';
+                ctx.fillRect(x, top, hs.w, hs.h);
+                ctx.fillStyle = hs.roof;
+                ctx.beginPath(); ctx.moveTo(x - 12, top); ctx.lineTo(x + hs.w / 2, top - 60); ctx.lineTo(x + hs.w + 12, top); ctx.fill();
+                ctx.fillStyle = hs.lit ? '#ffcf5a' : '#3a2d52';
+                const ww = 26, gap = (hs.w - hs.windows * ww) / (hs.windows + 1);
+                for (let i = 0; i < hs.windows; i++) ctx.fillRect(x + gap + i * (ww + gap), top + 22, ww, 30);
+                ctx.fillStyle = '#4a2c1c';
+                ctx.fillRect(x + hs.w / 2 - 16, G - 20 - 58, 32, 58);
+                if (hs.lit) { ctx.fillStyle = '#ffe9a8'; ctx.fillRect(x + hs.w / 2 - 3, G - 20 - 72, 6, 6); }
+                if (hs.pumpkin) emoji('🎃', x + hs.w / 2 + 34, G - 18, 24);
+            }
+        }
+
+        // Pavement.
+        ctx.fillStyle = '#4b3c63';
+        ctx.fillRect(0, G - 20, W, 20);
+        ctx.fillStyle = '#3a2d4f';
+        ctx.fillRect(0, G, W, H - G);
+        ctx.fillStyle = '#5a4a75';
+        const slab = -(state.scroll % 80);
+        for (let x = slab; x < W; x += 80) ctx.fillRect(x, G - 20, 3, 20);
+        ctx.fillStyle = '#2c2140';
+        ctx.fillRect(0, G + 30, W, 4);
+
+        // Finish line (easy mode).
+        const m = CFG.modes[state.diff];
+        if (Number.isFinite(m.finish) && state.mode !== 'title') {
+            const fx = CFG.KID_X + (m.finish * CFG.PX_PER_M - state.dist);
+            if (fx < W + 40 && fx > -40) {
+                for (let i = 0; i < 8; i++) { ctx.fillStyle = i % 2 ? '#111' : '#fff'; ctx.fillRect(fx, G - 20 + (i % 2) * 10, 10, 10); ctx.fillRect(fx + 10, G - 20 + ((i + 1) % 2) * 10, 10, 10); }
+                emoji('🏁', fx + 10, G - 18, 48);
+            }
+        }
+
+        // Obstacles.
+        for (const o of state.obstacles) {
+            const def = OBST[o.kind];
+            if (o.cleared && state.shield > 0) ctx.globalAlpha = 0.35;
+            if (o.kind === 'puddle') {
+                ctx.fillStyle = '#5b8fd6';
+                ctx.beginPath(); ctx.ellipse(o.x + o.w / 2, G - 6, o.w / 2, 9, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#9cc4ff';
+                ctx.beginPath(); ctx.ellipse(o.x + o.w / 2 - 14, G - 9, 16, 3, 0, 0, Math.PI * 2); ctx.fill();
+            } else {
+                const bob = o.kind === 'bat' ? Math.sin(state.t * 10) * 3 : 0;
+                emoji(def.emoji, o.x + o.w / 2, gy(o.lift) + (o.kind === 'bat' ? 8 : 6) + bob, def.size);
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        // Candy.
+        for (const c of state.candies) {
+            const bob = Math.sin(state.t * 5 + c.x * 0.05) * 3;
+            emoji(CANDY[c.kind].emoji, c.x, gy(c.y) + 16 + bob, CANDY[c.kind].power ? 38 : 30);
+        }
+
+        // Kid.
+        if (state.mode !== 'title') {
+            const k = state.kid, cos = costume();
+            // Hurt: blink at 2 Hz (well under the 3-per-second flash limit), or just
+            // fade when the device asks for reduced motion.
+            const blink = k.inv > 0 && (reducedMotion() ? true : Math.floor(k.inv * 4) % 2 === 0);
+            ctx.globalAlpha = blink ? (reducedMotion() ? 0.55 : 0.35) : 1;
+            const run = k.y === 0 && state.mode === 'playing' ? Math.abs(Math.sin(state.t * 14)) * 4 : 0;
+            emoji(cos.emoji, CFG.KID_X, gy(k.y) + 4 - run, 64, cos.flip);
+            emoji('🧺', CFG.KID_X + 26, gy(k.y) - 4 - run, 24);
+            ctx.globalAlpha = 1;
+            if (state.shield > 0) {
+                ctx.strokeStyle = 'rgba(255, 230, 120, 0.85)';
+                ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.arc(CFG.KID_X, gy(k.y) - 32, 46, 0, Math.PI * 2); ctx.stroke();
+            }
+            if (state.magnet > 0) {
+                ctx.strokeStyle = 'rgba(255, 120, 160, 0.35)';
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(CFG.KID_X, gy(k.y) - 32, CFG.MAGNET_RANGE * 0.5, 0, Math.PI * 2); ctx.stroke();
+            }
+        } else {
+            emoji(costume().emoji, CFG.KID_X, CFG.GROUND_Y + 4, 64, costume().flip);
+        }
+
+        // Floating "+1" text.
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        for (const f of state.floaters) {
+            ctx.globalAlpha = Math.max(0, 1 - f.t / 0.8);
+            ctx.font = 'bold 22px "Trebuchet MS", sans-serif';
+            ctx.fillStyle = '#000';
+            ctx.fillText(f.text, f.x + 2, gy(f.y) + 2);
+            ctx.fillStyle = '#ffe27a';
+            ctx.fillText(f.text, f.x, gy(f.y));
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    /* ================================================================
+     * DOM: HUD, panels, costume picker, input
+     * ================================================================ */
+    const $ = (id) => document.getElementById(id);
+
+    function updateHud() {
+        $('hud-candy').textContent = String(state.candy);
+        const lives = $('hud-lives');
+        const maxH = M().hearts;
+        if (Number.isFinite(maxH)) {
+            // On the title screen show the chosen mode's full hearts, not the last run's.
+            const n = state.mode === 'title' ? maxH : Math.min(maxH, Math.max(0, state.hearts | 0));
+            lives.textContent = '❤️'.repeat(n) + '🖤'.repeat(maxH - n);
+            lives.setAttribute('aria-label', n + (n === 1 ? ' heart' : ' hearts') + ' left');
+        } else {
+            lives.textContent = '🏁';
+            lives.setAttribute('aria-label', 'Easy mode: no game over');
+        }
+        const meters = Math.floor(state.dist / CFG.PX_PER_M);
+        const m = M();
+        $('hud-dist').textContent = Number.isFinite(m.finish) ? meters + ' / ' + m.finish + ' m' : meters + ' m';
+        $('hud-best').textContent = String(save.best[state.diff]);
+        const p = [];
+        if (state.magnet > 0) p.push('🧲 ' + Math.ceil(state.magnet));
+        if (state.shield > 0) p.push('⭐ ' + Math.ceil(state.shield));
+        $('hud-power').textContent = p.join('  ');
+    }
+
+    function showPanel(id) {
+        ['title-panel', 'pause-panel', 'over-panel'].forEach((p) => $(p).classList.toggle('hidden', p !== id));
+        document.body.dataset.menu = id ? 'yes' : 'no'; // the touch JUMP button only shows mid-run
+    }
+    function focusStage() {
+        const s = $('stage');
+        if (!s) return;
+        if (s.focus) s.focus({ preventScroll: true });
+        // Starting from a menu lower down the page can leave the game half off-screen.
+        if (state.mode === 'playing' && s.scrollIntoView) s.scrollIntoView({ block: 'nearest' });
+    }
+
+    function buildCostumes() {
+        const box = $('costumes');
+        box.textContent = '';
+        for (const c of COSTUMES) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'costume';
+            b.dataset.id = c.id;
+            const open = c.need <= save.lifetime;
+            b.disabled = !open;
+            b.setAttribute('aria-pressed', String(c.id === save.costume));
+            b.setAttribute('aria-label', c.name + (open ? '' : ', locked: collect ' + c.need + ' candy in total'));
+            const e = document.createElement('span');
+            e.className = 'ce';
+            e.setAttribute('aria-hidden', 'true');
+            e.textContent = open ? c.emoji : '🔒';
+            const n = document.createElement('span');
+            n.setAttribute('aria-hidden', 'true');
+            n.textContent = open ? c.name : c.need + ' 🍬';
+            b.append(e, n);
+            b.addEventListener('click', () => chooseCostume(c.id));
+            box.appendChild(b);
+        }
+        const next = COSTUMES.find((c) => c.need > save.lifetime);
+        $('lifetime-line').textContent = 'Candy collected so far: ' + save.lifetime +
+            (next ? '. Next costume (' + next.name + ') at ' + next.need + '.' : '. Every costume unlocked!');
+    }
+    function chooseCostume(id) {
+        const c = COSTUMES.find((x) => x.id === id);
+        if (!c || c.need > save.lifetime) return false;
+        save.costume = id;
+        writeSave();
+        document.querySelectorAll('.costume').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === id)));
+        return true;
+    }
+    function chooseMode(diff) {
+        if (!CFG.modes[diff]) return false;
+        state.diff = diff;
+        document.querySelectorAll('.choice').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === diff)));
+        updateHud();
+        return true;
+    }
+    function toMenu() {
+        state.mode = 'title';
+        $('pause-btn').disabled = true;
+        buildCostumes();
+        showPanel('title-panel');
+        $('start-btn').focus();
+    }
+    function setMuted(v) {
+        save.muted = !!v;
+        writeSave();
+        const b = $('sound-btn');
+        b.setAttribute('aria-pressed', String(!save.muted));
+        b.textContent = save.muted ? '🔇 Sound off' : '🔊 Sound on';
+    }
+
+    const JUMP_KEYS = new Set([' ', 'Spacebar', 'ArrowUp', 'w', 'W']);
+    function onKeyDown(e) {
+        if (JUMP_KEYS.has(e.key) && state.mode === 'playing') {
+            e.preventDefault();
+            if (!e.repeat) jump();
+        } else if ((e.key === 'p' || e.key === 'P' || e.key === 'Escape') && (state.mode === 'playing' || state.mode === 'paused')) {
+            e.preventDefault();
+            togglePause();
+        } else if (e.key === 'm' || e.key === 'M') {
+            setMuted(!save.muted);
+        }
+    }
+    function onKeyUp(e) { if (JUMP_KEYS.has(e.key)) release(); }
+
+    /* ---------- Real-time loop ---------- */
+    let lastTs = 0;
+    function frame(ts) {
+        if (!manual && state.mode === 'playing') {
+            const dt = lastTs ? (ts - lastTs) / 1000 : 0;
+            step(dt);
+            if (Math.floor(state.t * 10) !== Math.floor((state.t - dt) * 10)) updateHud();
+        }
+        lastTs = ts;
+        draw();
+        window.requestAnimationFrame(frame);
+    }
+
+    function init() {
+        loadSave();
+        resizeCanvas();
+        buildCostumes();
+        chooseMode('normal');
+        setMuted(save.muted);
+        document.querySelectorAll('.choice').forEach((b) => b.addEventListener('click', () => chooseMode(b.dataset.mode)));
+        $('start-btn').addEventListener('click', () => start());
+        $('again-btn').addEventListener('click', () => start());
+        $('menu-btn').addEventListener('click', toMenu);
+        $('resume-btn').addEventListener('click', () => togglePause(false));
+        $('end-btn').addEventListener('click', () => { if (state.mode === 'paused') { state.mode = 'playing'; endRun(false); } });
+        $('pause-btn').addEventListener('click', () => togglePause());
+        $('sound-btn').addEventListener('click', () => setMuted(!save.muted));
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup', onKeyUp);
+        const stage = $('stage');
+        stage.addEventListener('pointerdown', (e) => {
+            if (state.mode !== 'playing' || e.target.closest('.overlay')) return;
+            e.preventDefault();
+            jump();
+        });
+        window.addEventListener('pointerup', release);
+        window.addEventListener('pointercancel', release);
+        const jb = $('jump-btn');
+        jb.addEventListener('pointerdown', (e) => { e.preventDefault(); jump(); });
+        jb.addEventListener('click', (e) => { if (e.detail === 0) jump(); }); // keyboard activation
+        document.addEventListener('visibilitychange', () => { if (document.hidden) togglePause(true); });
+        window.addEventListener('blur', () => togglePause(true));
+        window.addEventListener('resize', resizeCanvas);
+        window.requestAnimationFrame(frame);
+    }
+
+    /* Test hook: lets tests/trick-or-treat-dash.dom.test.mjs drive the game.
+     * Nothing on the page reads it. */
+    window.__dash = {
+        CFG, OBST, CANDY, COSTUMES, STORE_KEY, state, save,
+        start, step, jump, release, togglePause, chooseCostume, chooseMode, toMenu, setMuted,
+        spawnPattern, addCandy, minGap, airTime, kidBox, obBox, Sound,
+        setManual(v) { manual = !!v; },
+        seed(n) { seedState = n >>> 0; },
+        clearWorld() { state.obstacles = []; state.candies = []; state.untilNext = 1e9; state.powerIn = 1e9; }
+    };
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
+</script>
+</body>
+</html>

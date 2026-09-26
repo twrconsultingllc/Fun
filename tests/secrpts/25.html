@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #25 — trick-or-treat-dash.html (new page)</title>
+<meta name="description" content="Security and code-quality review of trick-or-treat-dash.html, a new Halloween endless runner with two difficulty modes, costume unlocks saved in localStorage, and a fairness-tested obstacle spawner.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #25 — <code>trick-or-treat-dash.html</code> (new page)</h1>
+    <p class="sub">A new single-file canvas game: Trick-or-Treat Dash. You run down a street jumping puddles, pumpkins, tombstones and a giant blow-up ghost, stay under bats, and collect candy. Easy mode has no game over and a 600 m finish line; Normal speeds up and gives 3 hearts. Lifetime candy unlocks 8 costumes and is saved in <code>localStorage</code>. The page is linked from <code>index.html</code>, and a new <code>dash</code> test suite covers it. Also fixed in <a href="24.html">24.html</a>: its missing <code>&lt;/head&gt;</code> tag.</p>
+    <div class="meta">Review performed 2026-09-26 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>trick-or-treat-dash.html</code>, <code>index.html</code> (one new section and one CSS selector), <code>tests/trick-or-treat-dash.dom.test.mjs</code>, <code>tests/run.mjs</code>, <code>tests/README.md</code> · follows: <a href="24.html">24.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 83%;"></div></div>
+    <div class="progress-label">12 items: 6 found and fixed while building and reviewing, 4 verified clean, 2 open (one architectural, one needs real devices).</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">CSP and referrer meta tags present, no outside origins</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">The page carries the repo's standard policy with nothing widened: <code>img-src 'self'</code> (no <code>data:</code>), <code>object-src 'none'</code>, <code>base-uri 'none'</code>, <code>form-action 'self'</code>, plus <code>referrer</code> <code>strict-origin-when-cross-origin</code> and a <code>description</code>. A grep for <code>(src|href)="https?:</code>, <code>@import</code> and off-origin <code>url(</code> finds nothing. All art is canvas shapes and emoji, and all sound is synthesised, so nothing is fetched. <code>'unsafe-inline'</code> stays in <code>script-src</code> because the script is inline by design, like every other single-file page.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No markup injection path</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">A grep for <code>innerHTML</code> finds 0 uses. Every string that reaches the DOM (HUD, costume names, game-over text) goes through <code>textContent</code>, and every one of them comes from constants in the script or from numbers. A grep for <code>fetch(</code>, <code>XMLHttpRequest</code>, <code>WebSocket</code>, <code>eval(</code>, <code>new Function</code>, <code>document.write</code>, <code>sessionStorage</code>, <code>indexedDB</code> and <code>on*="</code> attributes also finds nothing.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Saved progress is validated on read</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">The page's one piece of browser storage is the <code>fun.trickOrTreatDash.v1</code> key, holding <code>{best, lifetime, costume, muted}</code>. The key only ever holds game progress. Both the read and the write are in <code>try/catch</code>, so private mode or blocked storage just means progress isn't kept. On load:
+        <ul>
+          <li>Counts must be integers between 0 and 10,000,000.</li>
+          <li>The costume must be a known id that's already unlocked by the saved total.</li>
+          <li><code>muted</code> must be exactly <code>true</code>.</li>
+        </ul>
+        The suite loads 6 hand-made saves (a good save, a not-yet-unlocked costume, string/negative/fractional numbers, an HTML payload as the costume id, corrupt JSON, and a bare JSON string). Each one loads without an error and falls back to safe values. A real Chromium reload after ending a 130-candy run brought the total back and unlocked exactly Ghost, Cat and Witch.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Clickjacking (frame-ancestors) not enforceable</div><span class="badge open">Open</span></div>
+      <div class="item-body">Same as every GitHub Pages page: <code>frame-ancestors</code> is ignored in a meta CSP, and Pages can't send headers. It's architecturally blocked, and the risk is low because the page has no privileged action to trick anyone into.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Correctness &amp; fairness</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Jump height depended on frame rate</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">The first version updated velocity and then position with plain Euler steps, which loses about v·dt/2 of height per jump. The suite measured a 138.7 px peak against the closed-form 142.2 at 120 fps, and the loss doubles at 60 fps and doubles again at 30. On a slow device, the double jump over the 148 px ghost could have failed.
+        <div class="fix-note"><b>Fixed:</b> the update is now the exact constant-gravity formula (<code>y += v·dt − g·dt²/2</code>). The suite pins a peak of v²/2g within 3 px and the same height at 30 and 144 fps within 4 px.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Title-screen crash after a Normal game over</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">Choosing Easy on the title screen after losing a Normal run threw <code>RangeError: Invalid count value: Infinity</code>. The heart display repeated the empty-heart character <code>Easy.hearts − hearts</code> times, and Easy's heart count is <code>Infinity</code>.
+        <div class="fix-note"><b>Fixed:</b> the HUD now branches on the selected mode's heart limit, and shows full hearts on the title screen. There's a regression test for the exact click sequence.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Every obstacle clearable, with a forgiving timing window</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">The suite searches jump (and double-jump) timings with the page's own <code>step()</code> and confirms every obstacle kind can be cleared at both the slowest and fastest speed it spawns at. It also confirms the giant ghost can't be cleared with a single jump, that bats are cleared by staying down, and that jumping into a bat hurts. It then measures the width of each timing window. At first, Easy was the <i>least</i> forgiving mode: its pumpkin window was 264 ms and its puddle window 288 ms, because at a slow run you're only in the air for about 165 px.
+        <div class="fix-note"><b>Fixed:</b> Easy trims 12 px off each side of every obstacle's hitbox and uses a floatier jump (lower gravity, same height). Easy's windows are now 368–530 ms, and Normal's are 288–463 ms. The suite requires at least 350 ms on Easy and 250 ms on Normal.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Tiny hops on a quick tap</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">The first version had "hold to jump higher". A fast tap on a phone (about 50 ms) peaked around 65 px, which barely clears a 64 px tombstone, so it would feel random to a small child.
+        <div class="fix-note"><b>Fixed:</b> every jump is a full jump, and height comes from the double jump. There's a test that releasing straight away still gives a full-speed jump.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Spacing between obstacles</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">In a seeded 2-minute run of each mode, every gap between consecutive obstacles was checked against a full jump's travel plus the mode's reaction time (0.8 s on Easy, 0.45 s on Normal), measured at the speed the next obstacle arrives at. There were 0 violations. Easy never spawns the ghost or bats, and Normal spawns all 5 kinds.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span>Accessibility &amp; layout</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Menus overflowed the game area</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">A 1100×820 Chromium screenshot showed the "Start running!" button cut off below the 16:9 game area. On a 390 px phone the game area is about 200 px tall, so no overlay could fit. On an 844×390 landscape phone, the game area itself was taller than the screen.
+        <div class="fix-note"><b>Fixed:</b>
+          <ul>
+            <li>The desktop card is tighter, with one row of costumes and the two modes side by side.</li>
+            <li>Under 720 px wide or 560 px tall, the menus sit under the game instead of over it.</li>
+            <li>The game area is capped by the viewport height, and the title is hidden on short screens.</li>
+            <li>Starting a run scrolls the game fully into view.</li>
+          </ul>
+          Re-checked at 1100×820, 1366×680, 390×844 and 844×390: the Start button is inside the panel, the whole game area is on screen while playing, the touch JUMP button is visible, and there's no horizontal scroll.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Contrast, keyboard and motion</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">Computed WCAG ratios: body text 17.46, dim text 10.57 on the page and 10.77 on the card, the accent 10.26, button text 10.53, dim text on a selected choice 8.47, and the unlock line 11.58. Space, ↑ and W jump (with <code>preventDefault</code>, so the page doesn't scroll), P and Escape pause, and M mutes. The game pauses on a tab switch or window blur. The game area is focusable, and its label explains the controls.
+        <div class="fix-note"><b>Fixed:</b> the hurt blink toggled 8 times a second. A 64 px sprite is far below WCAG 2.3.1's flash-area threshold, but the blink is now 2 Hz anyway, and just a steady fade under <code>prefers-reduced-motion</code>.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Real touch play not tried on a device</div><span class="badge open">Open</span></div>
+      <div class="item-body">Chromium's mobile emulation confirmed the layouts and that the JUMP button appears for coarse pointers. It can't tell whether tapping feels responsive on a real phone or tablet, or how loud the synth sounds on real speakers. Someone needs to play it once on a real device after deploy.</div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. The <code>dash</code> suite adds 126 assertions, and the full run is 1095 passed, 0 failed. See <a href="24.html">24.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
