@@ -46,6 +46,16 @@ Optional flags:
 - `"paywall": true` shows a Paywall pill on its cards.
 - `"noImages": true` never shows its pictures.
 - `"noSummary": true` never shows its summary text.
+- `"sourceFromItem": true` takes each card's source from the item's own
+  `<source>` element and strips a trailing " - Publisher" from its title.
+  Aggregators such as Google News use this.
+- `"maxItems": 10` keeps up to 10 items from this feed instead of the
+  default `maxItemsPerFeed` (6).
+
+A Google News search feed is
+`https://news.google.com/rss/search?q=<url-encoded query>&hl=en-US&gl=US&ceid=US:en`.
+The SW FL searches end their query with `when:7d` to keep results recent. Their
+card links go through `news.google.com` before reaching the story.
 
 A YouTube channel's feed is
 `https://www.youtube.com/feeds/videos.xml?channel_id=<the UC… id>`.

@@ -33,7 +33,8 @@ export default async function run(t) {
     t.section('Config');
     const ids = config.feeds.map((f) => f.id);
     const catIds = new Set(config.categories.map((c) => c.id));
-    t.eq('eight categories', config.categories.length, 8);
+    t.eq('nine categories', config.categories.length, 9);
+    t.eq('SW FL is the first category', config.categories[0].id + ' ' + config.categories[0].label, 'swfl SW FL');
     t.ok('feed ids are unique', new Set(ids).size === ids.length);
     t.ok('every feed id is lowercase-kebab', ids.every((id) => /^[a-z0-9-]{2,30}$/.test(id)));
     t.ok('every feed is in a known category', config.feeds.every((f) => catIds.has(f.category)));
@@ -45,6 +46,12 @@ export default async function run(t) {
     t.ok('weather alerts are for Florida', config.feeds.some((f) => f.url === 'https://api.weather.gov/alerts/active.atom?area=FL'));
     t.ok('image hosts are bare hostnames (optionally *.)', config.imageHosts.every((h) => /^(\*\.)?[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(h)));
     t.ok('refresh is 6 hours', config.refreshHours === 6);
+    const swfl = config.feeds.filter((f) => f.category === 'swfl');
+    const gnFeeds = swfl.filter((f) => new URL(f.url).hostname === 'news.google.com');
+    t.eq('four Google News searches cover Naples, Bonita/Estero, Collier and Lee', gnFeeds.map((f) => f.id).join(','), 'gn-naples,gn-bonita,gn-collier,gn-lee');
+    t.ok('every Google News search is limited to the last 7 days', gnFeeds.every((f) => new URL(f.url).searchParams.get('q').endsWith(' when:7d')));
+    t.ok('Google News feeds name the real publisher and skip summaries and images', gnFeeds.every((f) => f.sourceFromItem && f.noSummary && f.noImages));
+    t.ok('SW FL weather alerts cover Collier (FLC021) and Lee (FLC071) counties', swfl.some((f) => f.url === 'https://api.weather.gov/alerts/active.atom?zone=FLC021,FLC071'));
 
     t.section('RSS with media:thumbnail, content:encoded and guid');
     let dropped = {};
@@ -80,6 +87,21 @@ export default async function run(t) {
     const xk = m.normalizeFeed(await fixture('xkcd'), feed('xkcd'), config, { now: NOW });
     t.eq('xkcd comic image from summary <img>', xk[0].image, 'https://imgs.xkcd.com/comics/error_bars.png');
     t.eq('xkcd summary is empty (only an image), not markup', xk[0].summary, '');
+
+    t.section('Google News (aggregator) feeds');
+    const gnCfg = feed('gn', { sourceFromItem: true, noSummary: true, noImages: true, maxItems: 10 });
+    const gnItems = m.normalizeFeed(await fixture('google-news'), gnCfg, config, { now: NOW });
+    t.eq('three items', gnItems.length, 3);
+    t.eq('" - Publisher" suffix removed from the title', gnItems[0].title, 'County approves new beach renourishment plan');
+    t.eq('card source is the real publisher from <source>', gnItems[0].source, 'Naples Daily News');
+    t.eq('only the trailing publisher is removed, not an earlier " - "', gnItems[1].title, 'Red tide - what to know this weekend');
+    t.eq('no <source> falls back to the feed name', gnItems[2].source, 'gn');
+    t.eq('title without a suffix is left alone', gnItems[2].title, 'Headline with no publisher suffix');
+    t.ok('noSummary: Google\'s link-list description is not used', gnItems.every((i) => i.summary === ''));
+    const many = Array.from({ length: 12 }, (_, i) => `<item><title>Story ${i}</title><link>https://news.example/${i}</link><pubDate>${new Date(NOW - i * 3600000).toUTCString()}</pubDate></item>`).join('');
+    const doc = `<rss><channel>${many}</channel></rss>`;
+    t.eq('per-feed maxItems (10) overrides maxItemsPerFeed (6)', m.normalizeFeed(doc, gnCfg, config, { now: NOW }).length, 10);
+    t.eq('feeds without maxItems still keep 6', m.normalizeFeed(doc, feed('plain'), config, { now: NOW }).length, 6);
 
     t.section('Hostile feed');
     dropped = {};
