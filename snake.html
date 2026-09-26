@@ -447,6 +447,7 @@
 
         const spawnX = Math.floor(WORLD_W / 2), spawnY = Math.floor(WORLD_H / 2);
         const count = Math.min(14, (level - startAt + 1) * 2 + Math.floor(difficulty / 3));
+        const walls = new Set(); // crossing walls share a cell; store it once
         for (let i = 0; i < count; i++) {
             const horizontal = Math.random() > 0.5;
             const len = 3 + Math.floor(Math.random() * 4);
@@ -457,6 +458,8 @@
                 const cy = horizontal ? y : y + k;
                 // Never box in the spawn point.
                 if (Math.abs(cx - spawnX) < 8 && Math.abs(cy - spawnY) < 3) continue;
+                if (walls.has(key(cx, cy))) continue;
+                walls.add(key(cx, cy));
                 obstacles.push({ x: cx, y: cy });
             }
         }
@@ -467,14 +470,14 @@
         return Math.min(4, 1 + Math.floor(difficulty / 4) + Math.floor((level - 1) / 2));
     }
 
-    function spawnEnemyAt(cell, colorIndex) {
+    function spawnEnemyAt(cell, colorIndex, blocked = () => false) {
         const dirs = shuffle([{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }]);
         for (const d of dirs) {
             const body = [cell];
             let ok = true;
             for (let i = 1; i < 3; i++) {
                 const seg = { x: cell.x - d.x * i, y: cell.y - d.y * i };
-                if (outside(seg.x, seg.y)) { ok = false; break; }
+                if (outside(seg.x, seg.y) || blocked(seg)) { ok = false; break; }
                 body.push(seg);
             }
             if (ok) {
@@ -492,14 +495,22 @@
         const sx = Math.floor(WORLD_W / 2), sy = Math.floor(WORLD_H / 2);
         const taken = occupied();
         const count = enemyCountForLevel();
+        // Give the player room to start: no part of a rival may begin here.
+        const nearStart = (c) => Math.abs(c.x - sx) < 6 && Math.abs(c.y - sy) < 4;
+        const blocked = (c) => taken.has(key(c.x, c.y)) || nearStart(c);
         for (let i = 0; i < count; i++) {
-            const cell = freeCell(taken, 2);
-            if (!cell) continue;
-            if (Math.abs(cell.x - sx) < 6 && Math.abs(cell.y - sy) < 4) continue; // give the player room to start
-            const e = spawnEnemyAt(cell, i);
-            if (!e) continue;
-            for (const seg of e.body) taken.add(key(seg.x, seg.y));
-            enemies.push(e);
+            // Retry a bad spot instead of skipping the rival, which left
+            // about 1 level-1 game in 20 with no rival at all.
+            for (let attempt = 0; attempt < 60; attempt++) {
+                const cell = freeCell(taken, 2);
+                if (!cell) break;
+                if (nearStart(cell)) continue;
+                const e = spawnEnemyAt(cell, i, blocked);
+                if (!e) continue;
+                for (const seg of e.body) taken.add(key(seg.x, seg.y));
+                enemies.push(e);
+                break;
+            }
         }
     }
 

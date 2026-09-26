@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #27 — snake.html (rival spawn fix)</title>
+<meta name="description" content="Security and code-quality review of a fix to snake.html: rival snakes that sometimes failed to spawn, or spawned on obstacles, other rivals or the player start area, and walls stored twice where they cross.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #27 — <code>snake.html</code> (rival spawn fix)</h1>
+    <p class="sub">The <code>snake-dom</code> suite failed about once in eight full runs, on "at least one rival snake spawns at level 1". That turned out to be a real bug in the game, not a flaky test. This change fixes how <code>buildEnemies()</code> and <code>buildObstacles()</code> place things, and makes the test check 300 builds instead of one. It only touches the page's script logic: no new markup, links, styles or outside resources.</p>
+    <div class="meta">Review performed 2026-09-26 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>snake.html</code> (<code>spawnEnemyAt()</code>, <code>buildEnemies()</code>, <code>buildObstacles()</code>), <code>tests/snake.dom.test.mjs</code>, <code>tests/README.md</code> · follows: <a href="26.html">26.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">5 items: 3 found and fixed, 2 verified clean, 0 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Correctness</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">About 1 level-1 game in 20 had no rival snake</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">At level 1 on the default difficulty, <code>enemyCountForLevel()</code> asks for 1 rival. <code>buildEnemies()</code> picked one random cell, and if that cell was inside the clear area around the player's start (11 × 7 = 77 of the 1,408 possible cells, about 5.5%), it moved on with no retry. In a jsdom simulation of 3,000 level-1 builds with the old code, 146 (4.9%) had no rival, and the average was 0.951 rivals against 1 expected.
+        <div class="fix-note"><b>Fixed:</b> each rival now gets up to 60 placement attempts. The same 3,000-build simulation gives 0 missing rivals and an average of exactly 1.000.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A rival's tail could land on obstacles, other rivals or the start area</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><code>spawnEnemyAt()</code> checked only that the body stayed on the board. The start-area check looked at the head alone, and nothing checked the two tail cells against what was already placed. In the old code, 39 of 3,000 level-1 builds had a rival body inside the start area. At level 6, 2,000 builds gave 80 rival-on-obstacle and 13 rival-on-rival overlaps.
+        <div class="fix-note"><b>Fixed:</b> <code>spawnEnemyAt()</code> takes a <code>blocked</code> test, and <code>buildEnemies()</code> passes one that rejects any occupied cell or any cell in the start area, for every segment. After the fix, both simulations show 0 of each.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Crossing walls were stored twice</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">When two random walls crossed, <code>buildObstacles()</code> pushed the shared cell twice. It drew and played the same either way, but at level 6, 168 of 2,000 builds had a duplicate wall cell, which made the overlap check unreliable.
+        <div class="fix-note"><b>Fixed:</b> a <code>Set</code> skips a cell that's already a wall. After the fix, the level-6 simulation shows 0 builds with any overlap of any kind.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The test couldn't catch the bug</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">The old assertion checked one random build, so it passed about 95% of the time even with the bug. It now builds 300 times at level 1 and 300 times at level 6, where obstacles appear. Each build must have exactly <code>enemyCountForLevel()</code> rivals, no rival segment in the start area, and no two things on one cell. With the old code's 4.9% miss rate, 300 builds would all pass with probability 0.951<sup>300</sup>, about 3 × 10<sup>−7</sup>. The full suite passed 6 runs in a row, 1244 passed and 0 failed each time.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No new surface</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">The diff changes only placement logic inside the existing inline script. There are no new DOM writes, no <code>innerHTML</code>, no storage, no network access, no new markup, links or styles, and the page's CSP and referrer meta tags are unchanged. The retry loop is capped at 60 attempts per rival and at most 4 rivals, on top of <code>freeCell()</code>'s existing 600-attempt cap, so a crowded board can't hang the page.</div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Placement was checked by simulating level builds in jsdom through <code>window.__snake</code>, not by playing the game in a browser. See <a href="26.html">26.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>

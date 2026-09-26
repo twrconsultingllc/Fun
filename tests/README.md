@@ -35,7 +35,7 @@ not be loaded — so this drops straight into CI or a pre-push hook.
 
 ## What is covered
 
-1238 assertions across twenty-five suites.
+1244 assertions across twenty-five suites.
 
 ### `academy/` (Full Circle Academy mockup)
 
@@ -172,7 +172,7 @@ with `Number.isFinite(x) ? x : fallback` instead.
 
 | Suite | File | Covers |
 |---|---|---|
-| `snake-dom` | `snake.dom.test.mjs` | The rival AI snakes: they populate the board without overlapping anything, running into one kills the player, running into the player kills the rival instead (leaving the player untouched), and a head-on meeting kills both. Also that the new `triangle` and `shard` food kinds exist and `rollFoodType()` can actually produce them from level 2 on. |
+| `snake-dom` | `snake.dom.test.mjs` | The rival AI snakes: they populate the board without overlapping anything (checked over 300 builds each at level 1 and level 6, with the full rival count every time and no rival starting in the player's start area, because a single random build missed a 5% spawn bug), running into one kills the player, running into the player kills the rival instead (leaving the player untouched), and a head-on meeting kills both. Also that the new `triangle` and `shard` food kinds exist and `rollFoodType()` can actually produce them from level 2 on. |
 
 The page exposes `window.__snake` (state, the live `snake`/`enemies`/`foods`/
 `obstacles` arrays, and `step`/`stepEnemies`/`buildLevel`) purely so the suite
