@@ -211,7 +211,7 @@
     <div class="item">
       <div class="item-head"><div class="item-title">Double-escaped markup could survive the fetcher's tag stripping (CodeQL)</div><span class="badge fixed">Fixed</span></div>
       <div class="item-body">CodeQL flagged <code>toPlainText()</code> on the PR with "incomplete multi-character sanitization", and the flag was right. It stripped tags once and then decoded entities again, so a feed title written as <code>&amp;amp;lt;script&amp;amp;gt;</code> came out as the literal text <code>&lt;script&gt;</code>. The page only ever sets it with <code>textContent</code>, so nothing could run, but the fetcher promises plain text and didn't deliver it.
-        <div class="fix-note"><b>Fixed:</b> a new <code>stripMarkup()</code> decodes and strips repeatedly until the text stops changing (at most 5 passes), then drops any <code>&lt;</code> or <code>&gt;</code> that's left, so no output can contain a tag. The tag pattern now needs a letter, <code>/</code>, <code>!</code> or <code>?</code> after the <code>&lt;</code>, like real HTML. Without that, "3 &lt; 5 &gt; 2" lost its "5". New tests cover double- and triple-escaped tags, a split-up <code>&lt;scr&lt;script&gt;ipt&gt;</code>, and plain comparison text. CodeQL's two other alerts were substring URL checks in the test file. They weren't exploitable, but they're now exact comparisons, so the pattern isn't in the repo.</div></div>
+        <div class="fix-note"><b>Fixed:</b> <code>stripMarkup()</code> now removes tags by scanning, the way a browser reads them, instead of by regex substitution. A tag runs from <code>&lt;</code> plus a letter, <code>/</code>, <code>!</code> or <code>?</code> to the next <code>&gt;</code>. The contents of <code>script</code>, <code>style</code>, <code>iframe</code>, <code>object</code>, <code>noscript</code>, <code>textarea</code> and <code>title</code> are skipped through their end tag, and comments are skipped whole. Each pass decodes and then scans, repeating until the text stops changing (at most 5 passes). Any <code>&lt;</code> or <code>&gt;</code> left after that is dropped, so no output can contain a tag. A first attempt kept regex substitution inside the loop. CodeQL flagged it again, because a regex replace can't be shown to leave no tag, which is why it became a scanner. Tests cover double- and triple-escaped tags, a split-up <code>&lt;scr&lt;script&gt;ipt&gt;</code> (read as a browser would, leaving only plain words), an unterminated <code>&lt;script&gt;</code>, a <code>&lt;textarea&gt;</code>, a comment hiding a script, and "3 &lt; 5 &gt; 2" keeping its text. CodeQL's two other alerts were substring URL checks in the test file. They weren't exploitable, but they're now exact comparisons, so the pattern isn't in the repo.</div></div>
     </div>
     <div class="item">
       <div class="item-head"><div class="item-title">Workflow token was on disk while third-party code ran</div><span class="badge fixed">Fixed</span></div>
@@ -287,7 +287,7 @@
   </section>
 
   <footer>
-    This is a static snapshot, not a live check. The <code>wire-core</code> and <code>wire-dom</code> suites add 140 assertions, and the full run is 1235 passed, 0 failed. See <a href="25.html">25.html</a> for the previous review.
+    This is a static snapshot, not a live check. The <code>wire-core</code> and <code>wire-dom</code> suites add 143 assertions, and the full run is 1238 passed, 0 failed. See <a href="25.html">25.html</a> for the previous review.
   </footer>
 
 </div>

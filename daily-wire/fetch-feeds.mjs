@@ -53,20 +53,58 @@ export function decodeEntities(s) {
 }
 
 /* Feed text is often HTML, sometimes entity-escaped HTML, and now and
-   then escaped twice. Decode, strip tags, and repeat until nothing changes,
-   so an escaped tag can't survive as a real one. Any '<' or '>' left after
-   that is dropped too. The result is plain text only. */
+   then escaped twice. Decode and strip, and repeat until nothing changes,
+   so an escaped tag can't survive as a real one; then drop any '<' or '>'
+   still left. The result is plain text only.
+
+   Tags are removed by scanning, the way a browser reads them (a tag runs
+   from '<' plus a letter, '/', '!' or '?' to the next '>'), rather than by
+   regex substitution, which can be tricked into leaving a tag behind. */
+const RAW_TEXT = new Set(['script', 'style', 'iframe', 'object', 'noscript', 'textarea', 'title']);
+const BLOCK = new Set(['p', 'div', 'br', 'li', 'tr', 'td', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+
+function stripTagsOnce(s) {
+    const lower = s.toLowerCase();
+    let out = '';
+    let i = 0;
+    while (i < s.length) {
+        const lt = s.indexOf('<', i);
+        if (lt < 0) { out += s.slice(i); break; }
+        out += s.slice(i, lt);
+        if (s.startsWith('<!--', lt)) {
+            const end = s.indexOf('-->', lt + 4);
+            i = end < 0 ? s.length : end + 3;
+            out += ' ';
+            continue;
+        }
+        const gt = s.indexOf('>', lt + 1);
+        if (!/[a-z!?/]/i.test(s[lt + 1] || '') || gt < 0) {
+            i = lt + 1; // a lone '<' (e.g. "3 < 5"): drop it, keep the text
+            continue;
+        }
+        const inner = s.slice(lt + 1, gt);
+        const name = ((inner.match(/^\/?([a-z][a-z0-9-]*)/i) || [])[1] || '').toLowerCase();
+        i = gt + 1;
+        if (RAW_TEXT.has(name) && inner[0] !== '/') {
+            // Skip the element's contents up to and including its end tag.
+            const close = lower.indexOf('</' + name, i);
+            const closeEnd = close < 0 ? -1 : s.indexOf('>', close);
+            i = closeEnd < 0 ? s.length : closeEnd + 1;
+            out += ' ';
+        } else if (BLOCK.has(name)) {
+            out += ' ';
+        }
+    }
+    return out;
+}
+
 export function stripMarkup(s) {
     for (let pass = 0; pass < 5; pass++) {
         const before = s;
-        s = decodeEntities(s);
-        s = s.replace(/<(script|style|iframe|object|noscript)\b[\s\S]*?<\/\1[^>]*>/gi, ' ');
-        s = s.replace(/<!--[\s\S]*?-->/g, ' ');
-        s = s.replace(/<\/?(p|div|br|li|h[1-6]|tr|blockquote)\b[^>]*>/gi, ' ');
-        s = s.replace(/<[a-z!?/][^>]*>/gi, ''); // a tag starts <letter, <!, <? or </
+        s = stripTagsOnce(decodeEntities(s));
         if (s === before) break;
     }
-    return s.replace(/[<>]/g, '');
+    return s.split('<').join('').split('>').join('');
 }
 
 export function toPlainText(value, max = SUMMARY_MAX) {

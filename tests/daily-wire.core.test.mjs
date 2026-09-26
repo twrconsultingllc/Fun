@@ -117,8 +117,13 @@ export default async function run(t) {
     t.eq('unknown named entity left alone', m.decodeEntities('&bogus;'), '&bogus;');
     t.eq('double-escaped <script> removed with its contents', m.toPlainText('&amp;lt;script&amp;gt;alert(1)&amp;lt;/script&amp;gt;Hi'), 'Hi');
     t.eq('triple-escaped tag still stripped', m.toPlainText('a &amp;amp;lt;img src=x onerror=y&amp;amp;gt; b'), 'a b');
-    // The script block <script>ipt>alert(1)</script> goes whole; the stray '<' of '<scr' is dropped.
-    t.eq('split-up tag (<scr<script>ipt>) leaves no angle bracket or script', m.toPlainText('<scr<script>ipt>alert(1)</script>ok'), 'scr ok');
+    // As a browser reads it: the tag is "<scr<script>" (a name runs to the
+    // first '>'), then text "ipt>alert(1)", then an end tag. So the words
+    // survive as plain text and the '>' is dropped.
+    t.eq('split-up tag (<scr<script>ipt>) leaves no tag and no angle bracket', m.toPlainText('<scr<script>ipt>alert(1)</script>ok'), 'iptalert(1)ok');
+    t.eq('unterminated <script> swallows the rest', m.toPlainText('before<script>alert(1)'), 'before');
+    t.eq('<textarea> contents removed', m.toPlainText('a<textarea><b>x</b></textarea>b'), 'a b');
+    t.eq('comment removed', m.toPlainText('a<!-- <script>x</script> -->b'), 'a b');
     t.eq('plain comparison text loses its angle brackets', m.toPlainText('Is 3 < 5 > 2?'), 'Is 3 5 2?');
     t.eq('truncate cuts on a word with an ellipsis', m.truncate('one two three four five six seven', 20), 'one two three four…');
     t.eq('truncate leaves short text alone', m.truncate('short', 20), 'short');
