@@ -61,7 +61,9 @@ The SW FL searches end their query with `when:7d` to keep results recent.
 Don't add `-site:` exclusions to them: on 2026-09-26 that turned the results
 into job ads, real-estate listings and social posts. Instead, the top-level
 `excludeSources` list drops aggregator items whose publisher name contains
-any listed word (case-insensitive), e.g. `"MaxPreps"` or `"obituar"`. Their
+any listed word (case-insensitive), e.g. `"MaxPreps"` or `"obituar"`.
+`excludeTitles` does the same for aggregator headlines, e.g. `"obituary"`,
+because Naples Daily News publishes obituaries under its own name. Their
 card links go through `news.google.com` before reaching the story.
 
 A YouTube channel's feed is
