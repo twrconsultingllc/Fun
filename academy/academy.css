@@ -281,3 +281,11 @@ figcaption { color: var(--dim); font-size: .82rem; margin-top: 8px; }
 .video .frame.empty { aspect-ratio: auto; min-height: 240px; display: flex; }
 .video .frame.empty .video-empty { position: static; flex: 1; padding: 28px 20px; }
 @media (min-width: 700px) { .video .frame.empty { aspect-ratio: 16/9; } }
+
+/* ---------- featured video (landing) ---------- */
+.featured { padding-bottom: 0; }
+.featured-row { display: grid; grid-template-columns: .8fr 1.2fr; gap: 36px; align-items: center; }
+.featured h2 { margin: 6px 0 10px; font-size: 1.8rem; letter-spacing: -0.02em; }
+.featured p { color: var(--muted); margin: 0; }
+.featured .video { margin: 0; }
+@media (max-width: 820px) { .featured-row { grid-template-columns: 1fr; gap: 16px; } }

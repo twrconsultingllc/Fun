@@ -72,6 +72,11 @@ export default async function run(t, page) {
             courses.reduce((a, c) => a + c.lessons.length, 0));
         t.ok('every course id is unique', new Set(courses.map((c) => c.id)).size === courses.length);
         t.ok('every course art exists', courses.every((c) => land.window.ACADEMY_ART[c.art]));
+        const allVideos = [land.window.ACADEMY.featured, ...courses.flatMap((c) => c.lessons.flatMap((l) => l.sections.map((s) => s.video)))].filter(Boolean);
+        t.ok('every set youtube ID is a well-formed 11-character ID', allVideos.every((v) => v.youtube === '' || /^[A-Za-z0-9_-]{11}$/.test(v.youtube)));
+        t.ok('no youtube ID is used twice', (() => { const ids = allVideos.map((v) => v.youtube).filter(Boolean); return new Set(ids).size === ids.length; })());
+        const featuredFrame = land.document.querySelector('#featuredVideo iframe');
+        t.eq('landing features the channel video', featuredFrame && featuredFrame.getAttribute('src'), 'https://www.youtube-nocookie.com/embed/AH9EyOlW8ek?rel=0&modestbranding=1');
         t.ok('every section has a heading', courses.every((c) => c.lessons.every((l) => l.sections.every((s) => s.heading))));
 
         t.section('YouTube link parsing');
@@ -115,28 +120,34 @@ export default async function run(t, page) {
         t.eq('one block per section', secs.length, swim.lessons[0].sections.length);
         t.ok('has a picture', !!lesson.document.querySelector('figure svg'));
         t.ok('has a coach’s tip', !!lesson.document.querySelector('.callout'));
-        const form = lesson.document.querySelector('.video-form');
+        const fixedFrame = lesson.document.querySelector('#s3 iframe');
+        t.eq('a youtube ID set in courses.js embeds with no paste needed', fixedFrame && fixedFrame.getAttribute('src'), 'https://www.youtube-nocookie.com/embed/' + swim.lessons[0].sections[2].video.youtube + '?rel=0&modestbranding=1');
+        t.ok('…and offers no "change video" control', !lesson.document.querySelector('#s3 .linkbtn'));
+
+        /* Swim lesson 2's video slot is still empty, so it carries the paste box. */
+        const empty = await open(lessonHtml, '?c=swim&l=2');
+        const form = empty.document.querySelector('.video-form');
         t.ok('empty video slot offers a paste box', !!form);
         const input = form.querySelector('input');
-        t.ok('paste box has a label', !!lesson.document.querySelector(`label[for="${input.id}"]`));
+        t.ok('paste box has a label', !!empty.document.querySelector(`label[for="${input.id}"]`));
 
         input.value = 'not a link';
-        form.dispatchEvent(new lesson.window.Event('submit', { bubbles: true, cancelable: true }));
-        t.eq('a bad link does not embed anything', lesson.document.querySelectorAll('iframe').length, 0);
-        t.ok('a bad link explains why', /YouTube link/.test(lesson.document.querySelector('.video-err').textContent));
+        form.dispatchEvent(new empty.window.Event('submit', { bubbles: true, cancelable: true }));
+        t.eq('a bad link does not embed anything', empty.document.querySelectorAll('iframe').length, 0);
+        t.ok('a bad link explains why', /YouTube link/.test(empty.document.querySelector('.video-err').textContent));
 
         input.value = 'https://youtu.be/' + id;
-        form.dispatchEvent(new lesson.window.Event('submit', { bubbles: true, cancelable: true }));
-        const frame = lesson.document.querySelector('iframe');
+        form.dispatchEvent(new empty.window.Event('submit', { bubbles: true, cancelable: true }));
+        const frame = empty.document.querySelector('iframe');
         t.ok('a good link embeds a player', !!frame);
         t.eq('player uses youtube-nocookie', frame && frame.getAttribute('src'), `https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1`);
         t.eq('player sends a referrer YouTube accepts', frame && frame.getAttribute('referrerpolicy'), 'strict-origin-when-cross-origin');
-        t.eq('pasted ID is remembered', lesson.window.localStorage.getItem('fca:vid:swim-1-3'), JSON.stringify(id));
-        t.ok('bar shows the courses.js line to make it permanent', lesson.document.querySelector('.video-bar code').textContent === `youtube: '${id}'`);
+        t.eq('pasted ID is remembered', empty.window.localStorage.getItem('fca:vid:swim-2-2'), JSON.stringify(id));
+        t.ok('bar shows the courses.js line to make it permanent', empty.document.querySelector('.video-bar code').textContent === `youtube: '${id}'`);
 
-        const again = await open(lessonHtml, '?c=swim&l=1', { 'fca:vid:swim-1-3': JSON.stringify(id) });
+        const again = await open(lessonHtml, '?c=swim&l=2', { 'fca:vid:swim-2-2': JSON.stringify(id) });
         t.ok('a remembered video embeds on reload', !!again.document.querySelector('iframe'));
-        const tampered = await open(lessonHtml, '?c=swim&l=1', { 'fca:vid:swim-1-3': JSON.stringify('x"><script>') });
+        const tampered = await open(lessonHtml, '?c=swim&l=2', { 'fca:vid:swim-2-2': JSON.stringify('x"><script>') });
         t.eq('a tampered stored value is ignored', tampered.document.querySelectorAll('iframe').length, 0);
 
         const doneBtn = lesson.document.querySelector('.done-btn');

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #23 — academy/ channel videos &amp; featured section</title>
+<meta name="description" content="Security and code-quality review of the academy/ update that fills the lesson video slots with Full Circle Coaching YouTube videos and adds a featured-video section to academy/index.html.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #23 — <code>academy/</code> channel videos &amp; featured section</h1>
+    <p class="sub">Follow-up to <a href="22.html">22.html</a>. <code>courses.js</code> now carries 13 YouTube IDs from the Full Circle Coaching channel: 12 in lessons (six of them in new sections) and 1 featured. <code>index.html</code> gains a "From the Full Circle channel" section that embeds the featured video. The render code gets 3 new lines in <code>renderLanding()</code>, and there's a small CSS block.</p>
+    <div class="meta">Review performed 2026-09-26 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>academy/courses.js</code>, <code>academy/index.html</code>, <code>academy/academy.js</code>, <code>academy/academy.css</code>, <code>tests/academy.dom.test.mjs</code> · follows: <a href="22.html">22.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 83%;"></div></div>
+    <div class="progress-label">6 items: 1 found and fixed, 4 verified clean, 1 open (can't be checked from this environment).</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No new origin, script or markup path</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">The featured video goes through the same <code>videoSlot()</code> as every lesson slot: the ID is checked against the 11-character regex, and the iframe is built with <code>createElement</code> on the fixed <code>youtube-nocookie.com/embed/</code> prefix. The CSP is unchanged. The new <code>index.html</code> section is static markup with no <code>style=</code>, no handler and no link. The suite's CSP and inline-content assertions still pass.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Every stored ID is well-formed and unique</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">New assertions: every <code>youtube</code> value in <code>courses.js</code> (the featured one included) is either empty or matches <code>^[A-Za-z0-9_-]{11}$</code>, no ID appears twice, and the landing page's iframe <code>src</code> is exactly the featured ID's nocookie URL. The <code>courses.js</code> doc-comment example ID was also changed to one of the channel's own videos.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Content &amp; code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Videos limited to ones clearly from the brand's channel</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">YouTube and the coaching site are blocked by this environment's egress proxy, so the videos were found by web search. Several unrelated businesses share the "Full Circle" name, so only results whose YouTube title names <code>Full Circle Coaching</code> or <code>Coach Erinne Guthrie</code> were used. The featured ID came from the owner's own link. Page copy only claims what's known ("video from the Full Circle Coaching YouTube channel"), not who appears in the featured video.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Playback and "embedding allowed" can't be checked here</div><span class="badge open">Open</span></div>
+      <div class="item-body">A channel owner can turn off embedding per video, and the player then shows "Video unavailable". Headless Chromium here renders each iframe (no CSP errors), but can't reach YouTube to load it. Someone needs to check each video on the live site. Three slots stay empty on purpose (Swim breathing, Swim catch, Transitions rehearsal), because no branded video for those topics turned up.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Nutrition card label cropped</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">The landing screenshot showed the card's <code>slice</code> scaling crops about 22 SVG units off the top and bottom at card size, which cut off the "60–90 g/hr" label placed in #22. It moved to <code>x=275 y=150</code>, inside the visible band and clear of the gel shapes.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Tests follow the content</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">Swim Lesson 1's slot is now filled, so the paste-to-embed assertions moved to Swim Lesson 2, whose slot is still empty. A new check asserts a preset ID embeds with no "Change video" control. The <code>academy</code> suite is at 74 assertions, and the full run is clean.</div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. See <a href="22.html">22.html</a> for the original review of these pages.
+  </footer>
+
+</div>
+</body>
+</html>

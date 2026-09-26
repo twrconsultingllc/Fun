@@ -35,13 +35,13 @@ not be loaded — so this drops straight into CI or a pre-push hook.
 
 ## What is covered
 
-856 assertions across twenty-one suites.
+861 assertions across twenty-one suites.
 
 ### `academy/` (Full Circle Academy mockup)
 
 | Suite | File | Covers |
 |---|---|---|
-| `academy` | `academy.dom.test.mjs` | The landing, course and lesson pages in jsdom: the strict CSP (`script-src 'self'`, frames only from `youtube-nocookie.com`, no inline scripts/handlers/style attributes), one card/row/section per entry in `courses.js`, query-string routing including an unknown course and an out-of-range lesson, YouTube link parsing (every common link shape accepted, look-alike hosts and junk rejected), the paste-to-embed video slot, a tampered `localStorage` value being ignored, and mark-complete. |
+| `academy` | `academy.dom.test.mjs` | The landing, course and lesson pages in jsdom: the strict CSP (`script-src 'self'`, frames only from `youtube-nocookie.com`, no inline scripts/handlers/style attributes), one card/row/section per entry in `courses.js`, query-string routing including an unknown course and an out-of-range lesson, YouTube link parsing (every common link shape accepted, look-alike hosts and junk rejected), videos preset in `courses.js` (well-formed, unique, embedded without a paste) and the featured landing video, the paste-to-embed video slot, a tampered `localStorage` value being ignored, and mark-complete. |
 
 These pages load two shared same-origin scripts rather than inline ones, and
 jsdom only fetches external scripts with `resources: 'usable'` (which would

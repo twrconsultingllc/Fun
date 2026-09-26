@@ -191,6 +191,9 @@
                         el('span', { text: p.n ? 'Continue · ' + p.n + '/' + p.total : 'Start course' }),
                         el('span', { 'aria-hidden': 'true', text: '→' })))));
         }
+        const featured = document.getElementById('featuredVideo');
+        if (featured && data.featured) featured.append(videoSlot(data.featured, 'featured'));
+        else if (featured) featured.closest('section').hidden = true;
         document.getElementById('statCourses').textContent = data.courses.length;
         document.getElementById('statLessons').textContent = lessons;
         document.getElementById('statVideos').textContent = videos;
