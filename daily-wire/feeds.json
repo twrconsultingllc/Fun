@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-09-26T19:22:17.112Z",
+ "generatedAt": "2026-09-26T19:32:18.114Z",
  "refreshHours": 6,
  "categories": [
   {
@@ -42,7 +42,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "bbc-us",
@@ -50,7 +50,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "npr",
@@ -58,7 +58,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "guardian-world",
@@ -66,7 +66,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "guardian-us",
@@ -74,7 +74,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "pbs",
@@ -82,7 +82,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "nyt",
@@ -91,7 +91,7 @@
    "paywall": true,
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "ars",
@@ -99,7 +99,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "verge",
@@ -107,7 +107,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "wired",
@@ -115,7 +115,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "hn",
@@ -123,7 +123,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "techcrunch",
@@ -131,7 +131,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "bbc-tech",
@@ -139,7 +139,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "github-blog",
@@ -147,7 +147,7 @@
    "category": "dev",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "willison",
@@ -155,7 +155,7 @@
    "category": "dev",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "chrome-dev",
@@ -163,7 +163,7 @@
    "category": "dev",
    "ok": true,
    "count": 2,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "claude-code",
@@ -171,7 +171,7 @@
    "category": "dev",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "threejs",
@@ -179,7 +179,7 @@
    "category": "dev",
    "ok": true,
    "count": 2,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "nasa-news",
@@ -187,7 +187,7 @@
    "category": "science",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "nasa-iotd",
@@ -195,7 +195,7 @@
    "category": "science",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "quanta",
@@ -203,7 +203,7 @@
    "category": "science",
    "ok": true,
    "count": 5,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "sciencedaily",
@@ -211,7 +211,7 @@
    "category": "science",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "nature",
@@ -219,7 +219,7 @@
    "category": "science",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "cisa",
@@ -227,7 +227,7 @@
    "category": "security",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "krebs",
@@ -235,7 +235,7 @@
    "category": "security",
    "ok": true,
    "count": 3,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "schneier",
@@ -243,7 +243,7 @@
    "category": "security",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "usgs",
@@ -251,7 +251,7 @@
    "category": "live",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "nws-fl",
@@ -259,7 +259,7 @@
    "category": "live",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "xkcd",
@@ -267,7 +267,7 @@
    "category": "fun",
    "ok": true,
    "count": 4,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "veritasium",
@@ -275,7 +275,7 @@
    "category": "fun",
    "ok": true,
    "count": 5,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "kurzgesagt",
@@ -283,7 +283,7 @@
    "category": "fun",
    "ok": true,
    "count": 4,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "mark-rober",
@@ -291,7 +291,7 @@
    "category": "fun",
    "ok": true,
    "count": 2,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "fireship",
@@ -299,7 +299,7 @@
    "category": "fun",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "fed",
@@ -307,7 +307,7 @@
    "category": "business",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   },
   {
    "id": "sec",
@@ -315,10 +315,54 @@
    "category": "business",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:22:17.112Z"
+   "checkedAt": "2026-09-26T19:32:18.114Z"
   }
  ],
  "items": [
+  {
+   "id": "28d89556212f",
+   "feed": "usgs",
+   "category": "live",
+   "source": "USGS Earthquakes",
+   "title": "M 3.1 - 4 km SW of Laupāhoehoe, Hawaii",
+   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/hv75043917",
+   "date": "2026-09-26T19:30:10.446Z",
+   "summary": "DYFI? - IV Time2026-09-26 11:58:51 UTC2026-09-26 11:58:51 UTC at epicenterLocation19.955°N 155.262°WDepth14.21 km (8.83 mi)",
+   "image": null
+  },
+  {
+   "id": "24b3978581e6",
+   "feed": "verge",
+   "category": "tech",
+   "source": "The Verge",
+   "title": "Decap is the man behind the drums behind your favorite song",
+   "link": "https://www.theverge.com/report/1000994/decap-drums-that-knock-interview",
+   "date": "2026-09-26T19:30:00.000Z",
+   "summary": "I don't think I'm going to hurt anyone's feelings by pointing out that Decap doesn't have the name recognition of Kendrick Lamar, Olivia Rodrigo, or Charli XCX. But his fingerprints are all over tracks from them, as well as many other artists, including Freddie Gibbs, Bad…",
+   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/09/Elysian_palms_10.jpg?quality=90&strip=all&crop=0,0,100,100"
+  },
+  {
+   "id": "7fca40fc3349",
+   "feed": "usgs",
+   "category": "live",
+   "source": "USGS Earthquakes",
+   "title": "M 3.7 - 10 km W of Boonville, CA",
+   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/nc75442207",
+   "date": "2026-09-26T19:29:06.313Z",
+   "summary": "ShakeMap - IV DYFI? - IV Time2026-09-26 03:42:49 UTC2026-09-26 03:42:49 UTC at epicenterLocation39.015°N 123.477°WDepth4.78 km (2.97 mi)",
+   "image": null
+  },
+  {
+   "id": "b1b1cf82871e",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "Heavy Rain and Wind Batter Northeast, Bringing Coastal Flooding",
+   "link": "https://www.nytimes.com/live/2026/09/26/nyregion/noreaster-storm-rain-nyc-boston",
+   "date": "2026-09-26T19:27:13.000Z",
+   "summary": "The storm flooded low-lying areas, knocked out power and forced the cancellation of several major events and hundreds of flights.",
+   "image": null
+  },
   {
    "id": "83d313ad2f66",
    "feed": "nyt",
@@ -372,29 +416,7 @@
    "link": "https://www.pbs.org/newshour/world/german-and-russian-foreign-ministers-have-rare-meeting-at-united-nations-general-assembly",
    "date": "2026-09-26T19:08:31.000Z",
    "summary": "In the encounter, German Foreign Minster Johann Wadephul called on Russia to abandon its \"dangerous path of escalation\" toward Germany, Europe and the NATO alliance, a German delegation official said.",
-   "image": null
-  },
-  {
-   "id": "28d89556212f",
-   "feed": "usgs",
-   "category": "live",
-   "source": "USGS Earthquakes",
-   "title": "M 3.1 - 4 km SW of Laupāhoehoe, Hawaii",
-   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/hv75043917",
-   "date": "2026-09-26T19:06:11.354Z",
-   "summary": "DYFI? - IV Time2026-09-26 11:58:51 UTC2026-09-26 11:58:51 UTC at epicenterLocation19.955°N 155.262°WDepth14.21 km (8.83 mi)",
-   "image": null
-  },
-  {
-   "id": "b1b1cf82871e",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "Nor’easter Live Updates: Heavy Rain and Wind Batter Northeast, Bringing Coastal Flooding",
-   "link": "https://www.nytimes.com/live/2026/09/26/nyregion/noreaster-storm-rain-nyc-boston",
-   "date": "2026-09-26T19:06:09.000Z",
-   "summary": "The storm flooded low-lying areas, knocked out power for thousands and forced the cancellation of several major events and hundreds of flights. Wind gusts exceeded 50 miles per hour in places.",
-   "image": "https://static01.nyt.com/images/2026/09/26/multimedia/26met-noreaster-promo-xxx-1230pm-copy/26met-noreaster-promo-xxx-1230pm-copy-mediumSquareAt3X-v2.jpg"
+   "image": "https://d3i6fh83elv35t.cloudfront.net/static/2026/09/2026-09-26T163423Z_744681254_RC24RNADQR2L_RTRMADP_3_UN-ASSEMBLY-1024x683.jpg"
   },
   {
    "id": "4c9ff924c8d5",
@@ -463,17 +485,6 @@
    "image": null
   },
   {
-   "id": "7fca40fc3349",
-   "feed": "usgs",
-   "category": "live",
-   "source": "USGS Earthquakes",
-   "title": "M 3.7 - 10 km W of Boonville, CA",
-   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/nc75442207",
-   "date": "2026-09-26T18:33:38.614Z",
-   "summary": "ShakeMap - IV DYFI? - IV Time2026-09-26 03:42:49 UTC2026-09-26 03:42:49 UTC at epicenterLocation39.015°N 123.477°WDepth4.78 km (2.97 mi)",
-   "image": null
-  },
-  {
    "id": "389fd0490c34",
    "feed": "bbc-world",
    "category": "news",
@@ -526,7 +537,7 @@
    "link": "https://www.pbs.org/newshour/world/bodies-of-6-people-including-4-americans-recovered-from-collapsed-building-in-athens",
    "date": "2026-09-26T18:02:00.000Z",
    "summary": "The blast on Friday was believed to have been caused by a major gas leak, Athens Mayor Haris Doukas said. Neighboring buildings were damaged and evacuated.",
-   "image": null
+   "image": "https://d3i6fh83elv35t.cloudfront.net/static/2026/09/2026-09-25T123325Z_1844212185_RC2CQNABH2E5_RTRMADP_3_GREECE-FIRE-1024x683.jpg"
   },
   {
    "id": "c003223066f1",
@@ -537,7 +548,7 @@
    "link": "https://www.pbs.org/newshour/world/china-and-u-s-agree-to-establish-ai-safety-channel-and-continue-trade-and-military-talks",
    "date": "2026-09-26T17:53:24.000Z",
    "summary": "The summit produced no major breakthroughs, but analysts said the steps toward greater cooperation were important because they established working groups that could help prevent disputes from escalating.",
-   "image": null
+   "image": "https://d3i6fh83elv35t.cloudfront.net/static/2026/09/2026-09-25T164945Z_1103828899_RC2GQNAAGEO6_RTRMADP_3_USA-CHINA-1024x657.jpg"
   },
   {
    "id": "082251a0ee95",
@@ -584,6 +595,17 @@
    "image": "https://platform.theverge.com/wp-content/uploads/sites/2/chorus/uploads/chorus_asset/file/25332725/STK419_DEEPFAKE_CVIRGINIA_L.jpg?quality=90&strip=all&crop=0,0,100,100"
   },
   {
+   "id": "7a6d4e41d641",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "How El Niño Is Shaping Storms on Two Sides of the U.S.",
+   "link": "https://www.nytimes.com/2026/09/26/climate/el-nino-hurricane-noreaster.html",
+   "date": "2026-09-26T17:23:22.000Z",
+   "summary": "Hurricanes near Hawaii. A nor’easter on the East Coast. The ocean phenomenon’s influence on storms around the country may just be getting started.",
+   "image": "https://static01.nyt.com/images/2026/09/26/multimedia/26cli-storms-elnino-klgb/26cli-storms-elnino-klgb-mediumSquareAt3X.jpg"
+  },
+  {
    "id": "d3596de7e73f",
    "feed": "guardian-world",
    "category": "news",
@@ -603,7 +625,7 @@
    "link": "https://www.pbs.org/newshour/politics/trump-administration-uses-rare-authority-to-claw-back-nearly-1b-in-spending-approved-by-congress",
    "date": "2026-09-26T17:20:24.000Z",
    "summary": "Most of the cuts are focused on Health and Human Services programs that serve refugees and unaccompanied minors accused of being in the country illegally.",
-   "image": null
+   "image": "https://d3i6fh83elv35t.cloudfront.net/static/2026/09/2026-09-24T022637Z_16339459_RC2CPNAOSJAF_RTRMADP_3_USA-CONGRESS-1024x683.jpg"
   },
   {
    "id": "334a66464009",
@@ -625,7 +647,7 @@
    "link": "https://www.npr.org/2026/09/26/nx-s1-5981979/openai-us-government-websites-misbehavior",
    "date": "2026-09-26T17:10:04.000Z",
    "summary": "The disclosure is the latest in a string of incidents in which the AI platform has been caught going rogue. OpenAI says it is reviewing the findings.",
-   "image": null
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/4000x2667+0+0/resize/4000x2667!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F18%2Ffc%2F1d5e6422446f958a5ac01b18bc20%2Fap26260139104766.jpg"
   },
   {
    "id": "f325839a9074",
@@ -636,7 +658,7 @@
    "link": "https://www.pbs.org/newshour/world/pope-leo-draws-800000-people-to-central-paris-for-open-air-mass-on-iconic-square",
    "date": "2026-09-26T17:07:13.000Z",
    "summary": "The turnout testified to the church's lasting influence in France despite declining attendance and secularizing trends that have emptied churches across Europe.",
-   "image": null
+   "image": "https://d3i6fh83elv35t.cloudfront.net/static/2026/09/2026-09-26T131016Z_442901667_RC20RNAP77XF_RTRMADP_3_POPE-FRANCE-1024x711.jpg"
   },
   {
    "id": "e17c589e30bf",
@@ -702,7 +724,7 @@
    "link": "https://www.pbs.org/newshour/politics/cnn-says-it-was-left-off-air-force-one-for-trumps-saturday-trip-to-a-college-football-game",
    "date": "2026-09-26T16:35:39.000Z",
    "summary": "CNN, a member of the U.S. network video pool that rotates duties shooting and sharing video coverage of the president, reported it had been scheduled to fly aboard the president's plane Saturday for a scheduled visit to a college football game.",
-   "image": null
+   "image": "https://d3i6fh83elv35t.cloudfront.net/static/2026/09/2026-09-26T135257Z_1790512326_RC21RNAZ1VCA_RTRMADP_3_USA-TRUMP-MEDIA-1024x683.jpg"
   },
   {
    "id": "d49281dbf140",
@@ -870,17 +892,6 @@
    "image": null
   },
   {
-   "id": "b71f02600fed",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "White House Blocks CNN From Covering Trump’s Trip to Tennessee",
-   "link": "https://www.nytimes.com/2026/09/25/business/media/white-house-cnn-air-force-one-ban.html",
-   "date": "2026-09-26T14:16:46.000Z",
-   "summary": "CNN won’t be able to join President Trump on a Saturday trip to Tennessee. He had banned CNN and two other news outlets from the White House, but a court order on Thursday restored their access.",
-   "image": "https://static01.nyt.com/images/2026/09/25/multimedia/25biz-trump-cnn-zhql/25biz-trump-cnn-zhql-mediumSquareAt3X.jpg"
-  },
-  {
    "id": "2939bbdbe7f0",
    "feed": "sciencedaily",
    "category": "science",
@@ -977,7 +988,7 @@
    "link": "https://www.npr.org/2026/09/26/nx-s1-5974096/essay-09-26-26",
    "date": "2026-09-26T12:00:00.000Z",
    "summary": "President Donald Trump mused openly before the United Nations about whether he should annihilate Iran. It's a stark contrast to how his predecessors have spoken about wielding US military power.",
-   "image": null
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/5055x3370+0+0/resize/5055x3370!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Fa2%2F0f%2Fabbe9b1a4d8f851c217c528e2a34%2Fgettyimages-2296575054.jpg"
   },
   {
    "id": "52e73f2b30af",
@@ -1010,7 +1021,7 @@
    "link": "https://www.npr.org/2026/09/26/nx-s1-5981392/noreaster-pounds-mid-atlantic-new-england-coastlines-hurricane-nolo-targets-hawaii",
    "date": "2026-09-26T11:38:00.000Z",
    "summary": "Thousands of people are without power across the East Coast as a nor'easter rips through the area. Forecasters expect significant winds and rain throughout the weekend.",
-   "image": null
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/3409x2273+0+0/resize/3409x2273!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F5b%2F46%2F8bcbf1fd46c6a6fdec4fdb1dfbcf%2Fap26268625826647.jpg"
   },
   {
    "id": "161f64820652",
@@ -1032,7 +1043,7 @@
    "link": "https://www.npr.org/2026/09/26/g-s1-144667/hiv-crystal-meth-epidemic-fiji",
    "date": "2026-09-26T11:31:18.000Z",
    "summary": "In mid-September, Fiji's government declared a national emergency because of a startling rise in HIV infections. The country's crystal meth epidemic is a strong contributing factor.",
-   "image": null
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/3000x2000+0+0/resize/3000x2000!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Ffb%2Fdf%2F43ea1eee4821ab65e5f43991df81%2Ffiji-hiv-06220.jpg"
   },
   {
    "id": "37a083415226",
@@ -1098,18 +1109,18 @@
    "link": "https://www.npr.org/2026/09/26/nx-s1-5979085/the-ai-safety-debate-is-confusing-heres-our-guide-to-the-different-factions",
    "date": "2026-09-26T09:00:00.000Z",
    "summary": "The battle over AI's promise and perils is not a clash between two opposing sides, but a debate among a range of competing voices and ideologies. Here is a guide to who's who in that debate.",
-   "image": null
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/5333x3000+0+0/resize/5333x3000!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F9e%2Fe9%2F740a82844c44bf409fd71dd0fcba%2F2026-09-ai-factions-final.jpg"
   },
   {
-   "id": "ed909c9a8367",
+   "id": "ce6e4c68fc8d",
    "feed": "npr",
    "category": "news",
    "source": "NPR",
-   "title": "Meal deliveries can save money and improve health. Will they survive Medicaid cuts?",
-   "link": "https://www.npr.org/2026/09/26/nx-s1-5946434/medically-tailored-meal-deliveries-medicaid-cuts",
+   "title": "The U.S. has more thalidomide survivors than the government admits",
+   "link": "https://www.npr.org/2026/09/26/nx-s1-5979047/us-thalidomide-survivors-want-recognition-government",
    "date": "2026-09-26T09:00:00.000Z",
-   "summary": "Some states deliver meals to Medicaid patients that address their dietary needs. Evidence shows it aids recovery and saves healthcare costs, but federal budget cuts may lead some states to cancel it.",
-   "image": null
+   "summary": "In the 1950s and 1960s, doctors gave the drug thalidomide to pregnant patients without telling them — and without FDA approval. Now those patients' children want recognition.",
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/3300x3233+0+0/resize/3300x3233!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Fc9%2F8a%2Fe5e00fe4494caf61b4b7c3356cbf%2Fap19266617691776.jpg"
   },
   {
    "id": "307ad89f35c9",
@@ -1121,17 +1132,6 @@
    "date": "2026-09-26T07:08:00.000Z",
    "summary": "* WHAT...For the High Rip Current Risk, dangerous rip currents. For the High Surf Advisory, large breaking waves of 4 to 7 feet in the surf zone. * WHERE...Coastal Volusia, Coastal Indian River, Coastal Saint Lucie, Coastal Martin, Mainland Northern Brevard, Northern Brevard…",
    "image": null
-  },
-  {
-   "id": "4014c3a6b3c7",
-   "feed": "verge",
-   "category": "tech",
-   "source": "The Verge",
-   "title": "Can ‘eSUV’ e-bikes really go from trail to town?",
-   "link": "https://www.theverge.com/transportation/999785/amflow-tl-review-avinox-esuv-e-bike-avinox",
-   "date": "2026-09-26T07:00:00.000Z",
-   "summary": "Have you ever wanted an electric bike that easily transitions from the drudgery of urban asphalt to adventures in gravel and dirt? That's what a subclass of so-called \"electric SUV\" (eSUV) e-bikes claims to do, with their wide, all-terrain tires and front and rear suspension…",
-   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/09/IMG_4650.jpeg?quality=90&strip=all&crop=0,0,100,100"
   },
   {
    "id": "39803d4c551e",
@@ -1164,7 +1164,7 @@
    "link": "https://science.nasa.gov/image-article/apod-2026-september-26-mirrored-meteor-and-milky-way/",
    "date": "2026-09-26T04:05:00.000Z",
    "summary": "APOD Science APOD APOD: 2026 September 26 –… Today’s APOD Archive Submissions Index Search Calendar RSS Education About Discuss APOD Astronomy Picture of the Day Discover the cosmos! Each day a different image or photograph of our fascinating universe is featured, along with a…",
-   "image": null
+   "image": "https://assets.science.nasa.gov/dynamicimage/assets/science/cds/apod/apod/2026/september/MilkyWayMeteorLSTJeffDai.jpg?w=2000&h=1334&fit=clip&crop=faces%2Cfocalpoint"
   },
   {
    "id": "b26cc2f8862a",
@@ -1373,7 +1373,7 @@
    "link": "https://www.nasa.gov/directorates/rtmd/nasa-tests-dual-mode-propulsion-cubesat-ahead-of-launch/",
    "date": "2026-09-25T19:36:10.000Z",
    "summary": "Spacecraft propulsion traditionally relies on volatile fuels and separate, bulky systems for different types of maneuvering in space. NASA is working to change that paradigm. Engineers at NASA’s Marshall Space Flight Center in Huntsville, Alabama, recently completed a rigorous…",
-   "image": null
+   "image": "https://images-assets.nasa.gov/image/933/933~large.jpg?w=1920&h=1440&fit=clip&crop=faces%2Cfocalpoint"
   },
   {
    "id": "390703f0fbbc",
@@ -2345,10 +2345,6 @@
   }
  ],
  "imageHostsDropped": [
-  "assets.science.nasa.gov",
-  "d3i6fh83elv35t.cloudfront.net",
-  "images-assets.nasa.gov",
-  "npr.brightspotcdn.com",
   "static.inaturalist.org"
  ]
 }
