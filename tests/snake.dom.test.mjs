@@ -103,6 +103,32 @@ export default async function run(t, page) {
         for (const f of api.foods) claim(f.x, f.y);
         t.ok('nothing spawns on top of anything else', !overlap);
 
+        /* One random build used to pass ~95% of the time even with the bug
+           below, so check many. buildEnemies() gave up on a rival whose one
+           random spot fell in the player's start area, leaving about 1
+           level-1 game in 20 with no rival, and never checked the rival's
+           tail against the board or the start area. 300 builds would miss a
+           5% failure rate with probability 0.95^300, about 2e-7. */
+        const START_X = 24, START_Y = 18; // centre of the 48×36 board
+        const nearStart = (c) => Math.abs(c.x - START_X) < 6 && Math.abs(c.y - START_Y) < 4;
+        for (const lvl of [1, 6]) {
+            api.setLevel(lvl);
+            let missing = 0, crowded = 0, stacked = 0;
+            for (let n = 0; n < 300; n++) {
+                api.buildLevel();
+                if (api.enemies.length !== api.enemyCountForLevel()) missing++;
+                if (api.enemies.some((e) => e.body.some(nearStart))) crowded++;
+                const seen = new Set();
+                const all = [...api.snake, ...api.obstacles, ...api.foods, ...api.enemies.flatMap((e) => e.body)];
+                if (all.some((c) => { const k = c.x + ',' + c.y; const dup = seen.has(k); seen.add(k); return dup; })) stacked++;
+            }
+            t.eq(`level ${lvl}: every one of 300 builds spawns the full rival count`, missing, 0);
+            t.eq(`level ${lvl}: no rival starts inside the player's start area`, crowded, 0);
+            t.eq(`level ${lvl}: nothing overlaps in any of 300 builds`, stacked, 0);
+        }
+        api.setLevel(1);
+        api.buildLevel();
+
         /* -------------------------------------------------------------- */
         t.section('Running into a rival snake kills the player');
 
