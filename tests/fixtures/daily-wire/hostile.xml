@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<!DOCTYPE rss [
+  <!ENTITY a "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa">
+  <!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">
+  <!ENTITY c "&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;">
+]>
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+<channel><title>Hostile</title>
+  <item>
+    <title>&lt;img src=x onerror=alert(1)&gt;Safe &amp;lt;b&amp;gt;title&amp;lt;/b&amp;gt; &c;</title>
+    <link>https://evil.example/ok</link>
+    <description>&lt;script&gt;alert('x')&lt;/script&gt;&lt;style&gt;body{}&lt;/style&gt;Visible text &lt;a href="javascript:alert(1)"&gt;link&lt;/a&gt;&#0;&#x110000;</description>
+    <pubDate>Sat, 26 Sep 2099 00:00:00 GMT</pubDate>
+    <media:thumbnail url="https://tracker.evil.example/pixel.gif"/>
+  </item>
+  <item>
+    <title>javascript link is dropped</title>
+    <link>javascript:alert(document.cookie)</link>
+  </item>
+  <item>
+    <title>data image is dropped</title>
+    <link>https://evil.example/data</link>
+    <media:thumbnail url="data:image/svg+xml,&lt;svg onload=alert(1)&gt;"/>
+  </item>
+  <item>
+    <title>credentials in link are dropped</title>
+    <link>https://user:pass@evil.example/</link>
+  </item>
+  <item>
+    <title>look-alike image host is dropped</title>
+    <link>https://evil.example/lookalike</link>
+    <media:thumbnail url="https://imgs.xkcd.com.evil.example/a.png"/>
+  </item>
+  <item>
+    <title>http image on an allowed host is upgraded to https</title>
+    <link>http://evil.example/plain</link>
+    <media:thumbnail url="http://imgs.xkcd.com/comics/a.png"/>
+    <pubDate>not a date</pubDate>
+  </item>
+  <item>
+    <link>https://evil.example/untitled</link>
+  </item>
+</channel></rss>

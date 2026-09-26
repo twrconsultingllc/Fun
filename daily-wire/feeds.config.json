@@ -1,0 +1,79 @@
+{
+ "refreshHours": 6,
+ "maxItemsPerFeed": 6,
+ "minItemsPerFeed": 2,
+ "maxAgeDays": 21,
+ "categories": [
+  { "id": "news", "label": "News" },
+  { "id": "tech", "label": "Tech" },
+  { "id": "dev", "label": "Dev & AI" },
+  { "id": "science", "label": "Science & space" },
+  { "id": "security", "label": "Security" },
+  { "id": "live", "label": "Live data" },
+  { "id": "fun", "label": "Fun" },
+  { "id": "business", "label": "Business" }
+ ],
+ "imageHosts": [
+  "ichef.bbci.co.uk",
+  "media.npr.org",
+  "i.guim.co.uk",
+  "static01.nyt.com",
+  "cdn.arstechnica.net",
+  "platform.theverge.com",
+  "media.wired.com",
+  "techcrunch.com",
+  "github.blog",
+  "static.simonwillison.net",
+  "www.nasa.gov",
+  "www.quantamagazine.org",
+  "www.sciencedaily.com",
+  "media.springernature.com",
+  "krebsonsecurity.com",
+  "imgs.xkcd.com",
+  "*.ytimg.com"
+ ],
+ "feeds": [
+  { "id": "bbc-world", "category": "news", "source": "BBC News", "url": "https://feeds.bbci.co.uk/news/world/rss.xml" },
+  { "id": "bbc-us", "category": "news", "source": "BBC US & Canada", "url": "https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml" },
+  { "id": "npr", "category": "news", "source": "NPR", "url": "https://feeds.npr.org/1001/rss.xml" },
+  { "id": "guardian-world", "category": "news", "source": "The Guardian", "url": "https://www.theguardian.com/world/rss" },
+  { "id": "guardian-us", "category": "news", "source": "The Guardian US", "url": "https://www.theguardian.com/us-news/rss" },
+  { "id": "pbs", "category": "news", "source": "PBS NewsHour", "url": "https://www.pbs.org/newshour/feeds/rss/headlines" },
+  { "id": "nyt", "category": "news", "source": "New York Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "paywall": true },
+
+  { "id": "ars", "category": "tech", "source": "Ars Technica", "url": "https://feeds.arstechnica.com/arstechnica/index" },
+  { "id": "verge", "category": "tech", "source": "The Verge", "url": "https://www.theverge.com/rss/index.xml" },
+  { "id": "wired", "category": "tech", "source": "Wired", "url": "https://www.wired.com/feed/rss" },
+  { "id": "hn", "category": "tech", "source": "Hacker News", "url": "https://news.ycombinator.com/rss", "noSummary": true },
+  { "id": "techcrunch", "category": "tech", "source": "TechCrunch", "url": "https://techcrunch.com/feed/" },
+  { "id": "bbc-tech", "category": "tech", "source": "BBC Technology", "url": "https://feeds.bbci.co.uk/news/technology/rss.xml" },
+
+  { "id": "github-blog", "category": "dev", "source": "GitHub Blog", "url": "https://github.blog/feed/" },
+  { "id": "willison", "category": "dev", "source": "Simon Willison", "url": "https://simonwillison.net/atom/everything/" },
+  { "id": "chrome-dev", "category": "dev", "source": "Chrome for Developers", "url": "https://developer.chrome.com/static/blog/feed.xml" },
+  { "id": "claude-code", "category": "dev", "source": "Claude Code releases", "url": "https://github.com/anthropics/claude-code/releases.atom", "noImages": true },
+  { "id": "threejs", "category": "dev", "source": "three.js releases", "url": "https://github.com/mrdoob/three.js/releases.atom", "noImages": true },
+
+  { "id": "nasa-news", "category": "science", "source": "NASA", "url": "https://www.nasa.gov/news-release/feed/" },
+  { "id": "nasa-iotd", "category": "science", "source": "NASA Image of the Day", "url": "https://www.nasa.gov/feeds/iotd-feed/" },
+  { "id": "quanta", "category": "science", "source": "Quanta Magazine", "url": "https://www.quantamagazine.org/feed/" },
+  { "id": "sciencedaily", "category": "science", "source": "ScienceDaily", "url": "https://www.sciencedaily.com/rss/all.xml" },
+  { "id": "nature", "category": "science", "source": "Nature", "url": "https://www.nature.com/nature.rss" },
+
+  { "id": "cisa", "category": "security", "source": "CISA", "url": "https://www.cisa.gov/cybersecurity-advisories/all.xml" },
+  { "id": "krebs", "category": "security", "source": "Krebs on Security", "url": "https://krebsonsecurity.com/feed/" },
+  { "id": "schneier", "category": "security", "source": "Schneier on Security", "url": "https://www.schneier.com/feed/atom/" },
+
+  { "id": "usgs", "category": "live", "source": "USGS Earthquakes", "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.atom" },
+  { "id": "nws-fl", "category": "live", "source": "NWS Florida alerts", "url": "https://api.weather.gov/alerts/active.atom?area=FL" },
+
+  { "id": "xkcd", "category": "fun", "source": "xkcd", "url": "https://xkcd.com/atom.xml" },
+  { "id": "veritasium", "category": "fun", "source": "Veritasium", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCHnyfMqiRRG1u-2MsSQLbXA" },
+  { "id": "kurzgesagt", "category": "fun", "source": "Kurzgesagt", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCsXVk37bltHxD1rDPwtNM8Q" },
+  { "id": "mark-rober", "category": "fun", "source": "Mark Rober", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCY1kMZp36IQSyNx_9h4mpCg" },
+  { "id": "fireship", "category": "fun", "source": "Fireship", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA" },
+
+  { "id": "fed", "category": "business", "source": "Federal Reserve", "url": "https://www.federalreserve.gov/feeds/press_all.xml" },
+  { "id": "sec", "category": "business", "source": "SEC", "url": "https://www.sec.gov/news/pressreleases.rss" }
+ ]
+}

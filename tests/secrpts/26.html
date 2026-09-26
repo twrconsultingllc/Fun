@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #26 — daily-wire.html (new page and feed workflow)</title>
+<meta name="description" content="Security and code-quality review of daily-wire.html, a new magazine-card news reader, and the scheduled GitHub Actions workflow and Node fetcher that build its feeds.json.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #26 — <code>daily-wire.html</code> (new page and feed workflow)</h1>
+    <p class="sub">A new personal news reader, My Daily Wire. It shows headlines from 35 free public feeds as magazine cards, grouped into 8 categories: News, Tech, Dev &amp; AI, Science &amp; space, Security, Live data, Fun and Business. It has category chips, search, Unread only, and read state kept in the visitor's own browser. Because browsers block cross-site feed requests, the page reads one same-origin file, <code>daily-wire/feeds.json</code>. A new GitHub Actions workflow runs <code>daily-wire/fetch-feeds.mjs</code> every 6 hours to rebuild that file, committing only when the headlines change. This is the repo's first workflow and its first code that runs on a schedule, so it gets the same review as the page.</p>
+    <div class="meta">Review performed 2026-09-26 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>daily-wire.html</code>, <code>daily-wire/</code> (fetcher, config, placeholder data, README, lockfile), <code>.github/workflows/daily-wire.yml</code>, <code>index.html</code> (one new section and one CSS selector), <code>tests/daily-wire.core.test.mjs</code>, <code>tests/daily-wire.dom.test.mjs</code>, <code>tests/fixtures/daily-wire/</code>, <code>tests/run.mjs</code>, <code>tests/README.md</code>, <code>CLAUDE.md</code> (bot identity) · follows: <a href="25.html">25.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 78%;"></div></div>
+    <div class="progress-label">18 items: 8 found and fixed while building and reviewing, 6 verified clean, 4 open (one accepted trade-off, one architectural, two that need the first live run).</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">CSP and referrer meta tags, with a named image-host list</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">The page keeps the repo's standard policy except for <code>img-src</code>, which lists 17 publisher image hosts by name. There's no <code>https:</code>, <code>data:</code> or <code>*</code> source; <code>*.ytimg.com</code> is the only wildcard, and it covers YouTube's thumbnail servers. <code>connect-src 'self'</code> means the page can only read its own <code>daily-wire/feeds.json</code>. The referrer policy is <code>no-referrer</code>, which is stricter than the repo default, so publishers don't learn which page their pictures or links were opened from. Every image also carries <code>referrerpolicy="no-referrer"</code>, and every story link carries <code>rel="noopener noreferrer"</code>. No fonts, scripts or stylesheets load from anywhere else. The <code>wire-dom</code> suite checks the host list is identical in <code>feeds.config.json</code>, the page script and the CSP, because a host missing from any one of them breaks pictures without any error.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No markup injection path, and the page trusts nothing in feeds.json</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">A grep for <code>innerHTML</code>, <code>outerHTML</code>, <code>insertAdjacentHTML</code>, <code>document.write</code> and <code>on*="</code> attributes finds 0 uses. Every feed string reaches the DOM through <code>textContent</code>. The fetcher already reduces titles and summaries to plain text, but the page checks everything again:
+        <ul>
+          <li>Links must parse as <code>http(s)</code> with no credentials.</li>
+          <li>Images must be <code>https</code> on a listed host.</li>
+          <li>Ids must be 12 hex characters, and categories must be known.</li>
+          <li>Strings are length-capped.</li>
+        </ul>
+        The suite feeds it <code>javascript:</code> and <code>data:</code> links, an <code>&lt;img onerror&gt;</code> title, a <code>&lt;b onmouseover&gt;</code> summary, a tracking-pixel host, an <code>http:</code> image, bad ids, unknown categories and a duplicate id. The bad entries are dropped, the HTML shows as literal text, and a <code>window.__pwned</code> flag the payloads would set stays unset. Read state in <code>localStorage</code> is filtered to well-formed ids, and tampered or corrupt values are ignored without errors.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Feed parsing is hardened against hostile XML</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><code>fetch-feeds.mjs</code> parses with <code>fast-xml-parser</code> 5.11.1 and <code>processEntities: false</code>, so a DOCTYPE can't declare entities that expand. A three-level entity bomb in <code>fixtures/daily-wire/hostile.xml</code> stays as the literal text <code>&amp;c;</code>. External entities (XXE) make the parser throw, <code>xxe.xml</code> is refused, and the failed feed just keeps its previous items.
+        <ul>
+          <li><code>&lt;script&gt;</code>, <code>&lt;style&gt;</code>, <code>&lt;iframe&gt;</code> and comments are removed with their contents, then every tag is stripped.</li>
+          <li>Invalid numeric entities and control or zero-width characters are dropped.</li>
+          <li>Future dates are clamped to now.</li>
+          <li>Look-alike hosts such as <code>imgs.xkcd.com.evil.example</code> are rejected.</li>
+        </ul>
+        The 5 MB response cap, the 20-second timeout and the "must end on https after redirects" rule are in the code but aren't exercised by a test, because the suite runs with no network.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Double-escaped markup could survive the fetcher's tag stripping (CodeQL)</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">CodeQL flagged <code>toPlainText()</code> on the PR with "incomplete multi-character sanitization", and the flag was right. It stripped tags once and then decoded entities again, so a feed title written as <code>&amp;amp;lt;script&amp;amp;gt;</code> came out as the literal text <code>&lt;script&gt;</code>. The page only ever sets it with <code>textContent</code>, so nothing could run, but the fetcher promises plain text and didn't deliver it.
+        <div class="fix-note"><b>Fixed:</b> <code>stripMarkup()</code> now removes tags by scanning, the way a browser reads them, instead of by regex substitution. A tag runs from <code>&lt;</code> plus a letter, <code>/</code>, <code>!</code> or <code>?</code> to the next <code>&gt;</code>. The contents of <code>script</code>, <code>style</code>, <code>iframe</code>, <code>object</code>, <code>noscript</code>, <code>textarea</code> and <code>title</code> are skipped through their end tag, and comments are skipped whole. Each pass decodes and then scans, repeating until the text stops changing (at most 5 passes). Any <code>&lt;</code> or <code>&gt;</code> left after that is dropped, so no output can contain a tag. A first attempt kept regex substitution inside the loop. CodeQL flagged it again, because a regex replace can't be shown to leave no tag, which is why it became a scanner. Tests cover double- and triple-escaped tags, a split-up <code>&lt;scr&lt;script&gt;ipt&gt;</code> (read as a browser would, leaving only plain words), an unterminated <code>&lt;script&gt;</code>, a <code>&lt;textarea&gt;</code>, a comment hiding a script, and "3 &lt; 5 &gt; 2" keeping its text. CodeQL's two other alerts were substring URL checks in the test file. They weren't exploitable, but they're now exact comparisons, so the pattern isn't in the repo.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Workflow token was on disk while third-party code ran</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><code>actions/checkout</code> leaves the job's write token in git's config by default. That meant the fetcher, and <code>fast-xml-parser</code>'s code inside it, ran with a token that could push to the repo.
+        <div class="fix-note"><b>Fixed:</b> checkout now uses <code>persist-credentials: false</code>. Only the final commit step receives <code>GITHUB_TOKEN</code>, and it only uses it to push <code>daily-wire/feeds.json</code>. The job's permissions are just <code>contents: write</code>, with a 10-minute timeout and a concurrency group so two runs can't race.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Supply chain for the fetcher</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">Both actions are pinned to full commit SHAs, resolved with <code>git ls-remote</code> on 2026-09-26: <code>actions/checkout</code> v7.0.1 is <code>3d3c42e5…</code> and <code>actions/setup-node</code> v7.0.0 is <code>82076278…</code>. The install is <code>npm ci --ignore-scripts</code> from the committed lockfile. It pulls 8 packages, every one MIT-licensed, <code>resolved</code> from <code>registry.npmjs.org</code> with an integrity hash, and none with an install script. <code>npm audit</code> reports 0 vulnerabilities. <code>node_modules/</code> is already covered by the root <code>.gitignore</code>.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Publisher images tell those sites who is visiting</div><span class="badge open">Open</span></div>
+      <div class="item-body">It's the trade-off chosen with the magazine layout, and it was explained before the user picked it. When a card shows a picture, the publisher's image server sees the visitor's IP address and when the picture loaded. <code>no-referrer</code> hides which page they came from, and the allowlist stops arbitrary trackers. A picture can't run code or read the page. The fully private option, copying thumbnails into the repo, was turned down because it would grow git history by megabytes every run.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Clickjacking (frame-ancestors) not enforceable</div><span class="badge open">Open</span></div>
+      <div class="item-body">Same as every GitHub Pages page: <code>frame-ancestors</code> is ignored in a meta CSP, and Pages can't send headers. It's architecturally blocked, and the risk is low because the page has no privileged action to trick anyone into.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Identity and secrets in the new files; bot commit identity recorded</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">An email-pattern grep of every new and changed file finds only the three already-allowed no-reply addresses and two fake <code>.example</code> addresses inside test inputs. A secret-pattern grep finds nothing. The workflow commits as <code>github-actions[bot] &lt;41898282+github-actions[bot]@users.noreply.github.com&gt;</code>, which is GitHub's no-reply address for the bot. CLAUDE.md's Full Monty identity list now names it, so hourly-style bot commits don't read as a finding later. The fixtures and sample data use only made-up headlines and <code>.example</code> domains.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Correctness</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Undated items vanished from feeds</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">Only the newest 2 items per feed were kept regardless of age. Everything else had to be dated within 21 days, so undated items (possible in RSS) were dropped silently. The hostile fixture lost 2 valid items this way.
+        <div class="fix-note"><b>Fixed:</b> items with no date are kept, sorted last, because their age can't be judged. The suite checks the 4 valid hostile items all survive, and that an old release feed is trimmed to its 2 always-kept items.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">"30 seconds ago" showed as "1 min ago"</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">The relative-time helper rounded minutes, so 30 s became 1. The test's expected value, "just now" for anything under a minute, was worked out from what the label means, not copied from the page.
+        <div class="fix-note"><b>Fixed:</b> minutes are now floored. Hours and days still round, so 90 min still shows "2 h ago", and the suite pins 7 boundary cases.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Lazy loading not guaranteed</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">Images set <code>img.loading = 'lazy'</code> as a property. jsdom doesn't reflect it, and the suite caught the missing attribute.
+        <div class="fix-note"><b>Fixed:</b> <code>loading</code> and <code>decoding</code> are set with <code>setAttribute</code>, which works everywhere, so the first view doesn't pull every picture at once.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">"Could not be loaded" flashed on every visit</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">The first render ran before <code>fetch()</code> returned, so every visit briefly showed the failure notice.
+        <div class="fix-note"><b>Fixed:</b> a loading state shows "Loading headlines…" until the data arrives or the fetch fails.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Paywall pill was hard-coded to one feed id</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">The page added <code>nyt</code> to its paywall set by name, so the config's <code>paywall</code> flag did nothing for any other feed.
+        <div class="fix-note"><b>Fixed:</b> the fetcher copies <code>paywall: true</code> into each feed's status in <code>feeds.json</code>, and the page reads it from there. Both halves are tested.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Feed URLs and image hosts not yet confirmed live</div><span class="badge open">Open</span></div>
+      <div class="item-body">This container's network policy blocks every feed host (CONNECT 403), and WebFetch was refused as well. Only the two GitHub release feeds were confirmed; they carry avatar thumbnails from <code>avatars.githubusercontent.com</code>, which the config deliberately doesn't show. The four YouTube channel ids were confirmed against their channel pages by web search. Everything else, including the other 16 image hosts, comes from knowledge of each publisher's feed and is unverified. The first real run settles it. Each feed's success or error shows in the page footer and the workflow log, and any image host that had to be dropped is listed in <code>feeds.json</code> → <code>imageHostsDropped</code>.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span>Accessibility &amp; layout</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Dimmed "read" text failed contrast</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">Computed WCAG ratios: read titles and summaries were 3.12:1 on the light card and 3.84:1 on the dark one. That's below 4.5:1, and 18 px semibold isn't large text under WCAG.
+        <div class="fix-note"><b>Fixed:</b> the read color is now <code>#697183</code> (4.89:1) in light and <code>#858d9e</code> (5.18:1) in dark. It's still clearly dimmer than unread text, which is 17.62:1 and 14.44:1. Other computed ratios, light/dark: summary text 6.23/7.22; category labels 5.18/7.50 at worst (Fun, News); a no-picture card's large source name 4.21/5.90 at worst, which passes the 3:1 large-text rule; chip counts 4.93/6.18; the masthead accent 4.59/7.42.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Keyboard, labels and phone layout</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">Category chips are real buttons with <code>aria-pressed</code>, and so are Unread only and Mark shown as read. The search box has a label, and <code>/</code> jumps to it. Each card's headline link covers the whole card, and a focus ring appears only for keyboard focus. The shown count is announced through an <code>aria-live</code> region. Headless Chromium screenshots at 1280 px (light and dark) and 390 px showed no console errors and no horizontal scroll. The grid dropped to one column on the phone.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Live deploy, real pictures and the first scheduled run not seen</div><span class="badge open">Open</span></div>
+      <div class="item-body">The container can't reach <code>*.github.io</code> or any publisher image server, so the screenshots only show the no-picture panels (the image-error fallback worked). Scheduled workflows only run on the default branch, so nothing runs until this branch is merged. After merging, run <b>Daily Wire feeds</b> once from the Actions tab. Then confirm the push triggered a Pages deploy, the page shows headlines, the pictures load, and the footer's feed-status list shows which feeds, if any, failed.</div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. The <code>wire-core</code> and <code>wire-dom</code> suites add 143 assertions, and the full run is 1238 passed, 0 failed. See <a href="25.html">25.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
