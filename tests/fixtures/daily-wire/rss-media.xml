@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:media="http://search.yahoo.com/mrss/" version="2.0">
+  <channel>
+    <title><![CDATA[Sample News - World]]></title>
+    <link>https://news.example/world</link>
+    <item>
+      <title><![CDATA[Talks resume in Geneva &amp; aid corridors open]]></title>
+      <description><![CDATA[Negotiators say <b>progress</b> was made overnight.]]></description>
+      <link>https://news.example/world/1?at_medium=RSS&amp;at_campaign=rss</link>
+      <guid isPermaLink="false">https://news.example/world/1#0</guid>
+      <pubDate>Sat, 26 Sep 2026 14:05:00 GMT</pubDate>
+      <media:thumbnail width="240" height="135" url="https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/abc/live/1.jpg"/>
+    </item>
+    <item>
+      <title>Older story with an image in content:encoded</title>
+      <link>https://news.example/world/2</link>
+      <pubDate>Fri, 25 Sep 2026 09:00:00 GMT</pubDate>
+      <content:encoded><![CDATA[<p><img src="https://media.npr.org/assets/img/2026/09/25/photo.jpg" alt=""> Body text of the story, which is long enough to be the summary.</p>]]></content:encoded>
+    </item>
+    <item>
+      <title>Duplicate link is dropped</title>
+      <link>https://news.example/world/2</link>
+      <pubDate>Fri, 25 Sep 2026 08:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Guid permalink used when link is missing</title>
+      <guid>https://news.example/world/3</guid>
+      <dc:date>2026-09-24T12:00:00Z</dc:date>
+      <media:content url="https://i.guim.co.uk/img/media/x/master/1.jpg?width=460" medium="image"/>
+    </item>
+  </channel>
+</rss>

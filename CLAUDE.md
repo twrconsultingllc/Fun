@@ -227,8 +227,12 @@ easy to skip because they don't look like "a page":
   for commits made from Claude Code on the web (claude.ai/code). The user
   chose the second on 2026-09-26 so those commits can be told apart; leave
   that container's default git identity as it is. `GitHub <noreply@github.com>`
-  as committer of web-UI commits is also fine. Any other address in
-  `%ae`/`%ce` is a finding.
+  as committer of web-UI commits is also fine. So is
+  `github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>`,
+  as author and committer of the "Daily Wire: refresh feeds" commits that
+  `.github/workflows/daily-wire.yml` makes every 6 hours (the user agreed
+  to these on 2026-09-26 when choosing the commit-based refresh for
+  `daily-wire.html`). Any other address in `%ae`/`%ce` is a finding.
 
 Beyond those two, treat it as a real from-scratch sweep, not a rubber
 stamp: re-verify that prior fixes (CSP/referrer meta tags, the battle-bots

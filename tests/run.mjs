@@ -40,7 +40,9 @@ const SUITES = [
     { id: 'ui-mockups-index', page: 'study/ui-mockups.html', file: './ui-mockups.dom.test.mjs' },
     { id: 'academy', page: 'academy/index.html', file: './academy.dom.test.mjs' },
     { id: 'haunted-house', page: 'haunted-house.html', file: './haunted-house.dom.test.mjs' },
-    { id: 'dash', page: 'trick-or-treat-dash.html', file: './trick-or-treat-dash.dom.test.mjs' }
+    { id: 'dash', page: 'trick-or-treat-dash.html', file: './trick-or-treat-dash.dom.test.mjs' },
+    { id: 'wire-core', page: 'daily-wire.html', file: './daily-wire.core.test.mjs' },
+    { id: 'wire-dom', page: 'daily-wire.html', file: './daily-wire.dom.test.mjs' }
 ];
 
 const DEFAULT_BASE = new URL('../', import.meta.url).pathname;

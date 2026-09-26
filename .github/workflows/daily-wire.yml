@@ -1,0 +1,63 @@
+# My Daily Wire: refresh daily-wire/feeds.json every 6 hours.
+#
+# Fetches every feed in daily-wire/feeds.config.json on GitHub's servers,
+# writes the cleaned result to daily-wire/feeds.json, and commits it only if
+# the headlines changed. GitHub Pages then redeploys the site with it.
+#
+# Run it by hand from the Actions tab ("Daily Wire feeds" → Run workflow).
+# Scheduled runs only happen on the default branch, and GitHub may start
+# them a few minutes late.
+
+name: Daily Wire feeds
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-wire-feeds
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # No token left in git config while the fetcher (and its dependency)
+      # runs; only the final step below gets it, to push.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      - name: Install the fetcher's dependency
+        working-directory: daily-wire
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Fetch feeds
+        working-directory: daily-wire
+        run: node fetch-feeds.mjs
+
+      - name: Commit if the headlines changed
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet -- daily-wire/feeds.json; then
+            echo "No new headlines; nothing to commit."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add daily-wire/feeds.json
+          git commit -m 'Daily Wire: refresh feeds'
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          # Someone may have pushed while this ran; replay this one commit on top.
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"
