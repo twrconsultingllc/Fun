@@ -219,9 +219,16 @@ easy to skip because they don't look like "a page":
   not in a file, not in a commit message, not in git's author/committer
   metadata (`git log --all --format='%ae'`), not in git history for a file
   that was later removed. Commits and pull requests from this project use
-  the GitHub-provided noreply address instead, per the attribution
-  reminder this session already follows — a Full Monty review is the
-  point to actually verify that's held, not just assume it.
+  a no-reply address instead — a Full Monty review is the point to
+  actually verify that's held, not just assume it. Two author identities
+  are expected, and each marks where a commit came from:
+  `twrconsultingllc <328415829+twrconsultingllc@users.noreply.github.com>`
+  for the Codespace and GitHub web edits, and `Claude <noreply@anthropic.com>`
+  for commits made from Claude Code on the web (claude.ai/code). The user
+  chose the second on 2026-09-26 so those commits can be told apart; leave
+  that container's default git identity as it is. `GitHub <noreply@github.com>`
+  as committer of web-UI commits is also fine. Any other address in
+  `%ae`/`%ce` is a finding.
 
 Beyond those two, treat it as a real from-scratch sweep, not a rubber
 stamp: re-verify that prior fixes (CSP/referrer meta tags, the battle-bots
