@@ -37,7 +37,8 @@ const SUITES = [
     { id: 'mockup-dash', page: 'study/mockup-dash-home.html', file: './mockup-dash.dom.test.mjs' },
     { id: 'mockup-dash-pipeline', page: 'study/mockup-dash-pipeline.html', file: './mockup-dash-pipeline.dom.test.mjs' },
     { id: 'mockup-hybrid', page: 'study/mockup-hybrid-home.html', file: './mockup-hybrid.dom.test.mjs' },
-    { id: 'ui-mockups-index', page: 'study/ui-mockups.html', file: './ui-mockups.dom.test.mjs' }
+    { id: 'ui-mockups-index', page: 'study/ui-mockups.html', file: './ui-mockups.dom.test.mjs' },
+    { id: 'academy', page: 'academy/index.html', file: './academy.dom.test.mjs' }
 ];
 
 const DEFAULT_BASE = new URL('../', import.meta.url).pathname;

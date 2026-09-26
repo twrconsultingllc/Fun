@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #22 — academy/ Full Circle Academy mockup</title>
+<meta name="description" content="Security and code-quality review of the new academy/ pages — the Full Circle Triathlon Academy mockup (landing, course and lesson pages with a paste-to-embed YouTube slot) — plus the landing-page link added to index.html.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #22 — <code>academy/</code> Full Circle Academy mockup</h1>
+    <p class="sub">New multi-page mockup: <code>academy/index.html</code> (course catalogue), <code>academy/course.html</code> (a course's lessons), <code>academy/lesson.html</code> (a lesson's sections: text, bullets, pictures, coaching tips and YouTube video slots), sharing <code>academy.css</code>, <code>courses.js</code> (all content) and <code>academy.js</code> (rendering). Also reviewed: the new "Tri Academy" link in the root <code>index.html</code>.</p>
+    <div class="meta">Review performed 2026-09-26 · repo: <code>twrconsultingllc/Fun</code> · scope: every file under <code>academy/</code>, <code>tests/academy.dom.test.mjs</code>, and the <code>index.html</code> link · follows: <a href="21.html">21.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 86%;"></div></div>
+    <div class="progress-label">14 items: 4 found and fixed during review, 8 verified clean, 2 open (both deliberate, reasons below).</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+
+    <div class="item">
+      <div class="item-head"><div class="item-title">Strictest CSP of any toy page so far</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">
+        <p>All three pages carry <code>script-src 'self'</code> with <b>no</b> <code>'unsafe-inline'</code> for scripts <i>or</i> styles, <code>frame-src https://www.youtube-nocookie.com</code> only, <code>connect-src 'none'</code>, <code>form-action 'none'</code>, <code>object-src 'none'</code>, <code>base-uri 'none'</code>. That was possible because the JS lives in two same-origin files instead of inline, and every dynamic style is set through the CSSOM (<code>el.style.cssText</code>), which CSP does not block, rather than a <code>style="…"</code> attribute, which it does.</p>
+        <p>Verified in a real headless Chromium (Playwright): no CSP-violation console messages on any of the three pages, including after embedding a video. The suite also pins it: <code>academy.dom.test.mjs</code> asserts the <code>script-src</code>/<code>frame-src</code> values and greps each file for inline <code>&lt;script&gt;</code> bodies, <code>on*=</code> handlers and <code>style="</code> attributes.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><div class="item-title">A pasted YouTube link cannot inject markup or point the frame elsewhere</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">
+        <p><code>parseYouTube()</code> only returns an 11-character <code>[A-Za-z0-9_-]</code> ID, and only when the host is exactly <code>youtube.com</code>, <code>youtu.be</code> or <code>youtube-nocookie.com</code> (with an optional <code>www.</code>/<code>m.</code>/<code>music.</code> prefix). The iframe is built with <code>createElement</code> and its <code>src</code> is always the fixed prefix <code>https://www.youtube-nocookie.com/embed/</code> + that ID, so there is no path from input to markup. 11 accepted shapes and 8 rejects are tested, including the look-alike host <code>youtube.com.evil.example</code>, a <code>javascript:</code> URL and an ID with <code>"&gt;&lt;img&gt;</code> appended.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><div class="item-title">Stored values are re-validated on read</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">A pasted ID is saved to <code>localStorage</code> (<code>fca:vid:*</code>) so it survives reloads. On read it's checked against the same ID regex again, so a hand-edited or tampered value (tested with <code>x"&gt;&lt;script&gt;</code>) renders the empty slot, not a frame. Every storage call is wrapped in <code>try/catch</code> for private-mode and blocked-storage browsers.</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><div class="item-title">Query-string routing renders untrusted values as text only</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><code>?c=</code> is matched against the course list; an unknown value shows a "not found" notice that echoes it through <code>textContent</code> (tested with <code>?c=&lt;img src=x&gt;</code>: zero <code>&lt;img&gt;</code> elements created). <code>?l=</code> is <code>parseInt</code>'d and range-checked, falling back to lesson 1. The only <code>innerHTML</code> writes are static SVG strings in <code>courses.js</code> and the play icon (grepped: 2 sites, neither takes input).</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><div class="item-title">Referrer policy lets YouTube embeds play</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">The page meta and the iframe both use <code>strict-origin-when-cross-origin</code>. YouTube rejects embeds that send no referrer at all (its "Error 153"), so this is the tightest policy that still works; it sends only the origin <code>https://twrconsultingllc.github.io</code>, never the path or query string.</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><div class="item-title">YouTube iframe is not <code>sandbox</code>ed</div><span class="badge open">Open</span></div>
+      <div class="item-body">A <code>sandbox</code> attribute is extra hardening. It isn't strictly needed: the frame is cross-origin, so it already can't touch the page, and <code>frame-src</code> pins it to one host. Adding it is an easy way to break playback, though, and this sandbox can't reach YouTube to check it (the frame renders black here for network reasons, not because of CSP). Left off until someone confirms on the live site that playback still works with <code>sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"</code>.</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><div class="item-title">Google Fonts loads without SRI</div><span class="badge open">Open</span></div>
+      <div class="item-body">Same situation as <code>tricalc.html</code>: the Fonts CSS is generated per browser, so it can't carry an integrity hash. It's a stylesheet (with the CSP, it can't run script) and the font stack falls back to system fonts if it fails. Architecturally blocked short of self-hosting Inter.</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><div class="item-title">No secrets, emails or personal data in the new files</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">The email-pattern grep over <code>academy/</code> and the new test found no hits. Commit identity is <code>Claude &lt;noreply@anthropic.com&gt;</code>, one of the two allowed identities. All course content is generic coaching copy, and every placeholder <code>youtube</code> ID is empty.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+
+    <div class="item">
+      <div class="item-head"><div class="item-title">Secondary grey text failed WCAG AA contrast</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Computed, not eyeballed: the first draft's <code>--dim: #64748b</code> was 4.24:1 on the page background, 3.75:1 on panels and 3.07:1 on chips. It's used for captions, the footer, stat labels and section numbers. Changed to <code>#8a99ae</code>: 6.96 / 6.16 / 5.05:1.</p>
+      <div class="fix-note"><b>Fix:</b> <code>academy.css</code> <code>--dim</code>.</div></div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><div class="item-title">Dark button text on the brand blue was 4.38:1</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p><code>#020617</code> on <code>#1976D2</code> (the left end of the primary-button gradient) came to 4.38:1, below 4.5 for 12–13px text. The gradient now starts at <code>#1E88E5</code> (5.48:1), which is visually the same blue. The green end is 8.05:1. The brand wordmark stays <code>#1976D2</code> (3.88:1 on the header): it's 24px bold (large text, 3:1 threshold) and a logo.</p>
+      <div class="fix-note"><b>Fix:</b> <code>.btn-primary</code> gradient.</div></div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><div class="item-title">Video paste box clipped on phones</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The playwright screenshot at 390px showed the empty slot's 16:9 box cutting off the play icon and the Embed button. The empty slot now sizes to its content below 700px (<code>.frame.empty</code>) and keeps 16:9 on wider screens. Re-shot to confirm. <code>scrollWidth</code> equals the viewport width on every page at 390px, so nothing scrolls sideways.</p>
+      <div class="fix-note"><b>Fix:</b> <code>academy.css</code> + one <code>classList.toggle</code> in <code>videoSlot()</code>.</div></div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><div class="item-title">Card badges overlapped art labels; duplicate SVG id; nav highlight</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body">Screenshots showed the Transitions and Nutrition course badges overlapping the "T1 · T2" and "60–90 g/hr" labels, so the labels moved right. The pool art defined <code>id="pw"</code>, which would repeat if the art showed twice on one page, so it now uses plain fills (grep: zero <code>id=</code> left in the art). The header's Swim/Bike/Run links now carry <code>aria-current</code> on their own course's pages.</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><div class="item-title">Multi-file rather than single-file</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body">CLAUDE.md prefers single-file pages "unless there is a concrete reason". Here there are two. Three pages share one content model, so lessons and video IDs are edited in one place (<code>courses.js</code>). And external same-origin scripts are what make the no-<code>unsafe-inline</code> CSP possible. The folder is self-contained, and nothing outside it depends on it except the one landing link.</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><div class="item-title">Tests committed</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><code>tests/academy.dom.test.mjs</code> (suite <code>academy</code>, 69 assertions) is registered in <code>run.mjs</code> and documented in <code>tests/README.md</code>. The full run shows 856 passed, 0 failed. It reads the shared scripts relative to <code>--base</code>, so <code>npm run test:live</code> exercises the deployed files.</div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Update the badges by hand if anything regresses. See
+    <a href="21.html">21.html</a> for the previous review, and <code>CLAUDE.md</code>'s "New pages *and* page updates
+    get a numbered security &amp; quality review" section for the rule this review exists to satisfy.
+  </footer>
+
+</div>
+</body>
+</html>
