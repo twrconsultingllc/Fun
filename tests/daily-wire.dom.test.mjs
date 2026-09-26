@@ -202,6 +202,52 @@ export default async function run(t, page) {
         t.ok('the page defines a SW FL colour for light, device-dark and pinned-dark', (html.match(/--swfl:/g) || []).length === 3 && /\.c-swfl \{ --cat: var\(--swfl\); \}/.test(html));
         chip('all').click();
 
+        t.section('NASA Image of the Day hero');
+        t.ok('no Image of the Day in the data → compact hero with no picture or caption',
+            $('#hero').classList.contains('compact') && !$('#heroArt img') && $('#heroCaption').hidden);
+        const iotd = (n, extra = {}) => ({ id: hex(400 + n), feed: 'nasa-iotd', category: 'science', source: 'NASA Image of the Day',
+            title: 'Space picture ' + n, link: `https://www.nasa.gov/image-detail/p${n}/`, date: iso(60 * 24 * n + 60),
+            summary: 'Caption ' + n, image: `https://www.nasa.gov/wp-content/uploads/2026/09/p${n}.jpg`, ...extra });
+        W.ingest({
+            generatedAt: iso(30), refreshHours: 6, categories: [{ id: 'science', label: 'Science & space' }, { id: 'news', label: 'News' }], feeds: [],
+            items: [
+                iotd(2), iotd(0), iotd(1),
+                iotd(3, { image: 'https://tracker.evil.example/p.jpg' }),      // off-list host: never a hero
+                iotd(4, { image: null }),                                       // no picture: never a hero
+                iotd(5, { title: '<img src=x onerror="window.__pwned=1">Hostile', link: 'javascript:alert(1)' }), // bad link: dropped
+                { id: hex(450), feed: 'nasa-news', category: 'science', source: 'NASA', title: 'Other NASA feed', link: 'https://www.nasa.gov/n/', date: iso(1), summary: '', image: 'https://www.nasa.gov/wp-content/uploads/n.jpg' }
+            ]
+        });
+        const heroImg = () => $('#heroArt img');
+        t.ok('hero is full height once there is a picture', !$('#hero').classList.contains('compact') && !$('#heroCaption').hidden);
+        t.eq('newest Image of the Day leads (not the newer item from another feed)', $('.hero-title a').textContent, 'Space picture 0');
+        t.eq('hero image is the item\'s vetted image', heroImg().getAttribute('src'), 'https://www.nasa.gov/wp-content/uploads/2026/09/p0.jpg');
+        t.eq('hero image alt text is the title', heroImg().alt, 'Space picture 0');
+        t.eq('hero image sends no referrer', heroImg().referrerPolicy, 'no-referrer');
+        t.ok('hero link opens NASA\'s page in a new tab with no opener or referrer',
+            $('.hero-title a').href === 'https://www.nasa.gov/image-detail/p0/' && $('.hero-title a').target === '_blank' && $('.hero-title a').rel === 'noopener noreferrer');
+        t.eq('caption shows the summary', $('.hero-summary').textContent, 'Caption 0');
+        t.eq('only on-list pictures qualify (3 of 5 Image of the Day items)', $('.hero-count').textContent, '1 / 3');
+        $('button[aria-label="Next image"]').click();
+        t.eq('Next steps to the next-newest', $('.hero-title a').textContent + ' · ' + $('.hero-count').textContent, 'Space picture 1 · 2 / 3');
+        t.eq('focus stays on Next after the caption is rebuilt', document.activeElement.getAttribute('aria-label'), 'Next image');
+        $('button[aria-label="Previous image"]').click();
+        $('button[aria-label="Previous image"]').click();
+        t.eq('Previous wraps from the first to the last', $('.hero-title a').textContent + ' · ' + $('.hero-count').textContent, 'Space picture 2 · 3 / 3');
+        heroImg().dispatchEvent(new window.Event('error'));
+        t.eq('a picture that fails to load is dropped and the next one shown', $('.hero-title a').textContent + ' · ' + $('.hero-count').textContent, 'Space picture 0 · 1 / 2');
+        heroImg().dispatchEvent(new window.Event('error'));
+        t.ok('with one picture left, the arrows go away', $('.hero-title a').textContent === 'Space picture 1' && !$('.hero-nav'));
+        heroImg().dispatchEvent(new window.Event('error'));
+        t.ok('when every picture fails, the hero falls back to compact', $('#hero').classList.contains('compact') && !heroImg() && $('#heroCaption').hidden);
+        t.ok('no hostile markup ran', !window.__pwned);
+        W.ingest(committed);
+        if (committed.items.some((i) => i.feed === 'nasa-iotd' && i.image)) {
+            t.ok('committed feeds.json fills the hero with a NASA picture', /^https:\/\/www\.nasa\.gov\//.test(heroImg() ? heroImg().getAttribute('src') : ''));
+        }
+        t.ok('the hero\'s scrim is sized in px from each edge (see the contrast notes in secrpts)', /rgba\(3, 5, 10, 0\) 240px\)/.test(html) && /rgba\(3, 5, 10, 0\) 540px\)/.test(html));
+        t.ok('reduced motion turns off the hero drift and card lift', /prefers-reduced-motion: reduce\)[\s\S]*?\.hero-art img[\s\S]*?animation: none/.test(html));
+
         t.section('Theme toggle');
         const root = document.documentElement;
         const themeBtn = $('#theme');

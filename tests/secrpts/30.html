@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #30 — daily-wire.html NASA hero redesign</title>
+<meta name="description" content="Security and code-quality review of the daily-wire.html redesign: a full-bleed NASA Image of the Day hero behind the masthead, a frosted sticky control bar, and refreshed cards, with worst-case contrast measured.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #30 — <code>daily-wire.html</code> NASA hero redesign</h1>
+    <p class="sub">My Daily Wire now opens on a full-width NASA Image of the Day behind the masthead, with arrows to step back through the last few. A frosted control bar overlaps the hero's fade and sticks while scrolling, and the cards are softer, with a hover lift.</p>
+    <div class="meta">Review performed 2026-09-26 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>daily-wire.html</code> (hero markup, CSS and script; control bar; card styling), <code>tests/daily-wire.dom.test.mjs</code>, <code>tests/README.md</code>, <code>daily-wire/README.md</code> · follows: <a href="29.html">29.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 88%;"></div></div>
+    <div class="progress-label">8 items: 7 verified clean, 1 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No new hosts, and the hero uses the same checks as the cards</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The hero shows items from the existing <code>nasa-iotd</code> feed (NASA Image of the Day), which the fetcher already pulled. Its pictures are on <code>www.nasa.gov</code>, which was already in all three image allowlists. The hero only uses items that already passed the page's own <code>safeLink()</code> and <code>safeImage()</code>, so an off-list host, an <code>http:</code> picture or a <code>javascript:</code> link can never reach it. The CSP, <code>feeds.config.json</code> and the fetcher are unchanged. The suite feeds in an Image of the Day item with an off-list host, one with no picture, and one with a hostile title plus a <code>javascript:</code> link. The hero counts only the three good items (<code>1 / 3</code>) and <code>window.__pwned</code> stays unset.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Hero markup is built as text, never parsed</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The caption, link and arrows are created with <code>createElement</code> and <code>textContent</code>, and the arrows use <code>data-step</code> plus one delegated listener. Grepping the page for <code>innerHTML</code>, <code>outerHTML</code>, <code>insertAdjacentHTML</code>, <code>document.write</code> and inline <code>on*=</code> handlers finds nothing (the existing suite assertions). The link opens in a new tab with <code>rel="noopener noreferrer"</code> and <code>referrerPolicy="no-referrer"</code>, and the image also sends no referrer. The suite asserts all three.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Pictures that fail to load</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>If the hero picture fails to load, the page drops it and shows the next one. With one picture left the arrows go away, and when none are left the hero shrinks to a compact starfield band with just the masthead. Checked in jsdom by firing <code>error</code> three times in a row, and in headless Chromium with every outside request blocked: no page errors, a 240px compact hero, and the grid right below it.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Hero text contrast, worst case measured</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The hero text is always white, whatever the theme, over a dark scrim measured in px from the top and bottom edges. Measuring in px keeps the scrim behind the text at every hero height. The first version used percentages, and at 1440×700 its kicker dropped to 2.22:1 over a white photo, so that version was replaced before commit. Worst case, meaning a pure-white photo pixel behind each line's top and bottom edge, measured from real element positions in headless Chromium at 1440×1000, 390×844, 1440×700, 1440×500 and 800×1400:</p><ul><li>small text (the <code>← Fun</code> link, date, <code>Updated</code> stamp, kicker, summary, counter): at least <b>5.8:1</b>. The lowest is the stamp at 390×844.</li><li>the 38px caption title and the white <code>My Daily</code>: at least 6.1:1</li><li>the 34–58px <code>Wire</code> in <code>#ffc4b0</code>, which counts as large text and needs 3:1: at least <b>3.99:1</b></li></ul><p>Real NASA photos are darker than pure white, so these are floors. A text shadow adds some extra margin but isn't counted.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Frosted control bar stays readable over anything</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The bar is 90% <code>--surface</code> with a blur, so up to 10% of whatever scrolls behind it shows through. Worst case: dark ink on the light bar over black reaches 14.05:1, and light ink on the dark bar over white reaches 10.79:1. The chips and buttons inside it are opaque, so their colors are unchanged from <a href="26.html">26.html</a>. For example, a muted chip count on a light chip is 4.93:1.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Phones and motion</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>At 390px wide the chips are one swipeable row and the search box takes a full row, so the sticky bar is 169px tall. Before, the chips wrapped to four rows. There is no sideways page scroll at 390px or 1440px (<code>scrollWidth</code> checked). The slow zoom on the hero picture and the lift when hovering a card are turned off under <code>prefers-reduced-motion: reduce</code>, and the suite checks that rule exists. The arrow buttons have <code>aria-label</code>s, and focus stays on the pressed arrow after the caption is rebuilt (asserted).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Size of the hero picture not measured</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>The Image of the Day feed links NASA's full-size uploads, and some are camera originals (for example a <code>…-o.jpg</code> Flickr original). That is what makes the hero sharp, but a single picture could be several MB. This container's proxy refuses <code>www.nasa.gov</code> (CONNECT 403), so the real byte size couldn't be measured. Limits in place: only the current hero picture loads, and the others load only when an arrow is pressed. The same URL was already lazy-loaded by that item's grid card, so the hero adds no new download. If the live page feels slow on mobile data, the fix belongs in the fetcher (prefer a sized variant), not the page. Left open until someone checks the page on a real device.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Tests</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>wire-dom</code> gained 19 hero assertions: the compact state, newest-first picking from only <code>nasa-iotd</code>, the image's alt text and referrer policy, the link's target and rel, next and previous with wrap-around, focus, fallback after a failed load, hostile input, the committed <code>feeds.json</code> filling the hero, the px-sized scrim and the reduced-motion rule. Pointing the hero at the wrong feed turned 4 of them red, so they test real behavior. The full suite is 1306 passed, 0 failed.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. The hero was checked in headless Chromium with a stand-in space image, because the container can't reach <code>www.nasa.gov</code>. See <a href="29.html">29.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
