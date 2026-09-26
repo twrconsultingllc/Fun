@@ -317,6 +317,33 @@ happened. A screenshot from headless Chromium counts as a visual check; a
 reading of the code doesn't. Ask the user to look at the deployed result when
 nothing could be rendered.
 
+## My Daily Wire (`daily-wire.html`): two traps
+
+`daily-wire.html` is a news reader whose headlines come from
+`daily-wire/feeds.json`, rebuilt every 6 hours by
+`.github/workflows/daily-wire.yml` running `daily-wire/fetch-feeds.mjs`
+(see `daily-wire/README.md`). Two things about it aren't obvious:
+
+- **Feeds can't be fetched from a claude.ai/code container.** Its egress
+  proxy answers CONNECT 403 for news and feed hosts (BBC, NPR, xkcd,
+  YouTube, nasa.gov, usgs.gov, weather.gov and the rest), and WebFetch was
+  refused for them too when this page was built on 2026-09-26. Only
+  `github.com` got through. So `node fetch-feeds.mjs` and any "is this feed
+  URL still valid?" check can't run there. Test the fetcher against the
+  sample documents in `tests/fixtures/daily-wire/` (the `wire-core` suite)
+  and treat a real run as the check: the Actions workflow (run by hand from
+  the Actions tab), or `node fetch-feeds.mjs --dry-run` in the Codespace.
+  After a real run, the page footer's "Feed status" and `feeds.json` →
+  `imageHostsDropped` show which feeds failed and which image hosts were
+  refused.
+- **An image host has to be listed in three places.** Pictures show only
+  if their host is in `imageHosts` in `daily-wire/feeds.config.json`,
+  `IMAGE_HOSTS` in `daily-wire.html`'s script, *and* `img-src` in that
+  page's CSP meta tag. Miss one and the pictures silently don't appear:
+  the fetcher drops them, the page refuses them, or the browser blocks
+  them, and none of those shows an error. `wire-dom` fails when the three
+  lists drift apart, so run `npm test` after touching any of them.
+
 ## The root `.gitignore`'s `.env.*` also swallows `.env.example`
 
 `.gitignore` has both `.env` and `.env.*` to keep real secrets out of every
