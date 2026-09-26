@@ -1,7 +1,11 @@
 {
- "generatedAt": "2026-09-26T19:32:18.114Z",
+ "generatedAt": "2026-09-26T19:43:38.314Z",
  "refreshHours": 6,
  "categories": [
+  {
+   "id": "swfl",
+   "label": "SW FL"
+  },
   {
    "id": "news",
    "label": "News"
@@ -37,12 +41,127 @@
  ],
  "feeds": [
   {
+   "id": "gn-naples",
+   "source": "Google News: Naples",
+   "category": "swfl",
+   "ok": true,
+   "count": 10,
+   "checkedAt": "2026-09-26T19:43:38.314Z"
+  },
+  {
+   "id": "gn-bonita",
+   "source": "Google News: Bonita Springs & Estero",
+   "category": "swfl",
+   "ok": true,
+   "count": 10,
+   "checkedAt": "2026-09-26T19:43:38.314Z"
+  },
+  {
+   "id": "gn-collier",
+   "source": "Google News: Collier County",
+   "category": "swfl",
+   "ok": true,
+   "count": 10,
+   "checkedAt": "2026-09-26T19:43:38.314Z"
+  },
+  {
+   "id": "gn-lee",
+   "source": "Google News: Lee County",
+   "category": "swfl",
+   "ok": true,
+   "count": 10,
+   "checkedAt": "2026-09-26T19:43:38.314Z"
+  },
+  {
+   "id": "wink",
+   "source": "WINK News",
+   "category": "swfl",
+   "ok": false,
+   "error": "HTTP 404",
+   "count": 0,
+   "checkedAt": "2026-09-26T19:43:38.314Z"
+  },
+  {
+   "id": "fox4-swfl",
+   "source": "Fox 4 Southwest Florida",
+   "category": "swfl",
+   "ok": false,
+   "error": "HTTP 404",
+   "count": 0,
+   "checkedAt": "2026-09-26T19:43:38.314Z"
+  },
+  {
+   "id": "wgcu",
+   "source": "WGCU",
+   "category": "swfl",
+   "ok": false,
+   "error": "HTTP 404",
+   "count": 0,
+   "checkedAt": "2026-09-26T19:43:38.314Z"
+  },
+  {
+   "id": "gulfshore-biz",
+   "source": "Gulfshore Business",
+   "category": "swfl",
+   "ok": false,
+   "error": "HTTP 404",
+   "count": 0,
+   "checkedAt": "2026-09-26T19:43:38.314Z"
+  },
+  {
+   "id": "coastal-breeze",
+   "source": "Coastal Breeze News",
+   "category": "swfl",
+   "ok": false,
+   "error": "HTTP 429",
+   "count": 0,
+   "checkedAt": "2026-09-26T19:43:38.314Z"
+  },
+  {
+   "id": "naples-news",
+   "source": "Naples Daily News",
+   "category": "swfl",
+   "paywall": true,
+   "ok": false,
+   "error": "not an RSS or Atom feed",
+   "count": 0,
+   "checkedAt": "2026-09-26T19:43:38.314Z"
+  },
+  {
+   "id": "news-press",
+   "source": "The News-Press",
+   "category": "swfl",
+   "paywall": true,
+   "ok": false,
+   "error": "not an RSS or Atom feed",
+   "count": 0,
+   "checkedAt": "2026-09-26T19:43:38.314Z"
+  },
+  {
+   "id": "naples-city",
+   "source": "City of Naples",
+   "category": "swfl",
+   "ok": false,
+   "error": "HTTP 403",
+   "count": 0,
+   "checkedAt": "2026-09-26T19:43:38.314Z"
+  },
+  {
+   "id": "nws-swfl",
+   "source": "NWS alerts: Collier & Lee",
+   "category": "swfl",
+   "ok": false,
+   "error": "no usable items",
+   "count": 0,
+   "checkedAt": "2026-09-26T19:43:38.314Z"
+  },
+  {
    "id": "bbc-world",
    "source": "BBC News",
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "bbc-us",
@@ -50,7 +169,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "npr",
@@ -58,7 +177,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "guardian-world",
@@ -66,7 +185,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "guardian-us",
@@ -74,7 +193,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "pbs",
@@ -82,7 +201,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "nyt",
@@ -91,7 +210,7 @@
    "paywall": true,
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "ars",
@@ -99,7 +218,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "verge",
@@ -107,7 +226,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "wired",
@@ -115,7 +234,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "hn",
@@ -123,7 +242,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "techcrunch",
@@ -131,7 +250,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "bbc-tech",
@@ -139,7 +258,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "github-blog",
@@ -147,7 +266,7 @@
    "category": "dev",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "willison",
@@ -155,7 +274,7 @@
    "category": "dev",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "chrome-dev",
@@ -163,7 +282,7 @@
    "category": "dev",
    "ok": true,
    "count": 2,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "claude-code",
@@ -171,7 +290,7 @@
    "category": "dev",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "threejs",
@@ -179,7 +298,7 @@
    "category": "dev",
    "ok": true,
    "count": 2,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "nasa-news",
@@ -187,7 +306,7 @@
    "category": "science",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "nasa-iotd",
@@ -195,7 +314,7 @@
    "category": "science",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "quanta",
@@ -203,7 +322,7 @@
    "category": "science",
    "ok": true,
    "count": 5,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "sciencedaily",
@@ -211,7 +330,7 @@
    "category": "science",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "nature",
@@ -219,7 +338,7 @@
    "category": "science",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "cisa",
@@ -227,7 +346,7 @@
    "category": "security",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "krebs",
@@ -235,7 +354,7 @@
    "category": "security",
    "ok": true,
    "count": 3,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "schneier",
@@ -243,7 +362,7 @@
    "category": "security",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "usgs",
@@ -251,7 +370,7 @@
    "category": "live",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "nws-fl",
@@ -259,7 +378,7 @@
    "category": "live",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "xkcd",
@@ -267,7 +386,7 @@
    "category": "fun",
    "ok": true,
    "count": 4,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "veritasium",
@@ -275,7 +394,7 @@
    "category": "fun",
    "ok": true,
    "count": 5,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "kurzgesagt",
@@ -283,7 +402,7 @@
    "category": "fun",
    "ok": true,
    "count": 4,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "mark-rober",
@@ -291,7 +410,7 @@
    "category": "fun",
    "ok": true,
    "count": 2,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "fireship",
@@ -299,7 +418,7 @@
    "category": "fun",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "fed",
@@ -307,7 +426,7 @@
    "category": "business",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   },
   {
    "id": "sec",
@@ -315,10 +434,32 @@
    "category": "business",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-26T19:32:18.114Z"
+   "checkedAt": "2026-09-26T19:43:38.314Z"
   }
  ],
  "items": [
+  {
+   "id": "b1b1cf82871e",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "Nor’easter Live Updates: Heavy Rain and Wind Batter Northeast, Bringing Coastal Flooding",
+   "link": "https://www.nytimes.com/live/2026/09/26/nyregion/noreaster-storm-rain-nyc-boston",
+   "date": "2026-09-26T19:32:37.000Z",
+   "summary": "The storm flooded low-lying areas, knocked out power for thousands and forced the cancellation of several major events and hundreds of flights. Wind gusts exceeded 50 miles per hour in places.",
+   "image": "https://static01.nyt.com/images/2026/09/26/multimedia/26met-noreaster-promo-xxx-1230pm-copy/26met-noreaster-promo-xxx-1230pm-copy-mediumSquareAt3X-v2.jpg"
+  },
+  {
+   "id": "ef1f2f11fbd7",
+   "feed": "guardian-us",
+   "category": "news",
+   "source": "The Guardian US",
+   "title": "USMNT v Peru live – analysis and updates from international friendly in Orlando",
+   "link": "https://www.theguardian.com/football/live/2026/sep/26/usmnt-peru-live-analysis-updates",
+   "date": "2026-09-26T19:30:13.000Z",
+   "summary": "USA v Peru kicks off at 4.30 ET Cavan Sullivan, other young players could make debuts Sign up for our free newsletter for US readers Email Jeff with thoughts, questions and jokes This week, Mauricio Pochettino lamented not being “more involved” with the federation’s…",
+   "image": "https://i.guim.co.uk/img/media/0ba900f64b03207ed1a43b100ea67d1f161567d9/824_0_6486_5191/master/6486.jpg?width=140&quality=85&auto=format&fit=max&s=614f0d59487ec5975e12c074074aa6c8"
+  },
   {
    "id": "28d89556212f",
    "feed": "usgs",
@@ -331,17 +472,6 @@
    "image": null
   },
   {
-   "id": "24b3978581e6",
-   "feed": "verge",
-   "category": "tech",
-   "source": "The Verge",
-   "title": "Decap is the man behind the drums behind your favorite song",
-   "link": "https://www.theverge.com/report/1000994/decap-drums-that-knock-interview",
-   "date": "2026-09-26T19:30:00.000Z",
-   "summary": "I don't think I'm going to hurt anyone's feelings by pointing out that Decap doesn't have the name recognition of Kendrick Lamar, Olivia Rodrigo, or Charli XCX. But his fingerprints are all over tracks from them, as well as many other artists, including Freddie Gibbs, Bad…",
-   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/09/Elysian_palms_10.jpg?quality=90&strip=all&crop=0,0,100,100"
-  },
-  {
    "id": "7fca40fc3349",
    "feed": "usgs",
    "category": "live",
@@ -350,17 +480,6 @@
    "link": "https://earthquake.usgs.gov/earthquakes/eventpage/nc75442207",
    "date": "2026-09-26T19:29:06.313Z",
    "summary": "ShakeMap - IV DYFI? - IV Time2026-09-26 03:42:49 UTC2026-09-26 03:42:49 UTC at epicenterLocation39.015°N 123.477°WDepth4.78 km (2.97 mi)",
-   "image": null
-  },
-  {
-   "id": "b1b1cf82871e",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "Heavy Rain and Wind Batter Northeast, Bringing Coastal Flooding",
-   "link": "https://www.nytimes.com/live/2026/09/26/nyregion/noreaster-storm-rain-nyc-boston",
-   "date": "2026-09-26T19:27:13.000Z",
-   "summary": "The storm flooded low-lying areas, knocked out power and forced the cancellation of several major events and hundreds of flights.",
    "image": null
   },
   {
@@ -384,17 +503,6 @@
    "date": "2026-09-26T19:16:14.000Z",
    "summary": "CNN was scheduled to fly with US President Donald Trump for his trip to Tennessee on Saturday.",
    "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/4476/live/87b5fae0-b962-11f1-b1d1-571ed4d7ff2c.jpg"
-  },
-  {
-   "id": "ef1f2f11fbd7",
-   "feed": "guardian-us",
-   "category": "news",
-   "source": "The Guardian US",
-   "title": "USMNT v Peru live – analysis and updates from international friendly in Orlando",
-   "link": "https://www.theguardian.com/football/live/2026/sep/26/usmnt-peru-live-analysis-updates",
-   "date": "2026-09-26T19:15:59.000Z",
-   "summary": "USA v Peru kicks off at 4.30 ET Cavan Sullivan, other young players could make debuts Sign up for our free newsletter for US readers Email Jeff with thoughts, questions and jokes Mauricio Pochettino will field a squad involving 26 of his 28 available players today. Both sides…",
-   "image": "https://i.guim.co.uk/img/media/2c7ee3a4e5a2d5e3d2de4af2c03257197005094d/397_0_3453_2764/master/3453.jpg?width=140&quality=85&auto=format&fit=max&s=33d0d4f72a81cc761c68a9e9fda92c96"
   },
   {
    "id": "b504ea2a28e7",
@@ -516,6 +624,17 @@
    "date": "2026-09-26T18:17:12.000Z",
    "summary": "The US president says Tehran had only put forward the proposal because it is losing the war.",
    "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/adf9/live/6f8e27d0-b9c1-11f1-9190-07b6ee147cf1.png"
+  },
+  {
+   "id": "f2f2596a451a",
+   "feed": "gn-collier",
+   "category": "swfl",
+   "source": "Naples Daily News",
+   "title": "Motorcyclist dies at hospital after Marco Island T-bone crash",
+   "link": "https://news.google.com/rss/articles/CBMisgFBVV95cUxNaXc2UjFfSlpRVVp1NmU5ZnFZZzFsSjZVd0hmaEVRVXRsVmVubVRpSTgyLWJNcTBDUkxDRGZSS1FkYUhHS3FqYXEwMzlnMVNkbnAtZUlVanlqWi1tU2ZFbVVlYWJubVlhVV9UMUNOYmtHR3NObk5tSDNtSWNGUFc4U1BvVjdPRkUyOFdyQjdKb3FmSzlBajgzUmhXWUF4ODdoeVRmSE9yUnFKVmRDaUowbGZ3?oc=5",
+   "date": "2026-09-26T18:12:00.000Z",
+   "summary": "",
+   "image": null
   },
   {
    "id": "60530f7e6e62",
@@ -705,17 +824,6 @@
    "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/217d/live/4be6b6f0-b9b0-11f1-a430-4d16ee157c41.jpg"
   },
   {
-   "id": "56b99e225ee7",
-   "feed": "hn",
-   "category": "tech",
-   "source": "Hacker News",
-   "title": "US jury says Apple owes record $5.7B in haptic technology patent case",
-   "link": "https://www.reuters.com/legal/litigation/us-jury-says-apple-owes-record-57-billion-haptic-technology-patent-case-2026-09-26/",
-   "date": "2026-09-26T16:46:24.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
    "id": "2903b3453f69",
    "feed": "pbs",
    "category": "news",
@@ -826,6 +934,17 @@
    "image": null
   },
   {
+   "id": "9f53dd09feea",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "WINK News",
+   "title": "Fort Myers Beach street parking going up to $6 on Oct. 1",
+   "link": "https://news.google.com/rss/articles/CBMi1AFBVV95cUxQZG9FdGtscTJXMUJUeWdYUm95QUlMYWZiWTdzVl9xLXd1NFFycDhxQW5JZHhxZGp5c2RlMGpqNmNUWkpFY29neGRFal9kUlZaZG0wZWdYd29IN1I3SWFoQUJwbjVzNGJqbkRyUGNPa2RIUmVreFBJa0oyUURXYU1HTmZpdy1iRVNSekNRcExBTmJtMXA1UkFxYTRwSG5OeUF0dWQ3a1VjY1FoU2JMd1BEVFdDbTdXbk13SjZBTWRVSHZPSmt5Tm4xMXBlZVM3dUdZOGd3ZQ?oc=5",
+   "date": "2026-09-26T15:46:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
    "id": "0cd99ef8e5a1",
    "feed": "hn",
    "category": "tech",
@@ -833,6 +952,17 @@
    "title": "Automattic has a new board after failed attempt to put CEO on leave",
    "link": "https://techcrunch.com/2026/09/25/automattic-has-a-new-board-after-failed-attempt-to-put-ceo-on-leave/",
    "date": "2026-09-26T15:40:27.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "4b894348badc",
+   "feed": "hn",
+   "category": "tech",
+   "source": "Hacker News",
+   "title": "Show HN: A Claude Code skill to analyze your chess games",
+   "link": "https://github.com/brumar/chess-postmortem-skills",
+   "date": "2026-09-26T15:34:53.000Z",
    "summary": "",
    "image": null
   },
@@ -870,6 +1000,17 @@
    "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/c708/live/4e426b20-b9b9-11f1-8b0a-2d37feea76dc.png"
   },
   {
+   "id": "74eb483e4606",
+   "feed": "gn-collier",
+   "category": "swfl",
+   "source": "Hoodline",
+   "title": "Marco Island Motorcyclist Dies in SR 951 Crash",
+   "link": "https://news.google.com/rss/articles/CBMiogFBVV95cUxNRHFVdW81X3d2SnJfWjJjZWNQQUdRWW96b1gzdkhseTJmMmJkZTB1ODZzMWZjblI3cU5vOWpUQ0VJbVdvVWFDMzVBWDZNZC1YRE96N0FpV1RNS2huamZPZlFyTGF1UGRXOTU0RXlRX2F6bl96bF81Z01PRU5makptVmhEYmZvdm85aUM1NENHZkRSSUQ4bjhmU19YZjNYWm1UV1E?oc=5",
+   "date": "2026-09-26T14:53:57.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
    "id": "84c6da8095cc",
    "feed": "sciencedaily",
    "category": "science",
@@ -889,6 +1030,39 @@
    "link": "https://www.sciencedaily.com/releases/2026/09/260925093201.htm",
    "date": "2026-09-26T14:38:02.000Z",
    "summary": "Scientists have found that a famous 2-billion-year-old chemical signature, once thought to record a massive global change in Earth’s carbon cycle, may instead have been produced by local magma, hydrocarbons, and methane-eating microbes. The discovery raises new questions about…",
+   "image": null
+  },
+  {
+   "id": "ecbe878143d6",
+   "feed": "gn-naples",
+   "category": "swfl",
+   "source": "Naples Daily News",
+   "title": "Thomas Coyne Obituary",
+   "link": "https://news.google.com/rss/articles/CBMiXkFVX3lxTE05V1ZKUXFNaXJfeUNndUhBQkt3WEozYzFhWDUxS0xWTWdIQVJqMTlzWXN1NW9uMTFqemhheV9aY1U0dm9xR1MtMzU4aldQWFFTZWJ3YXkzUDd1NmFJZVE?oc=5",
+   "date": "2026-09-26T14:34:58.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "48061a502671",
+   "feed": "gn-naples",
+   "category": "swfl",
+   "source": "Naples Daily News",
+   "title": "Thomas Patrick Dolphin Obituary",
+   "link": "https://news.google.com/rss/articles/CBMiXkFVX3lxTE1VWEVqYTJza09Tdm42Zmt0OXFQVEFld2ZHOEYwdGJhQzZvdHc4ZWphTWdRT3RWU1N1UHlIS0ZJa3hFZDVSeVRnd3NVWjdIZmx6TlBOZ0xOU25nYzVXT3c?oc=5",
+   "date": "2026-09-26T14:34:57.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "71ef55a6dd48",
+   "feed": "gn-naples",
+   "category": "swfl",
+   "source": "NFHS Network",
+   "title": "Live and Upcoming Games - Barron Collier High School - Naples, FL",
+   "link": "https://news.google.com/rss/articles/CBMiekFVX3lxTE85ZkN2YnUxZ2JJMEhMRU9heHVPMXFNZElWM2tPQzhyVUJhM2Yxd00zWnAtZnRmcVFrUUJUaDBUSm1GUDRtaDFIYV9hWk9KUVF0Ty1UVm5NTjVWaUFEQzFIc2lCemZTdWNQYzlTQmZRRTgzOHlrQjN2TXBB?oc=5",
+   "date": "2026-09-26T14:24:01.000Z",
+   "summary": "",
    "image": null
   },
   {
@@ -925,6 +1099,17 @@
    "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/09/DCD_2026-09-26_Prince.jpg?quality=90&strip=all&crop=0,0,100,100"
   },
   {
+   "id": "dd3d13e8c839",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "WINK News",
+   "title": "Four years after Hurricane Ian, Sanibel couple reflects on unexpected blessing",
+   "link": "https://news.google.com/rss/articles/CBMi_wFBVV95cUxPb3RxNjdSS2pCWmZlT09XcmdWUFVZWmdlUHdVaXpUbjAxY0FFYTFKR0xmUEN5RGVheXQzcENpT0NuRW93UTNndDRxWXpwd2xJcGZnS3UwTGRNMFBTNmVwNUdOQTRZenE4bUthNHQyUm1wX290cnREekpxYU5uNks1bEFSZ0tsa3FsMFlSR2RQZ01ZSjBGMHpiSjE5Z3ZzZXRFUXNxQTc3eERJbUNXdHJERk1ObUYzamt6NGtRM044RlBrSFFmeVYwTldFUjlPOGdJbDEzNmV3aWpBNnByTWJIQ3pLMDdXelBhMDk2VXV5cUVNam1iTjNQMGRYbkluYWs?oc=5",
+   "date": "2026-09-26T14:00:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
    "id": "feac97c0d0c1",
    "feed": "techcrunch",
    "category": "tech",
@@ -933,6 +1118,17 @@
    "link": "https://techcrunch.com/2026/09/26/i-created-an-interactive-digital-avatar-of-myself-and-you-can-talk-to-it/",
    "date": "2026-09-26T14:00:00.000Z",
    "summary": "After obtaining an interactive avatar and training it to discuss venture fraud, I have mixed feelings about making AI clones of ourselves.",
+   "image": null
+  },
+  {
+   "id": "dd8216c63fcf",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "Gulf Coast News and Weather",
+   "title": "GCG Week 6: Port Charlotte hands South Fort Myers first loss in 35-7 district win",
+   "link": "https://news.google.com/rss/articles/CBMiigFBVV95cUxNSUZhVktWbDRDUlhsQ1ZmOGhzMVloanRPQTZtRlJYUXBXOXFCT1NKNW8wZEpTdW1HWnpXNTVYeVhUU0JoTnU1bm1vNXl1QlAzRmJIbjhYaG9xVVFKUTFIbGFrSUlTMGgta3JPSVpsdEFVb29BVkFHbzlDaGtDQXNseXY3XzlrN3RRaUE?oc=5",
+   "date": "2026-09-26T13:59:00.000Z",
+   "summary": "",
    "image": null
   },
   {
@@ -966,6 +1162,17 @@
    "link": "https://www.sciencedaily.com/releases/2026/09/260925005423.htm",
    "date": "2026-09-26T13:21:58.000Z",
    "summary": "Artemis II astronauts Victor Glover and Reid Wiseman are transitioning to emeritus status at NASA after their historic journey around the Moon earlier this year. The pair will continue advising and mentoring NASA teams as preparations accelerate for Artemis III and future lunar…",
+   "image": null
+  },
+  {
+   "id": "8bb1eda9dd82",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "WINK News",
+   "title": "Missing 76-year-old Lehigh Acres woman found safe",
+   "link": "https://news.google.com/rss/articles/CBMizgFBVV95cUxOSW9EMUR3UjAxd3ZqdDN1Mm5JMW82WXhUVkFqUnJrbmhzR3U1eDBRRGpSUHRTenRzZ0ZKS1dud3RCS25YSmY5UDA4aHI0MFBxdTB2VHVtMWtTV3o0VFNucno2RnBHaU1ZYVlDYkxycGdrMm1GWHFYbHpNTEk0akxRZGtLVmwtRDRKaUlTMmh5N1N2OGRJY0NPSlVxcTZQdWxUVzEyZnpBTW11X0pfWkFFYThnMGRJUkpKSHN1RVJ2M3VNWTNKY25TenVHRm5BUQ?oc=5",
+   "date": "2026-09-26T13:03:00.000Z",
+   "summary": "",
    "image": null
   },
   {
@@ -1046,6 +1253,17 @@
    "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/3000x2000+0+0/resize/3000x2000!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Ffb%2Fdf%2F43ea1eee4821ab65e5f43991df81%2Ffiji-hiv-06220.jpg"
   },
   {
+   "id": "4c8477f0b361",
+   "feed": "gn-bonita",
+   "category": "swfl",
+   "source": "Florida YIMBY",
+   "title": "North Tower Tops Out At The Ritz-Carlton Residences, Estero Bay In Bonita Springs",
+   "link": "https://news.google.com/rss/articles/CBMiugFBVV95cUxPWmRvNlZvOUotUFI5VThxLWpGc04wZlhUVTNKc01YdUFVNXlBV0JLa3ZwUkVHNFBMWlRyTS15SVFCVjBDMnpvRkhBOWdIRFRWVUpzcjNDYjNNQWNiOHBMU3djYl94VURDQUFMXzNWMm4xcjMybE9tLUVnaXdLelkxN184UW5yT3dCck9yOG9aSG9tbnp0TV9CWURUN2VNRzJ4RXlLdFJPcmk2LXBpbV9kZmtZTUpwczlxTmc?oc=5",
+   "date": "2026-09-26T11:30:29.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
    "id": "37a083415226",
    "feed": "wired",
    "category": "tech",
@@ -1055,6 +1273,17 @@
    "date": "2026-09-26T11:00:00.000Z",
    "summary": "Forget about patchy internet connections and dead spots in the house. These WIRED-tested, multi-room mesh Wi-Fi systems will keep your whole house online.",
    "image": "https://media.wired.com/photos/69d41d1bf10fbfdc2dc2e429/master/pass/The-Best-Mesh-Wi-Fi-Systems-for-WFH,-Gaming,-and-Streaming.jpg"
+  },
+  {
+   "id": "c1b727b99edf",
+   "feed": "gn-collier",
+   "category": "swfl",
+   "source": "WGCU",
+   "title": "Swimming discouraged at a Marco Island beach after tests found signs of feces in the water",
+   "link": "https://news.google.com/rss/articles/CBMi2gFBVV95cUxNSHNDeERxWkFxZ1N3NDFtNHNTb2UwTTZOLUNxa0hmRUJHb1ZpZWg4eXg2U2o3UkxYSHZaQ2VuOW11TGxOOTBmSldjR0dWbHpWNE9mSWgwT2pUREVjWExxRV8wQjBqOW4ybmo0aG5BS2szRFFVVVRTLWpGMHo4czc0b1R3N3hCZGhPZEZxYjFSTWdCZWVoNXdFaDktRHhNWDdDRzVVdzg1bTB2ZG9EbjFaalI2Z2lsZVlNZ1J0TERVN3JmS2lQZWFqSGxkcTBocUs4U0gtR21McHBZUQ?oc=5",
+   "date": "2026-09-26T10:52:00.000Z",
+   "summary": "",
+   "image": null
   },
   {
    "id": "2ec7cb199a05",
@@ -1079,6 +1308,28 @@
    "image": "https://media.wired.com/photos/6ab6a33ebc7793cf754905a1/master/pass/GettyImages-2296209094.jpg"
   },
   {
+   "id": "c790407ada68",
+   "feed": "gn-collier",
+   "category": "swfl",
+   "source": "Marco Eagle",
+   "title": "67-year-old man dead after motorcycle crash on Marco Island",
+   "link": "https://news.google.com/rss/articles/CBMixAFBVV95cUxOMFlSa1FiU0hUaG4zTS1iWXI1c3dheFY1OUE1b09UbjE1c3FqS1c3MmJySmlTWmVjSFFxZ1AxRWp3NVFkV3dkUHJpRlhMZ2tvNElRa1FWZXRCQjloZUlUaVp0dE5QTlNQdWRCU21GNWlDWU90cU9FZVFiUFNaMzBkS2VUVC1BcjhVOEVsZW5QM0l2UDBoUFJFbG0zbmdpZ2R1aVBFcFprWk1lMXdjRWs2TTg2eXVZYko5dVVpWWNtc0JZNzlt?oc=5",
+   "date": "2026-09-26T10:04:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "c7aec629cad8",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "news-press.com",
+   "title": "Fort Myers has a poop problem. Growth is a central issue | Opinion",
+   "link": "https://news.google.com/rss/articles/CBMixwFBVV95cUxPQlRLd2pmOXNfbHNnUUpPbjlQR0JiNVA2TFFBUndKenMzTXNkWkNMa2NyQndjOVE3X2Rxd1JtUmVBNDk0SE1kSWotWkx5R3BaSG1tSE1mbVlmTTcyUnFIYlcwZWdKam8taFlTWTZkMEJzS3M0dkdJZGs1ekxxdWpGanhzczJQR0gwSEVKUlBra25jUzFWVHJMeHhjb09HV3FxN3REbkE5XzFXMC1zSjZvTjQzY016cGZUdjVtaHk1SWJOLUphMGlv?oc=5",
+   "date": "2026-09-26T10:02:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
    "id": "30570ad3eb38",
    "feed": "wired",
    "category": "tech",
@@ -1101,6 +1352,17 @@
    "image": "https://media.wired.com/photos/6ab57aedee39eece457c3eb4/master/pass/962321400"
   },
   {
+   "id": "74a0336539ec",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "news-press.com",
+   "title": "Cape Coral's dining scene grows with five new openings",
+   "link": "https://news.google.com/rss/articles/CBMizwFBVV95cUxORHhxYV9SZGtMb2xaSFI2NUo1MjNvVEpSTEtDcTJybTdFdEpaUEtnY1Y4d3dQT0xXT0NzaHFMLVdDOFRPUGEyNHM5emFkQlQ5bERLc0JyRUJxRHVGRGFQZ0JQVWYwTWxhNXp0bVVGZHNWMHgweGZLdWg2ZENrWldBSy1KYUNJd1hrN3lJUUlqemVxTXBnLXNoRnV6VmRfR25mNTVVakVHV0ljRkg0MjFpUmtXNVE0UVhqeTlSdnBmZ2FMZ3pxMW9ZWktqUUl4SkE?oc=5",
+   "date": "2026-09-26T09:03:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
    "id": "051a1cb0282e",
    "feed": "npr",
    "category": "news",
@@ -1112,15 +1374,37 @@
    "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/5333x3000+0+0/resize/5333x3000!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F9e%2Fe9%2F740a82844c44bf409fd71dd0fcba%2F2026-09-ai-factions-final.jpg"
   },
   {
-   "id": "ce6e4c68fc8d",
+   "id": "08ac56fc2108",
+   "feed": "gn-naples",
+   "category": "swfl",
+   "source": "news-press.com",
+   "title": "Photos: A first look at Edison Tavern at Fort Myers Country Club",
+   "link": "https://news.google.com/rss/articles/CBMi1wFBVV95cUxOMkpwOVBzajNBTlFDaGVNWWNmSlNhY1pmTkNkVExqMk1Zb3lFdW9hbGJ1U01uMFJUeHZ4blM0cGVzajctNnZrMzIxUE5QYTJmcXN3WWt0dWxXQm5ZTkxsOGNWckgzUEZLeUlGUmMxM0ZGbWNUTkRtVXFpbG9LanRjZ3h3cm9Od1FxVWFVLWlmUDVaZkM1NXpuTkxPZlF6NFdMR1JkYW9UMnVQMlB2LXpZQ192V2F6T3NCWjJmUl9XTFZ3amFLMzVSUkJpTUNoaFRQa1RlYjhNOA?oc=5",
+   "date": "2026-09-26T09:00:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "ed909c9a8367",
    "feed": "npr",
    "category": "news",
    "source": "NPR",
-   "title": "The U.S. has more thalidomide survivors than the government admits",
-   "link": "https://www.npr.org/2026/09/26/nx-s1-5979047/us-thalidomide-survivors-want-recognition-government",
+   "title": "Meal deliveries can save money and improve health. Will they survive Medicaid cuts?",
+   "link": "https://www.npr.org/2026/09/26/nx-s1-5946434/medically-tailored-meal-deliveries-medicaid-cuts",
    "date": "2026-09-26T09:00:00.000Z",
-   "summary": "In the 1950s and 1960s, doctors gave the drug thalidomide to pregnant patients without telling them — and without FDA approval. Now those patients' children want recognition.",
-   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/3300x3233+0+0/resize/3300x3233!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Fc9%2F8a%2Fe5e00fe4494caf61b4b7c3356cbf%2Fap19266617691776.jpg"
+   "summary": "Some states deliver meals to Medicaid patients that address their dietary needs. Evidence shows it aids recovery and saves healthcare costs, but federal budget cuts may lead some states to cancel it.",
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/3000x2001+0+0/resize/3000x2001!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F1c%2F34%2Fbd43844c40e9baa979397c5faa99%2Fcommunityservings-01.jpg"
+  },
+  {
+   "id": "b506b818d8d8",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "Realtor.com",
+   "title": ", Lehigh Acres, FL 33973 | Realtor.com®",
+   "link": "https://news.google.com/rss/articles/CBMif0FVX3lxTE5CTjlIZmdWM3BRbXlRaFI1N0FsSllTVzAxUWlET25ZcG1KMzBCX2w5cUNDcGNXRWhpVlRwVzRpalBOWDNvdThuR25ISEsyb0VuY0ZPTlBiQjkycFhHdnBaZjkxR3FfcFVVRjNFNHRnWmREZENPM0JXQ1FzNm9aQUE?oc=5",
+   "date": "2026-09-26T07:35:20.000Z",
+   "summary": "",
+   "image": null
   },
   {
    "id": "307ad89f35c9",
@@ -1132,6 +1416,17 @@
    "date": "2026-09-26T07:08:00.000Z",
    "summary": "* WHAT...For the High Rip Current Risk, dangerous rip currents. For the High Surf Advisory, large breaking waves of 4 to 7 feet in the surf zone. * WHERE...Coastal Volusia, Coastal Indian River, Coastal Saint Lucie, Coastal Martin, Mainland Northern Brevard, Northern Brevard…",
    "image": null
+  },
+  {
+   "id": "4014c3a6b3c7",
+   "feed": "verge",
+   "category": "tech",
+   "source": "The Verge",
+   "title": "Can ‘eSUV’ e-bikes really go from trail to town?",
+   "link": "https://www.theverge.com/transportation/999785/amflow-tl-review-avinox-esuv-e-bike-avinox",
+   "date": "2026-09-26T07:00:00.000Z",
+   "summary": "Have you ever wanted an electric bike that easily transitions from the drudgery of urban asphalt to adventures in gravel and dirt? That's what a subclass of so-called \"electric SUV\" (eSUV) e-bikes claims to do, with their wide, all-terrain tires and front and rear suspension…",
+   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/09/IMG_4650.jpeg?quality=90&strip=all&crop=0,0,100,100"
   },
   {
    "id": "39803d4c551e",
@@ -1156,6 +1451,61 @@
    "image": null
   },
   {
+   "id": "32f1bc32c5b6",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "news-press.com",
+   "title": "VIDEO: Cape Coral downs Riverdale 21-20",
+   "link": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxOcVZnV3V5b0dXNHE3Y0lIc0dJOS1uVWlGenI3LWtyV0JzRUpYeFdySEZlMkFBd3FSMmZ4X0tVT3JzRm1xT0dHdmV2RE45RWI0NkFfR3VZUV94Yy1jeEJxZFZPQkNQTU5ZZkxVQkJFU3FBU2V1SGY0ek4ybGtMVnB4VXQ2RWNtNUQzME1lNG1uV185Sl9lSUV1LWVUZFcwUzJSZ2ZUYWRMUnBnT05BUlpmU0UwS3dWYXhha25VUUF2S0IyUQ?oc=5",
+   "date": "2026-09-26T06:12:40.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "04f769156bb2",
+   "feed": "gn-naples",
+   "category": "swfl",
+   "source": "Naples Daily News",
+   "title": "Community School of Naples, Neumann battle in week 6 matchup. See photos",
+   "link": "https://news.google.com/rss/articles/CBMijwJBVV95cUxPOVpHSGd5U2R1YmF4aTN3UlFfTE42anVjdnRLU2ZFMUFWbnJwRGFLVmg5YnFLUDlQMGpzVUE3emhqQm9ndFU0ekdQLU5fYzJKZzhoRjk5eDRrVE1FQmMyRjN3YV9lZmNFbGY0dzdFSndhSF9mQkdJVUpuR0ttU2RuRktkTUhqYlFuYWJGSGtyOFJHeklSbVNUcnZtN0x0YVk3ZkRJR28zTkV0TnJMQ01KRUkxQUdIeWdxMjJiRVA4b1YxWldoZXo1clB4SjlyZVBieGVNMzVOa3FoNEtTbWFZNzBhTzlhVDBMcDlYT3JJbW43NXdhNE13UExvcnVzUE9FR0lLVjVUTWFkU3VsbGFn?oc=5",
+   "date": "2026-09-26T05:02:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "50280c9b1d8f",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "news-press.com",
+   "title": "Watch: Dunbar downs Fort Myers with offensive onslaught",
+   "link": "https://news.google.com/rss/articles/CBMi1wFBVV95cUxQWnhlV3dQNGFfbENLSThnSnFNdHNsdXZUU2hxSGJaZDVSTzVBRThLcFhySjlOaEU5ZURaS1JGMFd2anpmMThwc3F0TGs2bjBKWDZHZWtBSXhvMVItTDh6SEVRT3RjQ1RVZUQ0SzFiWjlIMko5cnJqWEV4UEJzTFlEbTk5X0llU1AzOHJ0SE9wcDIyaTQ1R0xlM2JYNHRYZ0NRMFhaMkU2aTROMlhrdkxDQVBQUmtySEU3VV9qV1hid3lfbnlmdEVJaHRSVVMxMkd0elZVcW9kbw?oc=5",
+   "date": "2026-09-26T04:42:40.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "371e823f038d",
+   "feed": "gn-naples",
+   "category": "swfl",
+   "source": "news-press.com",
+   "title": "Dunbar High School football beats Fort Myers High School Edison Corridor Showdown",
+   "link": "https://news.google.com/rss/articles/CBMi-wFBVV95cUxPQTRMTmZQVjI1Mk5JSGdvRmVUZUFhaVU2RW1rOVhrN1N3ZGZuUUVXdDNiS09HRVZFS3RtOVlxZVlYcHpzVnBmOW5aVGtBM054LTBxYjF2dXRySDFwb2hjREhoOW1SRHFrWVRUZEhwc3ZlZ3VmU1JSdGdobEVnYzY4aXQwemVMS3lYZ2ptc1FOOGFyeW9CVnlpTGJxQzVTZGV1QmNZSU1aN183Z3djUl9HRmpWeXhmaTQ4UDRDWWFGNndpeEdaSjdQTk9hUDhsSWpEZ3h0a1M5WVI2RTRCamd3RlYzVWlYbXpxVnNaa3Q0c0RjLXdvMGMxWkx1UQ?oc=5",
+   "date": "2026-09-26T04:34:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "1efb6909de73",
+   "feed": "gn-naples",
+   "category": "swfl",
+   "source": "news-press.com",
+   "title": "Cape Coral defeats Riverdale in district football matchup",
+   "link": "https://news.google.com/rss/articles/CBMi6gFBVV95cUxQemFTYTJzR2lTTWl1SkgyZFJQVlluNWRSLVZYeFVjYVlzcmdWM0VyVWpNRDhfVWpkMk9wbE1oQ2o3S0tZcm16aEVXeEN4bldsOEFONzhpV2NyWnJ6eXdpT3BwWDNFajV0R01TdEdRU1QtTWNCNFpwUzkzaVQ4bzJSS0xaV3VIa3FqN1RFWDJrMzBTajMxcExsNlhNSV9SZEgtTUk5alhaM2t5TS11TFFEU0xEcm82ZTVRWEVBMHZWdS1mSUFxY1NkMmVsQXIteWUzQWp5R2FqN2poVV9GOFIwQl8zN2FNRDBadGc?oc=5",
+   "date": "2026-09-26T04:26:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
    "id": "73ee97282008",
    "feed": "nasa-news",
    "category": "science",
@@ -1176,6 +1526,17 @@
    "date": "2026-09-26T02:50:56.000Z",
    "summary": "OpenAI said its bots accessed public data from a range of institutions during test exercises.",
    "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/fe1e/live/6ddbd170-b954-11f1-96dc-f7c10dbde38b.jpg"
+  },
+  {
+   "id": "f87d3100bded",
+   "feed": "gn-bonita",
+   "category": "swfl",
+   "source": "MLive.com",
+   "title": "Richard Byington Obituary (2026) - Bonita Springs, FL",
+   "link": "https://news.google.com/rss/articles/CBMilwFBVV95cUxORlJVQWI2bVp0SERnUlEwQXUyVjhhNGZiVWZuR1c0ZE44RWxrVXEyWkRINTEzVnpkTnNXbmdxVEc5YWpQZGJsRG9QazFEbHVmc3FfbnFxM0lJbWdtYnp5ZnBqaTZ0SklnRVZaVjhFVGkzOGZUM2JGRmdIZHVYMHRhVmNqNTNqNXBCVWRRc3FKWDZSbHY4RGFv?oc=5",
+   "date": "2026-09-26T02:13:04.000Z",
+   "summary": "",
+   "image": null
   },
   {
    "id": "08a283bc51ba",
@@ -1222,6 +1583,17 @@
    "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/0514/live/9c315500-b935-11f1-9f63-299d77d07e85.jpg"
   },
   {
+   "id": "708df86e1831",
+   "feed": "gn-naples",
+   "category": "swfl",
+   "source": "NFHS Network",
+   "title": "Lacrosse On Demand Games - Lely High School - Naples, FL",
+   "link": "https://news.google.com/rss/articles/CBMie0FVX3lxTE0yMlI0UVNjcTd5QldOcW5jMS1za3RJRG11Q0QwRTJsTmFWNXcxQ21pQkg2OVVTMm5hVERxOVlLT2JFUUExWHllbzkyR0ExWWc4cHhyWV9MZHptTGY1bHVvbkxyb0RYdjF4VXNPa0VHay1JMll6Sy1GVkxOQQ?oc=5",
+   "date": "2026-09-25T23:36:56.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
    "id": "9ac357b6ba7a",
    "feed": "bbc-tech",
    "category": "tech",
@@ -1231,6 +1603,28 @@
    "date": "2026-09-25T23:34:20.000Z",
    "summary": "One of gaming's biggest horror franchises has come to the UK. Can it live up to the original?",
    "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/f6dc/live/98dd3e90-b7a1-11f1-ba14-197cc9acea52.jpg"
+  },
+  {
+   "id": "faa3d7336f95",
+   "feed": "gn-naples",
+   "category": "swfl",
+   "source": "NFHS Network",
+   "title": "Football On Demand Games - Lely High School - Naples, FL",
+   "link": "https://news.google.com/rss/articles/CBMie0FVX3lxTE03SWVJQTRZN0NqOHpYTW1RaUtlbm4yVFltNzlPeXVIN0gyaGluTXRsUWdhbHlOUmNJRW1aOVJGYkNtUnZubHR1YUpMSTBZVVJ2SmI4TTVuQUpuWUxHc2tvT3dKWFYyR2IzUU1fWnpuclhLSUhPaFdfbWdnaw?oc=5",
+   "date": "2026-09-25T23:16:50.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "cb4eec68cf95",
+   "feed": "gn-naples",
+   "category": "swfl",
+   "source": "NFHS Network",
+   "title": "Volleyball On Demand Games - Palmetto Ridge High School - Naples, FL",
+   "link": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxOYmRpQkJiWVVqOGhKbUFEU25lLS12S29LTWhacXN0Tm52UjZ1SHU5RU5qSHY3YUtsSWdic0dVNlZDYm1fV0pxTDhiQURkNEdnTjJTaXhta0FzQ0NrNDFSWlIyaHEzb1gtM2xGY1A1VW4ySVJWOFo0VkdRd01mSDA5NHRFVHJvVFBvSFJrYjlKV3Y5djEtWjQ1c3Q0UjhwWElqVVMzVnRWQVVmUjRaVERmYm5SNk1WSnFOeW9WVmpMZWJlZw?oc=5",
+   "date": "2026-09-25T23:12:13.000Z",
+   "summary": "",
+   "image": null
   },
   {
    "id": "1947fc4b63e3",
@@ -1264,6 +1658,17 @@
    "date": "2026-09-25T22:06:50.000Z",
    "summary": "During a news conference at 3 p.m. EDT on Monday, Sept. 28, NASA and Boeing leadership will discuss Starliner’s development and plans for regular crew flights to and from the International Space Station. Learn where to watch online: https://www.nasa.gov/live The briefing…",
    "image": "https://www.nasa.gov/wp-content/uploads/2026/09/starliner.jpg?w=2048"
+  },
+  {
+   "id": "79673472dacd",
+   "feed": "gn-collier",
+   "category": "swfl",
+   "source": "Gulf Coast News and Weather",
+   "title": "Habitat for Humanity builds Las Palmas community in Collier County",
+   "link": "https://news.google.com/rss/articles/CBMinAFBVV95cUxQZ1duRmU0djFBUzBWejN1cU9vTE9udlJaSDY4YWs5TFFHRVVUTDRFeEhIbU1QU3Z4cUNyNHQyQVhldllpR2duTlZRMXZrcHlWNVRIUUVRWVpFU1lhSnZ3c2NXMDFLZExySmhEU252SG56aTE3Vy1GSE13bVRuaGVTeHFvQVNUelV0LVJ6NjZzd1RUMUxiRlNicGpmWGY?oc=5",
+   "date": "2026-09-25T22:05:00.000Z",
+   "summary": "",
+   "image": null
   },
   {
    "id": "35ab415a8fa4",
@@ -1328,6 +1733,28 @@
    "title": "Federal Reserve Board announces approval of application by Peoples Bancorp Inc.",
    "link": "https://www.federalreserve.gov/newsevents/pressreleases/orders20260925a.htm",
    "date": "2026-09-25T20:30:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "f05b08311e5c",
+   "feed": "gn-collier",
+   "category": "swfl",
+   "source": "Gulf Coast News and Weather",
+   "title": "Water quality advisory lifted for Residents Beach on Marco Island",
+   "link": "https://news.google.com/rss/articles/CBMiowFBVV95cUxNS2lxeERuTzd0OEl5RE5MSFp2SDdVY2JHTGgyeWRSRWxaTnlGU3pvUDdUZlhybldzOVBPRnRfUTY0cUpCMTZTd2U1QlBwLWs3YjhpS0VsUWNMb3RHbWtNQTVBemNJMHhDZTRFZHd2amEwQWlWbG1OU1pCUUQxbVF0TE5pc2VCbTFmcXdIWkUtTnhZNGVhVWJ2c29WQ0dtQll6MVBR?oc=5",
+   "date": "2026-09-25T20:29:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "bf4dbcc9599a",
+   "feed": "gn-bonita",
+   "category": "swfl",
+   "source": "Legacy obituary",
+   "title": "Steven Slachta Obituary (2026) - Bonita Springs, FL - Shikany's Bonita Funeral Home",
+   "link": "https://news.google.com/rss/articles/CBMigwFBVV95cUxNcWdrSHZJRDV1NmlvQTBiV3Z6UHBBYVZ2TEFrei04LWlnZDRQbVFTSnM4VEMxdmh3NGxpdllQS1dvWDBNb1AzY2NFYmxJd3VtWExiREhqSnVqRzIxWndhNTVaQjZmR0otSERVdTRhQ0pBUmh1aENrd09KOUJoVURZRElYcw?oc=5",
+   "date": "2026-09-25T20:16:47.000Z",
    "summary": "",
    "image": null
   },
@@ -1398,6 +1825,39 @@
    "image": "https://i4.ytimg.com/vi/c1rPlzxSZ8E/hqdefault.jpg"
   },
   {
+   "id": "cbbe363d94d5",
+   "feed": "gn-collier",
+   "category": "swfl",
+   "source": "Gulf Coast News and Weather",
+   "title": "67-year-old motorcyclist dies after crash along North Collier Boulevard on Marco Island",
+   "link": "https://news.google.com/rss/articles/CBMikAFBVV95cUxOQUVvaGd4R3EyQjZwVEg3YzVjdFc5bFdXeEtJNXk0ZHVVQU9Nb0Q5dTdjUHNsUlBSRlB2U2VpbHp4SWYyU1hVVGhsY0dKb2wwQV9xcTd5ZDQ5UUhhZGFNWnphVWN1YkJNLUpYSUJXWTZJRF9BOUxicHpzVk9jRF9TVmFOdWdnMW9XLTJ3bEppUV8?oc=5",
+   "date": "2026-09-25T19:14:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "ca82f38e3935",
+   "feed": "gn-collier",
+   "category": "swfl",
+   "source": "WINK News",
+   "title": "4 years after Hurricane Ian, homeless senior finally gets a home",
+   "link": "https://news.google.com/rss/articles/CBMi5gFBVV95cUxOb01SNmRvWHJsdHJEeHBHUkk3VnE4SUVBUFFBYWlLamxyc0U5X3ktOUNndFVQbmh3MDFRdVdmVC1tWFFuNVVGS21HVGNTSHh6RVpMQzkxdGFieWtIX0syZXpYVmQ5R2dMel8xNjk3Ry1JTER0eGpFbVozdm9VUjNleUNsN3ZqNUJuWFNXU1pBU0lpY1libi15Q1Jmci1nYXVfb0tha0g3WFRPREVPcUpEMGo2UzJ4MjA2akpuSjl5T1pxcEVKbXFhZGNnS2xaZEwtelZGSEc1UUpkV2xiS0ltVUNJeVFEdw?oc=5",
+   "date": "2026-09-25T18:30:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "b3fc031f261a",
+   "feed": "gn-collier",
+   "category": "swfl",
+   "source": "Naples Daily News",
+   "title": "Marco Island man dies after crash at North Collier Blvd., E. Elkcam Circle",
+   "link": "https://news.google.com/rss/articles/CBMizwFBVV95cUxPMUFQcnQ0cW5Hd1pIVmFCTzlZVndiYW1qcjZidHRpSW5BMTZESHdrR185NFhsVHJaWkRNaDhlU1NWQWdBV2k3a3dZaFJwVk5reGdkVmt4NTJUTzQzWDEzeTZHbTg3MlNBZ0VfZHc5MllrZl9zV1laNXNKZk9LT2ZGc29McnZDZFRpdE5VYTdlQUprVnEyNnVHbDI5RFdyWm1kb194eER0Tjlla2hKX0cyUkNuVUxqOWF2QjIwZ3RmMzZabWFrOFJnUXQ0VlVaSHM?oc=5",
+   "date": "2026-09-25T18:24:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
    "id": "a2908e03cf24",
    "feed": "github-blog",
    "category": "dev",
@@ -1440,6 +1900,17 @@
    "date": "2026-09-25T17:19:42.000Z",
    "summary": "2026-2027 DWU: High School Engineering Challenge Challenge Materials Overview The 2026-2027 challenge theme is, “Fueling Flight Design Challenge: New Energy Systems.” As more and more aircraft are a part of the US’ National Airspace System (NAS), NASA and partners at the FAA…",
    "image": "https://www.nasa.gov/wp-content/uploads/2026/09/dwu-x-plane-design2-16x9-hs-web.jpg?w=2048"
+  },
+  {
+   "id": "aa190aa3c252",
+   "feed": "gn-collier",
+   "category": "swfl",
+   "source": "Gulf Coast News and Weather",
+   "title": "Pine Ridge Road under I-75 in Collier County closing this weekend for construction",
+   "link": "https://news.google.com/rss/articles/CBMiowFBVV95cUxPWlJ0UG52RUZzUV9EcFpRazJnUG14dGxLcF8zdW1JeUYxWk5iYi10QlVONEdiOEdlUDR4RmNxZGt5RUxUTXZTUUpMS25LSU9QTVVEV3Q0Y1MweUZwNXFVWE1aQzJlUWs1TElnNjFCYzI2WWloNWhMMERzSzZjckRFMGFpRGlNZENVaUFXVVVJZGVjaGs0UGNxeDVuQ0xZQzdodXdB?oc=5",
+   "date": "2026-09-25T17:05:00.000Z",
+   "summary": "",
+   "image": null
   },
   {
    "id": "7d503f9c07ef",
@@ -1528,6 +1999,28 @@
    "date": "2026-09-25T09:48:33.000Z",
    "summary": "The EU had said X \"deceives users\" by selling blue ticks without \"meaningfully verifying\" accounts.",
    "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/fed0/live/93ad40c0-b8c1-11f1-ad1f-538855f30ba1.jpg"
+  },
+  {
+   "id": "2d1380f78193",
+   "feed": "gn-bonita",
+   "category": "swfl",
+   "source": "MaxPreps",
+   "title": "Gateway Girls Varsity Volleyball @ Bonita Springs",
+   "link": "https://news.google.com/rss/articles/CBMiywFBVV95cUxOOHltc2VCdEVsZG91dEVuUDg4bGtucjZDTlBxaUw4eFB0dXJzbG1QeE0tczBybWw1Rm1mT2VHR3dSWXdJb2FCUklWRnVlclNydmd1VWRHLThLc1ZaWmxTSnJHQkx1UHptYnhZbjY0b2QxU2FHMkt5bGZuSEdubXlBeEZjZ0tiMVpYcXZFODBpNFc0TGgwZEszY1NsaDNFOV9kaEVLWkdQa1hlZU5hUEZMeVRaanY3SlpXTkp5SFpuV2FNUkhQNFhHZkswWQ?oc=5",
+   "date": "2026-09-25T07:07:10.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "00f04899a843",
+   "feed": "gn-bonita",
+   "category": "swfl",
+   "source": "news-press.com",
+   "title": "Highlights of Oasis vs. Bonita Springs in a high school football game",
+   "link": "https://news.google.com/rss/articles/CBMi5wFBVV95cUxOS1hXclVYOFdkdFd5WmJBWmQ5SGVWZnVQX1RYZWdac3hfLWViRTNhVl9JdGNNYUZvZG5xMWJjVU9Id21yYmptYnhseFdNdDd1ZmhNUmNsSlRLRWVyYXBvNTRocDdhWEFIWVZ3cUVVVnFoakVsR20zQXBkSEcteXBIYkFJUnVLbFFWSWp0U0R1aEUzWEU0ZXpzdko1UkJoUDFvd3dCZjJfMGVhSDhxemxELWw2S0gwY1VyNUlfazUzaThabEhDQXBtOUZaSUtJbExWNy1tV18xMnhPcU9UdjBrZzkyNFM2Z3c?oc=5",
+   "date": "2026-09-25T03:06:34.000Z",
+   "summary": "",
+   "image": null
   },
   {
    "id": "078f2955607a",
@@ -1640,6 +2133,28 @@
    "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/44d0/live/25738d60-97e9-11f1-a7ab-8b30adf0800a.jpg"
   },
   {
+   "id": "535728ed58a5",
+   "feed": "gn-bonita",
+   "category": "swfl",
+   "source": "WINK News",
+   "title": "No-U-turn signs ignored on Bonita Beach Road, Bonita Springs couple raise safety concerns",
+   "link": "https://news.google.com/rss/articles/CBMiggJBVV95cUxNQ2hpbnBLUTR6VDkxMzBJNm1wNHJFOUNtU1RwRzJOT3JyV1d6QmJEdWctemwyamNzSlh4YmgydGNPWGNsejNFUXQzb05tbUlsT0JLZEgxUlNfMzRXLWNVeXJMckMyNWpfbHJUOS01aEhDSktfMjZYbzRqcUx6XzRkVXdfWUs5ZFZ2YnZLZ2dMY29ISFZsV0lwSm9tSkZtVW9TT1plWkZRUW03dFQxTkhNWDcxSmRNdzBUMm5BOFBjU19XWWJkdjJxT0VTRWItZTdVQ3RkZXlMTGFTeW9FMHJzQU1ucWQwWHNINUVRTmM4T0tqNlZpVGtkeDVEUkFvSDBVakE?oc=5",
+   "date": "2026-09-24T22:31:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "b1ba5fc5e4e2",
+   "feed": "gn-bonita",
+   "category": "swfl",
+   "source": "WINK News",
+   "title": "No-U-turn signs ignored on Bonita Beach Road, Bonita Springs couple raise safety concerns",
+   "link": "https://news.google.com/rss/articles/CBMi8wFBVV95cUxNMHprYTduVWY5R2huQ0thdWdweUN4TGZhbTVrUjAwZHBMaTJaTW42dU02dWxUdDZNVS1xZXY4dExYd1huVnA4aG1mdGwza0tLTWFULUFHdFdUVWVtYkp5cXgwMm1jeXM3elhNVFhwRnl5VndEeFBSeXBrckEyeldaNDhTSWlTSFA2Sno0RVNfTVNTV0ZRaGIxaVh6N3JiTGZidTE0SFc4QXpBVVQzMkRFNWZuTFd1NnNPU2dTcldFNzdMNlZfejJOUGhaek41MzhVVW9PaXhmOWo1ZHVtX1FXV0ZqUGVRdDZFOG9rZ1c1YmNhd0E?oc=5",
+   "date": "2026-09-24T21:57:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
    "id": "5159a3d492b2",
    "feed": "willison",
    "category": "dev",
@@ -1648,6 +2163,28 @@
    "link": "https://simonwillison.net/2026/Sep/24/commit-rewriter/",
    "date": "2026-09-24T20:06:53.000Z",
    "summary": "Release: commit-rewriter 0.2 Support for branches other than the default branch. Use uvx commit-rewriter --branch other to run against another branch. #3 Tags: git",
+   "image": null
+  },
+  {
+   "id": "0d678666f7e6",
+   "feed": "gn-bonita",
+   "category": "swfl",
+   "source": "floridaweekly.com",
+   "title": "American Hagwon by Min Jin Lee",
+   "link": "https://news.google.com/rss/articles/CBMirgFBVV95cUxOcHBubkpsNzFCU2taVmI3RU9Tbkc2ZnJkOURVVDhrekdsYmlnUzB2aUtjYzZ6c0RkaldUWVpOZW45eDhzX2FXTl9yT2JyZVhtaVJnS1E3Q0hid3NhcWNCc3pmWjltOGk0Sk5ZTkhTVkptWFF0b2RzNlVrTGc4VVBNMmxUYzhNQkVvQ1hhWWdqbDBsUGkwN3hfWGtTSktkWkpHb2ZjVVZscEcxdW9hdFE?oc=5",
+   "date": "2026-09-24T20:03:38.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "3aa60ec794e6",
+   "feed": "gn-bonita",
+   "category": "swfl",
+   "source": "floridaweekly.com",
+   "title": "Running Scared",
+   "link": "https://news.google.com/rss/articles/CBMimAFBVV95cUxQUVBBZUFaTTBtdGdxekpfdzFZXzd2TXB2eUxwQUF3dVlEQXhoeWRGSlR0cjBIQjBIYUxhbkl2XzN1S0hZMUt0RFhoeUZrU2pJN0xQT1lheFR1Sml1U2F4cDJpZGxLRGJPTGtUZWFrbHFKS0V5MzkzbVBsNG1WN3NMR1NZdy1NOWQtbmtFRE42dno2UTItRHRxNg?oc=5",
+   "date": "2026-09-24T20:03:38.000Z",
+   "summary": "",
    "image": null
   },
   {
@@ -1759,6 +2296,17 @@
    "date": "2026-09-24T13:00:24.000Z",
    "summary": "Take a balloon and fill it with lots of air. Take another one and fill it with less air. Now connect the two via a valve. What do you think will happen when you open the valve?",
    "image": "https://i3.ytimg.com/vi/VKlulHwMxgU/hqdefault.jpg"
+  },
+  {
+   "id": "2db68f519ff8",
+   "feed": "gn-bonita",
+   "category": "swfl",
+   "source": "Gulfshore Business",
+   "title": "W Space event venue opens in Bonita Springs",
+   "link": "https://news.google.com/rss/articles/CBMi0gFBVV95cUxQRlBkSFZad0dmYWZJZmdYd3hFX19rMGp4ZWFjb3Q4b0hjQUJFRmxYQThCR1U5SHp1NTNOSjY4WTBmUFllZnR2eWV2em5zYXhZYmMyVVFfZGtQbHUxNmJZaUVJYWptR20tZ2RSdmExaGRVRTk4TkkxQ1c3NE5yaXlHMjlDM25xd1I4NlYwaU9HRUpzQXFlT1hzOGtVZ0Z5WEI2TTZCWl9sV3IzSW9ZYkxqZVVWOGZFZTFYVHpYRjY2MFhNeDEwTzBSdS0zU0JDOW9jV0E?oc=5",
+   "date": "2026-09-24T13:00:00.000Z",
+   "summary": "",
+   "image": null
   },
   {
    "id": "031361bd4380",
