@@ -367,7 +367,9 @@ export async function build(config, previous, { fetcher = fetchText, now = Date.
     const results = await mapLimit(config.feeds, 6, async (feed) => {
         try {
             const items = normalizeFeed(await fetcher(feed.url), feed, config, { now, dropped });
-            if (!items.length) throw new Error('no usable items');
+            // An alerts feed with nothing active is a valid, empty feed, not a
+            // failure, and its old (expired) alerts must not be kept.
+            if (!items.length && !feed.mayBeEmpty) throw new Error('no usable items');
             return { status: { ...feedInfo(feed), ok: true, count: items.length, checkedAt }, items };
         } catch (e) {
             // Keep last run's items so one bad fetch doesn't blank a section.
