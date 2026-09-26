@@ -39,7 +39,8 @@ const SUITES = [
     { id: 'mockup-hybrid', page: 'study/mockup-hybrid-home.html', file: './mockup-hybrid.dom.test.mjs' },
     { id: 'ui-mockups-index', page: 'study/ui-mockups.html', file: './ui-mockups.dom.test.mjs' },
     { id: 'academy', page: 'academy/index.html', file: './academy.dom.test.mjs' },
-    { id: 'haunted-house', page: 'haunted-house.html', file: './haunted-house.dom.test.mjs' }
+    { id: 'haunted-house', page: 'haunted-house.html', file: './haunted-house.dom.test.mjs' },
+    { id: 'dash', page: 'trick-or-treat-dash.html', file: './trick-or-treat-dash.dom.test.mjs' }
 ];
 
 const DEFAULT_BASE = new URL('../', import.meta.url).pathname;

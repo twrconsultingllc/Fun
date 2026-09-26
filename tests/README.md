@@ -35,7 +35,7 @@ not be loaded — so this drops straight into CI or a pre-push hook.
 
 ## What is covered
 
-969 assertions across twenty-two suites.
+1095 assertions across twenty-three suites.
 
 ### `academy/` (Full Circle Academy mockup)
 
@@ -60,6 +60,20 @@ stubs. Time-based behaviour (the hunter, scare auto-dismiss) is driven
 through `window.__haunted.tick()` / `caught()` / `dismissScare()` rather
 than real timers. Randomness (where items hide, random surprises) is pinned
 by swapping `Math.random` around the assertions that need it.
+
+### `trick-or-treat-dash.html`
+
+| Suite | File | Covers |
+|---|---|---|
+| `dash` | `trick-or-treat-dash.dom.test.mjs` | Jump physics against the closed-form answers (peak v²/2g, air time 2v/g, the same height at 30 and 144 fps, double but no triple jump). **Fairness**: every obstacle can be cleared at the slowest and fastest speed it spawns at, found by searching jump timings with the page's own `step()`; every timing window is at least 350 ms on Easy and 250 ms on Normal; and in a 2-minute seeded run, every gap leaves a full jump plus the mode's reaction time. Also candy values, the magnet and shield, hearts and invulnerability, game over and the Easy finish line, costume unlocks, keyboard, pause and tab-switch pause, the real rAF loop, and saved progress being validated on load (tampered, corrupt and wrong-type saves). |
+
+jsdom has no canvas, so the suite stubs `getContext` with a Proxy whose
+every method returns the Proxy itself. That lets
+`createLinearGradient(...).addColorStop(...)` chains run. The page is loaded
+at an `https://` URL so jsdom provides `localStorage`, the same as the
+academy suite. `window.__dash.setManual(true)` turns the real-time loop off
+so the suite can step the game at a fixed 1/120 s, and `seed(n)` makes a
+run repeatable.
 
 ### `fullcircle.html`
 
