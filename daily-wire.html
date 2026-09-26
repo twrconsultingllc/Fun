@@ -7,6 +7,10 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' https://ichef.bbci.co.uk https://media.npr.org https://i.guim.co.uk https://static01.nyt.com https://cdn.arstechnica.net https://platform.theverge.com https://media.wired.com https://techcrunch.com https://github.blog https://static.simonwillison.net https://www.nasa.gov https://www.quantamagazine.org https://www.sciencedaily.com https://media.springernature.com https://krebsonsecurity.com https://imgs.xkcd.com https://*.ytimg.com https://npr.brightspotcdn.com https://d3i6fh83elv35t.cloudfront.net https://assets.science.nasa.gov https://images-assets.nasa.gov; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
 <meta name="description" content="My Daily Wire: a personal news reader. Southwest Florida local news plus headlines from BBC, NPR, Ars Technica, NASA, CISA, USGS, xkcd and more, refreshed every six hours as magazine cards.">
 <title>My Daily Wire</title>
+<script>
+    /* Apply a saved Theme choice before first paint, so there's no flash. */
+    try { var t = localStorage.getItem('dailyWire.theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) { /* storage blocked */ }
+</script>
 <style>
     :root {
         --bg: #eceff3;
@@ -32,8 +36,10 @@
         --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
     }
+    /* Dark palette: follows the device (Auto) unless the Theme button has
+       pinned light or dark on <html data-theme>. */
     @media (prefers-color-scheme: dark) {
-        :root {
+        :root:not([data-theme="light"]) {
             color-scheme: dark;
             --bg: #0e1116;
             --surface: #171b23;
@@ -55,6 +61,28 @@
             --business: #9cc0e2;
             --swfl: #5cc8e6;
         }
+    }
+    :root[data-theme="dark"] {
+        color-scheme: dark;
+        --bg: #0e1116;
+        --surface: #171b23;
+        --ink: #e8ebf1;
+        --muted: #a0a8b8;
+        --line: #2a303c;
+        --accent: #ff7b5c;
+        --accent-ink: #1a0a05;
+        --chip: #222834;
+        --read: #858d9e;
+        --focus: #8db4ff;
+        --news: #ff8a73;
+        --tech: #8db4ff;
+        --dev: #bfa2ff;
+        --science: #5fd1ac;
+        --security: #f2b24e;
+        --live: #ff8cc0;
+        --fun: #ff9c63;
+        --business: #9cc0e2;
+        --swfl: #5cc8e6;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; }
@@ -184,6 +212,7 @@
             <input class="search" id="search" type="search" placeholder="Search headlines  ( / )" autocomplete="off">
             <button class="tool" id="unread" type="button" aria-pressed="false">Unread only</button>
             <button class="tool" id="markAll" type="button">Mark shown as read</button>
+            <button class="tool" id="theme" type="button" title="Switch between following your device, light and dark">Theme: Auto</button>
         </div>
     </div>
 
@@ -540,8 +569,29 @@
         }
     }
 
+    /* Theme button: Auto (follow the device) → Light → Dark → Auto. The choice
+       is kept in this browser only; the <head> script applies it on load. */
+    const THEME_KEY = 'dailyWire.theme';
+    const THEMES = ['auto', 'light', 'dark'];
+    function currentTheme() {
+        const t = document.documentElement.dataset.theme;
+        return t === 'light' || t === 'dark' ? t : 'auto';
+    }
+    function setTheme(t) {
+        if (!THEMES.includes(t)) t = 'auto';
+        if (t === 'auto') delete document.documentElement.dataset.theme;
+        else document.documentElement.dataset.theme = t;
+        try {
+            if (t === 'auto') localStorage.removeItem(THEME_KEY);
+            else localStorage.setItem(THEME_KEY, t);
+        } catch (e) { /* storage blocked: the choice lasts until reload */ }
+        $('theme').textContent = 'Theme: ' + t[0].toUpperCase() + t.slice(1);
+    }
+    $('theme').addEventListener('click', () => setTheme(THEMES[(THEMES.indexOf(currentTheme()) + 1) % THEMES.length]));
+    setTheme(currentTheme());
+
     // Test hook (tests/daily-wire.dom.test.mjs). Nothing on the page reads it.
-    window.__dailywire = { ingest, state, render, markRead, ago, IMAGE_HOSTS, DATA_URL };
+    window.__dailywire = { ingest, state, render, markRead, ago, setTheme, currentTheme, IMAGE_HOSTS, DATA_URL };
 
     render();
     load();
