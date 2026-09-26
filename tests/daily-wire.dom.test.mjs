@@ -199,8 +199,25 @@ export default async function run(t, page) {
         t.ok('SW FL chip shows only SW FL cards, with the SW FL colour class', $$('.card').length === 2 && $$('.card').every((c) => c.classList.contains('c-swfl')));
         t.eq('card shows the real publisher', $$('.card')[1].querySelector('.meta span').textContent, 'Naples Daily News');
         t.eq('Collier/Lee weather alert gets the alert panel', $$('.card')[0].querySelector('.panel .big').textContent, 'Rip Current Statement');
-        t.ok('the page defines a SW FL colour in both themes', (html.match(/--swfl:/g) || []).length === 2 && /\.c-swfl \{ --cat: var\(--swfl\); \}/.test(html));
+        t.ok('the page defines a SW FL colour for light, device-dark and pinned-dark', (html.match(/--swfl:/g) || []).length === 3 && /\.c-swfl \{ --cat: var\(--swfl\); \}/.test(html));
         chip('all').click();
+
+        t.section('Theme toggle');
+        const root = document.documentElement;
+        const themeBtn = $('#theme');
+        t.eq('starts on Auto (follows the device)', themeBtn.textContent + ' / ' + (root.dataset.theme || 'none'), 'Theme: Auto / none');
+        themeBtn.click();
+        t.eq('first click pins Light', themeBtn.textContent + ' / ' + root.dataset.theme, 'Theme: Light / light');
+        t.eq('Light is saved in this browser', window.localStorage.getItem('dailyWire.theme'), 'light');
+        themeBtn.click();
+        t.eq('second click pins Dark', themeBtn.textContent + ' / ' + root.dataset.theme, 'Theme: Dark / dark');
+        themeBtn.click();
+        t.ok('third click returns to Auto and forgets the choice', themeBtn.textContent === 'Theme: Auto' && !('theme' in root.dataset) && window.localStorage.getItem('dailyWire.theme') === null);
+        const tokens = (sel) => { const i = html.indexOf(sel); const body = html.slice(html.indexOf('{', i) + 1, html.indexOf('}', i)); return body.replace(/\s+/g, ' ').trim(); };
+        const deviceDark = tokens(':root:not([data-theme="light"])');
+        const pinnedDark = tokens(':root[data-theme="dark"]');
+        t.ok('device-dark and pinned-dark palettes are identical', deviceDark.length > 200 && deviceDark === pinnedDark);
+        t.ok('device dark mode is skipped when Light is pinned', /@media \(prefers-color-scheme: dark\) \{\s*:root:not\(\[data-theme="light"\]\)/.test(html));
 
         t.section('Relative time');
         const now = Date.parse('2026-09-26T18:00:00Z');
@@ -213,6 +230,16 @@ export default async function run(t, page) {
         t.eq('no date → empty', W.ago(null, now), '');
     } finally {
         close();
+    }
+
+    t.section('Saved theme applied on load');
+    for (const [saved, want] of [['dark', 'dark'], ['light', 'light'], ['<script>', 'none'], ['auto', 'none']]) {
+        const w = await openDom(html, 'https://wire.test/daily-wire.html', { ignore: /fetch/i, beforeParse(win) { win.localStorage.setItem('dailyWire.theme', saved); } });
+        try {
+            t.eq(`saved "${saved}" → data-theme ${want}, button "${want === 'none' ? 'Auto' : want}"`,
+                (w.document.documentElement.dataset.theme || 'none') + ' / ' + w.document.getElementById('theme').textContent,
+                want + ' / Theme: ' + (want === 'none' ? 'Auto' : want[0].toUpperCase() + want.slice(1)));
+        } finally { w.close(); }
     }
 
     t.section('Tampered localStorage');
