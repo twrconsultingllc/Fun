@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' https://tile.openstreetmap.org; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' blob: https://tile.openstreetmap.org; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Sentinel Web: a browser version of the Sentinel tracker detector. Scans for Bluetooth LE devices while the page is open, tags each sighting with your location, and flags a device seen at several of your places, such as an AirTag, SmartTag or Tile. Everything stays in this browser.">
 <title>Sentinel Web</title>
 <style>
@@ -269,6 +269,50 @@
   .swarm .dot.device { background: #5aa9ff; }
   .swarm .dot.tracker { background: #ffa94d; }
   .swarm .dot.flagged { background: #ff5c5c; }
+  .gear-card {
+    display: flex;
+    gap: 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left-width: 4px;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin: 10px 0;
+    font-size: 0.9rem;
+  }
+  .gear-card.lvl-ok { border-left-color: var(--ok); }
+  .gear-card.lvl-warn { border-left-color: var(--warn); }
+  .gear-card.lvl-alarm { border-color: var(--bad); border-left-color: var(--bad); }
+  .gear-card.lvl-idle { border-left-color: var(--border); }
+  .gear-card .name { font-weight: 700; overflow-wrap: anywhere; }
+  .gear-card .meta { color: var(--dim); font-size: 0.82rem; }
+  .gear-body { flex: 1; min-width: 0; }
+  .gear-status { margin-top: 4px; }
+  .gear-card.lvl-alarm .gear-status { color: var(--bad); font-weight: 700; }
+  .gear-photo { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; flex-shrink: 0; background: var(--panel-2); }
+  .gear-photo.empty { display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+  .gear-photo.big { width: 100%; max-width: 420px; height: auto; max-height: 320px; display: block; margin: 8px 0; }
+  .seg { display: inline-flex; gap: 4px; }
+  .banner.alarm { border-color: var(--bad); border-width: 2px; }
+  .banner.alarm b { color: var(--bad); }
+  .banner.lvl-ok { border-color: var(--ok); }
+  .banner.lvl-warn { border-color: var(--warn); }
+  .banner.lvl-alarm { border-color: var(--bad); border-width: 2px; }
+  .banner.lvl-idle { border-color: var(--border); }
+  .count.alarm { background: var(--bad); color: var(--bg); }
+  .tag.mine { border-color: var(--ok); color: var(--ok); }
+  .form { display: grid; grid-template-columns: max-content 1fr; gap: 8px 12px; align-items: center; margin: 10px 0; }
+  .form label.check { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; color: var(--dim); }
+  .form input[type="text"], .form select, .actions select {
+    font: inherit;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    min-width: 0;
+  }
+  video.camera { width: 100%; max-width: 480px; border-radius: 10px; background: #000000; display: block; margin: 8px 0; }
   footer { margin-top: 32px; color: var(--dim); font-size: 0.8rem; }
 </style>
 </head>
@@ -299,7 +343,9 @@
     <p>The same rules as the Sentinel app. Places are fixes more than 150 m apart. A device is flagged when, within 24 hours, it was seen at 3 or more of your places over at least 20 minutes and scores 55 or more. Points come from the number of places, how far apart they are, repeat visits, and whether it matches a known tracker format (Apple Find My, Samsung SmartTag, Tile, Google Find Hub, Chipolo).</p>
     <p><b>Limits:</b> it only sees what happens while this page is open and on screen. The browser can't scan in the background, so open it at different places, or leave it open while travelling. Trackers can still be missed. Chrome hides real Bluetooth addresses, so ordinary devices can't be followed across an address change, only recognised trackers.</p>
     <h3>Your data</h3>
-    <p>Sightings and places are kept in this browser's storage on this device for 7 days, and are never sent anywhere. The map on a device's page loads OpenStreetMap tiles, so the tile server sees which area is being viewed.</p>
+    <p>Sightings and places are kept in this browser's storage on this device for 7 days, and are never sent anywhere. Your registered gear and its photos stay until you remove them. The map on a device's page loads OpenStreetMap tiles, so the tile server sees which area is being viewed.</p>
+    <h3>Coming later</h3>
+    <p>In an Android app, guarding could run in the background with the screen off. A shared network, where everyone at a race who runs the app quietly watches for everyone's registered gear, could report and follow a stolen device as it moves. Neither is possible in a browser page, so neither is built here.</p>
     <div class="actions"><button id="wipeBtn" type="button" class="danger small">Delete all data</button></div>
   </details>
 
@@ -308,6 +354,7 @@
   <nav class="tabs" role="tablist" id="tabs">
     <button type="button" role="tab" id="tab-nearby" aria-selected="true" data-view="nearby">Nearby</button>
     <button type="button" role="tab" id="tab-flagged" aria-selected="false" data-view="flagged">Flagged</button>
+    <button type="button" role="tab" id="tab-gear" aria-selected="false" data-view="gear">My gear</button>
   </nav>
 
   <main id="view" aria-live="polite"></main>
@@ -1012,14 +1059,21 @@ const store = {
     if (typeof indexedDB === 'undefined' || !indexedDB) return false;
     try {
       this.db = await new Promise((resolve, reject) => {
-        const req = indexedDB.open(DB_NAME, 1);
-        req.onupgradeneeded = () => {
+        // Version 2 adds the gear registry and its photos. Upgrading keeps everything already stored.
+        const req = indexedDB.open(DB_NAME, 2);
+        req.onupgradeneeded = (ev) => {
           const db = req.result;
-          const s = db.createObjectStore('sightings', { keyPath: 'id', autoIncrement: true });
-          s.createIndex('ts', 'ts');
-          db.createObjectStore('devices', { keyPath: 'key' });
-          db.createObjectStore('flags', { keyPath: 'key' });
-          db.createObjectStore('meta', { keyPath: 'name' });
+          if (ev.oldVersion < 1) {
+            const s = db.createObjectStore('sightings', { keyPath: 'id', autoIncrement: true });
+            s.createIndex('ts', 'ts');
+            db.createObjectStore('devices', { keyPath: 'key' });
+            db.createObjectStore('flags', { keyPath: 'key' });
+            db.createObjectStore('meta', { keyPath: 'name' });
+          }
+          if (ev.oldVersion < 2) {
+            db.createObjectStore('gear', { keyPath: 'id' });
+            db.createObjectStore('photos', { keyPath: 'id' });
+          }
         };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
@@ -1047,8 +1101,8 @@ const store = {
       t.oncomplete = resolve;
       t.onerror = () => reject(t.error);
     });
-    const [sightings, devices, flags, meta] = await Promise.all([getAll('sightings'), getAll('devices'), getAll('flags'), getAll('meta')]);
-    return { sightings, devices, flags, meta: Object.fromEntries(meta.map((m) => [m.name, m.value])) };
+    const [sightings, devices, flags, meta, gear, photos] = await Promise.all([getAll('sightings'), getAll('devices'), getAll('flags'), getAll('meta'), getAll('gear'), getAll('photos')]);
+    return { sightings, devices, flags, meta: Object.fromEntries(meta.map((m) => [m.name, m.value])), gear, photos };
   },
   async save({ newSightings, devices, flags, meta }) {
     if (!this.db) return;
@@ -1070,11 +1124,27 @@ const store = {
       t.onerror = () => reject(t.error);
     });
   },
+  // The gear list is small, so it's written whole. Photos are stored apart, once each.
+  async saveGear(gearList, photoUpserts, photoDeletes) {
+    if (!this.db) return;
+    await new Promise((resolve, reject) => {
+      const t = this.tx(['gear', 'photos'], 'readwrite');
+      const g = t.objectStore('gear');
+      g.clear();
+      for (const item of gearList) g.put(item);
+      const ph = t.objectStore('photos');
+      for (const [id, blob] of photoUpserts) ph.put({ id, blob });
+      for (const id of photoDeletes) ph.delete(id);
+      t.oncomplete = resolve;
+      t.onerror = () => reject(t.error);
+    });
+  },
   async wipe() {
     if (!this.db) return;
     await new Promise((resolve, reject) => {
-      const t = this.tx(['sightings', 'devices', 'flags', 'meta'], 'readwrite');
-      for (const n of ['sightings', 'devices', 'flags', 'meta']) t.objectStore(n).clear();
+      const names = ['sightings', 'devices', 'flags', 'meta', 'gear', 'photos'];
+      const t = this.tx(names, 'readwrite');
+      for (const n of names) t.objectStore(n).clear();
       t.oncomplete = resolve;
       t.onerror = () => reject(t.error);
     });
@@ -1146,12 +1216,17 @@ function handleAdvertisement(event, now) {
 
   if (state.finder) finderReading(reading);
   if (survey.active) survey.onReading(reading);
+  if (!state.lastAdv) state.lastAdv = new Map();
+  state.lastAdv.set(id, adv);
+  if (gear.list.length) gear.onReading(reading);
   scheduleRender();
 }
 
 function runCycle(now) {
   const ts = now == null ? Date.now() : now;
   state.cycles++;
+  // Forget devices not heard for 10 minutes, so the live lists don't grow all day.
+  for (const [id, l] of state.live) if (ts - l.ts > 10 * MIN) { state.live.delete(id); if (state.lastAdv) state.lastAdv.delete(id); }
   if (!state.pending.size) { runDetection(ts); return; }
   const fix = currentFix(ts);
   const place = fix ? state.clusterer.assign(fix.lat, fix.lon) : null;
@@ -1196,8 +1271,10 @@ function runDetection(now) {
   const cutoff = now - CFG.retentionMs;
   if (state.sightings.length && state.sightings[0].ts < cutoff) state.sightings = state.sightings.filter((s) => s.ts >= cutoff);
   const byKey = sightingsByKey();
+  const mine = gear.ids();
   for (const dev of state.devices.values()) {
     if (dev.ignored) continue;
+    if (mine.size && Array.from(dev.ids).some((id) => mine.has(id))) continue;   // your own registered gear
     const obs = byKey.get(dev.key);
     if (!obs) continue;
     const a = assess(dev, obs, clusterById, now);
@@ -1234,6 +1311,7 @@ async function startScan() {
     navigator.bluetooth.addEventListener('advertisementreceived', onAdv);
     state.scan = await navigator.bluetooth.requestLEScan({ acceptAllAdvertisements: true, keepRepeatedDevices: true });
     state.scanning = true;
+    gear.guardFrom = Date.now();
     state.notice = '';
     startLocation();
     startCycles();
@@ -1657,6 +1735,282 @@ const survey = {
   }
 };
 
+/* --- my gear: register your own devices and guard them --------------------
+ * Each registered device has a mode. In use: an alarm when it goes quiet,
+ * keeping where it was last heard. Parked: once it has gone quiet the guard
+ * arms, and an alarm fires if it wakes up (someone may be moving it), after
+ * which every ping is logged with the time and place. Only while this page is
+ * open and scanning. Registered gear is never flagged as following you.
+ * ------------------------------------------------------------------------- */
+
+const GEAR = {
+  goneOptionsS: [20, 45, 90, 180],
+  goneMsDefault: 45 * 1000,  // In use: alarm when not heard for this long
+  armQuietMs: 60 * 1000,     // Parked: arm once it has been quiet this long
+  pingEveryMs: 5000,         // Parked and awake: log a ping at most this often
+  maxPings: 500,
+  maxIds: 10,
+  closestRssi: -55,          // registering: "closest" needs at least this signal…
+  closestLeadDb: 8,          // …and this much more than the next device
+  types: ['Heart-rate strap', 'Watch', 'Bike computer', 'Power meter', 'Speed / cadence sensor', 'Bike', 'Phone', 'Other']
+};
+
+// Standard Bluetooth services fitness gear advertises (Bluetooth SIG assigned numbers).
+const SERVICE_NAMES = {
+  0x180D: 'Heart rate', 0x1816: 'Cycling speed and cadence', 0x1818: 'Cycling power', 0x1814: 'Running speed and cadence',
+  0x1826: 'Fitness machine', 0x180F: 'Battery', 0x180A: 'Device information', 0x181C: 'User data'
+};
+// Company IDs from Bluetooth SIG assigned numbers, only the ones this page is sure of.
+const COMPANY_NAMES = { 0x004C: 'Apple', 0x0075: 'Samsung', 0x00E0: 'Google', 0x0006: 'Microsoft', 0x0087: 'Garmin', 0x006B: 'Polar' };
+
+function describeBroadcast(adv) {
+  const services = Array.from(adv.uuids16).map((u) => SERVICE_NAMES[u]).filter(Boolean);
+  const makers = Array.from(adv.manufacturer.keys()).map((c) => COMPANY_NAMES[c]).filter(Boolean);
+  return { services, maker: makers[0] || null };
+}
+
+// A guess at the type from what it broadcasts, then from common model names, so registering
+// needs fewer taps. Only a starting point: the user can change it.
+function guessType(services, name) {
+  if (services.includes('Heart rate')) return 'Heart-rate strap';
+  if (services.includes('Cycling power')) return 'Power meter';
+  if (services.includes('Cycling speed and cadence')) return 'Speed / cadence sensor';
+  const n = String(name || '');
+  if (/\b(edge|elemnt|bolt|roam|karoo|rider)\b/i.test(n)) return 'Bike computer';
+  if (/\b(forerunner|fenix|f[eē]nix|epix|venu|instinct|enduro|vivoactive|coros|pace|apex|vertix|suunto|polar|watch)\b/i.test(n)) return 'Watch';
+  if (/\b(hrm|tickr|h9|h10|verity|heart)/i.test(n)) return 'Heart-rate strap';
+  return 'Other';
+}
+
+function gearMatches(g, r) {
+  return g.ids.includes(r.id) || (!!g.matchName && r.name === g.matchName);
+}
+
+// A new reading of this gear. Returns 'woke' when a parked device's alarm should fire now.
+function gearOnReading(g, r, fix) {
+  g.lastHeard = r.ts;
+  g.lastRssi = r.rssi;
+  if (fix) g.lastFix = { lat: fix.lat, lon: fix.lon, acc: fix.acc, ts: r.ts };
+  if (!g.ids.includes(r.id)) { g.ids.push(r.id); if (g.ids.length > GEAR.maxIds) g.ids.shift(); }   // matched by name under a new ID
+  let fired = null;
+  if (g.mode === 'use') {
+    if (g.alarm && g.alarm.kind === 'gone') { g.alarm = null; g.backAt = r.ts; }                   // it's back
+  } else if (g.armed) {
+    if (!g.wokeAt) { g.wokeAt = r.ts; g.alarm = { kind: 'woke', at: r.ts, ack: false }; fired = 'woke'; }
+    const last = g.pings[g.pings.length - 1];
+    if (!last || r.ts - last.ts >= GEAR.pingEveryMs) {
+      g.pings.push({ ts: r.ts, rssi: r.rssi, lat: fix ? fix.lat : null, lon: fix ? fix.lon : null });
+      if (g.pings.length > GEAR.maxPings) g.pings.shift();
+    }
+  }
+  return fired;
+}
+
+// Time passing with no reading. `guardFrom` is when scanning started, so an In use device that
+// hasn't been heard since then counts as gone once the delay has passed. Returns 'gone' or null.
+function gearTick(g, now, guardFrom, goneMs) {
+  if (g.mode === 'use') {
+    const heardSince = g.lastHeard != null && g.lastHeard >= guardFrom ? g.lastHeard : guardFrom;
+    if (!g.alarm && now - heardSince > goneMs) {
+      g.alarm = { kind: 'gone', at: now, ack: false, lastHeard: g.lastHeard };
+      return 'gone';
+    }
+    return null;
+  }
+  if (!g.armed) {
+    const quietSince = Math.max(g.parkedAt || 0, g.lastHeard != null ? g.lastHeard : 0, guardFrom);
+    if (now - quietSince >= GEAR.armQuietMs) { g.armed = true; g.armedAt = now; }
+  }
+  return null;
+}
+
+function setGearMode(g, mode, now) {
+  g.mode = mode;
+  g.alarm = null;
+  g.armed = false;
+  g.armedAt = null;
+  g.wokeAt = null;
+  g.backAt = null;
+  if (mode === 'parked') { g.parkedAt = now; g.pings = []; }
+}
+
+// What the card says, and how loudly.
+function gearStatus(g, now, scanning) {
+  const ago = (ts) => fmtAgo(now - ts);
+  if (g.alarm && g.alarm.kind === 'gone') return { level: 'alarm', text: `Gone! Not heard ${g.lastHeard ? 'since ' + ago(g.lastHeard) : 'since guarding started'}` };
+  if (g.alarm && g.alarm.kind === 'woke') return { level: 'alarm', text: `Woke up ${ago(g.wokeAt)}. Someone may be moving it. ${g.pings.length} ping${g.pings.length === 1 ? '' : 's'} logged.` };
+  if (!scanning) return { level: 'idle', text: g.lastHeard ? `Not guarding. Last heard ${ago(g.lastHeard)}.` : 'Not guarding. Press Start scanning.' };
+  if (g.mode === 'use') {
+    if (g.lastHeard && now - g.lastHeard < 15000) {
+      const band = g.lastRssi >= -55 ? 'very close' : g.lastRssi >= -70 ? 'close' : g.lastRssi >= -85 ? 'in range' : 'far';
+      return { level: band === 'far' ? 'warn' : 'ok', text: `Here · ${band} · ${g.lastRssi} dBm` };
+    }
+    return { level: 'warn', text: g.lastHeard ? `Quiet for ${Math.round((now - g.lastHeard) / 1000)} s` : 'Waiting to hear it' };
+  }
+  if (g.wokeAt) return { level: 'warn', text: `Woke up ${ago(g.wokeAt)} · ${g.pings.length} pings logged` };
+  if (g.armed) return { level: 'ok', text: 'Parked · quiet · guard armed' };
+  return { level: 'warn', text: 'Parked · waiting for it to go quiet before arming (1 min)' };
+}
+
+const gear = {
+  list: [],
+  photos: new Map(),       // gear id -> Blob
+  urls: new Map(),         // gear id -> object URL
+  pendingPhotos: new Map(),
+  deletedPhotos: new Set(),
+  goneMs: GEAR.goneMsDefault,
+  guardFrom: Date.now(),
+
+  ids() { const s = new Set(); for (const g of this.list) for (const id of g.ids) s.add(id); return s; },
+  byId(id) { return this.list.find((g) => g.id === id) || null; },
+  forChromeId(cid) { return this.list.find((g) => g.ids.includes(cid)) || null; },
+
+  onReading(r) {
+    for (const g of this.list) {
+      if (!gearMatches(g, r)) continue;
+      if (gearOnReading(g, r, currentFix(r.ts)) === 'woke') alarm.raise(g);
+      this.dirty = true;
+    }
+  },
+
+  tick(now) {
+    if (!state.scanning) return;
+    for (const g of this.list) {
+      if (gearTick(g, now, this.guardFrom, this.goneMs) === 'gone') alarm.raise(g);
+    }
+    if (!this.anyAlarm()) alarm.stop();
+    if (this.dirty && now - (this.savedAt || 0) > 5000) this.save();
+  },
+
+  anyAlarm() { return this.list.some((g) => g.alarm && !g.alarm.ack); },
+
+  add(record, photo) {
+    this.list.push(record);
+    if (photo) this.setPhoto(record.id, photo);
+    this.save();
+  },
+
+  remove(id) {
+    this.list = this.list.filter((g) => g.id !== id);
+    this.setPhoto(id, null);
+    this.save();
+  },
+
+  setPhoto(id, blob) {
+    const old = this.urls.get(id);
+    if (old && typeof URL !== 'undefined' && URL.revokeObjectURL) URL.revokeObjectURL(old);
+    this.urls.delete(id);
+    if (blob) { this.photos.set(id, blob); this.pendingPhotos.set(id, blob); this.deletedPhotos.delete(id); }
+    else { this.photos.delete(id); this.pendingPhotos.delete(id); this.deletedPhotos.add(id); }
+  },
+
+  photoUrl(id) {
+    if (this.urls.has(id)) return this.urls.get(id);
+    const blob = this.photos.get(id);
+    if (!blob || typeof URL === 'undefined' || !URL.createObjectURL) return null;
+    const url = URL.createObjectURL(blob);
+    this.urls.set(id, url);
+    return url;
+  },
+
+  save() {
+    this.dirty = false;
+    this.savedAt = Date.now();
+    const list = this.list.map((g) => ({ ...g, ids: g.ids.slice(), pings: g.pings.slice() }));
+    const ups = Array.from(this.pendingPhotos);
+    const dels = Array.from(this.deletedPhotos);
+    this.pendingPhotos.clear();
+    this.deletedPhotos.clear();
+    saving = saving.then(() => store.saveGear(list, ups, dels)).catch(() => { state.notice = 'Couldn\'t save your gear to this browser\'s storage.'; });
+    return saving;
+  }
+};
+
+/* --- alarm: sound, vibration, notification -------------------------------- */
+
+const alarm = {
+  audio: null,
+  beepTimer: null,
+  // Browsers only allow sound after a tap, so any tap on the page unlocks it for later alarms.
+  unlock() {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!this.audio) this.audio = new AC();
+      if (this.audio.state === 'suspended') this.audio.resume();
+    } catch (e) { /* no audio */ }
+  },
+  beep() {
+    const ac = this.audio;
+    if (!ac || ac.state !== 'running') return;
+    const o = ac.createOscillator(), gnode = ac.createGain();
+    o.type = 'square';
+    o.frequency.value = 880;
+    gnode.gain.setValueAtTime(0.0001, ac.currentTime);
+    gnode.gain.exponentialRampToValueAtTime(0.4, ac.currentTime + 0.02);
+    gnode.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.35);
+    o.connect(gnode).connect(ac.destination);
+    o.start();
+    o.stop(ac.currentTime + 0.4);
+  },
+  raise(g) {
+    const text = g.alarm && g.alarm.kind === 'woke' ? `${g.name} woke up. Someone may be moving it.` : `${g.name} has gone quiet.`;
+    state.notice = '';
+    if (!this.beepTimer) {
+      this.beep();
+      this.beepTimer = setInterval(() => { this.beep(); if (navigator.vibrate) navigator.vibrate([300, 150, 300]); }, 1200);
+    }
+    if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+    try {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') new Notification('Sentinel Web', { body: text, tag: 'gear-' + g.id, renotify: true });
+    } catch (e) { /* notifications unavailable */ }
+    scheduleRender();
+  },
+  stop() {
+    if (this.beepTimer) clearInterval(this.beepTimer);
+    this.beepTimer = null;
+    if (navigator.vibrate) navigator.vibrate(0);
+  },
+  acknowledgeAll() {
+    for (const g of gear.list) if (g.alarm) g.alarm.ack = true;
+    this.stop();
+    gear.save();
+    render();
+  }
+};
+
+/* --- camera: photos taken inside the page, so scanning isn't interrupted --- */
+
+const camera = {
+  stream: null,
+  video: null,
+  supported() { return typeof navigator !== 'undefined' && !!navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function'; },
+  async open(video) {
+    this.close();
+    this.video = video;
+    this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } }, audio: false });
+    video.srcObject = this.stream;
+    await video.play();
+  },
+  // A JPEG at most 1024 px on its long side: plenty to recognise your own gear, small to store.
+  capture() {
+    const v = this.video;
+    if (!v || !v.videoWidth) return Promise.resolve(null);
+    const k = Math.min(1, 1024 / Math.max(v.videoWidth, v.videoHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(v.videoWidth * k);
+    c.height = Math.round(v.videoHeight * k);
+    c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+    return new Promise((resolve) => c.toBlob((b) => resolve(b), 'image/jpeg', 0.82));
+  },
+  close() {
+    if (this.stream) for (const t of this.stream.getTracks()) t.stop();
+    this.stream = null;
+    if (this.video) this.video.srcObject = null;
+    this.video = null;
+  }
+};
+
 /* --- finder --------------------------------------------------------------- */
 
 // Any device can be found, flagged or not: the user chose full mapping everywhere (2026-09-27).
@@ -1765,6 +2119,14 @@ function renderBanner() {
   const b = $('banner');
   b.replaceChildren();
   const active = Array.from(state.flags.values()).filter((f) => f.active).length;
+  const ringing = gear.list.filter((g) => g.alarm && !g.alarm.ack);
+  if (ringing.length) {
+    b.append(el('div', { class: 'banner alarm', role: 'alert' },
+      el('b', { text: 'Alarm: ' }), ringing.map((g) => (g.alarm.kind === 'woke' ? `${g.name} woke up` : `${g.name} has gone quiet`)).join(' · ') + '. ',
+      el('button', { type: 'button', class: 'small', on: { click: () => alarm.acknowledgeAll() } }, 'I have it: silence'),
+      ' ',
+      el('button', { type: 'button', class: 'small secondary', on: { click: () => { state.gearId = ringing[0].id; state.view = 'gearDetail'; render(); } } }, 'Where?')));
+  }
   if (state.notice) b.append(el('div', { class: 'banner', role: 'alert' }, state.notice));
   if (state.newFlags && state.view !== 'flagged') {
     b.append(el('div', { class: 'banner', role: 'alert' }, el('b', { text: 'Possible tracker. ' }), `${active} device${active === 1 ? '' : 's'} flagged. `,
@@ -1774,7 +2136,12 @@ function renderBanner() {
 
 function renderTabs() {
   const active = Array.from(state.flags.values()).filter((f) => f.active).length;
-  const current = state.view === 'nearby' || state.view === 'flagged' ? state.view : null;
+  const current = state.view === 'nearby' || state.view === 'flagged' ? state.view
+    : state.view === 'gear' || state.view === 'register' || state.view === 'gearDetail' ? 'gear' : null;
+  const tg = $('tab-gear');
+  tg.setAttribute('aria-selected', String(current === 'gear'));
+  const alarms = gear.list.filter((g) => g.alarm && !g.alarm.ack).length;
+  tg.replaceChildren('My gear', alarms ? el('span', { class: 'count alarm', text: String(alarms) }) : '');
   $('tab-nearby').setAttribute('aria-selected', String(current === 'nearby'));
   const tf = $('tab-flagged');
   tf.setAttribute('aria-selected', String(current === 'flagged'));
@@ -1804,8 +2171,9 @@ function nearbyView() {
   }
   for (const { l, dev } of rows) {
     const fam = familyName(l.sigId);
-    const label = (dev && dev.nickname) || l.name || (fam ? '' : 'Unnamed device');
-    const nameNode = el('div', { class: 'name' }, label || fam, fam && label ? el('span', { class: 'tag', text: fam }) : fam && !label ? el('span', { class: 'tag', text: 'tracker' }) : '');
+    const mineG = gear.forChromeId(l.id);
+    const label = (mineG && mineG.name) || (dev && dev.nickname) || l.name || (fam ? '' : 'Unnamed device');
+    const nameNode = el('div', { class: 'name' }, label || fam, mineG ? el('span', { class: 'tag mine', text: 'mine' }) : fam && label ? el('span', { class: 'tag', text: fam }) : fam && !label ? el('span', { class: 'tag', text: 'tracker' }) : '');
     const own = ownerText(l.owner);
     const meta = el('div', { class: 'meta', text: [fmtAgo(now - l.ts), own].filter(Boolean).join(' · ') });
     const open = el('button', { type: 'button', class: 'open', 'aria-label': `Details for ${label || fam}`, on: { click: () => openDetail(l.key) }, disabled: !l.key }, nameNode, meta);
@@ -2170,6 +2538,204 @@ function surveyView() {
   return out;
 }
 
+/* --- my gear: screens ------------------------------------------------------ */
+
+const register = { step: 'pick', chromeId: null, name: '', owner: '', type: 'Other', mode: 'use', matchName: true, photo: null, photoUrl: null, broadcast: null, cameraOn: false, cameraError: '' };
+
+function resetRegister() {
+  if (register.photoUrl && URL.revokeObjectURL) URL.revokeObjectURL(register.photoUrl);
+  Object.assign(register, { step: 'pick', chromeId: null, name: '', owner: '', type: 'Other', mode: 'use', matchName: true, photo: null, photoUrl: null, broadcast: null, cameraOn: false, cameraError: '' });
+  camera.close();
+}
+
+function lastAdvFor(id) { return state.lastAdv ? state.lastAdv.get(id) : null; }
+
+function gearCard(g, now) {
+  const st = gearStatus(g, now, state.scanning);
+  const url = gear.photoUrl(g.id);
+  const modeBtn = (mode, label) => el('button', { type: 'button', class: g.mode === mode ? 'small' : 'small secondary', 'aria-pressed': String(g.mode === mode), on: { click: () => { setGearMode(g, mode, Date.now()); gear.save(); render(); } } }, label);
+  return el('div', { class: 'gear-card lvl-' + st.level },
+    url ? el('img', { class: 'gear-photo', src: url, alt: `Photo of ${g.name}` }) : el('div', { class: 'gear-photo empty', 'aria-hidden': 'true', text: '📷' }),
+    el('div', { class: 'gear-body' },
+      el('div', { class: 'name', text: g.name }),
+      el('div', { class: 'meta', text: [g.type, g.owner].filter(Boolean).join(' · ') }),
+      el('div', { class: 'gear-status', text: st.text }),
+      el('div', { class: 'actions' },
+        el('span', { class: 'seg', role: 'group', 'aria-label': 'Mode' }, modeBtn('use', 'In use'), modeBtn('parked', 'Parked')),
+        el('button', { type: 'button', class: 'small secondary', on: { click: () => { state.gearId = g.id; state.view = 'gearDetail'; render(); } } }, 'Details'))));
+}
+
+function gearView() {
+  const now = Date.now();
+  const out = [el('h2', { text: `My gear (${gear.list.length})` })];
+  out.push(el('p', { class: 'dim', text: 'Register your own devices, then set each one to In use (alarm if it goes quiet) or Parked (alarm if it wakes up, as if someone is moving it). Guarding runs while this page is open and scanning, with the screen on.' }));
+  if (!state.scanning) out.push(el('div', { class: 'banner' }, el('b', { text: 'Not guarding. ' }), 'Press Start scanning at the top.'));
+  const needsNotif = typeof Notification !== 'undefined' && Notification.permission === 'default';
+  out.push(el('div', { class: 'actions' },
+    el('button', { type: 'button', on: { click: () => { resetRegister(); state.view = 'register'; if (!state.scanning && scanSupported()) startScan(); render(); } } }, 'Register a device'),
+    needsNotif ? el('button', { type: 'button', class: 'secondary', on: { click: () => Notification.requestPermission().then(() => render()) } }, 'Allow alarm notifications') : '',
+    el('label', { class: 'dim' }, 'Alarm when quiet for ',
+      el('select', { id: 'goneSelect', 'aria-label': 'Alarm delay for devices in use', on: { change: (e) => { gear.goneMs = Number(e.target.value) * 1000; saveGearSettings(); } } },
+        GEAR.goneOptionsS.map((sec) => el('option', { value: String(sec), selected: gear.goneMs === sec * 1000 }, `${sec} s`))))));
+  if (!gear.list.length) out.push(el('p', { class: 'empty', text: 'No gear registered yet. Wake a device (put on the strap, turn on the watch or bike computer), hold it next to this tablet and tap Register a device.' }));
+  for (const g of gear.list) out.push(gearCard(g, now));
+  out.push(el('p', { class: 'dim', text: 'Registered gear is never flagged as a tracker following you.' }));
+  return out;
+}
+
+function registerView() {
+  const out = [el('div', { class: 'actions' }, el('button', { type: 'button', class: 'small secondary', on: { click: () => { resetRegister(); state.view = 'gear'; render(); } } }, '← Cancel'))];
+  out.push(el('h2', { text: 'Register a device' }));
+  if (!state.scanning) out.push(el('div', { class: 'banner' }, el('b', { text: 'Not scanning. ' }), 'Press Start scanning at the top so the device can be heard.'));
+
+  if (register.step === 'pick') {
+    out.push(el('p', { text: 'Wake the device: put on the heart-rate strap, turn on the watch or bike computer, or start its pairing mode. Then hold it right next to this tablet. The closest device is marked.' }));
+    const now = Date.now();
+    const mine = gear.ids();
+    const cands = Array.from(state.live.values()).filter((l) => now - l.ts <= 10000 && !mine.has(l.id)).sort((a, b) => b.rssi - a.rssi).slice(0, 12);
+    const closest = cands.length && cands[0].rssi >= GEAR.closestRssi && (cands.length < 2 || cands[0].rssi - cands[1].rssi >= GEAR.closestLeadDb) ? cands[0].id : null;
+    if (!cands.length) out.push(el('p', { class: 'empty', text: 'Listening… nothing heard in the last 10 seconds.' }));
+    for (const l of cands) {
+      const adv = lastAdvFor(l.id);
+      const b = adv ? describeBroadcast(adv) : { services: [], maker: null };
+      const detail = [b.maker, ...b.services].filter(Boolean).join(' · ') || 'No services advertised';
+      out.push(el('div', { class: l.id === closest ? 'row tracker' : 'row' },
+        el('div', { class: 'open' },
+          el('div', { class: 'name' }, l.name || 'Unnamed device', l.id === closest ? el('span', { class: 'tag', text: 'closest' }) : ''),
+          el('div', { class: 'meta', text: detail })),
+        el('span', { class: 'rssi', text: l.rssi + ' dBm' }),
+        el('button', { type: 'button', class: l.id === closest ? 'small' : 'small secondary', on: { click: () => {
+          register.chromeId = l.id;
+          register.name = l.name || '';
+          register.broadcast = b;
+          register.type = guessType(b.services, l.name);
+          register.matchName = !!l.name;
+          register.step = 'details';
+          render();
+        } } }, 'This one')));
+    }
+    return out;
+  }
+
+  // details
+  const l = state.live.get(register.chromeId);
+  out.push(el('p', { class: 'dim', text: `Heard as "${(l && l.name) || 'no name'}"${register.broadcast && register.broadcast.services.length ? ' · broadcasts ' + register.broadcast.services.join(', ') : ''}${register.broadcast && register.broadcast.maker ? ' · made by ' + register.broadcast.maker : ''}` }));
+  const nameIn = el('input', { type: 'text', id: 'regName', maxlength: '40', value: register.name, placeholder: 'e.g. My HRM-Pro', 'aria-label': 'Name', autocomplete: 'off', on: { input: (e) => { register.name = e.target.value; } } });
+  const ownerIn = el('input', { type: 'text', id: 'regOwner', maxlength: '40', value: register.owner, placeholder: 'Optional', 'aria-label': 'Owner', autocomplete: 'off', on: { input: (e) => { register.owner = e.target.value; } } });
+  const typeSel = el('select', { id: 'regType', 'aria-label': 'Type', on: { change: (e) => { register.type = e.target.value; } } }, GEAR.types.map((t) => el('option', { value: t, selected: t === register.type }, t)));
+  const modeSel = el('select', { id: 'regMode', 'aria-label': 'Mode', on: { change: (e) => { register.mode = e.target.value; } } },
+    el('option', { value: 'use', selected: register.mode === 'use' }, 'In use: alarm if it goes quiet'),
+    el('option', { value: 'parked', selected: register.mode === 'parked' }, 'Parked: alarm if it wakes up'));
+  const match = el('input', { type: 'checkbox', id: 'regMatch', checked: register.matchName, disabled: !(l && l.name), on: { change: (e) => { register.matchName = e.target.checked; } } });
+  out.push(el('div', { class: 'form' },
+    el('label', { for: 'regName', text: 'Name' }), nameIn,
+    el('label', { for: 'regOwner', text: 'Owner' }), ownerIn,
+    el('label', { for: 'regType', text: 'Type' }), typeSel,
+    el('label', { for: 'regMode', text: 'Mode' }), modeSel,
+    el('label', { class: 'check' }, match, ' Also recognise it by its name (helps watches that change their ID)')));
+
+  out.push(el('h3', { text: 'Photo' }));
+  if (register.photoUrl) out.push(el('img', { class: 'gear-photo big', src: register.photoUrl, alt: 'Photo of the device' }));
+  if (register.cameraOn) {
+    const video = el('video', { class: 'camera', playsinline: true, muted: true, 'aria-label': 'Camera preview' });
+    out.push(video);
+    out.push(el('div', { class: 'actions' },
+      el('button', { type: 'button', on: { click: async () => {
+        const blob = await camera.capture();
+        camera.close();
+        register.cameraOn = false;
+        if (blob) { if (register.photoUrl) URL.revokeObjectURL(register.photoUrl); register.photo = blob; register.photoUrl = URL.createObjectURL(blob); }
+        render();
+      } } }, 'Take photo'),
+      el('button', { type: 'button', class: 'secondary', on: { click: () => { camera.close(); register.cameraOn = false; render(); } } }, 'Cancel')));
+    camera.open(video).catch((e) => { register.cameraOn = false; register.cameraError = 'Couldn\'t open the camera: ' + (e && e.name ? e.name : 'unknown error') + '. You can save without a photo.'; camera.close(); render(); });
+  } else {
+    if (register.cameraError) out.push(el('p', { class: 'warn', text: register.cameraError }));
+    out.push(el('div', { class: 'actions' }, el('button', { type: 'button', class: 'secondary', disabled: !camera.supported(), on: { click: () => { register.cameraOn = true; register.cameraError = ''; render(); } } }, register.photo ? 'Retake photo' : 'Open camera')));
+    if (!camera.supported()) out.push(el('p', { class: 'dim', text: 'This browser has no camera access, so the device will be saved without a photo.' }));
+  }
+  out.push(el('p', { class: 'dim', text: 'The photo stays on this tablet with the rest of Sentinel Web\'s data.' }));
+
+  out.push(el('div', { class: 'actions' }, el('button', { type: 'button', on: { click: () => saveRegistration() } }, 'Save device')));
+  return out;
+}
+
+function saveRegistration() {
+  const l = state.live.get(register.chromeId);
+  const now = Date.now();
+  const name = register.name.trim().slice(0, 40) || (l && l.name) || register.type;
+  const record = {
+    id: 'g' + now.toString(36) + Math.random().toString(36).slice(2, 6),
+    name, owner: register.owner.trim().slice(0, 40), type: register.type,
+    mode: 'use', ids: [register.chromeId], matchName: register.matchName && l && l.name ? l.name : '',
+    services: register.broadcast ? register.broadcast.services : [], maker: register.broadcast ? register.broadcast.maker : null,
+    createdAt: now, lastHeard: l ? l.ts : null, lastRssi: l ? l.rssi : null, lastFix: null,
+    parkedAt: null, armed: false, armedAt: null, wokeAt: null, backAt: null, pings: [], alarm: null
+  };
+  setGearMode(record, register.mode, now);
+  gear.add(record, register.photo);
+  // Your own gear shouldn't count as something following you.
+  if (l && l.key) state.flags.delete(l.key);
+  resetRegister();
+  state.view = 'gear';
+  render();
+}
+
+function gearDetailView() {
+  const g = gear.byId(state.gearId);
+  if (!g) { state.view = 'gear'; return gearView(); }
+  const now = Date.now();
+  const st = gearStatus(g, now, state.scanning);
+  const out = [el('div', { class: 'actions' }, el('button', { type: 'button', class: 'small secondary', on: { click: () => { state.view = 'gear'; render(); } } }, '← My gear'))];
+  out.push(el('h2', { text: g.name }));
+  const url = gear.photoUrl(g.id);
+  if (url) out.push(el('img', { class: 'gear-photo big', src: url, alt: `Photo of ${g.name}` }));
+  out.push(el('div', { class: 'banner lvl-' + st.level }, st.text));
+  const facts = el('dl', { class: 'facts' });
+  const fact = (k, v) => { if (v) facts.append(el('dt', { text: k }), el('dd', { text: v })); };
+  fact('Type', g.type);
+  fact('Owner', g.owner);
+  fact('Mode', g.mode === 'use' ? 'In use: alarm if it goes quiet' : 'Parked: alarm if it wakes up');
+  fact('Broadcasts', g.services.join(', ') || 'No standard services');
+  fact('Made by', g.maker);
+  fact('Recognised by', `${g.ids.length} Chrome ID${g.ids.length === 1 ? '' : 's'}${g.matchName ? ` and its name "${g.matchName}"` : ''}`);
+  fact('Last heard', g.lastHeard ? `${fmtTime(g.lastHeard)} (${fmtAgo(now - g.lastHeard)}), ${g.lastRssi} dBm` : 'Not yet');
+  fact('Registered', fmtTime(g.createdAt));
+  out.push(facts);
+
+  // Pings in time order, then the last-heard spot if it isn't already the latest ping.
+  const where = g.pings.filter((p) => p.lat != null).map((p) => ({ lat: p.lat, lon: p.lon }));
+  const lastW = where[where.length - 1];
+  if (g.lastFix && (!lastW || lastW.lat !== g.lastFix.lat || lastW.lon !== g.lastFix.lon)) where.push({ lat: g.lastFix.lat, lon: g.lastFix.lon });
+  if (where.length) {
+    out.push(el('h3', { text: g.pings.length ? 'Where it was heard' : 'Last heard here' }));
+    out.push(...mapNode(where.slice(-30)));
+  }
+  if (g.pings.length) {
+    const table = el('table', { class: 'places' }, el('thead', null, el('tr', null, el('th', { text: 'Time' }), el('th', { text: 'Signal' }), el('th', { text: 'Place' }))));
+    const body = el('tbody');
+    for (const p of g.pings.slice(-50).reverse()) body.append(el('tr', null, el('td', { text: fmtTime(p.ts) }), el('td', { text: p.rssi + ' dBm' }), el('td', { text: p.lat != null ? `${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}` : 'no location' })));
+    table.append(body);
+    out.push(el('h3', { text: `Pings since it woke up (${g.pings.length})` }), table);
+  }
+
+  const live = g.ids.map((id) => state.live.get(id)).find((l) => l && l.key);
+  out.push(el('div', { class: 'actions' },
+    el('button', { type: 'button', disabled: !live, on: { click: () => live && startFinder(live.key) } }, 'Find it'),
+    g.mode === 'parked' && g.wokeAt ? el('button', { type: 'button', class: 'secondary', on: { click: () => { setGearMode(g, 'parked', Date.now()); gear.save(); render(); } } }, 'Re-arm parked guard') : '',
+    el('button', { type: 'button', class: 'danger', on: { click: () => { if (typeof confirm !== 'function' || confirm(`Remove ${g.name} and its photo?`)) { gear.remove(g.id); state.view = 'gear'; render(); } } } }, 'Remove')));
+  if (!live) out.push(el('p', { class: 'dim', text: 'Find it becomes available once the device is heard in a scan cycle (every 30 s).' }));
+  return out;
+}
+
+function saveGearSettings() {
+  saving = saving.then(() => store.db && new Promise((resolve) => {
+    const t = store.tx(['meta'], 'readwrite');
+    t.objectStore('meta').put({ name: 'gearGoneMs', value: gear.goneMs });
+    t.oncomplete = resolve; t.onerror = resolve;
+  })).catch(() => {});
+}
+
 function finderView() {
   const f = state.finder;
   if (!f) { state.view = 'detail'; return detailView(); }
@@ -2199,10 +2765,10 @@ function render(opts) {
   renderTabs();
   // A soft render (timer or new advertisement) leaves the detail page alone so typing isn't interrupted,
   // and rebuilds the busy screens at most once a second, so a button isn't replaced mid-tap.
-  if (soft && state.view === 'detail') return;
+  if (soft && (state.view === 'detail' || state.view === 'gearDetail' || (state.view === 'register' && register.step === 'details'))) return;
   const now = Date.now();
   const since = now - (state.lastSoftRender || 0);
-  if (soft && (state.view === 'nearby' || state.view === 'survey') && since < 1000) {
+  if (soft && (state.view === 'nearby' || state.view === 'survey' || state.view === 'gear' || state.view === 'register') && since < 1000) {
     // Skipped for now, but always caught up a moment later so the text never goes stale.
     if (!state.trailingRender) state.trailingRender = setTimeout(() => { state.trailingRender = null; render({ soft: true }); }, 1000 - since);
     swarm.sync(now);
@@ -2213,7 +2779,8 @@ function render(opts) {
   if (state.finder && Date.now() - state.finder.startedAt > PROX.timeLimitMs) stopFinder();
   const view = $('view');
   const content = state.view === 'flagged' ? flaggedView() : state.view === 'detail' ? detailView() : state.view === 'finder' ? finderView()
-    : state.view === 'survey' ? surveyView() : nearbyView();
+    : state.view === 'survey' ? surveyView() : state.view === 'gear' ? gearView() : state.view === 'register' ? registerView()
+    : state.view === 'gearDetail' ? gearDetailView() : nearbyView();
   view.replaceChildren(...content);
   swarm.sync(Date.now());
   surveyDraw.sync();
@@ -2223,6 +2790,7 @@ function render(opts) {
 
 function showView(v) {
   if (v !== 'survey' && survey.active) { survey.active = false; survey.stopSensors(); }
+  if (v !== 'register') camera.close();
   state.view = v;
   if (v !== 'finder') stopFinder();
   if (v === 'flagged') state.newFlags = 0;
@@ -2269,6 +2837,12 @@ async function wipeAll() {
   state.unsaved = [];
   state.clusterer = createClusterer([], CFG.clusterMeters);
   state.linker = createLinker([]);
+  alarm.stop();
+  for (const id of Array.from(gear.urls.keys())) gear.setPhoto(id, null);
+  gear.list = [];
+  gear.photos.clear();
+  gear.pendingPhotos.clear();
+  gear.deletedPhotos.clear();
   state.newFlags = 0;
   state.view = 'nearby';
   state.notice = 'All data deleted.';
@@ -2305,6 +2879,9 @@ async function boot() {
         for (const d of data.devices) state.devices.set(d.key, { ...d, ids: new Set(d.ids || []) });
         state.sightings = data.sightings.sort((a, b) => a.ts - b.ts);
         for (const f of data.flags) state.flags.set(f.key, f);
+        gear.list = data.gear || [];
+        for (const ph of data.photos || []) if (ph.blob) gear.photos.set(ph.id, ph.blob);
+        if (data.meta.gearGoneMs) gear.goneMs = data.meta.gearGoneMs;
       }
     } catch (e) {
       state.notice = 'Couldn\'t read saved data from this browser.';
@@ -2320,11 +2897,14 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden && state.scanning) stopScan('Scanning stopped because the page was hidden. The browser can\'t scan in the background. Press Start scanning to continue.');
 });
 setInterval(() => { if (state.scanning || state.finder || survey.active) scheduleRender(); }, 2000);
+setInterval(() => { if (gear.list.length) gear.tick(Date.now()); }, 1000);
+document.addEventListener('click', () => alarm.unlock(), { capture: true });
 
 window.__sentinelWeb = {
   CFG, SIGNATURES, haversine, parseAdvertisement, matchSignature, ownerState, statusByte,
   createClusterer, createLinker, scoreOf, reasonOf, assess, decide, createProximity, project, fitZoom, tileLayout,
   SWARM, swarm, rssiToRadius, deviceOrbit, projectPoint, fitScale, swarmDevices,
+  GEAR, gear, alarm, register, camera, describeBroadcast, guessType, gearMatches, gearOnReading, gearTick, setGearMode, gearStatus, saveRegistration,
   SURVEY, survey, surveyDraw, headingDiff, compassName, rssiToMeters, createSweep, createStepDetector, createTrack, estimateZone, describeOffset,
   state, store, handleAdvertisement, runCycle, runDetection, render, openDetail, dismissFlag, ignoreDevice, showView,
   setFix(fix) { state.fix = fix; },
