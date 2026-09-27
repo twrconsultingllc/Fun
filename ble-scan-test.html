@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<meta name="description" content="BLE Scan Test: a minimal Chrome test page for the experimental Web Bluetooth scanning API. Lists nearby Bluetooth LE advertisements and marks known tracker formats (Apple Find My, Samsung SmartTag, Tile, Google Find Hub, Chipolo). Nothing leaves the page.">
+<title>BLE Scan Test</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --border: #232a38;
+    --text: #dfe4ee;
+    --dim: #8891a4;
+    --accent: #5aa9ff;
+    --ok: #2ecc71;
+    --warn: #f0a83c;
+    --bad: #ff6b6b;
+    --code-bg: #1a2030;
+    --on-accent: #0b0e14;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --border: #dde1ea;
+      --text: #1c2230;
+      --dim: #5b6478;
+      --accent: #1565c0;
+      --ok: #1e7e3e;
+      --warn: #955d05;
+      --bad: #c62828;
+      --code-bg: #eef0f5;
+      --on-accent: #ffffff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 48px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.45;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin: 28px 0 4px; }
+  .sub { color: var(--dim); margin: 0 0 16px; font-size: 0.92rem; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 12px 0;
+    font-size: 0.9rem;
+  }
+  .checks { list-style: none; margin: 0; padding: 0; }
+  .checks li { margin: 3px 0; }
+  .ok { color: var(--ok); }
+  .bad { color: var(--bad); }
+  .warn { color: var(--warn); }
+  code {
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    word-break: break-all;
+  }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 14px 0; }
+  button {
+    font: inherit;
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+    cursor: pointer;
+  }
+  button.secondary { background: transparent; color: var(--accent); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  label { font-size: 0.9rem; display: inline-flex; gap: 6px; align-items: center; }
+  #status { font-size: 0.9rem; color: var(--dim); margin: 6px 0 10px; min-height: 1.3em; }
+  .device {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 8px 0;
+    font-size: 0.88rem;
+  }
+  .device.tracker { border-color: var(--warn); }
+  .dev-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .dev-name { font-weight: 600; }
+  .dev-rssi { font-variant-numeric: tabular-nums; color: var(--dim); }
+  .tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--warn);
+    color: var(--warn);
+    margin-left: 6px;
+  }
+  .dev-meta { color: var(--dim); margin-top: 4px; }
+  .dev-meta div { margin: 2px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>BLE Scan Test</h1>
+  <p class="sub">A test of Chrome's experimental Bluetooth scanning, for a browser version of Sentinel. Advertisements are shown on this page only. Nothing is stored or sent anywhere.</p>
+
+  <div class="panel">
+    <ul class="checks" id="checks"></ul>
+  </div>
+
+  <div class="panel" id="help">
+    Scanning needs Chrome with <code>chrome://flags/#enable-experimental-web-platform-features</code> set to Enabled, then a restart.
+    On Android, Bluetooth and Location both have to be on. Chrome asks for permission when you press Start.
+  </div>
+
+  <div class="controls">
+    <button id="start" type="button">Start scan</button>
+    <button id="stop" type="button" class="secondary" disabled>Stop</button>
+    <button id="clear" type="button" class="secondary">Clear</button>
+    <label><input type="checkbox" id="trackersOnly"> Trackers only</label>
+  </div>
+  <div id="status" role="status" aria-live="polite"></div>
+  <div id="list"></div>
+</div>
+
+<script>
+'use strict';
+
+// Tracker formats, copied from Sentinel's detection/TrackerSignature.kt so both apps agree.
+// Web Bluetooth strips the company ID from manufacturer data, the same way Android does.
+const COMPANY = { 0x004C: 'Apple', 0x0075: 'Samsung', 0x00E0: 'Google', 0x0006: 'Microsoft' };
+const SIGNATURES = [
+  { name: 'Apple Find My', company: 0x004C, prefix: [0x12] },
+  { name: 'Samsung SmartTag', uuid16: 0xFD5A },
+  { name: 'Tile', uuid16: 0xFEED },
+  { name: 'Google Find Hub', dataUuid16: 0xFEAA, dataPrefixes: [[0x40], [0x41]] },
+  { name: 'Chipolo', uuid16: 0xFE33 }
+];
+
+const $ = (id) => document.getElementById(id);
+const devices = new Map();
+let scan = null;
+let renderQueued = false;
+
+function uuid16Of(uuid) {
+  const m = /^0000([0-9a-f]{4})-0000-1000-8000-00805f9b34fb$/i.exec(String(uuid));
+  return m ? parseInt(m[1], 16) : null;
+}
+
+function bytes(view) {
+  return view ? Array.from(new Uint8Array(view.buffer, view.byteOffset, view.byteLength)) : [];
+}
+
+function hex(arr) {
+  return arr.map((b) => b.toString(16).padStart(2, '0')).join(' ');
+}
+
+function startsWith(arr, prefix) {
+  return prefix.every((b, i) => arr[i] === b);
+}
+
+function matchSignature(adv) {
+  for (const sig of SIGNATURES) {
+    if (sig.company !== undefined) {
+      const data = adv.manufacturer.get(sig.company);
+      if (data && startsWith(data, sig.prefix)) return sig.name;
+    } else if (sig.uuid16 !== undefined) {
+      if (adv.uuids16.has(sig.uuid16)) return sig.name;
+    } else if (sig.dataUuid16 !== undefined) {
+      const data = adv.serviceData.get(sig.dataUuid16);
+      if (data && sig.dataPrefixes.some((p) => startsWith(data, p))) return sig.name;
+    }
+  }
+  return null;
+}
+
+function parseAdvertisement(event) {
+  const manufacturer = new Map();
+  if (event.manufacturerData) {
+    event.manufacturerData.forEach((view, companyId) => manufacturer.set(companyId, bytes(view)));
+  }
+  const serviceData = new Map();
+  const uuids16 = new Set();
+  if (event.serviceData) {
+    event.serviceData.forEach((view, uuid) => {
+      const short = uuid16Of(uuid);
+      if (short !== null) {
+        serviceData.set(short, bytes(view));
+        uuids16.add(short);
+      }
+    });
+  }
+  for (const uuid of event.uuids || []) {
+    const short = uuid16Of(uuid);
+    if (short !== null) uuids16.add(short);
+  }
+  return { manufacturer, serviceData, uuids16 };
+}
+
+function onAdvertisement(event) {
+  const id = event.device && event.device.id ? event.device.id : 'unknown';
+  const adv = parseAdvertisement(event);
+  const now = Date.now();
+  let entry = devices.get(id);
+  if (!entry) {
+    entry = { id, firstSeen: now, count: 0 };
+    devices.set(id, entry);
+  }
+  entry.count += 1;
+  entry.lastSeen = now;
+  entry.name = event.name || (event.device && event.device.name) || entry.name || '';
+  entry.rssi = event.rssi;
+  entry.txPower = event.txPower;
+  entry.adv = adv;
+  entry.tracker = matchSignature(adv) || entry.tracker || null;
+  queueRender();
+}
+
+function queueRender() {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(() => {
+    renderQueued = false;
+    render();
+  });
+}
+
+function line(parent, text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  parent.appendChild(div);
+}
+
+// Every advertised value (names especially) is chosen by whoever built the device,
+// so it's only ever written with textContent, never as HTML.
+function render() {
+  const list = $('list');
+  const trackersOnly = $('trackersOnly').checked;
+  const rows = Array.from(devices.values())
+    .filter((d) => !trackersOnly || d.tracker)
+    .sort((a, b) => (b.tracker ? 1 : 0) - (a.tracker ? 1 : 0) || (b.rssi ?? -999) - (a.rssi ?? -999));
+
+  list.replaceChildren();
+  for (const d of rows) {
+    const card = document.createElement('div');
+    card.className = d.tracker ? 'device tracker' : 'device';
+
+    const head = document.createElement('div');
+    head.className = 'dev-head';
+    const name = document.createElement('span');
+    name.className = 'dev-name';
+    name.textContent = d.name || '(no name)';
+    if (d.tracker) {
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.textContent = d.tracker;
+      name.appendChild(tag);
+    }
+    const rssi = document.createElement('span');
+    rssi.className = 'dev-rssi';
+    rssi.textContent = (d.rssi !== undefined && d.rssi !== null ? d.rssi + ' dBm' : 'no RSSI') + ' · ' + d.count + ' seen';
+    head.append(name, rssi);
+    card.appendChild(head);
+
+    const meta = document.createElement('div');
+    meta.className = 'dev-meta';
+    line(meta, 'Chrome ID: ' + d.id);
+    d.adv.manufacturer.forEach((data, companyId) => {
+      const label = COMPANY[companyId] || 'company';
+      line(meta, label + ' 0x' + companyId.toString(16).padStart(4, '0') + ': ' + (hex(data) || '(empty)'));
+    });
+    if (d.adv.uuids16.size) {
+      line(meta, 'Services: ' + Array.from(d.adv.uuids16).map((u) => '0x' + u.toString(16).padStart(4, '0')).join(', '));
+    }
+    if (d.txPower !== undefined && d.txPower !== null) line(meta, 'Tx power: ' + d.txPower + ' dBm');
+    line(meta, 'Last seen ' + Math.round((Date.now() - d.lastSeen) / 1000) + ' s ago');
+    card.appendChild(meta);
+
+    list.appendChild(card);
+  }
+
+  const trackers = Array.from(devices.values()).filter((d) => d.tracker).length;
+  if (scan || devices.size) {
+    setStatus((scan ? 'Scanning. ' : 'Stopped. ') + devices.size + ' device(s), ' + trackers + ' matching a tracker format.');
+  }
+}
+
+function setStatus(text, cls) {
+  const el = $('status');
+  el.textContent = text;
+  el.className = cls || '';
+}
+
+function addCheck(ok, text) {
+  const li = document.createElement('li');
+  const mark = document.createElement('span');
+  mark.className = ok ? 'ok' : 'bad';
+  mark.textContent = ok ? '✓ ' : '✗ ';
+  li.append(mark, document.createTextNode(text));
+  $('checks').appendChild(li);
+}
+
+function runChecks() {
+  const secure = window.isSecureContext === true;
+  const hasBluetooth = typeof navigator !== 'undefined' && !!navigator.bluetooth;
+  const hasScan = hasBluetooth && typeof navigator.bluetooth.requestLEScan === 'function';
+  addCheck(secure, secure ? 'Secure page' : 'Not a secure page. Bluetooth needs HTTPS.');
+  addCheck(hasBluetooth, hasBluetooth ? 'Web Bluetooth is available' : 'Web Bluetooth isn\'t available in this browser');
+  addCheck(hasScan, hasScan ? 'Scanning (requestLEScan) is available' : 'Scanning (requestLEScan) isn\'t available. Turn on the flag below.');
+  return secure && hasScan;
+}
+
+async function startScan() {
+  $('start').disabled = true;
+  setStatus('Asking for permission…');
+  try {
+    navigator.bluetooth.removeEventListener('advertisementreceived', onAdvertisement);
+    navigator.bluetooth.addEventListener('advertisementreceived', onAdvertisement);
+    scan = await navigator.bluetooth.requestLEScan({ acceptAllAdvertisements: true, keepRepeatedDevices: true });
+    $('stop').disabled = false;
+    setStatus('Scanning. Waiting for advertisements…');
+  } catch (error) {
+    scan = null;
+    $('start').disabled = false;
+    setStatus('Couldn\'t start: ' + (error && error.name ? error.name + ': ' : '') + (error && error.message ? error.message : String(error)), 'bad');
+  }
+}
+
+function stopScan() {
+  if (scan && scan.active !== false) scan.stop();
+  scan = null;
+  if (navigator.bluetooth) navigator.bluetooth.removeEventListener('advertisementreceived', onAdvertisement);
+  $('stop').disabled = true;
+  $('start').disabled = !runChecks.ready;
+  render();
+}
+
+runChecks.ready = runChecks();
+$('start').disabled = !runChecks.ready;
+if (!runChecks.ready) setStatus('This browser can\'t scan yet. See the checks above.', 'warn');
+
+$('start').addEventListener('click', startScan);
+$('stop').addEventListener('click', stopScan);
+$('clear').addEventListener('click', () => { devices.clear(); render(); if (!scan) setStatus(''); });
+$('trackersOnly').addEventListener('change', render);
+document.addEventListener('visibilitychange', () => { if (document.hidden && scan) stopScan(); });
+setInterval(() => { if (scan) queueRender(); }, 5000);
+
+window.__bleScanTest = { matchSignature, parseAdvertisement, onAdvertisement, devices };
+</script>
+</body>
+</html>

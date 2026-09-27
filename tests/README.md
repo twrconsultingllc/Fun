@@ -35,7 +35,7 @@ not be loaded — so this drops straight into CI or a pre-push hook.
 
 ## What is covered
 
-1306 assertions across twenty-five suites.
+1331 assertions across twenty-six suites.
 
 ### `academy/` (Full Circle Academy mockup)
 
@@ -48,6 +48,12 @@ jsdom only fetches external scripts with `resources: 'usable'` (which would
 also try Google Fonts). The suite reads `courses.js` and `academy.js` itself,
 from wherever `--base` points, and inlines them in place of the
 `<script src>` tags, so `npm run test:live` still exercises the deployed files.
+
+### `ble-scan-test.html` (Web Bluetooth scanning test)
+
+| Suite | File | Covers |
+|---|---|---|
+| `ble-scan` | `ble-scan-test.dom.test.mjs` | jsdom has no `navigator.bluetooth`, so this pins the "can't scan" path (the checks name what's missing, Start stays disabled, the flag to turn on is named) and the CSP (`connect-src 'none'`). It then drives the page's own advertisement handler through `window.__bleScanTest` with hand-built events: the tracker rules agree with Sentinel's `TrackerSignature.kt` (Find My is `0x004C` + `12…`, not an iPhone's other continuity messages; Find Hub is `FEAA` frame `0x40`/`0x41`, not a plain Eddystone beacon; Fast Pair `0xFE2C` is not a tracker), repeats are counted, an advertised name containing markup is shown as text, and the "Trackers only" and Clear controls work. A real scan needs Chrome with the experimental flag and a Bluetooth adapter, so it can only be checked on a device. |
 
 ### `daily-wire.html` (My Daily Wire feed reader)
 
