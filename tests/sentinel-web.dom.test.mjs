@@ -2,7 +2,8 @@
  * Web Bluetooth scanning (Chrome's experimental requestLEScan), location
  * tagging, the app's place clustering, rotation linking, scoring and flag
  * decisions, the Nearby / Flagged / Device Detail screens and the hot/cold
- * finder.
+ * finder, and the Nearby screen's device swarm (the 3JS gallery's 3.3
+ * Particle Swarm, drawn around you on a 2D canvas).
  *
  * jsdom has no navigator.bluetooth, geolocation or IndexedDB, so the page runs
  * in its memory-only mode. The suite drives it through window.__sentinelWeb:
@@ -206,6 +207,49 @@ export default async function run(t, page) {
         const rows = document.querySelectorAll('#view .row');
         t.eq('Nearby lists the two devices heard in the last minute', rows.length, 2);
         t.ok('…tracker first, with its family tag', rows[0]?.classList.contains('tracker') && /Apple Find My/.test(rows[0].textContent));
+
+        t.section('Device swarm (the 3JS gallery\'s 3.3 Particle Swarm, around you)');
+
+        t.ok('no swarm while not scanning', !document.querySelector('#view .swarm'));
+        api.state.scanning = true;   // jsdom can't really scan, so switch the state on directly
+        api.render();
+        const swarmEl = document.querySelector('#view .swarm');
+        t.ok('scanning shows the swarm on Nearby', !!swarmEl);
+        t.ok('…at the top, above the device list', document.getElementById('view').firstElementChild === swarmEl);
+        const canvas = swarmEl?.querySelector('canvas');
+        t.eq('the canvas is labelled as an image', canvas?.getAttribute('role'), 'img');
+        t.eq('its label counts the devices, trackers and flags', canvas?.getAttribute('aria-label'),
+            '2 devices around you: 1 tracker, 1 flagged. Stronger signals orbit closer to the centre.');
+        t.ok('the legend names all four colours', ['You', 'Device', 'Tracker', 'Flagged'].every((w) => swarmEl.querySelector('.legend').textContent.includes(w)));
+        api.render();
+        t.ok('re-rendering keeps the same swarm element (the animation carries on)', document.querySelector('#view .swarm') === swarmEl);
+        t.eq('jsdom has no 2D canvas, so no animation frame is requested', api.swarm.raf, 0);
+        const kinds = api.swarmDevices(Date.now()).map((d) => d.kind).sort().join(',');
+        t.eq('the tag is drawn as flagged and the iPhone as a plain device', kinds, 'device,flagged');
+
+        // Orbit radius: linear from 0.55 at -45 dBm to 1.8 at -95 dBm (the gallery's outer radius).
+        t.eq('-45 dBm orbits at 0.55', api.rssiToRadius(-45), 0.55);
+        t.eq('-95 dBm orbits at 1.8', api.rssiToRadius(-95), 1.8);
+        t.ok('-70 dBm is halfway: 0.55 + 0.5 × 1.25 = 1.175', Math.abs(api.rssiToRadius(-70) - 1.175) < 1e-12);
+        t.ok('stronger than -45 and weaker than -95 are clamped', api.rssiToRadius(-20) === 0.55 && api.rssiToRadius(-120) === 1.8);
+        t.eq('a device keeps the same orbit every time', JSON.stringify(api.deviceOrbit('A2')), JSON.stringify(api.deviceOrbit('A2')));
+        t.ok('different devices get different orbits', api.deviceOrbit('A2').theta !== api.deviceOrbit('PHONE').theta);
+        const focal = api.fitScale(800, 460);
+        const centre = api.projectPoint(0, 0, 0, 1.3, 800, 460, focal);
+        t.ok('you are drawn at the centre of the canvas', Math.abs(centre.x - 400) < 1e-9 && Math.abs(centre.y - 230) < 1e-9);
+        let inside = true;
+        for (let i = 0; i < 360; i += 5) {
+            const a = i * Math.PI / 180;
+            const p = api.projectPoint(1.8 * Math.cos(a), 0, 1.8 * Math.sin(a), 0, 800, 460, focal);
+            if (p.x < api.SWARM.pad - 1 || p.x > 800 - api.SWARM.pad + 1 || p.y < api.SWARM.pad - 1 || p.y > 460 - api.SWARM.pad + 1) inside = false;
+        }
+        t.ok('the outer orbit fits inside the canvas padding', inside);
+
+        api.state.scanning = false;
+        api.render();
+        t.ok('stopping hides the swarm again', !document.querySelector('#view .swarm'));
+
+        t.section('Ignoring');
 
         api.ignoreDevice(phoneDev.key, false);
         t.eq('an ignored device drops off Nearby', document.querySelectorAll('#view .row').length, 1);
