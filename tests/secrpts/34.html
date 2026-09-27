@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #34 — sentinel-web.html "Map this place"</title>
+<meta name="description" content="Security and code-quality review of the Map this place survey added to sentinel-web.html: a turn-in-a-circle direction sweep, step-counted walking and hot zones for every Bluetooth device, plus Find it for any device.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #34 — <code>sentinel-web.html</code> "Map this place"</h1>
+    <p class="sub">Step 1 of the room-mapping feature. <b>Map this place</b> on the Nearby screen leads through four screens. <b>Start point</b> fixes where you stand and which way you face. <b>Turn in a circle</b> is a compass dial that uses your body blocking the signal behind you to give each device a direction. <b>Walk the area</b> counts your steps with the motion sensor and tracks your path by compass, recording every device along the way, and follows one device hot and cold. <b>Results</b> is a top-down plan with a hot zone for every device heard. Photos, waypoints, the device inventory and floor plans are steps 2 and 3. Also, "Find it" is now offered for every device, not only flagged ones.</p>
+    <div class="meta">Review performed 2026-09-27 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>sentinel-web.html</code> (survey logic and screens, the Nearby button, Find it on every device, soft-render throttling), <code>tests/sentinel-web.dom.test.mjs</code>, <code>tests/README.md</code> · suites run: <code>sentinel-web</code> · follows: <a href="33.html">33.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 67%;"></div></div>
+    <div class="progress-label">9 items: 6 verified clean (3 of them bugs fixed during review), 1 partial, 2 open. The four open items in <a href="32.html">32.html</a> are unchanged.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security &amp; privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">"Find it" and mapping now work on any device, anywhere (the user's decision)</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Until now the hot/cold finder only worked on an active flag. That followed the Sentinel app's guardrail, which exists so the tool can find a tracker following you but can't be used to follow a chosen person's phone or earbuds. On 2026-09-27 the user decided on full mapping everywhere: every device can be mapped and found, flagged or not, at home or elsewhere. They were offered a middle option first (full mapping only at places marked as home). <code>startFinder()</code> no longer checks for a flag, and the suite now asserts "Find it" appears on an unflagged device. What still holds: the page only listens (no connections), keeps nothing from a survey after the page closes, and shows Chrome's per-site IDs, never real addresses. Recorded as open because it's a deliberate removal of a protection, not a fix.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Survey data stays in memory; no new network use</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The sweep, walked path, step count and per-device readings live only in the page's memory and are gone when it closes. Nothing is written to IndexedDB yet (step 2 will store photos and waypoints, with delete). The CSP is unchanged from <a href="32.html">32.html</a> (diff checked), and a grep for <code>fetch(</code>, <code>localStorage</code>, <code>innerHTML</code>, <code>insertAdjacentHTML</code>, <code>document.write</code> and <code>eval</code> finds nothing. The compass (<code>deviceorientationabsolute</code>) and motion (<code>devicemotion</code>) listeners are added only while a survey is open and removed when you leave it (asserted). Where a browser requires a permission for them, it's requested first.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Names still rendered only as text</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Device names in the results list use <code>textContent</code> through <code>el()</code>. On the plan canvas they're drawn with <code>fillText</code>, cut to 24 characters. No new HTML-building path was added.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Sweep direction was biased and missed the last sector</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Two real bugs, found when the scripted survey's direction came out at 108° for a device strongest at 90°. First, the sweep ended the moment its twelfth sector was touched, so that sector never got a reading, which skewed the weighted mean. Second, each sector counted at its centre angle, adding up to 15° of bias. The sweep now finishes after at least 345° of actual turning with every sector covered, and uses the headings actually faced in each sector. In a headless Chromium simulation of a room (known device positions, signal from distance, body shadowing and ±2 dB noise), the directions came out 5–8° from the true bearings.</p>
+      <div class="fix-note"><b>Fix:</b> circular mean of the actual headings per sector, and a total-turn finish. The first version, "finish on re-entering the first sector", never fired when compass smoothing left the heading at 358°, so it was replaced by counting the turn.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">"Start here" stayed disabled, and the dial's text went stale</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Found in Chromium. A compass reading didn't trigger a re-render, so "Start here" stayed disabled until something else redrew the screen. And the new once-a-second limit on soft re-renders dropped updates without catching up, so the dial read "1 of 12 covered, facing N" after a turn to 250°. Compass readings, sweep progress and steps now request a render, and a skipped render always runs a moment later. Re-checked: "9 of 12 directions covered · facing W" after turning from 20° to 250°.</p>
+      <div class="fix-note"><b>Fix:</b> <code>scheduleRender()</code> on sensor input, plus a catch-up redraw on throttled renders.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Busy screens are rebuilt at most once a second</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Nearby and the survey used to rebuild their buttons on every advertisement. With many devices that can be several times a second, which risks replacing a button between finger-down and finger-up, so the tap is lost. Soft re-renders of those two screens are now limited to once a second, with a catch-up render. The swarm and plan canvases keep animating at full rate, because they're not rebuilt.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">How accurate the hot zones are</div><span class="badge partial">Partial</span></div>
+      <div class="item-body"><p>In the Chromium room simulation, a device the walk went around was placed 0.7 m from its true spot. Two devices outside the walked loop were placed 2.1 m and 2.9 m off, at the edge of the path, because a power-weighted centre can't go past the places you stood. The walk screen now says to walk around a device, not just past it, and the results call positions "this part of the room". Distance from signal strength is a rough indoor path-loss estimate (1 m at −59 dBm). Real walls, bodies and antennas will make it rougher. Marked partial because the limit is inherent and disclosed, not removed.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Tests and accessibility</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The <code>sentinel-web</code> suite went from 89 to 122 checks, all passing. They cover heading maths, path-loss distances, the sweep (east points east within one sector, flat is "unclear", two sectors give nothing), step counting (a 2 Hz walk for 5 s gives about 10 steps, standing still gives none), dead reckoning, both kinds of hot zone, and all four screens driven with simulated headings, steps and readings. Breaking the sweep's heading mean and raising the step threshold turned 2 checks red. No new colours were added: the dial and plan reuse the swarm's measured palette from <a href="33.html">33.html</a>. Both canvases are <code>role="img"</code> with a label that updates (directions covered, or steps and devices mapped), and every result is also in the text list below them with its offset from the start.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not yet tried with real sensors</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Everything was checked with simulated compass and motion events. Still to be seen on the tablet: that Chrome's <code>deviceorientationabsolute</code> reading converts to a compass heading as <code>360 − alpha</code> on this device, how much furniture and wiring upset the compass, whether the step detector (1.3 m/s² above a running average, at least 300 ms apart) matches a real walking pace, and the 0.7 m step length. Left open until the user has walked a room with it.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Suite run: <code>sentinel-web</code> (122 passed), per the repo's rule to run only the changed page's suites. See <a href="33.html">33.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>

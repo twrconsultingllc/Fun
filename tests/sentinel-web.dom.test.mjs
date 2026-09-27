@@ -197,7 +197,8 @@ export default async function run(t, page) {
         api.openDetail(routerDev.key);
         t.ok('an advertised name with markup is shown as text', view.textContent.includes('<img src=x onerror="window.__pwned=1">'));
         t.ok('…and creates no element or handler', !view.querySelector('img[onerror]') && window.__pwned === undefined);
-        t.ok('no "Find it" for a device that isn\'t flagged', !Array.from(view.querySelectorAll('button')).some((b) => b.textContent === 'Find it'));
+        // The user chose full mapping everywhere on 2026-09-27, so any device can be found, flagged or not.
+        t.ok('"Find it" is offered for a device that isn\'t flagged too', Array.from(view.querySelectorAll('button')).some((b) => b.textContent === 'Find it'));
 
         const now = Date.now();
         api.handleAdvertisement(tag('A2', -58), now);
@@ -254,6 +255,103 @@ export default async function run(t, page) {
         api.ignoreDevice(phoneDev.key, false);
         t.eq('an ignored device drops off Nearby', document.querySelectorAll('#view .row').length, 1);
         t.ok('…with a note that it\'s hidden', /1 ignored device hidden/.test(document.getElementById('view').textContent));
+
+        t.section('Map this place: the rules');
+
+        t.eq('headingDiff(10, 350) is +20°', api.headingDiff(10, 350), 20);
+        t.eq('headingDiff(350, 10) is −20°', api.headingDiff(350, 10), -20);
+        t.eq('compassName(44) is NE', api.compassName(44), 'NE');
+        t.eq('compassName(350) is N', api.compassName(350), 'N');
+        // Path loss: d = 10^((−59 − rssi) / 25). At −59 dBm that's 1 m, at −84 dBm 10 m.
+        t.ok('−59 dBm is about 1 m', Math.abs(api.rssiToMeters(-59) - 1) < 1e-9);
+        t.ok('−84 dBm is about 10 m', Math.abs(api.rssiToMeters(-84) - 10) < 1e-9);
+
+        const sw = api.createSweep(12);
+        // A device strongest facing east (90°), 20 dB weaker facing west, turned through all 12 sectors.
+        for (let deg = 0; deg < 360; deg += 10) {
+            const rssi = -60 - 10 * (1 - Math.cos((deg - 90) * Math.PI / 180));
+            sw.add('EAST', rssi, deg);
+            sw.add('FLAT', -70, deg);
+        }
+        const east = sw.result('EAST');
+        t.eq('the sweep covered all 12 sectors', sw.covered(), 12);
+        t.ok('a device strongest to the east points east (within one 30° sector)', Math.abs(api.headingDiff(east.heading, 90)) <= 15);
+        t.eq('…with a clear direction (spread ≥ 8 dB)', east.confidence, 'clear');
+        t.eq('a device the same from every side is "unclear"', sw.result('FLAT').confidence, 'unclear');
+        const few = api.createSweep(12);
+        few.add('X', -60, 10); few.add('X', -61, 40);
+        t.eq('readings in only 2 sectors give no direction', few.result('X'), null);
+
+        // Steps: a 2 Hz walk, ±3 m/s² around gravity, for 5 s, sampled at 50 Hz.
+        const det = api.createStepDetector();
+        let steps = 0;
+        for (let i = 0; i < 250; i++) {
+            const ts = i * 20;
+            if (det.onMotion(9.81 + 3 * Math.sin(2 * Math.PI * 2 * ts / 1000), ts)) steps++;
+        }
+        t.ok('a 2 Hz walk for 5 s counts about 10 steps', steps >= 9 && steps <= 11);
+        let still = 0;
+        const det2 = api.createStepDetector();
+        for (let i = 0; i < 250; i++) if (det2.onMotion(9.81 + 0.2 * Math.sin(i), i * 20)) still++;
+        t.eq('standing still (±0.2 m/s² jitter) counts no steps', still, 0);
+
+        const trk = api.createTrack(90);
+        trk.step(90, 0.7); trk.step(90, 0.7); trk.step(180, 0.7);
+        t.ok('two steps the way you started go 1.4 m ahead, then one to the right', Math.abs(trk.pos.y - 1.4) < 1e-9 && Math.abs(trk.pos.x - 0.7) < 1e-9);
+
+        // A walk along x from 0 to 6 m, with the device strongest at x = 4.
+        const walk = [];
+        for (let x = 0; x <= 6; x += 0.5) walk.push({ x, y: 0, rssi: -50 - 6 * Math.abs(x - 4) });
+        const zone = api.estimateZone(walk, null, 0);
+        t.ok('the hot zone sits at the strongest part of the walk (x ≈ 4 m)', Math.abs(zone.x - 4) < 0.3 && zone.source === 'walk');
+        const dirOnly = api.estimateZone([{ x: 0, y: 0, rssi: -70 }], { heading: 90, confidence: 'clear', meters: 3, bestRssi: -70 }, 0);
+        t.ok('without walking, a clear sweep places it by direction and distance (3 m to the right)', Math.abs(dirOnly.x - 3) < 1e-9 && Math.abs(dirOnly.y) < 1e-9 && dirOnly.source === 'direction');
+        t.eq('without walking and with an unclear sweep there is no zone', api.estimateZone([{ x: 0, y: 0, rssi: -70 }], { heading: 90, confidence: 'unclear', meters: 3 }, 0), null);
+        t.eq('offsets are described from the start', api.describeOffset({ x: -1.25, y: 2 }), '2.0 m ahead, 1.3 m left of the start');
+
+        t.section('Map this place: the screens');
+
+        const S = api.survey;
+        api.showView('nearby');
+        const mapBtn = Array.from(document.querySelectorAll('#view button')).find((b) => b.textContent === 'Map this place');
+        t.ok('Nearby has a "Map this place" button', !!mapBtn);
+        mapBtn.click();
+        t.eq('it opens the start screen', S.phase, 'start');
+        const startBtn = () => Array.from(document.querySelectorAll('#view button')).find((b) => b.textContent === 'Start here');
+        t.ok('"Start here" waits for the compass', startBtn()?.disabled === true);
+        S.onHeading(90);
+        api.render();
+        t.ok('…and is enabled once there is a heading', startBtn()?.disabled === false);
+        startBtn().click();
+        t.eq('the turn-in-a-circle screen follows', S.phase, 'sweep');
+        const t0 = Date.now();
+        for (let deg = 90; deg <= 90 + 360; deg += 15) {   // one full turn, back to where you started
+            S.onHeading(deg % 360);
+            const rel = (deg - 90) * Math.PI / 180;
+            api.handleAdvertisement(event(window, { id: 'FRAME', rssi: Math.round(-62 - 8 * (1 - Math.cos(rel))), name: 'Photo frame' }), t0 + deg);
+        }
+        t.eq('one full turn, back to the start direction, finishes the sweep by itself', S.phase, 'walk');
+        t.ok('the strongest device is followed', S.focusId === 'FRAME');
+        const fr = S.sweepResults.get('FRAME');
+        // The signal was strongest facing 90° and fell off symmetrically either side, with every sector
+        // read: the power-weighted mean of the headings faced comes out at 90° (within 5°).
+        t.ok('its direction is the way you faced at the start (90°, within 5°)', Math.abs(api.headingDiff(fr.heading, 90)) <= 5);
+        for (let i = 0; i < 6; i++) {
+            S.onStep();
+            api.handleAdvertisement(event(window, { id: 'FRAME', rssi: -60 + 2 * i, name: 'Photo frame' }), t0 + 5000 + i * 700);
+        }
+        t.ok('six steps facing the start direction move you 4.2 m ahead', Math.abs(S.track.pos.y - 4.2) < 1e-9 && Math.abs(S.track.pos.x) < 1e-9);
+        api.render();
+        t.ok('the walk screen follows the device, hot and cold', /Following: Photo frame/.test(document.getElementById('view').textContent));
+        const fin = Array.from(document.querySelectorAll('#view button')).find((b) => b.textContent === 'Finish');
+        fin.click();
+        t.eq('Finish shows the results', S.phase, 'result');
+        const z = S.zoneFor('FRAME');
+        t.ok('the frame\'s hot zone is ahead of the start, where the signal was strongest', z && z.y > 2.5 && z.source === 'walk');
+        t.ok('the results list names it with its offset from the start', /Photo frame/.test(document.getElementById('view').textContent) && /m ahead/.test(document.getElementById('view').textContent));
+        t.eq('the plan is a labelled canvas', document.querySelector('#view .survey-canvas canvas')?.getAttribute('role'), 'img');
+        api.showView('nearby');
+        t.ok('leaving the map ends the survey', !S.active);
 
         t.section('Dismissing, and flagging again only at a new place');
 
