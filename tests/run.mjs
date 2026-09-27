@@ -43,7 +43,9 @@ const SUITES = [
     { id: 'dash', page: 'trick-or-treat-dash.html', file: './trick-or-treat-dash.dom.test.mjs' },
     { id: 'wire-core', page: 'daily-wire.html', file: './daily-wire.core.test.mjs' },
     { id: 'wire-dom', page: 'daily-wire.html', file: './daily-wire.dom.test.mjs' },
-    { id: 'ble-scan', page: 'ble-scan-test.html', file: './ble-scan-test.dom.test.mjs' }
+    { id: 'ble-scan', page: 'ble-scan-test.html', file: './ble-scan-test.dom.test.mjs' },
+    { id: 'sentinel-web', page: 'sentinel-web.html', file: './sentinel-web.dom.test.mjs' },
+    { id: 'index', page: 'index.html', file: './index.dom.test.mjs' }
 ];
 
 const DEFAULT_BASE = new URL('../', import.meta.url).pathname;

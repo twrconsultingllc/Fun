@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #32 — sentinel-web.html (browser version of Sentinel)</title>
+<meta name="description" content="Security and code-quality review of sentinel-web.html, a browser version of the Sentinel tracker detector (Web Bluetooth scanning, location tagging, place clustering, flagging, device detail with an OpenStreetMap map, and a hot/cold finder), plus its new link on index.html.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #32 — <code>sentinel-web.html</code></h1>
+    <p class="sub">A new page: a browser version of the Sentinel Android tracker detector, with the features the user picked (Sentinel feature numbers 1, 4, 6, 7, 8, 11, 12, 13 and 14). It scans for Bluetooth LE devices while the page is open, tags each sighting with the location, groups fixes into places, flags a device seen at several places using the app's own scoring, and has Nearby, Flagged and Device Detail screens, an OpenStreetMap map and a hot/cold finder. Also a new link on <code>index.html</code>.</p>
+    <div class="meta">Review performed 2026-09-27 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>sentinel-web.html</code>, <code>index.html</code> (one section and one CSS selector), <code>tests/sentinel-web.dom.test.mjs</code>, <code>tests/index.dom.test.mjs</code>, <code>tests/run.mjs</code>, <code>tests/README.md</code> · suites run: <code>sentinel-web</code>, <code>index</code> · follows: <a href="31.html">31.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 67%;"></div></div>
+    <div class="progress-label">12 items: 8 verified clean (one of them a corrected test), 4 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security &amp; privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Advertised data is only ever shown as text</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Device names and broadcast bytes come from whoever built the device, so they're hostile input. The page builds every element with <code>createElement</code> and <code>textContent</code> through one <code>el()</code> helper, which sets attributes with <code>setAttribute</code> and never parses HTML. The suite asserts the page source has no <code>innerHTML</code>, <code>outerHTML</code>, <code>insertAdjacentHTML</code>, <code>document.write</code>, <code>eval(</code> or <code>new Function</code>. It also feeds in a device named <code>&lt;img src=x onerror="window.__pwned=1"&gt;</code>: Device Detail shows the name as text, no <code>img[onerror]</code> exists, and <code>window.__pwned</code> stays unset.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Nothing is sent anywhere; data stays in this browser</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The CSP is the repo's usual one with <code>connect-src 'none'</code> (no fetch, XHR or WebSocket to any host, including the page's own), <code>form-action 'none'</code>, and <code>img-src 'self' https://tile.openstreetmap.org</code>. The page has no external scripts, styles or fonts. Sightings, places, devices and flags are kept in the browser's IndexedDB on the device. Sightings older than 7 days are deleted when the page opens, and a "Delete all data" button clears all four stores. In headless Chromium the data survived a reload: 3 devices, 6 sightings, 3 places and 1 active flag before and after. The page uses no <code>localStorage</code> or cookies.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The map tells OpenStreetMap which area is being viewed</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Device Detail draws its own map from OpenStreetMap tiles, with no mapping library, so nothing is loaded from a CDN. Each tile request tells <code>tile.openstreetmap.org</code> the area shown, and the page's referrer policy sends the site's origin, which OSM's tile policy asks for. This is the same exception the Android app makes for its map. The setup panel states it, and tiles load only when a device page with places is open. Every tile URL is built from numbers the page computes (<code>/{z}/{x}/{y}.png</code>), never from advertised data. The suite checks that all tiles come from that host, and that the attribution link opens in a new tab with <code>rel="noopener noreferrer"</code>.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Location history on the device isn't locked</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>The stored sightings are a location history. Anyone who can use the unlocked tablet's Chrome can open the page and see them. The Android app plans an app lock and has a discreet mode, but the user didn't pick those features (Sentinel 18 and 19) for this version. What limits it now: 7-day retention and the Delete all data button. Left open as a known gap, not a bug.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Scanning is passive, visible-only, and the finder is limited to flagged trackers</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>requestLEScan</code> only listens. The page never calls <code>connect()</code> or <code>requestDevice()</code>, so it never connects to or writes to a device. Scanning starts only on a button press, behind Chrome's permission prompt, and stops when the page is hidden. Chrome shows each device as an opaque ID for this site, never its real Bluetooth address. The hot/cold finder follows the app's guardrail: it's offered only for an active flag, stops after 5 minutes (the countdown was checked ticking in Chromium: 300, 297, 295 s), stops when leaving the screen, and stores nothing of its own. The suite asserts there's no "Find it" on a device that isn't flagged.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Permissions-Policy can't be set on GitHub Pages</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Same as <a href="31.html">31.html</a>: a <code>Permissions-Policy</code> header limiting <code>bluetooth</code> and <code>geolocation</code> to this origin has no meta-tag form, and GitHub Pages can't send custom headers. Chrome already blocks both features in cross-origin frames by default. Architecturally blocked.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Detection rules match the Android app</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Ported line by line from Sentinel's <code>LocationClusterer</code>, <code>RotationLinker</code>, <code>FlagScorer</code>, <code>TrackerCorrelationEngine</code>, <code>FlagDecision</code>, <code>FindMyPayload</code> and <code>ProximityTracker</code>, with the app's defaults: 150 m places, 24 h window, 3 places over 20 min, 30 min visit gap, Medium sensitivity (55). Chrome's per-site device ID stands in for the address, so, as in the app, only a recognised tracker is linked across an ID change. The suite checks each rule against values worked out by hand from the Kotlin, for example 15 + 20 + 0 + 35 = 70 for the scripted tag. Raising the threshold to 75 and removing the halving turned 8 of the 71 checks red, so they test real behaviour.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">One wrong expectation in the new suite, corrected by re-deriving it</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The first run had 2 failures, both in the finder checks. The test had fed in "another" tag of the same family 10 dB from the target and expected it to count as a second device. The app's linker treats a same-family device within 12 dB as the target after an address change, and the page did exactly that, so the expectation was wrong, not the page. The test now uses a device 25 dB away, with a comment saying why.</p>
+      <div class="fix-note"><b>Fix:</b> the test was corrected, not the page. The repo's rule is to re-derive a failing expectation before changing it.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Contrast, layout and controls</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Measured WCAG ratios for every colour pair: body text at least 13.21:1, dim text at least 5.2:1, buttons 7.87:1 (dark theme) and 5.75:1 (light), status colours at least 5.05:1, flag count badge 9.54:1 and 5.05:1, map markers 6.96:1 and 5.62:1. Checked at 400 px in both themes in headless Chromium, with no sideways scroll (<code>scrollWidth</code> 400). Controls are real <code>button</code> elements with visible focus outlines. The tabs use <code>role="tab"</code> and <code>aria-selected</code>, status chips and notices are in live regions, and the map has an <code>aria-label</code> plus a table listing the same places.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Console message when leaving the page with a map on screen</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>In headless Chromium, with tile requests stubbed, leaving or reloading the page while Device Detail's map is showing logs one "Refused to connect … violates <code>connect-src 'none'</code>" per tile. While the page is open the tiles load as normal image requests with no errors (request type <code>image</code>, logged). A bare page with the same CSP and an <code>&lt;img&gt;</code> didn't reproduce it, and dropping <code>loading="lazy"</code> didn't change it. The message looks harmless and only appears on the way out, but the cause wasn't found, so it's left open instead of guessed at.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title"><code>index.html</code> link, with a new suite</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>One new section (<code>section-24</code>, "Sentinel Web") and its selector added to the existing centring rule. Nothing else changed. In Chromium the new section's styles match its neighbour's (centred, 860 px, 40 px white link). <code>index.html</code> had no suite, so <code>index</code> (6 checks) was added. It confirms every local gallery link points to a real file, external links are <code>https</code>, ids are unique, and every gallery section is in the centring rule. A copy with a misspelt link and the selector removed failed 3 of the 6 checks.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not yet tested on a real device</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Everything above used jsdom or headless Chromium with a simulated Bluetooth adapter and GPS, and stand-in map tiles, because the container has no radio and can't reach <code>tile.openstreetmap.org</code> or <code>*.github.io</code>. Still unknown: how often Chrome delivers advertisements on the tablet, whether Chrome's ID for a device survives its address rotation, the tablet's location accuracy indoors, and the real map. The user's <code>ble-scan-test.html</code> run showed devices arriving on the tablet, so scanning itself works there. The browser can't scan in the background at all, which the page states. Left open until it's been used on the tablet across a few places.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Suites run: <code>sentinel-web</code> (71 passed) and <code>index</code> (6 passed), per the repo's rule to run only the changed pages' suites. See <a href="31.html">31.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>

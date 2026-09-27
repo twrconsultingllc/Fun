@@ -44,7 +44,7 @@ not be loaded — so this drops straight into CI or a pre-push hook.
 
 ## What is covered
 
-1331 assertions across twenty-six suites.
+1408 assertions across twenty-eight suites.
 
 ### `academy/` (Full Circle Academy mockup)
 
@@ -57,6 +57,18 @@ jsdom only fetches external scripts with `resources: 'usable'` (which would
 also try Google Fonts). The suite reads `courses.js` and `academy.js` itself,
 from wherever `--base` points, and inlines them in place of the
 `<script src>` tags, so `npm run test:live` still exercises the deployed files.
+
+### `sentinel-web.html` (browser version of the Sentinel tracker detector)
+
+| Suite | File | Covers |
+|---|---|---|
+| `sentinel-web` | `sentinel-web.dom.test.mjs` | jsdom has no Web Bluetooth, geolocation or IndexedDB, so the page runs memory-only and the suite drives it through `window.__sentinelWeb`. The rules ported from the Android app, each value worked out by hand: haversine, place clustering (150 m), tracker formats and Find My owner state, `scoreOf` (caps, the near-owner weight, the halving for Chrome-ID-only identity past 30 min), the reason wording, every `decide` branch, the map's Web Mercator tile maths, and the hot/cold finder's smoothing, trend, "others nearby" and lost state. Then a scripted day: a Find My tag seen at three places 3 km apart changes its Chrome ID and is still one device, flagged at 15 + 20 + 0 + 35 = 70, while an iPhone on the same route (35) and a router at one place aren't. The Flagged, Device Detail (OpenStreetMap tiles only, numbered markers, attribution), Nearby and ignore screens, a hostile advertised name shown as text, and a dismissed flag that stays quiet on the same round but comes back at a new place. The CSP (`connect-src 'none'`, `img-src` only the tile server). |
+
+### `index.html` (the landing page)
+
+| Suite | File | Covers |
+|---|---|---|
+| `index` | `index.dom.test.mjs` | Parsed without running scripts, because the page's 3D background loads three.js from a CDN. Every local gallery link points to a file in the repo (working copy only), external links are `https`, section ids are unique, and every gallery section from `section-4` on is in the CSS rule that centres the links. |
 
 ### `ble-scan-test.html` (Web Bluetooth scanning test)
 

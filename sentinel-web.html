@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' https://tile.openstreetmap.org; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="description" content="Sentinel Web: a browser version of the Sentinel tracker detector. Scans for Bluetooth LE devices while the page is open, tags each sighting with your location, and flags a device seen at several of your places, such as an AirTag, SmartTag or Tile. Everything stays in this browser.">
+<title>Sentinel Web</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-2: #181d29;
+    --border: #232a38;
+    --text: #dfe4ee;
+    --dim: #8891a4;
+    --accent: #5aa9ff;
+    --on-accent: #0b0e14;
+    --ok: #2ecc71;
+    --warn: #f0a83c;
+    --bad: #ff6b6b;
+    --code-bg: #1a2030;
+    --marker: #ff6b6b;
+    --marker-text: #0b0e14;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-2: #eef0f5;
+      --border: #dde1ea;
+      --text: #1c2230;
+      --dim: #5b6478;
+      --accent: #1565c0;
+      --on-accent: #ffffff;
+      --ok: #1e7e3e;
+      --warn: #955d05;
+      --bad: #c62828;
+      --code-bg: #eef0f5;
+      --marker: #c62828;
+      --marker-text: #ffffff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 56px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.45;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; }
+  header.top { padding: 20px 0 8px; }
+  .title-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 1.45rem; margin: 0; }
+  h1 a { color: var(--dim); text-decoration: none; font-size: 0.85rem; font-weight: 500; margin-right: 8px; }
+  h1 a:hover, h1 a:focus-visible { color: var(--accent); }
+  h2 { font-size: 1.1rem; margin: 18px 0 8px; }
+  h3 { font-size: 0.95rem; margin: 16px 0 6px; }
+  .sub { color: var(--dim); margin: 6px 0 0; font-size: 0.9rem; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 4px; }
+  .chip {
+    font-size: 0.8rem;
+    padding: 3px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--dim);
+  }
+  .chip.ok { color: var(--ok); border-color: var(--ok); }
+  .chip.warn { color: var(--warn); border-color: var(--warn); }
+  .chip.bad { color: var(--bad); border-color: var(--bad); }
+  button {
+    font: inherit;
+    font-weight: 600;
+    padding: 9px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+    cursor: pointer;
+  }
+  button.secondary { background: transparent; color: var(--accent); }
+  button.danger { background: transparent; color: var(--bad); border-color: var(--bad); }
+  button.small { padding: 5px 11px; font-size: 0.85rem; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 12px 0;
+    font-size: 0.9rem;
+  }
+  details.panel summary { cursor: pointer; font-weight: 600; }
+  details.panel ol, details.panel ul { padding-left: 20px; margin: 8px 0; }
+  details.panel li { margin: 4px 0; }
+  code {
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    word-break: break-all;
+  }
+  .checks { list-style: none; padding: 0 !important; }
+  .ok { color: var(--ok); }
+  .bad { color: var(--bad); }
+  .warn { color: var(--warn); }
+  .dim { color: var(--dim); }
+  .banner {
+    border: 1px solid var(--warn);
+    background: var(--panel);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 12px 0;
+    font-size: 0.9rem;
+  }
+  .banner b { color: var(--warn); }
+  nav.tabs { display: flex; gap: 6px; margin: 16px 0 6px; border-bottom: 1px solid var(--border); }
+  nav.tabs button {
+    background: transparent;
+    color: var(--dim);
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    padding: 8px 12px;
+  }
+  nav.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+  .count {
+    display: inline-block;
+    min-width: 1.4em;
+    padding: 0 6px;
+    margin-left: 4px;
+    border-radius: 999px;
+    background: var(--warn);
+    color: var(--bg);
+    font-size: 0.78rem;
+    text-align: center;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 10px 8px 12px;
+    margin: 8px 0;
+    font-size: 0.9rem;
+  }
+  .row.tracker { border-color: var(--warn); }
+  .row .open {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    padding: 2px 0;
+    font-weight: 400;
+  }
+  .row .name { font-weight: 600; overflow-wrap: anywhere; }
+  .row .meta { color: var(--dim); font-size: 0.82rem; }
+  .tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 1px 7px;
+    border-radius: 999px;
+    border: 1px solid var(--warn);
+    color: var(--warn);
+    margin-left: 6px;
+    vertical-align: 1px;
+  }
+  .rssi { font-variant-numeric: tabular-nums; color: var(--dim); white-space: nowrap; font-size: 0.85rem; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--warn);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 10px 0;
+    font-size: 0.9rem;
+  }
+  .card .head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .card .name { font-weight: 700; overflow-wrap: anywhere; }
+  .score { font-variant-numeric: tabular-nums; color: var(--warn); font-weight: 700; white-space: nowrap; }
+  .card .reason { margin: 6px 0; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .empty { color: var(--dim); padding: 16px 4px; font-size: 0.9rem; }
+  dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 8px 0; font-size: 0.9rem; }
+  dl.facts dt { color: var(--dim); }
+  dl.facts dd { margin: 0; overflow-wrap: anywhere; }
+  .map {
+    position: relative;
+    height: 260px;
+    overflow: hidden;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    margin: 8px 0 4px;
+  }
+  .map img { position: absolute; width: 256px; height: 256px; max-width: none; user-select: none; }
+  .marker {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    margin: -12px 0 0 -12px;
+    border-radius: 50%;
+    background: var(--marker);
+    color: var(--marker-text);
+    border: 2px solid #ffffff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .attrib { font-size: 0.75rem; color: var(--dim); margin: 0 0 8px; }
+  .attrib a { color: var(--accent); }
+  table.places { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  table.places th, table.places td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.places th { color: var(--dim); font-weight: 600; }
+  .nick { display: flex; gap: 8px; margin: 8px 0; }
+  .nick input {
+    flex: 1;
+    min-width: 0;
+    font: inherit;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+  }
+  .finder { text-align: center; padding: 24px 12px; }
+  .finder .band { font-size: 2rem; font-weight: 800; margin: 8px 0; }
+  .finder .trend { font-size: 1.5rem; font-weight: 700; margin: 4px 0 12px; }
+  .finder .trend.warmer { color: var(--bad); }
+  .finder .trend.colder { color: var(--accent); }
+  .finder .reading { color: var(--dim); font-variant-numeric: tabular-nums; }
+  footer { margin-top: 32px; color: var(--dim); font-size: 0.8rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="title-row">
+      <h1><a href="index.html">← Fun</a>Sentinel Web</h1>
+      <div class="actions" style="margin-top: 0;">
+        <button id="scanBtn" type="button">Start scanning</button>
+      </div>
+    </div>
+    <p class="sub">Finds Bluetooth trackers that might be following you. It scans while this page is open, notes where you were, and flags a device seen at several of your places. Everything stays in this browser.</p>
+    <div class="chips" id="chips" aria-live="polite"></div>
+  </header>
+
+  <details class="panel" id="setup">
+    <summary>Setup and how it works</summary>
+    <ul class="checks" id="checks"></ul>
+    <h3>Turn on scanning in Chrome</h3>
+    <ol>
+      <li>Use Google Chrome (not Samsung Internet).</li>
+      <li>Open <code>chrome://flags</code>, search for <code>experimental web platform</code>, set <b>Experimental Web Platform features</b> to Enabled and relaunch.</li>
+      <li>Turn on Bluetooth and Location.</li>
+      <li>In Android Settings → Apps → Chrome → Permissions, allow <b>Nearby devices</b> and <b>Location</b> (precise).</li>
+    </ol>
+    <h3>How a device gets flagged</h3>
+    <p>The same rules as the Sentinel app. Places are fixes more than 150 m apart. A device is flagged when, within 24 hours, it was seen at 3 or more of your places over at least 20 minutes and scores 55 or more. Points come from the number of places, how far apart they are, repeat visits, and whether it matches a known tracker format (Apple Find My, Samsung SmartTag, Tile, Google Find Hub, Chipolo).</p>
+    <p><b>Limits:</b> it only sees what happens while this page is open and on screen. The browser can't scan in the background, so open it at different places, or leave it open while travelling. Trackers can still be missed. Chrome hides real Bluetooth addresses, so ordinary devices can't be followed across an address change, only recognised trackers.</p>
+    <h3>Your data</h3>
+    <p>Sightings and places are kept in this browser's storage on this device for 7 days, and are never sent anywhere. The map on a device's page loads OpenStreetMap tiles, so the tile server sees which area is being viewed.</p>
+    <div class="actions"><button id="wipeBtn" type="button" class="danger small">Delete all data</button></div>
+  </details>
+
+  <div id="banner"></div>
+
+  <nav class="tabs" role="tablist" id="tabs">
+    <button type="button" role="tab" id="tab-nearby" aria-selected="true" data-view="nearby">Nearby</button>
+    <button type="button" role="tab" id="tab-flagged" aria-selected="false" data-view="flagged">Flagged</button>
+  </nav>
+
+  <main id="view" aria-live="polite"></main>
+
+  <footer>Sentinel Web is a companion to the Sentinel Android app. It never connects to a device, only listens to what devices broadcast.</footer>
+</div>
+
+<script>
+'use strict';
+
+/* ---------------------------------------------------------------------------
+ * Detection rules, ported from the Sentinel app (detection/ and scan/ble/).
+ * Keep these in step with it: the numbers below are the app's defaults.
+ * ------------------------------------------------------------------------- */
+
+const MIN = 60 * 1000;
+const HOUR = 60 * MIN;
+const CFG = {
+  cycleMs: 30 * 1000,             // one scan cycle: readings are batched and linked
+  sightingEveryMs: 2 * MIN,       // store at most one sighting per device per 2 min, unless the place changed
+  clusterMeters: 150,             // DEFAULT_CLUSTER_THRESHOLD_METERS
+  windowMs: 24 * HOUR,
+  minDistinctClusters: 3,
+  minSpanMs: 20 * MIN,
+  sessionGapMs: 30 * MIN,
+  weakIdentitySpanMs: 30 * MIN,
+  weakIdentityMultiplier: 0.5,
+  flagThreshold: 55,              // Sensitivity.MEDIUM
+  retentionMs: 7 * 24 * HOUR,
+  fixMaxAgeMs: 2 * MIN,
+  fixMaxAccuracyMeters: 200,
+  nearbyWindowMs: 60 * 1000
+};
+
+const LINKER = {
+  maxRotationGapMs: 15 * MIN,
+  maxRssiDeltaDb: 12,
+  maxTravelSpeedMps: 35,
+  locationSlackMeters: 150,
+  trackRetentionMs: 24 * HOUR
+};
+
+const PROX = { alpha: 0.3, trendWindowMs: 3000, trendDb: 3, lostAfterMs: 20000, othersWindowMs: 10000, timeLimitMs: 5 * MIN };
+
+const SIGNATURES = [
+  { id: 'apple_find_my', name: 'Apple Find My', company: 0x004C, prefix: [0x12], weight: 35, nearOwnerWeight: 5 },
+  { id: 'samsung_smarttag', name: 'Samsung SmartTag', uuid16: 0xFD5A, weight: 35 },
+  { id: 'tile', name: 'Tile', uuid16: 0xFEED, weight: 35 },
+  { id: 'google_fmdn', name: 'Google Find Hub', dataUuid16: 0xFEAA, dataPrefixes: [[0x40], [0x41]], weight: 35 },
+  { id: 'chipolo', name: 'Chipolo', uuid16: 0xFE33, weight: 35 }
+];
+const SIG_BY_ID = new Map(SIGNATURES.map((s) => [s.id, s]));
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371008.8;
+  const toRad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * toRad;
+  const dLon = (lon2 - lon1) * toRad;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+/* --- advertisement parsing ------------------------------------------------ */
+
+function uuid16Of(uuid) {
+  const m = /^0000([0-9a-f]{4})-0000-1000-8000-00805f9b34fb$/i.exec(String(uuid));
+  return m ? parseInt(m[1], 16) : null;
+}
+
+function bytesOf(view) {
+  return view ? Array.from(new Uint8Array(view.buffer, view.byteOffset, view.byteLength)) : [];
+}
+
+function parseAdvertisement(event) {
+  const manufacturer = new Map();
+  if (event.manufacturerData) event.manufacturerData.forEach((view, id) => manufacturer.set(Number(id), bytesOf(view)));
+  const serviceData = new Map();
+  const uuids16 = new Set();
+  if (event.serviceData) {
+    event.serviceData.forEach((view, uuid) => {
+      const s = uuid16Of(uuid);
+      if (s !== null) { serviceData.set(s, bytesOf(view)); uuids16.add(s); }
+    });
+  }
+  for (const uuid of event.uuids || []) {
+    const s = uuid16Of(uuid);
+    if (s !== null) uuids16.add(s);
+  }
+  return { manufacturer, serviceData, uuids16 };
+}
+
+const startsWith = (arr, prefix) => prefix.every((b, i) => arr[i] === b);
+
+function matchSignature(adv) {
+  for (const sig of SIGNATURES) {
+    if (sig.company !== undefined) {
+      const d = adv.manufacturer.get(sig.company);
+      if (d && startsWith(d, sig.prefix)) return sig;
+    } else if (sig.uuid16 !== undefined) {
+      if (adv.uuids16.has(sig.uuid16)) return sig;
+    } else {
+      const d = adv.serviceData.get(sig.dataUuid16);
+      if (d && sig.dataPrefixes.some((p) => startsWith(d, p))) return sig;
+    }
+  }
+  return null;
+}
+
+// FindMyPayload.kt: 0x004C, type 0x12; length byte 0x19 = separated, 0x02 = near its owner.
+function findMyPayload(adv) {
+  const d = adv.manufacturer.get(0x004C);
+  return d && d.length >= 2 && d[0] === 0x12 ? d : null;
+}
+
+function ownerState(adv) {
+  const d = findMyPayload(adv);
+  if (!d) return 'unknown';
+  if (d[1] === 0x19) return 'separated';
+  if (d[1] === 0x02) return 'near_owner';
+  return 'unknown';
+}
+
+function statusByte(adv) {
+  const d = findMyPayload(adv);
+  return d && d.length >= 3 ? d[2] : null;
+}
+
+/* --- places (LocationClusterer.kt) ---------------------------------------- */
+
+function createClusterer(existing, thresholdMeters) {
+  const clusters = (existing || []).map((c) => ({ ...c }));
+  let nextId = clusters.reduce((m, c) => Math.max(m, c.id), 0) + 1;
+  return {
+    get all() { return clusters.map((c) => ({ ...c })); },
+    byId(id) { return clusters.find((c) => c.id === id) || null; },
+    assign(lat, lon) {
+      let best = null;
+      let bestD = Infinity;
+      for (const c of clusters) {
+        const d = haversine(lat, lon, c.lat, c.lon);
+        if (d <= thresholdMeters && d < bestD) { best = c; bestD = d; }
+      }
+      if (!best) {
+        const c = { id: nextId++, lat, lon, n: 1 };
+        clusters.push(c);
+        return { ...c };
+      }
+      best.n += 1;
+      best.lat += (lat - best.lat) / best.n;
+      best.lon += (lon - best.lon) / best.n;
+      return { ...best };
+    }
+  };
+}
+
+/* --- identity across address rotation (RotationLinker.kt) ----------------- */
+// Chrome gives each device an opaque per-site ID instead of its address, so the ID stands in for
+// the address here. Only a recognised tracker is linked across a change of ID.
+
+function createLinker(existingTracks) {
+  const tracks = new Map((existingTracks || []).map((t) => [t.key, { ...t }]));
+  const keyByAddress = new Map();
+  for (const t of tracks.values()) keyByAddress.set(t.lastAddress, t.key);
+
+  function evict(cutoff) {
+    for (const t of Array.from(tracks.values())) {
+      if (t.lastSeen < cutoff) {
+        tracks.delete(t.key);
+        if (keyByAddress.get(t.lastAddress) === t.key) keyByAddress.delete(t.lastAddress);
+      }
+    }
+  }
+
+  function plausible(t, s) {
+    if (t.lastLat == null || t.lastLon == null || s.lat == null || s.lon == null) return true;
+    const meters = haversine(t.lastLat, t.lastLon, s.lat, s.lon);
+    const seconds = (s.ts - t.lastSeen) / 1000;
+    return meters <= LINKER.locationSlackMeters + LINKER.maxTravelSpeedMps * seconds;
+  }
+
+  function bestCandidate(s, alive) {
+    let best = null;
+    for (const t of tracks.values()) {
+      if (alive.has(t.key) || t.signatureId !== s.signatureId) continue;
+      const gap = s.ts - t.lastSeen;
+      if (gap < 1 || gap > LINKER.maxRotationGapMs) continue;
+      if (Math.abs(t.lastRssi - s.rssi) > LINKER.maxRssiDeltaDb) continue;
+      if (!plausible(t, s)) continue;
+      const delta = Math.abs(t.lastRssi - s.rssi);
+      const statusTie = t.lastStatus != null && t.lastStatus === s.status ? 0 : 1;
+      if (!best || delta < best.delta || (delta === best.delta && statusTie < best.statusTie)) best = { t, delta, statusTie };
+    }
+    return best ? best.t : null;
+  }
+
+  function update(t, s, linked) {
+    if (t.lastAddress !== s.address && keyByAddress.get(t.lastAddress) === t.key) keyByAddress.delete(t.lastAddress);
+    keyByAddress.set(s.address, t.key);
+    const next = {
+      ...t,
+      lastAddress: s.address,
+      lastSeen: s.ts,
+      lastRssi: s.rssi,
+      lastLat: s.lat != null ? s.lat : t.lastLat,
+      lastLon: s.lon != null ? s.lon : t.lastLon,
+      lastStatus: s.status != null ? s.status : t.lastStatus
+    };
+    tracks.set(t.key, next);
+    return { sighting: s, key: t.key, identity: s.signatureId ? 'payload' : 'mac_only', linked };
+  }
+
+  function newKey(s) {
+    return s.signatureId ? `ble:${s.signatureId}:${s.address}@${s.ts}` : `ble:id:${s.address}`;
+  }
+
+  return {
+    get all() { return Array.from(tracks.values()).map((t) => ({ ...t })); },
+    track(key) { const t = tracks.get(key); return t ? { ...t } : null; },
+    linkBatch(batch) {
+      if (!batch.length) return [];
+      evict(Math.max(...batch.map((s) => s.ts)) - LINKER.trackRetentionMs);
+      const alive = new Set();
+      const results = new Array(batch.length);
+      const trackAt = (a) => { const k = keyByAddress.get(a); return k ? tracks.get(k) : null; };
+      const known = [];
+      const fresh = [];
+      batch.forEach((s, i) => (trackAt(s.address) ? known : fresh).push(i));
+      for (const i of known) {
+        const t = trackAt(batch[i].address);
+        alive.add(t.key);
+        results[i] = update(t, batch[i], false);
+      }
+      fresh.sort((a, b) => batch[a].ts - batch[b].ts);
+      for (const i of fresh) {
+        const s = batch[i];
+        const same = trackAt(s.address);
+        let r;
+        if (same) r = update(same, s, false);
+        else {
+          const cand = s.signatureId ? bestCandidate(s, alive) : null;
+          if (cand) r = update(cand, s, true);
+          else {
+            const key = newKey(s);
+            r = update({ key, signatureId: s.signatureId, lastAddress: s.address, lastSeen: s.ts, lastRssi: s.rssi, lastLat: s.lat, lastLon: s.lon, lastStatus: s.status }, s, false);
+          }
+        }
+        alive.add(r.key);
+        results[i] = r;
+      }
+      return results;
+    }
+  };
+}
+
+/* --- scoring (FlagScorer.kt, TrackerCorrelationEngine.kt, FlagDecision.kt) - */
+
+function fmtDistance(m) {
+  return m >= 1000 ? (m / 1000).toFixed(1) + 'km' : Math.round(m) + 'm';
+}
+
+function fmtDuration(ms) {
+  const minutes = Math.floor(ms / MIN);
+  return minutes >= 60 ? Math.round(minutes / 60) + 'h' : minutes + 'min';
+}
+
+function scoreOf(metrics, identity, sig) {
+  const clusterPoints = clamp(15 + (metrics.distinctClusters - 3) * 5, 0, 30);
+  const spreadPoints = clamp(metrics.maxSpreadMeters / 5000 * 20, 0, 20);
+  const sessionPoints = clamp((metrics.sessions - 1) * 5, 0, 15);
+  const sigPoints = !sig ? 0 : metrics.nearOwnerOnly && sig.nearOwnerWeight != null ? sig.nearOwnerWeight : sig.weight;
+  let raw = clusterPoints + spreadPoints + sessionPoints + sigPoints;
+  if (identity === 'mac_only' && metrics.spanMs > CFG.weakIdentitySpanMs) raw *= CFG.weakIdentityMultiplier;
+  return clamp(Math.round(raw), 0, 100);
+}
+
+function reasonOf(metrics, sig) {
+  let s = `Seen at ${metrics.distinctClusters} locations up to ${fmtDistance(metrics.maxSpreadMeters)} apart over ${fmtDuration(metrics.spanMs)}`;
+  if (metrics.sessions > 1) s += ` in ${metrics.sessions} separate visits`;
+  if (sig) {
+    s += `; matches ${sig.name} format`;
+    if (metrics.nearOwnerOnly && sig.nearOwnerWeight != null) s += ' (only seen near its owner)';
+  }
+  return s;
+}
+
+// device: { key, identity, signatureId, ignored }; sightings sorted or not: [{ ts, rssi, clusterId, owner }]
+function assess(device, sightings, clusterById, now, after) {
+  const start = now - CFG.windowMs;
+  const inWindow = sightings
+    .filter((o) => o.ts >= start && o.ts <= now && (after == null || o.ts > after))
+    .sort((a, b) => a.ts - b.ts);
+  if (!inWindow.length) return null;
+  const ids = Array.from(new Set(inWindow.map((o) => o.clusterId).filter((id) => id != null)));
+  const places = ids.map((id) => clusterById(id)).filter(Boolean);
+  const span = inWindow[inWindow.length - 1].ts - inWindow[0].ts;
+  if (places.length < CFG.minDistinctClusters || span < CFG.minSpanMs) return null;
+  let spread = 0;
+  for (let i = 0; i < places.length; i++) for (let j = i + 1; j < places.length; j++) {
+    spread = Math.max(spread, haversine(places[i].lat, places[i].lon, places[j].lat, places[j].lon));
+  }
+  let sessions = 1;
+  for (let i = 1; i < inWindow.length; i++) if (inWindow[i].ts - inWindow[i - 1].ts > CFG.sessionGapMs) sessions++;
+  const metrics = {
+    distinctClusters: places.length,
+    maxSpreadMeters: spread,
+    spanMs: span,
+    sessions,
+    nearOwnerOnly: inWindow.every((o) => o.owner === 'near_owner')
+  };
+  const sig = device.signatureId ? SIG_BY_ID.get(device.signatureId) : null;
+  const score = scoreOf(metrics, device.identity, sig);
+  return { key: device.key, metrics, score, flagged: score >= CFG.flagThreshold, reason: reasonOf(metrics, sig), placeIds: places.map((p) => p.id) };
+}
+
+function decide(assessment, prior, sinceDismissal) {
+  if (!prior) return assessment.flagged ? 'raise' : 'suppress';
+  if (prior.active) return assessment.flagged ? 'update' : 'suppress';
+  if (sinceDismissal && sinceDismissal.flagged && sinceDismissal.placeIds.some((id) => !prior.dismissedPlaces.includes(id))) return 'raise';
+  return 'suppress';
+}
+
+/* --- hot/cold finder (ProximityTracker.kt) -------------------------------- */
+
+function createProximity(targetTrack) {
+  const linker = createLinker([targetTrack]);
+  const targetKey = targetTrack.key;
+  let smoothed = null;
+  let lastTargetAt = null;
+  const history = [];
+  const others = new Map();
+
+  function trend(now) {
+    if (smoothed == null) return 'steady';
+    let earlier = null;
+    for (const h of history) if (now - h.ts >= PROX.trendWindowMs) earlier = h.v;
+    if (earlier == null) return 'steady';
+    if (smoothed - earlier >= PROX.trendDb) return 'warmer';
+    if (earlier - smoothed >= PROX.trendDb) return 'colder';
+    return 'steady';
+  }
+
+  function snapshot(now) {
+    for (const [a, t] of Array.from(others)) if (now - t > PROX.othersWindowMs) others.delete(a);
+    const lost = lastTargetAt == null ? true : now - lastTargetAt > PROX.lostAfterMs;
+    let band;
+    if (smoothed == null || lost) band = 'not heard';
+    else if (smoothed >= -55) band = 'very close';
+    else if (smoothed >= -70) band = 'close';
+    else if (smoothed >= -85) band = 'in range';
+    else band = 'far';
+    return { smoothedRssi: smoothed == null ? null : Math.round(smoothed), trend: trend(now), band, lost, othersNearby: others.size };
+  }
+
+  return {
+    onReading(s) {
+      const link = linker.linkBatch([s])[0];
+      if (link.key === targetKey) {
+        smoothed = smoothed == null ? s.rssi : smoothed + PROX.alpha * (s.rssi - smoothed);
+        lastTargetAt = s.ts;
+        history.push({ ts: s.ts, v: smoothed });
+        while (history.length > 1 && s.ts - history[0].ts > PROX.trendWindowMs * 2) history.shift();
+      } else {
+        others.set(s.address, s.ts);
+      }
+      return snapshot(s.ts);
+    },
+    snapshot
+  };
+}
+
+/* --- map tiles (OpenStreetMap, Web Mercator) ------------------------------ */
+
+function project(lat, lon, zoom) {
+  const size = 256 * 2 ** zoom;
+  const s = Math.sin(clamp(lat, -85.0511, 85.0511) * Math.PI / 180);
+  return {
+    x: (lon + 180) / 360 * size,
+    y: (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * size
+  };
+}
+
+function fitZoom(places, width, height) {
+  if (places.length < 2) return 16;
+  for (let z = 17; z >= 2; z--) {
+    const pts = places.map((p) => project(p.lat, p.lon, z));
+    const w = Math.max(...pts.map((p) => p.x)) - Math.min(...pts.map((p) => p.x));
+    const h = Math.max(...pts.map((p) => p.y)) - Math.min(...pts.map((p) => p.y));
+    if (w <= width - 60 && h <= height - 60) return z;
+  }
+  return 2;
+}
+
+function tileLayout(places, width, height) {
+  const zoom = fitZoom(places, width, height);
+  const pts = places.map((p) => project(p.lat, p.lon, zoom));
+  const cx = (Math.min(...pts.map((p) => p.x)) + Math.max(...pts.map((p) => p.x))) / 2;
+  const cy = (Math.min(...pts.map((p) => p.y)) + Math.max(...pts.map((p) => p.y))) / 2;
+  const left = cx - width / 2;
+  const top = cy - height / 2;
+  const n = 2 ** zoom;
+  const tiles = [];
+  for (let tx = Math.floor(left / 256); tx <= Math.floor((left + width) / 256); tx++) {
+    for (let ty = Math.floor(top / 256); ty <= Math.floor((top + height) / 256); ty++) {
+      if (ty < 0 || ty >= n) continue;
+      const wx = ((tx % n) + n) % n;
+      tiles.push({ url: `https://tile.openstreetmap.org/${zoom}/${wx}/${ty}.png`, left: tx * 256 - left, top: ty * 256 - top });
+    }
+  }
+  const markers = pts.map((p) => ({ left: p.x - left, top: p.y - top }));
+  return { zoom, tiles, markers };
+}
+
+/* ---------------------------------------------------------------------------
+ * Storage: IndexedDB when the browser has it, otherwise memory only.
+ * ------------------------------------------------------------------------- */
+
+const DB_NAME = 'sentinel-web';
+const store = {
+  db: null,
+  persistent: false,
+  async open() {
+    if (typeof indexedDB === 'undefined' || !indexedDB) return false;
+    try {
+      this.db = await new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          const s = db.createObjectStore('sightings', { keyPath: 'id', autoIncrement: true });
+          s.createIndex('ts', 'ts');
+          db.createObjectStore('devices', { keyPath: 'key' });
+          db.createObjectStore('flags', { keyPath: 'key' });
+          db.createObjectStore('meta', { keyPath: 'name' });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      this.persistent = true;
+      return true;
+    } catch (e) {
+      this.db = null;
+      return false;
+    }
+  },
+  tx(stores, mode) { return this.db.transaction(stores, mode); },
+  async loadAll(cutoff) {
+    if (!this.db) return null;
+    const getAll = (name) => new Promise((resolve, reject) => {
+      const r = this.tx([name], 'readonly').objectStore(name).getAll();
+      r.onsuccess = () => resolve(r.result || []);
+      r.onerror = () => reject(r.error);
+    });
+    await new Promise((resolve, reject) => {
+      const t = this.tx(['sightings'], 'readwrite');
+      const idx = t.objectStore('sightings').index('ts');
+      const cur = idx.openCursor(IDBKeyRange.upperBound(cutoff, true));
+      cur.onsuccess = () => { const c = cur.result; if (c) { c.delete(); c.continue(); } };
+      t.oncomplete = resolve;
+      t.onerror = () => reject(t.error);
+    });
+    const [sightings, devices, flags, meta] = await Promise.all([getAll('sightings'), getAll('devices'), getAll('flags'), getAll('meta')]);
+    return { sightings, devices, flags, meta: Object.fromEntries(meta.map((m) => [m.name, m.value])) };
+  },
+  async save({ newSightings, devices, flags, meta }) {
+    if (!this.db) return;
+    await new Promise((resolve, reject) => {
+      const t = this.tx(['sightings', 'devices', 'flags', 'meta'], 'readwrite');
+      const s = t.objectStore('sightings');
+      for (const x of newSightings) {
+        const r = s.add({ key: x.key, ts: x.ts, rssi: x.rssi, clusterId: x.clusterId, owner: x.owner });
+        r.onsuccess = () => { x.id = r.result; };
+      }
+      const d = t.objectStore('devices');
+      for (const dev of devices) d.put({ ...dev, ids: Array.from(dev.ids) });
+      const f = t.objectStore('flags');
+      f.clear();
+      for (const flag of flags) f.put(flag);
+      const m = t.objectStore('meta');
+      for (const [name, value] of Object.entries(meta)) m.put({ name, value });
+      t.oncomplete = resolve;
+      t.onerror = () => reject(t.error);
+    });
+  },
+  async wipe() {
+    if (!this.db) return;
+    await new Promise((resolve, reject) => {
+      const t = this.tx(['sightings', 'devices', 'flags', 'meta'], 'readwrite');
+      for (const n of ['sightings', 'devices', 'flags', 'meta']) t.objectStore(n).clear();
+      t.oncomplete = resolve;
+      t.onerror = () => reject(t.error);
+    });
+  }
+};
+
+/* ---------------------------------------------------------------------------
+ * App state
+ * ------------------------------------------------------------------------- */
+
+const state = {
+  devices: new Map(),   // key -> { key, signatureId, identity, name, nickname, ignored, ids:Set, firstSeen, lastSeen, lastRssi, owner, lastSightTs, lastSightCluster }
+  sightings: [],        // { key, ts, rssi, clusterId, owner }
+  flags: new Map(),     // key -> { key, active, score, reason, placeIds, raisedAt, updatedAt, dismissedAt, dismissedPlaces }
+  clusterer: createClusterer([], CFG.clusterMeters),
+  linker: createLinker([]),
+  live: new Map(),      // chrome id -> { id, key, name, rssi, ts, sig, owner }
+  pending: new Map(),   // chrome id -> strongest reading this cycle
+  unsaved: [],
+  fix: null,            // { lat, lon, acc, ts }
+  locStatus: 'off',
+  scan: null,
+  scanning: false,
+  wakeLock: null,
+  view: 'nearby',
+  detailKey: null,
+  finder: null,
+  notice: '',
+  newFlags: 0,
+  cycles: 0
+};
+
+function clusterById(id) { return state.clusterer.byId(id); }
+
+function sightingsByKey() {
+  const map = new Map();
+  for (const s of state.sightings) {
+    let arr = map.get(s.key);
+    if (!arr) { arr = []; map.set(s.key, arr); }
+    arr.push(s);
+  }
+  return map;
+}
+
+function currentFix(now) {
+  const f = state.fix;
+  if (!f || now - f.ts > CFG.fixMaxAgeMs || f.acc > CFG.fixMaxAccuracyMeters) return null;
+  return f;
+}
+
+/* --- scanning ------------------------------------------------------------- */
+
+function handleAdvertisement(event, now) {
+  const ts = now == null ? Date.now() : now;
+  const id = event.device && event.device.id ? String(event.device.id) : null;
+  if (!id) return;
+  const adv = parseAdvertisement(event);
+  const sig = matchSignature(adv);
+  const name = String(event.name || (event.device && event.device.name) || '');
+  const rssi = typeof event.rssi === 'number' ? event.rssi : -100;
+  const reading = { id, name, rssi, ts, sigId: sig ? sig.id : null, owner: ownerState(adv), status: statusByte(adv) };
+
+  const prev = state.pending.get(id);
+  if (!prev || rssi > prev.rssi) state.pending.set(id, reading);
+
+  const live = state.live.get(id) || { id };
+  Object.assign(live, { name: name || live.name || '', rssi, ts, sigId: reading.sigId || live.sigId || null, owner: reading.owner });
+  state.live.set(id, live);
+
+  if (state.finder) finderReading(reading);
+  scheduleRender();
+}
+
+function runCycle(now) {
+  const ts = now == null ? Date.now() : now;
+  state.cycles++;
+  if (!state.pending.size) { runDetection(ts); return; }
+  const fix = currentFix(ts);
+  const place = fix ? state.clusterer.assign(fix.lat, fix.lon) : null;
+  const readings = Array.from(state.pending.values());
+  state.pending.clear();
+  const batch = readings.map((r) => ({
+    address: r.id, signatureId: r.sigId, rssi: r.rssi, ts: r.ts,
+    lat: fix ? fix.lat : null, lon: fix ? fix.lon : null, status: r.status, owner: r.owner, name: r.name
+  }));
+  const results = state.linker.linkBatch(batch);
+  for (const res of results) {
+    const s = res.sighting;
+    let dev = state.devices.get(res.key);
+    if (!dev) {
+      dev = { key: res.key, signatureId: s.signatureId, identity: res.identity, name: '', nickname: '', ignored: false, ids: new Set(), firstSeen: s.ts, lastSeen: s.ts, lastRssi: s.rssi, owner: 'unknown', lastSightTs: null, lastSightCluster: null };
+      state.devices.set(res.key, dev);
+    }
+    dev.ids.add(s.address);
+    if (s.name) dev.name = s.name;
+    dev.lastSeen = Math.max(dev.lastSeen, s.ts);
+    dev.lastRssi = s.rssi;
+    dev.owner = s.owner;
+    if (s.signatureId && !dev.signatureId) dev.signatureId = s.signatureId;
+    if (res.identity === 'payload') dev.identity = 'payload';
+    const live = state.live.get(s.address);
+    if (live) live.key = res.key;
+
+    const clusterId = place ? place.id : null;
+    if (dev.lastSightTs == null || s.ts - dev.lastSightTs >= CFG.sightingEveryMs || clusterId !== dev.lastSightCluster) {
+      const row = { key: dev.key, ts: s.ts, rssi: s.rssi, clusterId, owner: s.owner };
+      state.sightings.push(row);
+      state.unsaved.push(row);
+      dev.lastSightTs = s.ts;
+      dev.lastSightCluster = clusterId;
+    }
+  }
+  runDetection(ts);
+  persist();
+}
+
+function runDetection(now) {
+  const cutoff = now - CFG.retentionMs;
+  if (state.sightings.length && state.sightings[0].ts < cutoff) state.sightings = state.sightings.filter((s) => s.ts >= cutoff);
+  const byKey = sightingsByKey();
+  for (const dev of state.devices.values()) {
+    if (dev.ignored) continue;
+    const obs = byKey.get(dev.key);
+    if (!obs) continue;
+    const a = assess(dev, obs, clusterById, now);
+    if (!a) continue;
+    const prior = state.flags.get(dev.key) || null;
+    const since = prior && !prior.active ? assess(dev, obs, clusterById, now, prior.dismissedAt) : null;
+    const action = decide(a, prior, since);
+    if (action === 'raise') {
+      state.flags.set(dev.key, { key: dev.key, active: true, score: a.score, reason: a.reason, placeIds: a.placeIds, raisedAt: now, updatedAt: now, dismissedAt: null, dismissedPlaces: [] });
+      state.newFlags++;
+    } else if (action === 'update') {
+      Object.assign(prior, { score: a.score, reason: a.reason, placeIds: a.placeIds, updatedAt: now });
+    }
+  }
+}
+
+let saving = Promise.resolve();
+function persist() {
+  const newSightings = state.unsaved.splice(0);
+  const payload = {
+    newSightings,
+    devices: Array.from(state.devices.values()),
+    flags: Array.from(state.flags.values()),
+    meta: { clusters: state.clusterer.all, tracks: state.linker.all }
+  };
+  saving = saving.then(() => store.save(payload)).catch(() => { state.notice = 'Couldn\'t save to this browser\'s storage. Data is kept only until the page closes.'; });
+  return saving;
+}
+
+async function startScan() {
+  if (!scanSupported()) { state.notice = 'This browser can\'t scan. Open "Setup and how it works".'; render(); return false; }
+  try {
+    navigator.bluetooth.removeEventListener('advertisementreceived', onAdv);
+    navigator.bluetooth.addEventListener('advertisementreceived', onAdv);
+    state.scan = await navigator.bluetooth.requestLEScan({ acceptAllAdvertisements: true, keepRepeatedDevices: true });
+    state.scanning = true;
+    state.notice = '';
+    startLocation();
+    startCycles();
+    requestWakeLock();
+    render();
+    return true;
+  } catch (e) {
+    state.scan = null;
+    state.scanning = false;
+    state.notice = 'Couldn\'t start scanning: ' + (e && e.name ? e.name + ': ' : '') + (e && e.message ? e.message : String(e)) +
+      '. Check that Bluetooth and Location are on and Chrome is allowed Nearby devices.';
+    render();
+    return false;
+  }
+}
+
+function stopScan(reason) {
+  if (state.scan && state.scan.active !== false) { try { state.scan.stop(); } catch (e) { /* already stopped */ } }
+  state.scan = null;
+  if (typeof navigator !== 'undefined' && navigator.bluetooth) navigator.bluetooth.removeEventListener('advertisementreceived', onAdv);
+  const wasScanning = state.scanning;
+  state.scanning = false;
+  stopCycles();
+  stopLocation();
+  releaseWakeLock();
+  if (wasScanning) runCycle();
+  stopFinder();
+  if (reason) state.notice = reason;
+  render();
+}
+
+function onAdv(event) { handleAdvertisement(event); }
+
+function scanSupported() {
+  return typeof navigator !== 'undefined' && !!navigator.bluetooth && typeof navigator.bluetooth.requestLEScan === 'function' && window.isSecureContext === true;
+}
+
+let cycleTimer = null;
+function startCycles() { stopCycles(); cycleTimer = setInterval(() => { runCycle(); scheduleRender(); }, CFG.cycleMs); }
+function stopCycles() { if (cycleTimer) clearInterval(cycleTimer); cycleTimer = null; }
+
+let watchId = null;
+function startLocation() {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) { state.locStatus = 'unavailable'; return; }
+  if (watchId != null) return;
+  state.locStatus = 'waiting';
+  watchId = navigator.geolocation.watchPosition(
+    (p) => {
+      state.fix = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, ts: Date.now() };
+      state.locStatus = p.coords.accuracy <= CFG.fixMaxAccuracyMeters ? 'ok' : 'rough';
+      scheduleRender();
+    },
+    (err) => { state.locStatus = err && err.code === 1 ? 'denied' : 'error'; scheduleRender(); },
+    { enableHighAccuracy: true, maximumAge: 30000, timeout: 60000 }
+  );
+}
+function stopLocation() {
+  if (watchId != null && navigator.geolocation) navigator.geolocation.clearWatch(watchId);
+  watchId = null;
+  if (state.locStatus !== 'unavailable') state.locStatus = 'off';
+}
+
+async function requestWakeLock() {
+  try {
+    if (navigator.wakeLock && document.visibilityState === 'visible') {
+      state.wakeLock = await navigator.wakeLock.request('screen');
+      state.wakeLock.addEventListener('release', () => { state.wakeLock = null; scheduleRender(); });
+    }
+  } catch (e) { state.wakeLock = null; }
+}
+function releaseWakeLock() {
+  if (state.wakeLock) { try { state.wakeLock.release(); } catch (e) { /* ignore */ } }
+  state.wakeLock = null;
+}
+
+/* --- finder --------------------------------------------------------------- */
+
+async function startFinder(key) {
+  const flag = state.flags.get(key);
+  const dev = state.devices.get(key);
+  if (!flag || !flag.active || !dev) return;
+  if (!state.scanning && !(await startScan())) return;
+  const track = state.linker.track(key) || { key, signatureId: dev.signatureId, lastAddress: Array.from(dev.ids).pop(), lastSeen: dev.lastSeen, lastRssi: dev.lastRssi, lastLat: null, lastLon: null, lastStatus: null };
+  state.finder = { key, ids: new Set(dev.ids), signatureId: dev.signatureId, prox: createProximity(track), startedAt: Date.now(), reading: null };
+  state.finder.reading = state.finder.prox.snapshot(Date.now());
+  state.view = 'finder';
+  render();
+}
+
+function finderReading(r) {
+  const f = state.finder;
+  const relevant = f.signatureId ? r.sigId === f.signatureId : f.ids.has(r.id);
+  if (!relevant) return;
+  f.reading = f.prox.onReading({ address: r.id, signatureId: r.sigId, rssi: r.rssi, ts: r.ts, lat: null, lon: null, status: r.status });
+}
+
+function stopFinder() {
+  if (!state.finder) return;
+  const key = state.finder.key;
+  state.finder = null;
+  if (state.view === 'finder') { state.view = 'detail'; state.detailKey = key; }
+}
+
+/* ---------------------------------------------------------------------------
+ * Rendering. Every advertised value (names especially) is chosen by whoever
+ * built the device, so it's only ever written as text, never as HTML.
+ * ------------------------------------------------------------------------- */
+
+const $ = (id) => document.getElementById(id);
+
+function el(tag, props, ...children) {
+  const node = document.createElement(tag);
+  if (props) {
+    for (const [k, v] of Object.entries(props)) {
+      if (v == null || v === false) continue;
+      if (k === 'class') node.className = v;
+      else if (k === 'text') node.textContent = v;
+      else if (k === 'on') for (const [ev, fn] of Object.entries(v)) node.addEventListener(ev, fn);
+      else node.setAttribute(k, v === true ? '' : String(v));
+    }
+  }
+  for (const c of children.flat()) if (c != null && c !== false) node.append(c.nodeType ? c : document.createTextNode(String(c)));
+  return node;
+}
+
+function fmtAgo(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  if (s < 60) return s + ' s ago';
+  const m = Math.round(s / 60);
+  if (m < 60) return m + ' min ago';
+  const h = Math.round(m / 60);
+  return h < 48 ? h + ' h ago' : Math.round(h / 24) + ' days ago';
+}
+
+function fmtTime(ts) {
+  try { return new Date(ts).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return new Date(ts).toISOString(); }
+}
+
+function familyName(sigId) { const s = sigId ? SIG_BY_ID.get(sigId) : null; return s ? s.name : null; }
+
+function displayName(dev) {
+  const fam = familyName(dev.signatureId);
+  const label = dev.nickname || dev.name;
+  if (fam) return label ? `${fam} · "${label}"` : fam;
+  return label || 'Unnamed device';
+}
+
+function ownerText(owner) {
+  if (owner === 'separated') return 'Separated from its owner';
+  if (owner === 'near_owner') return 'Near its owner';
+  return null;
+}
+
+let renderQueued = false;
+function scheduleRender() {
+  if (renderQueued) return;
+  renderQueued = true;
+  const run = () => { renderQueued = false; render({ soft: true }); };
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run); else setTimeout(run, 16);
+}
+
+function renderChips() {
+  const chips = $('chips');
+  chips.replaceChildren();
+  chips.append(el('span', { class: state.scanning ? 'chip ok' : 'chip', text: state.scanning ? 'Scanning' : 'Not scanning' }));
+  const loc = {
+    off: ['chip', 'Location off'], waiting: ['chip warn', 'Waiting for location'], unavailable: ['chip bad', 'No location in this browser'],
+    denied: ['chip bad', 'Location blocked'], error: ['chip warn', 'Location error'],
+    rough: ['chip warn', 'Location too rough' + (state.fix ? ` (±${Math.round(state.fix.acc)} m)` : '')],
+    ok: ['chip ok', 'Location ±' + (state.fix ? Math.round(state.fix.acc) : '?') + ' m']
+  }[state.locStatus] || ['chip', state.locStatus];
+  chips.append(el('span', { class: loc[0], text: loc[1] }));
+  chips.append(el('span', { class: 'chip', text: `${state.devices.size} devices · ${state.clusterer.all.length} places` }));
+  if (state.scanning) chips.append(el('span', { class: state.wakeLock ? 'chip ok' : 'chip warn', text: state.wakeLock ? 'Screen kept on' : 'Keep the screen on' }));
+  if (!store.persistent) chips.append(el('span', { class: 'chip warn', text: 'Not saved: memory only' }));
+  $('scanBtn').textContent = state.scanning ? 'Stop scanning' : 'Start scanning';
+  $('scanBtn').className = state.scanning ? 'secondary' : '';
+}
+
+function renderBanner() {
+  const b = $('banner');
+  b.replaceChildren();
+  const active = Array.from(state.flags.values()).filter((f) => f.active).length;
+  if (state.notice) b.append(el('div', { class: 'banner', role: 'alert' }, state.notice));
+  if (state.newFlags && state.view !== 'flagged') {
+    b.append(el('div', { class: 'banner', role: 'alert' }, el('b', { text: 'Possible tracker. ' }), `${active} device${active === 1 ? '' : 's'} flagged. `,
+      el('button', { type: 'button', class: 'small secondary', on: { click: () => showView('flagged') } }, 'View')));
+  }
+}
+
+function renderTabs() {
+  const active = Array.from(state.flags.values()).filter((f) => f.active).length;
+  const current = state.view === 'detail' || state.view === 'finder' ? null : state.view;
+  $('tab-nearby').setAttribute('aria-selected', String(current === 'nearby'));
+  const tf = $('tab-flagged');
+  tf.setAttribute('aria-selected', String(current === 'flagged'));
+  tf.replaceChildren('Flagged', active ? el('span', { class: 'count', text: String(active) }) : '');
+}
+
+function nearbyView() {
+  const now = Date.now();
+  const recent = Array.from(state.live.values()).filter((l) => now - l.ts <= CFG.nearbyWindowMs);
+  let hidden = 0;
+  const rows = [];
+  for (const l of recent) {
+    const dev = l.key ? state.devices.get(l.key) : null;
+    if (dev && dev.ignored) { hidden++; continue; }
+    rows.push({ l, dev });
+  }
+  rows.sort((a, b) => (b.l.sigId ? 1 : 0) - (a.l.sigId ? 1 : 0) || b.l.rssi - a.l.rssi);
+  const out = [el('h2', { text: `Nearby now (${rows.length})` })];
+  if (!rows.length) {
+    out.push(el('p', { class: 'empty', text: state.scanning ? 'Listening… devices heard in the last minute appear here.' : 'Press Start scanning. Devices heard in the last minute appear here.' }));
+  }
+  for (const { l, dev } of rows) {
+    const fam = familyName(l.sigId);
+    const label = (dev && dev.nickname) || l.name || (fam ? '' : 'Unnamed device');
+    const nameNode = el('div', { class: 'name' }, label || fam, fam && label ? el('span', { class: 'tag', text: fam }) : fam && !label ? el('span', { class: 'tag', text: 'tracker' }) : '');
+    const own = ownerText(l.owner);
+    const meta = el('div', { class: 'meta', text: [fmtAgo(now - l.ts), own].filter(Boolean).join(' · ') });
+    const open = el('button', { type: 'button', class: 'open', 'aria-label': `Details for ${label || fam}`, on: { click: () => openDetail(l.key) }, disabled: !l.key }, nameNode, meta);
+    const ignore = el('button', { type: 'button', class: 'small secondary', on: { click: () => ignoreDevice(l.key, false) }, disabled: !l.key }, 'Ignore');
+    out.push(el('div', { class: l.sigId ? 'row tracker' : 'row' }, open, el('span', { class: 'rssi', text: l.rssi + ' dBm' }), ignore));
+  }
+  if (hidden) out.push(el('p', { class: 'dim', text: `${hidden} ignored device${hidden === 1 ? '' : 's'} hidden.` }));
+  if (state.scanning && recent.some((l) => !l.key)) out.push(el('p', { class: 'dim', text: 'New devices can be opened after the next scan cycle (every 30 s).' }));
+  return out;
+}
+
+function flaggedView() {
+  state.newFlags = 0;
+  const flags = Array.from(state.flags.values()).filter((f) => f.active).sort((a, b) => b.score - a.score);
+  const out = [el('h2', { text: `Flagged (${flags.length})` })];
+  if (!flags.length) {
+    out.push(el('p', { class: 'empty', text: 'Nothing flagged. A device is flagged when it has been seen at 3 or more of your places, at least 150 m apart, over 20 minutes or more within a day. This page has to be open at those places to see it.' }));
+  }
+  for (const f of flags) {
+    const dev = state.devices.get(f.key);
+    if (!dev) continue;
+    out.push(el('div', { class: 'card' },
+      el('div', { class: 'head' }, el('span', { class: 'name', text: displayName(dev) }), el('span', { class: 'score', text: `Score ${f.score}` })),
+      el('div', { class: 'reason', text: f.reason }),
+      el('div', { class: 'dim', text: `Flagged ${fmtAgo(Date.now() - f.raisedAt)} · last seen ${fmtAgo(Date.now() - dev.lastSeen)}` }),
+      el('div', { class: 'actions' },
+        el('button', { type: 'button', class: 'small', on: { click: () => openDetail(f.key) } }, 'Details'),
+        el('button', { type: 'button', class: 'small secondary', on: { click: () => dismissFlag(f.key) } }, 'Dismiss'),
+        el('button', { type: 'button', class: 'small danger', on: { click: () => ignoreDevice(f.key, true) } }, 'Ignore'))));
+  }
+  return out;
+}
+
+function placesFor(key) {
+  const rows = state.sightings.filter((s) => s.key === key);
+  const by = new Map();
+  for (const s of rows) {
+    if (s.clusterId == null) continue;
+    const p = by.get(s.clusterId) || { id: s.clusterId, first: s.ts, last: s.ts, count: 0 };
+    p.first = Math.min(p.first, s.ts);
+    p.last = Math.max(p.last, s.ts);
+    p.count++;
+    by.set(s.clusterId, p);
+  }
+  return { total: rows.length, noFix: rows.filter((s) => s.clusterId == null).length, places: Array.from(by.values()).sort((a, b) => a.first - b.first) };
+}
+
+function mapNode(places) {
+  const box = el('div', { class: 'map', role: 'img', 'aria-label': `Map of ${places.length} place${places.length === 1 ? '' : 's'} where this device was seen` });
+  const width = Math.max(260, Math.min(788, (($('view') && $('view').clientWidth) || 360)));
+  const layout = tileLayout(places, width, 260);
+  for (const t of layout.tiles) {
+    box.append(el('img', { src: t.url, alt: '', draggable: 'false', style: `left:${Math.round(t.left)}px;top:${Math.round(t.top)}px` }));
+  }
+  layout.markers.forEach((m, i) => box.append(el('div', { class: 'marker', 'aria-hidden': 'true', style: `left:${Math.round(m.left)}px;top:${Math.round(m.top)}px`, text: String(i + 1) })));
+  return [box, el('p', { class: 'attrib' }, 'Map © ', el('a', { href: 'https://www.openstreetmap.org/copyright', target: '_blank', rel: 'noopener noreferrer', text: 'OpenStreetMap contributors' }))];
+}
+
+function detailView() {
+  const dev = state.devices.get(state.detailKey);
+  if (!dev) { state.view = 'nearby'; return nearbyView(); }
+  const flag = state.flags.get(dev.key);
+  const { total, noFix, places } = placesFor(dev.key);
+  const fam = familyName(dev.signatureId);
+  const obs = state.sightings.filter((s) => s.key === dev.key);
+  const a = obs.length ? assess(dev, obs, clusterById, Date.now()) : null;
+  const out = [
+    el('div', { class: 'actions' }, el('button', { type: 'button', class: 'small secondary', on: { click: () => showView(flag && flag.active ? 'flagged' : 'nearby') } }, '← Back')),
+    el('h2', { text: displayName(dev) })
+  ];
+  if (flag && flag.active) out.push(el('div', { class: 'banner' }, el('b', { text: `Flagged · score ${flag.score}. ` }), flag.reason));
+  else if (flag && !flag.active) out.push(el('p', { class: 'dim', text: `Dismissed ${fmtAgo(Date.now() - flag.dismissedAt)}. It will be flagged again only if it turns up at a new place.` }));
+
+  const facts = el('dl', { class: 'facts' });
+  const fact = (k, v) => { facts.append(el('dt', { text: k }), el('dd', { text: v })); };
+  fact('Type', fam ? `${fam} tracker format` : 'Unrecognised Bluetooth device');
+  if (dev.name) fact('Advertised name', dev.name);
+  const own = ownerText(dev.owner);
+  if (own) fact('Owner status', own + ' (from its last broadcast)');
+  fact('Identity', dev.identity === 'payload' ? 'Recognised tracker format: followed across address changes' : 'Chrome ID only: can\'t be followed across an address change');
+  fact('First seen', fmtTime(dev.firstSeen));
+  fact('Last seen', `${fmtTime(dev.lastSeen)} (${fmtAgo(Date.now() - dev.lastSeen)}), ${dev.lastRssi} dBm`);
+  fact('Sightings stored', `${total}${noFix ? ` (${noFix} without a location)` : ''}`);
+  fact('Chrome IDs', `${dev.ids.size}${dev.ids.size > 1 ? ' (linked across address changes)' : ''}`);
+  if (a) fact('Current score', `${a.score} (flags at ${CFG.flagThreshold})`);
+  out.push(facts);
+
+  if (flag && flag.active) {
+    out.push(el('div', { class: 'actions' },
+      el('button', { type: 'button', on: { click: () => startFinder(dev.key) } }, 'Find it'),
+      el('button', { type: 'button', class: 'secondary', on: { click: () => dismissFlag(dev.key) } }, 'Dismiss')));
+  }
+
+  out.push(el('h3', { text: `Places (${places.length})` }));
+  if (!places.length) out.push(el('p', { class: 'dim', text: 'No sightings with a usable location yet.' }));
+  else {
+    const withCoords = places.map((p) => ({ ...p, c: clusterById(p.id) })).filter((p) => p.c);
+    if (withCoords.length) out.push(...mapNode(withCoords.map((p) => ({ lat: p.c.lat, lon: p.c.lon }))));
+    const table = el('table', { class: 'places' },
+      el('thead', null, el('tr', null, el('th', { text: '#' }), el('th', { text: 'Seen' }), el('th', { text: 'Sightings' }), el('th', { text: 'Place' }))));
+    const body = el('tbody');
+    withCoords.forEach((p, i) => {
+      const when = p.first === p.last ? fmtTime(p.first) : `${fmtTime(p.first)} – ${fmtTime(p.last)}`;
+      body.append(el('tr', null, el('td', { text: String(i + 1) }), el('td', { text: when }), el('td', { text: String(p.count) }), el('td', { text: `${p.c.lat.toFixed(4)}, ${p.c.lon.toFixed(4)}` })));
+    });
+    table.append(body);
+    out.push(table);
+  }
+
+  out.push(el('h3', { text: 'Nickname' }));
+  const input = el('input', { type: 'text', id: 'nickInput', maxlength: '40', value: dev.nickname || '', 'aria-label': 'Nickname for this device', autocomplete: 'off' });
+  out.push(el('div', { class: 'nick' }, input, el('button', { type: 'button', class: 'secondary', on: { click: () => { dev.nickname = input.value.trim().slice(0, 40); persist(); render(); } } }, 'Save')));
+
+  out.push(el('div', { class: 'actions' }, dev.ignored
+    ? el('button', { type: 'button', class: 'secondary', on: { click: () => { dev.ignored = false; persist(); render(); } } }, 'Stop ignoring')
+    : el('button', { type: 'button', class: 'danger', on: { click: () => ignoreDevice(dev.key, true) } }, 'Ignore this device')));
+  return out;
+}
+
+function finderView() {
+  const f = state.finder;
+  if (!f) { state.view = 'detail'; return detailView(); }
+  const dev = state.devices.get(f.key);
+  const now = Date.now();
+  f.reading = f.prox.snapshot(now);
+  const left = Math.max(0, PROX.timeLimitMs - (now - f.startedAt));
+  const r = f.reading;
+  const trendText = r.lost ? '' : r.trend === 'warmer' ? 'Warmer ↑' : r.trend === 'colder' ? 'Colder ↓' : 'Steady';
+  return [
+    el('h2', { text: `Find: ${dev ? displayName(dev) : 'tracker'}` }),
+    el('div', { class: 'panel finder' },
+      el('div', { class: 'dim', text: 'Walk around slowly and watch the signal.' }),
+      el('div', { class: 'band', text: r.band }),
+      el('div', { class: 'trend ' + r.trend, text: trendText }),
+      el('div', { class: 'reading', text: r.smoothedRssi == null ? 'No reading yet' : `${r.smoothedRssi} dBm (smoothed)` }),
+      r.othersNearby ? el('p', { class: 'warn', text: `${r.othersNearby} other device${r.othersNearby === 1 ? '' : 's'} of the same type nearby, so a reading may belong to the wrong one.` }) : '',
+      el('p', { class: 'dim', text: `Stops in ${Math.ceil(left / 1000)} s. Signal strength is a hint, not a distance.` }),
+      el('button', { type: 'button', on: { click: () => { stopFinder(); render(); } } }, 'Stop'))
+  ];
+}
+
+function render(opts) {
+  const soft = opts && opts.soft;
+  renderChips();
+  renderBanner();
+  renderTabs();
+  // A soft render (timer or new advertisement) leaves the detail page alone so typing isn't interrupted.
+  if (soft && state.view === 'detail') return;
+  if (state.finder && Date.now() - state.finder.startedAt > PROX.timeLimitMs) stopFinder();
+  const view = $('view');
+  const content = state.view === 'flagged' ? flaggedView() : state.view === 'detail' ? detailView() : state.view === 'finder' ? finderView() : nearbyView();
+  view.replaceChildren(...content);
+}
+
+/* --- actions -------------------------------------------------------------- */
+
+function showView(v) { state.view = v; if (v !== 'finder') stopFinder(); if (v === 'flagged') state.newFlags = 0; render(); }
+
+function openDetail(key) { if (!key || !state.devices.has(key)) return; stopFinder(); state.detailKey = key; state.view = 'detail'; render(); }
+
+function dismissFlag(key) {
+  const f = state.flags.get(key);
+  if (!f || !f.active) return;
+  const now = Date.now();
+  const obs = state.sightings.filter((s) => s.key === key && s.ts <= now && s.clusterId != null);
+  f.active = false;
+  f.dismissedAt = now;
+  f.dismissedPlaces = Array.from(new Set(obs.map((s) => s.clusterId)));
+  stopFinder();
+  persist();
+  render();
+}
+
+function ignoreDevice(key, confirmFirst) {
+  const dev = key ? state.devices.get(key) : null;
+  if (!dev) return;
+  if (confirmFirst && typeof confirm === 'function' && !confirm(`Ignore ${displayName(dev)}? It won't be listed or flagged again unless you stop ignoring it.`)) return;
+  dev.ignored = true;
+  state.flags.delete(key);
+  stopFinder();
+  persist();
+  if (state.view === 'detail' || state.view === 'finder') state.view = 'nearby';
+  render();
+}
+
+async function wipeAll() {
+  if (typeof confirm === 'function' && !confirm('Delete every sighting, place and flag stored by this page?')) return;
+  if (state.scanning) stopScan();
+  await saving;
+  await store.wipe();
+  state.devices.clear();
+  state.sightings = [];
+  state.flags.clear();
+  state.live.clear();
+  state.pending.clear();
+  state.unsaved = [];
+  state.clusterer = createClusterer([], CFG.clusterMeters);
+  state.linker = createLinker([]);
+  state.newFlags = 0;
+  state.view = 'nearby';
+  state.notice = 'All data deleted.';
+  render();
+}
+
+/* --- boot ----------------------------------------------------------------- */
+
+function addCheck(ok, text) {
+  $('checks').append(el('li', null, el('span', { class: ok ? 'ok' : 'bad', text: ok ? '✓ ' : '✗ ' }), text));
+}
+
+function runChecks() {
+  const secure = window.isSecureContext === true;
+  const bt = typeof navigator !== 'undefined' && !!navigator.bluetooth;
+  const scan = bt && typeof navigator.bluetooth.requestLEScan === 'function';
+  const geo = typeof navigator !== 'undefined' && !!navigator.geolocation;
+  addCheck(secure, secure ? 'Secure page' : 'Not a secure page. Bluetooth needs HTTPS.');
+  addCheck(bt, bt ? 'Web Bluetooth is available' : 'Web Bluetooth isn\'t available in this browser');
+  addCheck(scan, scan ? 'Scanning is available' : 'Scanning isn\'t available. Turn on the Chrome flag below.');
+  addCheck(geo, geo ? 'Location is available' : 'Location isn\'t available in this browser');
+  return secure && scan;
+}
+
+async function boot() {
+  const ready = runChecks();
+  if (!ready) $('setup').open = true;
+  if (await store.open()) {
+    try {
+      const data = await store.loadAll(Date.now() - CFG.retentionMs);
+      if (data) {
+        state.clusterer = createClusterer(data.meta.clusters || [], CFG.clusterMeters);
+        state.linker = createLinker(data.meta.tracks || []);
+        for (const d of data.devices) state.devices.set(d.key, { ...d, ids: new Set(d.ids || []) });
+        state.sightings = data.sightings.sort((a, b) => a.ts - b.ts);
+        for (const f of data.flags) state.flags.set(f.key, f);
+      }
+    } catch (e) {
+      state.notice = 'Couldn\'t read saved data from this browser.';
+    }
+  }
+  render();
+}
+
+$('scanBtn').addEventListener('click', () => { if (state.scanning) stopScan(); else startScan(); });
+$('wipeBtn').addEventListener('click', wipeAll);
+$('tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-view]'); if (b) showView(b.dataset.view); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && state.scanning) stopScan('Scanning stopped because the page was hidden. The browser can\'t scan in the background. Press Start scanning to continue.');
+});
+setInterval(() => { if (state.scanning || state.finder) scheduleRender(); }, 2000);
+
+window.__sentinelWeb = {
+  CFG, SIGNATURES, haversine, parseAdvertisement, matchSignature, ownerState, statusByte,
+  createClusterer, createLinker, scoreOf, reasonOf, assess, decide, createProximity, project, fitZoom, tileLayout,
+  state, store, handleAdvertisement, runCycle, runDetection, render, openDetail, dismissFlag, ignoreDevice, showView,
+  setFix(fix) { state.fix = fix; },
+  ready: boot()
+};
+</script>
+</body>
+</html>
