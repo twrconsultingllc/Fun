@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #31 — ble-scan-test.html (Web Bluetooth scanning test)</title>
+<meta name="description" content="Security and code-quality review of ble-scan-test.html, a minimal Chrome test page for the experimental Web Bluetooth scanning API, written to check whether a browser version of Sentinel can scan for BLE trackers.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #31 — <code>ble-scan-test.html</code></h1>
+    <p class="sub">A new, minimal test page for Chrome's experimental Web Bluetooth scanning API (<code>navigator.bluetooth.requestLEScan</code>). It lists nearby Bluetooth LE advertisements and marks the tracker formats Sentinel recognises, to find out whether a browser version of Sentinel can scan at all. Not linked from <code>index.html</code>: it's a test page, opened by its URL.</p>
+    <div class="meta">Review performed 2026-09-27 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>ble-scan-test.html</code>, <code>tests/ble-scan-test.dom.test.mjs</code>, <code>tests/run.mjs</code>, <code>tests/README.md</code> · follows: <a href="30.html">30.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 75%;"></div></div>
+    <div class="progress-label">8 items: 6 verified clean (1 of them fixed during review), 2 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Advertised names are rendered as text, never parsed</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>A Bluetooth device's name and data are chosen by whoever built it, so they're hostile input. Every value is written with <code>createElement</code> and <code>textContent</code>. Grepping the page for <code>innerHTML</code>, <code>outerHTML</code>, <code>insertAdjacentHTML</code>, <code>document.write</code>, <code>eval(</code>, <code>new Function</code> and inline <code>on*=</code> handlers finds nothing. The suite feeds in a device named <code>&lt;img src=x onerror=alert(1)&gt;</code>: no <code>img</code> element is created and the name appears as plain text.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Nothing leaves the page</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The CSP is the repo's usual one with <code>connect-src 'none'</code> instead of <code>'self'</code>, so the page can't make any request, even to its own origin. It has no external scripts, stylesheets, fonts or images, and no links. Grepping for <code>fetch(</code>, <code>XMLHttpRequest</code>, <code>WebSocket</code> and <code>localStorage</code> finds nothing, so sightings are kept only in memory and are gone when the tab closes. The suite asserts the CSP, the referrer policy and zero <code>script[src]</code>.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Scanning is user-started, visible-only and passive</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>A scan starts only when Start is pressed, after Chrome's own permission prompt. It stops when the tab is hidden (<code>visibilitychange</code>) or Stop is pressed. <code>requestLEScan</code> only listens to advertisements, so the page never connects to or sends anything to any device. Chrome gives each device an opaque ID per site rather than its real Bluetooth address, and the page shows only that.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Permissions-Policy can't be set from a meta tag</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>A <code>Permissions-Policy: bluetooth=(self)</code> header would stop any page that frames this one from using its Bluetooth permission. GitHub Pages can't send custom headers, and the policy has no meta-tag form. The risk is small: the page stores nothing and sends nothing, and Chrome blocks Bluetooth in cross-origin frames by default. Architecturally blocked, the same as the other header-only policies in <a href="01.html">01.html</a>.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Tracker rules agree with Sentinel</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The five formats are copied from Sentinel's <code>detection/TrackerSignature.kt</code>: Apple Find My (company <code>0x004C</code>, payload starting <code>12</code>), Samsung SmartTag (<code>0xFD5A</code>), Tile (<code>0xFEED</code>), Google Find Hub (<code>0xFEAA</code> service data, frame <code>0x40</code> or <code>0x41</code>) and Chipolo (<code>0xFE33</code>). The suite also checks what must not match: an iPhone's <code>0x004C 10…</code> nearby message, a plain Eddystone <code>FEAA 10…</code> beacon and Fast Pair <code>0xFE2C</code>.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Light-theme button contrast</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The first draft used dark text on the light theme's blue Start button: <code>#0b0e14</code> on <code>#1565c0</code> is <b>3.36:1</b>, below the 4.5:1 AA minimum. It now uses white in the light theme (5.75:1) and keeps dark text in the dark theme (7.87:1 on <code>#5aa9ff</code>). Other measured pairs: body text 14.19:1 (dark) and 15.9:1 (light), dim text at least 5.49:1, status colours at least 5.05:1. All AA or better.</p>
+      <div class="fix-note"><b>Fix:</b> added a <code>--on-accent</code> colour token, dark in the dark theme and white in the light theme.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Checked in headless Chromium</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Loaded at 390×780 in the container's headless Chromium, in both colour schemes. Without the flag, the checks show Web Bluetooth and scanning as missing and Start is disabled. With <code>--enable-experimental-web-platform-features</code>, all three checks pass, Start is enabled, and pressing it reports <code>NotFoundError: Bluetooth adapter not available.</code> cleanly, because the container has no Bluetooth. No page errors, and no sideways scroll (<code>scrollWidth</code> 390). Status messages are in an <code>aria-live</code> region, and all controls are real <code>button</code> and <code>label</code> elements.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A real scan hasn't been tested</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Nothing here has seen a real advertisement, because the container has no Bluetooth adapter. Still unknown: whether Chrome on the phone returns manufacturer and service data with <code>acceptAllAdvertisements</code>, how often events arrive, and whether a real AirTag or SmartTag gets marked. The new <code>ble-scan</code> suite (25 assertions) covers the logic with hand-built events. The full suite is 1331 passed, 0 failed. Left open until the page is tried on a phone with the flag on.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. The page was checked in jsdom and headless Chromium only, and the container can't fetch <code>*.github.io</code>, so the deployed copy has to be checked on a real device. See <a href="30.html">30.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
