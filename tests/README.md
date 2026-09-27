@@ -7,7 +7,16 @@ just Node plus `jsdom`, so these keep running years from now.
 
 ```bash
 cd tests
-npm install          # once, installs jsdom
+npm install                        # once, installs jsdom
+node run.mjs --page=snake.html     # the suites for one page you changed
+```
+
+After a change, run only the suites for the pages it touched (one `--page=`
+run per changed page), not everything. Run the full set only after a change to
+`tests/lib/`, which every suite shares, or for a Full Monty review. See
+"Run only the suites for the pages that changed" in the root `CLAUDE.md`.
+
+```bash
 npm test             # every suite, against the working copy
 ```
 
