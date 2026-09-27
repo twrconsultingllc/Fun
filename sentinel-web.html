@@ -1145,6 +1145,7 @@ function handleAdvertisement(event, now) {
   state.live.set(id, live);
 
   if (state.finder) finderReading(reading);
+  if (survey.active) survey.onReading(reading);
   scheduleRender();
 }
 
@@ -1308,12 +1309,360 @@ function releaseWakeLock() {
   state.wakeLock = null;
 }
 
+/* --- map this place: turn in a circle, walk, hot zones ---------------------
+ * A single phone only gets a signal strength per device, never a direction. So
+ * direction comes from turning on the spot with the tablet against your chest
+ * (your body blocks the signal behind you), and position comes from readings
+ * taken at different spots as you walk, with your path tracked by counting
+ * steps and reading the compass. Every device heard is mapped, not just one.
+ * All of it stays in memory on this page.
+ * ------------------------------------------------------------------------- */
+
+const SURVEY = {
+  bins: 12,                // 30° sectors for the turn-in-a-circle sweep
+  sweepMinBins: 10,        // sectors that must be covered before the sweep can finish
+  minBinReadings: 3,       // a device needs readings in this many sectors to get a direction
+  stepLength: 0.7,         // metres per step
+  stepThreshold: 1.3,      // m/s² above the running average that counts as a step
+  stepMinIntervalMs: 300,
+  txAt1m: -59,             // typical BLE signal at 1 m, for a rough distance
+  pathLossN: 2.5,          // indoor path-loss exponent
+  directionOnlyBelowM: 2,  // walked less than this: place a device from the sweep instead
+  listMax: 20
+};
+
+// Signed difference a − b in degrees, in −180..180.
+function headingDiff(a, b) { return ((a - b) % 360 + 540) % 360 - 180; }
+
+function compassName(deg) {
+  return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round((((deg % 360) + 360) % 360) / 45) % 8];
+}
+
+// Log-distance path loss: very rough indoors, which the page always says.
+function rssiToMeters(rssi) { return 10 ** ((SURVEY.txAt1m - rssi) / (10 * SURVEY.pathLossN)); }
+
+function createSweep(bins) {
+  const width = 360 / bins;
+  const covered = new Array(bins).fill(false);
+  const perDevice = new Map();
+  const binOf = (h) => Math.floor((((h % 360) + 360) % 360) / width) % bins;
+  return {
+    bins,
+    binOf,
+    coverage: () => covered.slice(),
+    covered: () => covered.filter(Boolean).length,
+    onHeading(h) { covered[binOf(h)] = true; },
+    add(key, rssi, h) {
+      const b = binOf(h);
+      covered[b] = true;
+      let arr = perDevice.get(key);
+      if (!arr) { arr = Array.from({ length: bins }, () => ({ sum: 0, n: 0, sin: 0, cos: 0 })); perDevice.set(key, arr); }
+      const a = h * Math.PI / 180;
+      arr[b].sum += rssi;
+      arr[b].n++;
+      arr[b].sin += Math.sin(a);   // the headings actually faced in this sector, so the result
+      arr[b].cos += Math.cos(a);   // isn't pulled toward the sector's centre
+    },
+    keys: () => Array.from(perDevice.keys()),
+    means(key) {
+      const arr = perDevice.get(key);
+      return arr ? arr.map((c) => (c.n ? c.sum / c.n : null)) : new Array(bins).fill(null);
+    },
+    // The strongest direction, as a power-weighted circular mean of the headings faced.
+    result(key) {
+      const arr = perDevice.get(key);
+      const means = this.means(key);
+      const filled = means.map((m, i) => ({ m, i })).filter((x) => x.m != null);
+      if (filled.length < SURVEY.minBinReadings) return null;
+      const best = filled.reduce((a, b) => (b.m > a.m ? b : a));
+      const worst = filled.reduce((a, b) => (b.m < a.m ? b : a));
+      let sx = 0, sy = 0;
+      for (const { m, i } of filled) {
+        const w = 10 ** ((m - best.m) / 10);               // linear power relative to the best sector
+        const a = Math.atan2(arr[i].sin, arr[i].cos);
+        sx += w * Math.sin(a); sy += w * Math.cos(a);
+      }
+      const heading = ((Math.atan2(sx, sy) * 180 / Math.PI) + 360) % 360;
+      const spread = best.m - worst.m;
+      const confidence = spread >= 8 ? 'clear' : spread >= 4 ? 'weak' : 'unclear';
+      return { heading, spread, confidence, bestRssi: best.m, meters: rssiToMeters(best.m) };
+    }
+  };
+}
+
+// Counts a step each time the acceleration magnitude rises well above its running average.
+function createStepDetector() {
+  let avg = 9.81;
+  let last = -Infinity;
+  let above = false;
+  return {
+    onMotion(magnitude, ts) {
+      avg += (magnitude - avg) * 0.02;
+      if (!above && magnitude > avg + SURVEY.stepThreshold && ts - last > SURVEY.stepMinIntervalMs) {
+        above = true;
+        last = ts;
+        return true;
+      }
+      if (above && magnitude < avg) above = false;
+      return false;
+    }
+  };
+}
+
+// Dead reckoning in metres. The start is (0, 0) and "forward" is the way you faced at the start,
+// so y is metres ahead of the start and x is metres to its right.
+function createTrack(startHeading) {
+  let x = 0, y = 0;
+  const path = [{ x: 0, y: 0 }];
+  return {
+    path,
+    get pos() { return { x, y }; },
+    step(heading, length) {
+      const rel = headingDiff(heading, startHeading) * Math.PI / 180;
+      x += length * Math.sin(rel);
+      y += length * Math.cos(rel);
+      path.push({ x, y });
+    },
+    moveTo(nx, ny) { x = nx; y = ny; path.push({ x, y }); }
+  };
+}
+
+// Where a device probably is: the power-weighted centre of the spots it was heard from, with a
+// radius from how spread out the strong readings were. With too little walking, fall back to the
+// sweep's direction and a distance from signal strength.
+function estimateZone(samples, sweepResult, startHeading) {
+  let span = 0;
+  if (samples.length) {
+    const xs = samples.map((s) => s.x), ys = samples.map((s) => s.y);
+    span = Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+  }
+  if (span < SURVEY.directionOnlyBelowM) {
+    if (!sweepResult || sweepResult.confidence === 'unclear') return null;
+    const rel = headingDiff(sweepResult.heading, startHeading) * Math.PI / 180;
+    const d = Math.min(sweepResult.meters, 15);
+    return { x: d * Math.sin(rel), y: d * Math.cos(rel), radius: Math.max(1.5, d * 0.5), bestRssi: sweepResult.bestRssi, source: 'direction' };
+  }
+  const max = Math.max(...samples.map((s) => s.rssi));
+  let sw = 0, sx = 0, sy = 0;
+  for (const s of samples) { const w = 10 ** ((s.rssi - max) / 10); sw += w; sx += w * s.x; sy += w * s.y; }
+  const cx = sx / sw, cy = sy / sw;
+  let v = 0;
+  for (const s of samples) { const w = 10 ** ((s.rssi - max) / 10); v += w * ((s.x - cx) ** 2 + (s.y - cy) ** 2); }
+  return { x: cx, y: cy, radius: Math.max(1, Math.sqrt(v / sw)), bestRssi: max, source: 'walk' };
+}
+
+function describeOffset(z) {
+  const ahead = z.y >= 0 ? `${z.y.toFixed(1)} m ahead` : `${(-z.y).toFixed(1)} m behind`;
+  const side = z.x >= 0 ? `${z.x.toFixed(1)} m right` : `${(-z.x).toFixed(1)} m left`;
+  return `${ahead}, ${side} of the start`;
+}
+
+const survey = {
+  active: false,
+  phase: 'start',           // start → sweep → walk → result
+  heading: null,
+  compass: 'waiting',       // waiting | ok | unavailable
+  startHeading: null,
+  sweep: null,
+  sweepAt: null,            // where the latest sweep was taken, in plan metres
+  track: null,
+  steps: 0,
+  samples: new Map(),       // chrome id -> [{ x, y, rssi, ts }]
+  sweepResults: new Map(),  // chrome id -> result of the latest sweep that heard it
+  focusId: null,
+  focusProx: null,
+  focusReading: null,
+  detector: null,
+  canvas: null,
+  ctx: null,
+  raf: 0,
+  sensorTimer: null,
+
+  begin() {
+    this.reset();
+    this.active = true;
+    this.phase = 'start';
+    this.startSensors();
+    state.view = 'survey';
+    stopFinder();
+    if (!state.scanning && scanSupported()) startScan();
+    render();
+  },
+
+  reset() {
+    this.phase = 'start';
+    this.startHeading = null;
+    this.sweep = null;
+    this.sweepAt = null;
+    this.track = null;
+    this.steps = 0;
+    this.samples = new Map();
+    this.sweepResults = new Map();
+    this.focusId = null;
+    this.focusProx = null;
+    this.focusReading = null;
+  },
+
+  end() {
+    this.active = false;
+    this.stopSensors();
+    if (state.view === 'survey') state.view = 'nearby';
+    render();
+  },
+
+  setStart() {
+    if (this.heading == null) return;
+    this.startHeading = this.heading;
+    this.track = createTrack(this.startHeading);
+    this.startSweep();
+  },
+
+  startSweep() {
+    this.sweep = createSweep(SURVEY.bins);
+    this.sweepAt = this.track ? { ...this.track.pos } : { x: 0, y: 0 };
+    if (this.heading != null) this.sweep.onHeading(this.heading);
+    this.turned = 0;
+    this.lastSweepHeading = this.heading;
+    this.phase = 'sweep';
+    render();
+  },
+
+  finishSweep() {
+    for (const id of this.sweep.keys()) {
+      const r = this.sweep.result(id);
+      if (r) this.sweepResults.set(id, { ...r, at: this.sweepAt });
+    }
+    if (!this.focusId) {
+      const ranked = this.ranked();
+      if (ranked.length) this.setFocus(ranked[0].id);
+    }
+    this.phase = 'walk';
+    render();
+  },
+
+  finish() { this.phase = 'result'; render(); },
+
+  setFocus(id) {
+    this.focusId = id;
+    this.focusProx = createProximity({ key: 'focus:' + id, signatureId: null, lastAddress: id, lastSeen: 0, lastRssi: -80, lastLat: null, lastLon: null, lastStatus: null });
+    this.focusReading = null;
+    render();
+  },
+
+  onHeading(h) {
+    const first = this.heading == null || this.compass !== 'ok';
+    this.heading = h;
+    this.compass = 'ok';
+    if (first) { state.lastSoftRender = 0; scheduleRender(); }   // enable "Start here" straight away
+    else scheduleRender();
+    if (this.phase === 'sweep' && this.sweep) {
+      // Finish after one full turn: every sector covered and at least 345° turned in total, so the
+      // last sector has had readings too. (Counting the turn rather than waiting to re-enter the
+      // first sector means stopping where you started still finishes, despite compass smoothing.)
+      if (this.lastSweepHeading != null) this.turned += headingDiff(h, this.lastSweepHeading);
+      this.lastSweepHeading = h;
+      this.sweep.onHeading(h);
+      if (this.sweep.covered() >= this.sweep.bins && Math.abs(this.turned) >= 345) this.finishSweep();
+    }
+  },
+
+  onStep() {
+    if (this.phase !== 'walk' || !this.track || this.heading == null) return;
+    this.steps++;
+    this.track.step(this.heading, SURVEY.stepLength);
+    scheduleRender();
+  },
+
+  onReading(r) {
+    if (!this.active) return;
+    if (this.phase === 'sweep' && this.sweep && this.heading != null) this.sweep.add(r.id, r.rssi, this.heading);
+    if ((this.phase === 'sweep' || this.phase === 'walk') && this.track) {
+      let arr = this.samples.get(r.id);
+      if (!arr) { arr = []; this.samples.set(r.id, arr); }
+      const p = this.track.pos;
+      arr.push({ x: p.x, y: p.y, rssi: r.rssi, ts: r.ts });
+    }
+    if (this.focusId === r.id && this.focusProx) {
+      this.focusReading = this.focusProx.onReading({ address: r.id, signatureId: null, rssi: r.rssi, ts: r.ts, lat: null, lon: null, status: null });
+    }
+  },
+
+  zoneFor(id) {
+    return estimateZone(this.samples.get(id) || [], this.sweepResults.get(id) || null, this.startHeading || 0);
+  },
+
+  // Every device heard during this survey, strongest first.
+  ranked() {
+    const out = [];
+    for (const [id, arr] of this.samples) {
+      if (!arr.length) continue;
+      out.push({ id, best: Math.max(...arr.map((s) => s.rssi)), n: arr.length });
+    }
+    if (this.sweep) {
+      for (const id of this.sweep.keys()) {
+        if (!this.samples.has(id)) {
+          const m = this.sweep.means(id).filter((x) => x != null);
+          if (m.length) out.push({ id, best: Math.max(...m), n: m.length });
+        }
+      }
+    }
+    return out.sort((a, b) => b.best - a.best);
+  },
+
+  labelFor(id) {
+    const l = state.live.get(id);
+    const dev = l && l.key ? state.devices.get(l.key) : null;
+    if (dev) return displayName(dev);
+    const fam = l ? familyName(l.sigId) : null;
+    return (l && l.name) || fam || 'Unnamed device';
+  },
+
+  startSensors() {
+    if (this.listening || typeof window === 'undefined') return;
+    this.listening = true;
+    this.detector = createStepDetector();
+    this.compass = 'waiting';
+    const perm = typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'
+      ? DeviceOrientationEvent.requestPermission().catch(() => 'denied') : Promise.resolve('granted');
+    perm.then(() => {
+      window.addEventListener('deviceorientationabsolute', this.onOrient);
+      window.addEventListener('devicemotion', this.onMotion);
+    });
+    clearTimeout(this.sensorTimer);
+    this.sensorTimer = setTimeout(() => { if (this.compass === 'waiting') { this.compass = 'unavailable'; scheduleRender(); } }, 4000);
+  },
+
+  stopSensors() {
+    if (!this.listening) return;
+    this.listening = false;
+    window.removeEventListener('deviceorientationabsolute', this.onOrient);
+    window.removeEventListener('devicemotion', this.onMotion);
+    clearTimeout(this.sensorTimer);
+  },
+
+  // Chrome's absolute orientation: alpha turns anticlockwise from north with the tablet flat,
+  // so the compass heading is 360 − alpha. Smoothed on the circle.
+  onOrient: (e) => {
+    if (e.alpha == null) return;
+    const h = (360 - e.alpha) % 360;
+    const prev = survey.heading;
+    survey.onHeading(prev == null ? h : (prev + headingDiff(h, prev) * 0.35 + 360) % 360);
+  },
+
+  onMotion: (e) => {
+    const a = e.accelerationIncludingGravity;
+    if (!a || a.x == null) return;
+    const magnitude = Math.hypot(a.x, a.y, a.z);
+    if (survey.detector && survey.detector.onMotion(magnitude, e.timeStamp || performance.now())) survey.onStep();
+  }
+};
+
 /* --- finder --------------------------------------------------------------- */
 
+// Any device can be found, flagged or not: the user chose full mapping everywhere (2026-09-27).
 async function startFinder(key) {
-  const flag = state.flags.get(key);
   const dev = state.devices.get(key);
-  if (!flag || !flag.active || !dev) return;
+  if (!dev) return;
   if (!state.scanning && !(await startScan())) return;
   const track = state.linker.track(key) || { key, signatureId: dev.signatureId, lastAddress: Array.from(dev.ids).pop(), lastSeen: dev.lastSeen, lastRssi: dev.lastRssi, lastLat: null, lastLon: null, lastStatus: null };
   state.finder = { key, ids: new Set(dev.ids), signatureId: dev.signatureId, prox: createProximity(track), startedAt: Date.now(), reading: null };
@@ -1425,7 +1774,7 @@ function renderBanner() {
 
 function renderTabs() {
   const active = Array.from(state.flags.values()).filter((f) => f.active).length;
-  const current = state.view === 'detail' || state.view === 'finder' ? null : state.view;
+  const current = state.view === 'nearby' || state.view === 'flagged' ? state.view : null;
   $('tab-nearby').setAttribute('aria-selected', String(current === 'nearby'));
   const tf = $('tab-flagged');
   tf.setAttribute('aria-selected', String(current === 'flagged'));
@@ -1447,6 +1796,8 @@ function nearbyView() {
   // The swarm is one long-lived element, moved back in on every render so its animation and
   // particle positions carry on instead of restarting.
   if (state.scanning) out.push(swarm.node());
+  out.push(el('div', { class: 'actions' },
+    el('button', { type: 'button', class: 'secondary', on: { click: () => survey.begin() } }, 'Map this place')));
   out.push(el('h2', { text: `Nearby now (${rows.length})` }));
   if (!rows.length) {
     out.push(el('p', { class: 'empty', text: state.scanning ? 'Listening… devices heard in the last minute appear here.' : 'Press Start scanning. Devices heard in the last minute appear here.' }));
@@ -1542,11 +1893,9 @@ function detailView() {
   if (a) fact('Current score', `${a.score} (flags at ${CFG.flagThreshold})`);
   out.push(facts);
 
-  if (flag && flag.active) {
-    out.push(el('div', { class: 'actions' },
-      el('button', { type: 'button', on: { click: () => startFinder(dev.key) } }, 'Find it'),
-      el('button', { type: 'button', class: 'secondary', on: { click: () => dismissFlag(dev.key) } }, 'Dismiss')));
-  }
+  out.push(el('div', { class: 'actions' },
+    el('button', { type: 'button', on: { click: () => startFinder(dev.key) } }, 'Find it'),
+    flag && flag.active ? el('button', { type: 'button', class: 'secondary', on: { click: () => dismissFlag(dev.key) } }, 'Dismiss') : ''));
 
   out.push(el('h3', { text: `Places (${places.length})` }));
   if (!places.length) out.push(el('p', { class: 'dim', text: 'No sightings with a usable location yet.' }));
@@ -1571,6 +1920,253 @@ function detailView() {
   out.push(el('div', { class: 'actions' }, dev.ignored
     ? el('button', { type: 'button', class: 'secondary', on: { click: () => { dev.ignored = false; persist(); render(); } } }, 'Stop ignoring')
     : el('button', { type: 'button', class: 'danger', on: { click: () => ignoreDevice(dev.key, true) } }, 'Ignore this device')));
+  return out;
+}
+
+/* --- map this place: screens ---------------------------------------------- */
+
+const surveyDraw = {
+  wrap: null,
+  canvas: null,
+  ctx: null,
+  raf: 0,
+
+  node() {
+    if (this.wrap) return this.wrap;
+    this.canvas = el('canvas', { role: 'img', 'aria-label': 'Survey view' });
+    this.wrap = el('div', { class: 'swarm survey-canvas' }, this.canvas);
+    try { this.ctx = this.canvas.getContext('2d'); } catch (e) { this.ctx = null; }
+    return this.wrap;
+  },
+
+  sync() {
+    if (!this.wrap) return;
+    const label = survey.phase === 'walk' || survey.phase === 'result'
+      ? `Plan of your walk: ${survey.track ? survey.track.path.length - 1 : 0} steps, ${survey.ranked().length} devices mapped.`
+      : `Compass dial: ${survey.sweep ? survey.sweep.covered() : 0} of ${SURVEY.bins} directions covered.`;
+    this.canvas.setAttribute('aria-label', label);
+    if (state.view === 'survey' && this.ctx && !this.raf && typeof requestAnimationFrame === 'function') {
+      this.raf = requestAnimationFrame(() => this.frame());
+    }
+  },
+
+  frame() {
+    this.raf = 0;
+    if (state.view !== 'survey' || !this.ctx || !this.wrap.isConnected) return;
+    const ctx = this.ctx;
+    const width = Math.max(200, this.canvas.clientWidth || 360);
+    const height = Math.round(clamp(width * 0.75, 300, 520));
+    if (this.canvas.style.height !== height + 'px') this.canvas.style.height = height + 'px';
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (this.canvas.width !== Math.round(width * dpr) || this.canvas.height !== Math.round(height * dpr)) {
+      this.canvas.width = Math.round(width * dpr);
+      this.canvas.height = Math.round(height * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = SWARM.colors.bg;
+    ctx.fillRect(0, 0, width, height);
+    ctx.font = '12px -apple-system, "Segoe UI", Roboto, sans-serif';
+    if (survey.phase === 'walk' || survey.phase === 'result') this.plan(ctx, width, height);
+    else this.dial(ctx, width, height);
+    this.raf = requestAnimationFrame(() => this.frame());
+  },
+
+  // North-up compass: covered sectors, the focused device's signal per sector, your heading.
+  dial(ctx, width, height) {
+    const cx = width / 2, cy = height / 2, R = Math.min(width, height) / 2 - 28;
+    const C = SWARM.colors;
+    const sw = survey.sweep;
+    const cover = sw ? sw.coverage() : new Array(SURVEY.bins).fill(false);
+    const focusMeans = sw && survey.focusId ? sw.means(survey.focusId) : null;
+    const filled = focusMeans ? focusMeans.filter((m) => m != null) : [];
+    const lo = filled.length ? Math.min(...filled) : 0, hi = filled.length ? Math.max(...filled) : 1;
+    for (let i = 0; i < SURVEY.bins; i++) {
+      const a0 = (i * 30 - 90) * Math.PI / 180, a1 = ((i + 1) * 30 - 90) * Math.PI / 180;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, R, a0, a1);
+      ctx.closePath();
+      let alpha = cover[i] ? 0.18 : 0.04;
+      ctx.fillStyle = C.ambient;
+      if (focusMeans && focusMeans[i] != null) { ctx.fillStyle = C.tracker; alpha = 0.15 + 0.7 * ((focusMeans[i] - lo) / Math.max(1, hi - lo)); }
+      ctx.globalAlpha = alpha;
+      ctx.fill();
+      ctx.globalAlpha = 0.35;
+      ctx.strokeStyle = C.ambient;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = C.label;
+    for (const [t, deg] of [['N', 0], ['E', 90], ['S', 180], ['W', 270]]) {
+      const a = (deg - 90) * Math.PI / 180;
+      ctx.fillText(t, cx + (R + 14) * Math.cos(a) - 4, cy + (R + 14) * Math.sin(a) + 4);
+    }
+    const arrow = (deg, len, color, lineWidth) => {
+      const a = (deg - 90) * Math.PI / 180;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + len * Math.cos(a), cy + len * Math.sin(a)); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx + len * Math.cos(a), cy + len * Math.sin(a), lineWidth + 2, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill();
+    };
+    const res = survey.focusId ? (sw && sw.result(survey.focusId)) || survey.sweepResults.get(survey.focusId) : null;
+    if (res && res.confidence !== 'unclear') arrow(res.heading, R * 0.85, C.flagged, 4);
+    if (survey.heading != null) arrow(survey.heading, R * 0.6, C.device, 3);
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.fillStyle = C.you; ctx.fill();
+  },
+
+  // Top-down plan in metres, with the way you faced at the start pointing up.
+  plan(ctx, width, height) {
+    const C = SWARM.colors;
+    const path = survey.track ? survey.track.path : [{ x: 0, y: 0 }];
+    const ranked = survey.ranked().slice(0, SURVEY.listMax);
+    const zones = ranked.map((r) => ({ id: r.id, z: survey.zoneFor(r.id) })).filter((x) => x.z);
+    const xs = [0, ...path.map((p) => p.x), ...zones.map((x) => x.z.x)];
+    const ys = [0, ...path.map((p) => p.y), ...zones.map((x) => x.z.y)];
+    const minX = Math.min(...xs) - 1.5, maxX = Math.max(...xs) + 1.5;
+    const minY = Math.min(...ys) - 1.5, maxY = Math.max(...ys) + 1.5;
+    const spanX = Math.max(6, maxX - minX), spanY = Math.max(6, maxY - minY);
+    const scale = Math.min(80, (width - 40) / spanX, (height - 40) / spanY);
+    const midX = (minX + maxX) / 2, midY = (minY + maxY) / 2;
+    const P = (x, y) => ({ x: width / 2 + (x - midX) * scale, y: height / 2 - (y - midY) * scale });
+
+    // 1 m grid
+    ctx.strokeStyle = 'rgba(180, 188, 203, 0.08)';
+    ctx.lineWidth = 1;
+    for (let gx = Math.floor(midX - width / 2 / scale); gx <= midX + width / 2 / scale; gx++) {
+      const p = P(gx, 0); ctx.beginPath(); ctx.moveTo(p.x, 0); ctx.lineTo(p.x, height); ctx.stroke();
+    }
+    for (let gy = Math.floor(midY - height / 2 / scale); gy <= midY + height / 2 / scale; gy++) {
+      const p = P(0, gy); ctx.beginPath(); ctx.moveTo(0, p.y); ctx.lineTo(width, p.y); ctx.stroke();
+    }
+
+    // Hot zones: others first, the focused device on top.
+    const focus = zones.find((x) => x.id === survey.focusId);
+    for (const { id, z } of zones) {
+      if (focus && id === focus.id) continue;
+      const p = P(z.x, z.y);
+      ctx.globalAlpha = 0.18; ctx.fillStyle = C.device;
+      ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(6, z.radius * scale), 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2); ctx.fill();
+      const n = ranked.findIndex((r) => r.id === id) + 1;
+      ctx.fillStyle = C.label; ctx.globalAlpha = 0.8;
+      ctx.fillText(String(n), p.x + 6, p.y - 5);
+    }
+    if (focus) {
+      const p = P(focus.z.x, focus.z.y);
+      const r = Math.max(10, focus.z.radius * scale);
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+      g.addColorStop(0, 'rgba(255, 169, 77, 0.75)');
+      g.addColorStop(1, 'rgba(255, 169, 77, 0)');
+      ctx.globalAlpha = 1; ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = C.tracker;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = C.label;
+      const name = survey.labelFor(focus.id);
+      ctx.fillText(name.length > 24 ? name.slice(0, 23) + '…' : name, p.x + 8, p.y + 4);
+    }
+
+    // Your path, the start, and you.
+    ctx.globalAlpha = 0.9;
+    ctx.strokeStyle = C.you; ctx.lineWidth = 2;
+    ctx.beginPath();
+    path.forEach((q, i) => { const p = P(q.x, q.y); if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+    ctx.stroke();
+    const s = P(0, 0);
+    ctx.fillStyle = C.label; ctx.globalAlpha = 1;
+    ctx.fillText('Start', s.x + 7, s.y + 14);
+    ctx.strokeStyle = C.label; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x, s.y - 18); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(s.x - 4, s.y - 13); ctx.lineTo(s.x, s.y - 18); ctx.lineTo(s.x + 4, s.y - 13); ctx.stroke();
+    const me = survey.track ? survey.track.pos : { x: 0, y: 0 };
+    const mp = P(me.x, me.y);
+    if (survey.heading != null && survey.startHeading != null) {
+      const a = headingDiff(survey.heading, survey.startHeading) * Math.PI / 180;
+      ctx.globalAlpha = 0.35; ctx.fillStyle = C.you;
+      ctx.beginPath(); ctx.moveTo(mp.x, mp.y);
+      ctx.arc(mp.x, mp.y, 34, a - Math.PI / 2 - 0.45, a - Math.PI / 2 + 0.45);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1; ctx.fillStyle = C.you;
+    ctx.beginPath(); ctx.arc(mp.x, mp.y, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(180, 188, 203, 0.7)';
+    ctx.fillText('1 square = 1 m · up = the way you faced at the start', 10, height - 10);
+  }
+};
+
+function surveyView() {
+  const S = survey;
+  const out = [el('div', { class: 'actions' }, el('button', { type: 'button', class: 'small secondary', on: { click: () => S.end() } }, '← Leave map'))];
+  out.push(el('h2', { text: 'Map this place' }));
+  if (!state.scanning) out.push(el('div', { class: 'banner' }, el('b', { text: 'Not scanning. ' }), 'Press Start scanning at the top so devices can be heard.'));
+  if (S.compass === 'unavailable') {
+    out.push(el('div', { class: 'banner' }, el('b', { text: 'No compass. ' }), 'This browser isn\'t getting compass readings, so directions and your path can\'t be tracked. Use a phone or tablet in Chrome, and hold it flat.'));
+  }
+
+  const steps = [['start', '1 · Start point'], ['sweep', '2 · Turn in a circle'], ['walk', '3 · Walk the area'], ['result', '4 · Results']];
+  out.push(el('p', { class: 'dim' }, steps.map(([k, t]) => (k === S.phase ? el('b', { text: t }) : t)).reduce((acc, x, i) => (i ? [...acc, ' → ', x] : [x]), [])));
+
+  if (S.phase === 'start') {
+    out.push(el('p', { text: 'Stand where you want to start. Hold the tablet flat in front of your chest, screen up, and face into the room. This spot and the way you\'re facing become the start of your plan.' }));
+    out.push(surveyDraw.node());
+    out.push(el('p', { class: 'dim', text: S.heading == null ? 'Waiting for the compass…' : `Facing ${compassName(S.heading)} (${Math.round(S.heading)}°). If the arrow jumps around, wave the tablet in a figure-8 to calibrate the compass.` }));
+    out.push(el('div', { class: 'actions' }, el('button', { type: 'button', disabled: S.heading == null, on: { click: () => S.setStart() } }, 'Start here')));
+    return out;
+  }
+
+  if (S.phase === 'sweep') {
+    const n = S.sweep.covered();
+    out.push(el('p', { text: 'Keep the tablet flat against your chest and turn slowly on the spot, all the way round. Your body blocks signals from behind you, so each device is strongest when you face it.' }));
+    out.push(surveyDraw.node());
+    out.push(el('p', { class: 'dim', text: `${n} of ${SURVEY.bins} directions covered · ${S.sweep.keys().length} device${S.sweep.keys().length === 1 ? '' : 's'} heard${S.heading != null ? ` · facing ${compassName(S.heading)}` : ''}` }));
+    out.push(el('div', { class: 'actions' }, el('button', { type: 'button', disabled: n < SURVEY.sweepMinBins, on: { click: () => S.finishSweep() } }, n < SURVEY.sweepMinBins ? 'Keep turning…' : 'Done turning')));
+    return out;
+  }
+
+  const ranked = S.ranked().slice(0, SURVEY.listMax);
+  if (S.phase === 'walk') {
+    out.push(el('p', { text: 'Walk slowly around the area with the tablet flat in front of you. Every device is recorded as you go. To pin a device down, walk around it, not just past it: a device outside the area you walked is drawn at the edge of your path. Stop and turn in a circle again wherever you want a better direction.' }));
+    const r = S.focusReading || (S.focusProx ? S.focusProx.snapshot(Date.now()) : null);
+    if (S.focusId && r) {
+      const trendText = r.lost ? 'not heard' : r.trend === 'warmer' ? 'Warmer ↑' : r.trend === 'colder' ? 'Colder ↓' : 'Steady';
+      out.push(el('div', { class: 'panel' }, el('b', { text: `Following: ${S.labelFor(S.focusId)} · ` }),
+        el('span', { class: r.trend === 'warmer' ? 'bad' : r.trend === 'colder' ? 'dim' : '', text: `${trendText} · ${r.band}${r.smoothedRssi != null ? ` · ${r.smoothedRssi} dBm` : ''}` })));
+    }
+  } else {
+    out.push(el('p', { text: 'Where each device probably is, from your walk. Distances come from signal strength and counted steps, so read them as "this part of the room", not an exact spot.' }));
+  }
+  out.push(surveyDraw.node());
+  const walked = S.track ? (S.track.path.length - 1) * SURVEY.stepLength : 0;
+  out.push(el('p', { class: 'dim', text: `${S.steps} steps (about ${walked.toFixed(1)} m) · ${ranked.length} device${ranked.length === 1 ? '' : 's'} heard` }));
+  if (S.phase === 'walk') {
+    out.push(el('div', { class: 'actions' },
+      el('button', { type: 'button', class: 'secondary', on: { click: () => S.startSweep() } }, 'Turn in a circle here'),
+      el('button', { type: 'button', on: { click: () => S.finish() } }, 'Finish')));
+  } else {
+    out.push(el('div', { class: 'actions' },
+      el('button', { type: 'button', class: 'secondary', on: { click: () => { S.phase = 'walk'; render(); } } }, 'Keep walking'),
+      el('button', { type: 'button', class: 'secondary', on: { click: () => S.begin() } }, 'Start again')));
+  }
+
+  out.push(el('h3', { text: 'Devices' }));
+  if (!ranked.length) out.push(el('p', { class: 'empty', text: 'No devices heard yet.' }));
+  ranked.forEach((d, i) => {
+    const z = S.zoneFor(d.id);
+    const sw = S.sweepResults.get(d.id);
+    const where = z ? `${z.source === 'direction' ? 'Direction only: ' : ''}about ${describeOffset(z)}` : sw ? 'Direction unclear: turn in a circle closer to it' : 'Not enough readings yet';
+    const l = state.live.get(d.id);
+    const isFocus = d.id === S.focusId;
+    out.push(el('div', { class: isFocus ? 'row tracker' : 'row' },
+      el('div', { class: 'open' },
+        el('div', { class: 'name' }, `${i + 1}. ${S.labelFor(d.id)}`, isFocus ? el('span', { class: 'tag', text: 'following' }) : ''),
+        el('div', { class: 'meta', text: `${where} · strongest ${Math.round(d.best)} dBm${sw && sw.confidence !== 'unclear' ? ` · faces ${compassName(sw.heading)} from where you turned` : ''}` })),
+      isFocus ? '' : el('button', { type: 'button', class: 'small secondary', on: { click: () => S.setFocus(d.id) } }, 'Follow'),
+      l && l.key ? el('button', { type: 'button', class: 'small', on: { click: () => { S.end(); startFinder(l.key); } } }, 'Find it') : ''));
+  });
   return out;
 }
 
@@ -1601,18 +2197,37 @@ function render(opts) {
   renderChips();
   renderBanner();
   renderTabs();
-  // A soft render (timer or new advertisement) leaves the detail page alone so typing isn't interrupted.
+  // A soft render (timer or new advertisement) leaves the detail page alone so typing isn't interrupted,
+  // and rebuilds the busy screens at most once a second, so a button isn't replaced mid-tap.
   if (soft && state.view === 'detail') return;
+  const now = Date.now();
+  const since = now - (state.lastSoftRender || 0);
+  if (soft && (state.view === 'nearby' || state.view === 'survey') && since < 1000) {
+    // Skipped for now, but always caught up a moment later so the text never goes stale.
+    if (!state.trailingRender) state.trailingRender = setTimeout(() => { state.trailingRender = null; render({ soft: true }); }, 1000 - since);
+    swarm.sync(now);
+    surveyDraw.sync();
+    return;
+  }
+  state.lastSoftRender = now;
   if (state.finder && Date.now() - state.finder.startedAt > PROX.timeLimitMs) stopFinder();
   const view = $('view');
-  const content = state.view === 'flagged' ? flaggedView() : state.view === 'detail' ? detailView() : state.view === 'finder' ? finderView() : nearbyView();
+  const content = state.view === 'flagged' ? flaggedView() : state.view === 'detail' ? detailView() : state.view === 'finder' ? finderView()
+    : state.view === 'survey' ? surveyView() : nearbyView();
   view.replaceChildren(...content);
   swarm.sync(Date.now());
+  surveyDraw.sync();
 }
 
 /* --- actions -------------------------------------------------------------- */
 
-function showView(v) { state.view = v; if (v !== 'finder') stopFinder(); if (v === 'flagged') state.newFlags = 0; render(); }
+function showView(v) {
+  if (v !== 'survey' && survey.active) { survey.active = false; survey.stopSensors(); }
+  state.view = v;
+  if (v !== 'finder') stopFinder();
+  if (v === 'flagged') state.newFlags = 0;
+  render();
+}
 
 function openDetail(key) { if (!key || !state.devices.has(key)) return; stopFinder(); state.detailKey = key; state.view = 'detail'; render(); }
 
@@ -1704,12 +2319,13 @@ $('tabs').addEventListener('click', (e) => { const b = e.target.closest('button[
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && state.scanning) stopScan('Scanning stopped because the page was hidden. The browser can\'t scan in the background. Press Start scanning to continue.');
 });
-setInterval(() => { if (state.scanning || state.finder) scheduleRender(); }, 2000);
+setInterval(() => { if (state.scanning || state.finder || survey.active) scheduleRender(); }, 2000);
 
 window.__sentinelWeb = {
   CFG, SIGNATURES, haversine, parseAdvertisement, matchSignature, ownerState, statusByte,
   createClusterer, createLinker, scoreOf, reasonOf, assess, decide, createProximity, project, fitZoom, tileLayout,
   SWARM, swarm, rssiToRadius, deviceOrbit, projectPoint, fitScale, swarmDevices,
+  SURVEY, survey, surveyDraw, headingDiff, compassName, rssiToMeters, createSweep, createStepDetector, createTrack, estimateZone, describeOffset,
   state, store, handleAdvertisement, runCycle, runDetection, render, openDetail, dismissFlag, ignoreDevice, showView,
   setFix(fix) { state.fix = fix; },
   ready: boot()
