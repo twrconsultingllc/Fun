@@ -243,6 +243,32 @@
   .finder .trend.warmer { color: var(--bad); }
   .finder .trend.colder { color: var(--accent); }
   .finder .reading { color: var(--dim); font-variant-numeric: tabular-nums; }
+  /* The device swarm keeps a dark night-sky card in both themes: its particles are drawn with
+     additive blending, which only reads on a dark background. */
+  .swarm {
+    position: relative;
+    margin: 12px 0 4px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: #070a10;
+    overflow: hidden;
+  }
+  .swarm canvas { display: block; width: 100%; height: 280px; touch-action: manipulation; cursor: pointer; }
+  .swarm .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    padding: 8px 12px 10px;
+    font-size: 0.78rem;
+    color: #b4bccb;
+    border-top: 1px solid #1c2230;
+  }
+  .swarm .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swarm .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .swarm .dot.you { background: #facc15; }
+  .swarm .dot.device { background: #5aa9ff; }
+  .swarm .dot.tracker { background: #ffa94d; }
+  .swarm .dot.flagged { background: #ff5c5c; }
   footer { margin-top: 32px; color: var(--dim); font-size: 0.8rem; }
 </style>
 </head>
@@ -696,6 +722,284 @@ function tileLayout(places, width, height) {
   return { zoom, tiles, markers };
 }
 
+/* --- device swarm ----------------------------------------------------------
+ * The 3JS gallery's "3.3 Particle Swarm Core" (threejsGallery.html): points on
+ * independent orbits, each with its own radius, inclination and speed,
+ * breathing around a core. Here the core is you, and every device heard in the
+ * last minute is a brighter particle whose orbit radius follows its signal.
+ * Drawn on a 2D canvas with the gallery's orbit maths rather than three.js, so
+ * this page loads no third-party script (it holds a location history).
+ * ------------------------------------------------------------------------- */
+
+const SWARM = {
+  ambient: 900,           // the gallery uses 2,000; fewer keeps a tablet cool with the scan running
+  minR: 0.55,             // orbit radius at -45 dBm or stronger
+  maxR: 1.8,              // at -95 dBm or weaker (the gallery's outer radius)
+  camZ: 9,                // camera distance: far enough that the near side isn't much bigger than the far
+  tilt: 0.62,             // look down on the orbit plane, so the rings read as rings
+  pad: 22,                // px kept clear around the outer orbit
+  heightFor: (width) => Math.round(clamp(width * 0.62, 280, 460)),
+  fadeAfterMs: 20000,     // a device not heard for 20 s starts to fade
+  colors: { bg: '#070a10', ambient: '#facc15', you: '#facc15', device: '#5aa9ff', tracker: '#ffa94d', flagged: '#ff5c5c', ring: 'rgba(250, 204, 21, 0.22)', label: '#dfe4ee' },
+  rings: [[-55, 'very close'], [-70, 'close'], [-85, 'in range']]
+};
+
+function hashString(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Stronger signal, closer to you. Linear between -45 dBm (minR) and -95 dBm (maxR).
+function rssiToRadius(rssi) {
+  const k = clamp((-rssi - 45) / 50, 0, 1);
+  return SWARM.minR + k * (SWARM.maxR - SWARM.minR);
+}
+
+// Each device keeps the same orbit every time it's seen: seeded from its Chrome ID.
+function deviceOrbit(id) {
+  const r = mulberry32(hashString(String(id)));
+  return { theta: r() * Math.PI * 2, incl: (r() - 0.5) * 0.3, speed: 0.12 + r() * 0.18, phase: r() * Math.PI * 2 };
+}
+
+function swarmKind(live) {
+  const dev = live.key ? state.devices.get(live.key) : null;
+  const flag = dev ? state.flags.get(dev.key) : null;
+  if (flag && flag.active) return 'flagged';
+  if (live.sigId) return 'tracker';
+  return 'device';
+}
+
+// World point -> screen: turned by `spin`, tilted down, then a perspective divide. `f` is the
+// focal length in px, chosen by fitScale so the outer orbit fills the canvas.
+function projectPoint(x, y, z, spin, width, height, f) {
+  const cs = Math.cos(spin), sn = Math.sin(spin);
+  const x1 = x * cs - z * sn;
+  const z1 = x * sn + z * cs;
+  const ct = Math.cos(SWARM.tilt), st = Math.sin(SWARM.tilt);
+  const y2 = y * ct - z1 * st;
+  const z2 = y * st + z1 * ct;
+  const scale = f / (SWARM.camZ - z2);
+  return { x: width / 2 + x1 * scale, y: height / 2 - y2 * scale, z: z2, scale };
+}
+
+// The largest focal length at which an orbit just outside maxR still fits inside the padding.
+function fitScale(width, height) {
+  const r = SWARM.maxR * 1.06;
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (let i = 0; i < 96; i++) {
+    const a = i / 96 * Math.PI * 2;
+    for (const y of [-r * 0.15, r * 0.15]) {           // allow for the orbits' inclination (sin 0.15)
+      const p = projectPoint(r * Math.cos(a), y, r * Math.sin(a), 0, 0, 0, 1);
+      minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+      minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+    }
+  }
+  const fx = (width / 2 - SWARM.pad) / Math.max(-minX, maxX);
+  const fy = (height / 2 - SWARM.pad) / Math.max(-minY, maxY);
+  return Math.max(1, Math.min(fx, fy));
+}
+
+function swarmDevices(now) {
+  const out = [];
+  for (const l of state.live.values()) {
+    const age = now - l.ts;
+    if (age > CFG.nearbyWindowMs) continue;
+    const dev = l.key ? state.devices.get(l.key) : null;
+    if (dev && dev.ignored) continue;
+    out.push({ live: l, dev, kind: swarmKind(l), age });
+  }
+  return out;
+}
+
+const REDUCED_MOTION = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const swarm = {
+  wrap: null,
+  canvas: null,
+  ctx: null,
+  raf: 0,
+  start: 0,
+  ambient: [],
+  bodies: new Map(),
+  hits: [],
+
+  node() {
+    if (this.wrap) return this.wrap;
+    this.canvas = el('canvas', { role: 'img', 'aria-label': 'Devices around you' });
+    const legend = el('div', { class: 'legend', 'aria-hidden': 'true' },
+      el('span', null, el('i', { class: 'dot you' }), 'You'),
+      el('span', null, el('i', { class: 'dot device' }), 'Device'),
+      el('span', null, el('i', { class: 'dot tracker' }), 'Tracker'),
+      el('span', null, el('i', { class: 'dot flagged' }), 'Flagged'),
+      el('span', null, 'Closer in = stronger signal · tap one for details'));
+    this.wrap = el('div', { class: 'swarm' }, this.canvas, legend);
+    try { this.ctx = this.canvas.getContext('2d'); } catch (e) { this.ctx = null; }
+    for (let i = 0; i < SWARM.ambient; i++) {
+      this.ambient.push({
+        r: 0.1 + Math.random() * 0.18,
+        theta: Math.random() * Math.PI * 2,
+        phi: Math.acos(2 * Math.random() - 1),   // even spread over the sphere, as in the gallery
+        speed: 0.35 + Math.random() * 0.9,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+    this.canvas.addEventListener('click', (ev) => {
+      const rect = this.canvas.getBoundingClientRect();
+      const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+      let best = null, bestD = 28;
+      for (const h of this.hits) {
+        const d = Math.hypot(h.x - x, h.y - y);
+        if (d < bestD && h.key) { best = h; bestD = d; }
+      }
+      if (best) openDetail(best.key);
+    });
+    return this.wrap;
+  },
+
+  visible() {
+    return state.scanning && state.view === 'nearby' && !(typeof document !== 'undefined' && document.hidden);
+  },
+
+  sync(now) {
+    if (!this.wrap) return;
+    const list = swarmDevices(now);
+    const trackers = list.filter((d) => d.kind !== 'device').length;
+    const flagged = list.filter((d) => d.kind === 'flagged').length;
+    this.canvas.setAttribute('aria-label',
+      `${list.length} device${list.length === 1 ? '' : 's'} around you: ${trackers} tracker${trackers === 1 ? '' : 's'}, ${flagged} flagged. Stronger signals orbit closer to the centre.`);
+    if (this.visible() && this.ctx && !this.raf && typeof requestAnimationFrame === 'function') {
+      if (!this.start) this.start = performance.now();
+      this.raf = requestAnimationFrame(() => this.frame());
+    }
+  },
+
+  frame() {
+    this.raf = 0;
+    if (!this.visible() || !this.ctx || !this.wrap.isConnected) return;
+    const ctx = this.ctx;
+    const width = Math.max(200, this.canvas.clientWidth || this.wrap.clientWidth || 360);
+    const height = SWARM.heightFor(width);
+    if (this.canvas.style.height !== height + 'px') this.canvas.style.height = height + 'px';
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (this.canvas.width !== Math.round(width * dpr) || this.canvas.height !== Math.round(height * dpr)) {
+      this.canvas.width = Math.round(width * dpr);
+      this.canvas.height = Math.round(height * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (this.fitW !== width) { this.fitW = width; this.f = fitScale(width, height); }   // height follows width
+    const f = this.f;
+    const t = (performance.now() - this.start) / 1000 * (REDUCED_MOTION ? 0.15 : 1);
+    const spin = t * 0.1;
+    const C = SWARM.colors;
+
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = C.bg;
+    ctx.fillRect(0, 0, width, height, f);
+
+    // Signal rings, flat in the orbit plane (they don't spin, so they read as fixed bands).
+    ctx.lineWidth = 1;
+    ctx.font = '11px -apple-system, "Segoe UI", Roboto, sans-serif';
+    for (const [rssi, label] of SWARM.rings) {
+      const r = rssiToRadius(rssi);
+      ctx.strokeStyle = C.ring;
+      ctx.beginPath();
+      for (let i = 0; i <= 72; i++) {
+        const a = i / 72 * Math.PI * 2;
+        const p = projectPoint(r * Math.cos(a), 0, r * Math.sin(a), 0, width, height, f);
+        if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+      const tag = projectPoint(0, 0, -r, 0, width, height, f);   // back of the ring, above you
+      ctx.fillStyle = 'rgba(250, 204, 21, 0.6)';
+      ctx.fillText(label, tag.x + 4, tag.y - 3);
+    }
+
+    // The gallery's swarm, breathing around you, with additive blending.
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = C.ambient;
+    for (const o of this.ambient) {
+      const angle = o.theta + t * o.speed * 0.6;
+      const r = o.r * (1 + Math.sin(t * 1.1 + o.phase) * 0.16);
+      const sp = Math.sin(o.phi);
+      const p = projectPoint(r * sp * Math.cos(angle), r * Math.cos(o.phi), r * sp * Math.sin(angle), spin, width, height, f);
+      ctx.globalAlpha = 0.38;
+      ctx.fillRect(p.x - 0.7, p.y - 0.7, 1.4, 1.4);
+    }
+    const core = projectPoint(0, 0, 0, 0, width, height, f);
+    const glow = ctx.createRadialGradient(core.x, core.y, 0, core.x, core.y, 20);
+    glow.addColorStop(0, 'rgba(250, 204, 21, 0.75)');
+    glow.addColorStop(1, 'rgba(250, 204, 21, 0)');
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(core.x, core.y, 20, 0, Math.PI * 2); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = C.label;
+    ctx.fillText('You', core.x + 10, core.y + 18);
+
+    // Devices, far side first.
+    const now = Date.now();
+    const list = swarmDevices(now);
+    const seen = new Set();
+    const drawn = [];
+    for (const d of list) {
+      const id = d.live.id;
+      seen.add(id);
+      let body = this.bodies.get(id);
+      if (!body) { body = { orbit: deviceOrbit(id), r: rssiToRadius(d.live.rssi) }; this.bodies.set(id, body); }
+      body.r += (rssiToRadius(d.live.rssi) - body.r) * 0.06;
+      const o = body.orbit;
+      const angle = o.theta + t * o.speed;
+      const r = body.r * (1 + Math.sin(t * 1.1 + o.phase) * 0.03);
+      const p = projectPoint(r * Math.cos(angle), r * Math.sin(o.incl) * Math.sin(angle), r * Math.sin(angle), spin, width, height, f);
+      drawn.push({ d, p });
+    }
+    for (const id of Array.from(this.bodies.keys())) if (!seen.has(id)) this.bodies.delete(id);
+    drawn.sort((a, b) => a.p.z - b.p.z);
+
+    this.hits = [];
+    for (const { d, p } of drawn) {
+      const fade = 1 - clamp((d.age - SWARM.fadeAfterMs) / (CFG.nearbyWindowMs - SWARM.fadeAfterMs), 0, 1) * 0.75;
+      const color = C[d.kind];
+      const size = (d.kind === 'device' ? 3.4 : d.kind === 'tracker' ? 4.8 : 5.6) * clamp(p.scale / (f / SWARM.camZ), 0.8, 1.25);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.35 * fade;
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, size * 2.6, 0, Math.PI * 2); ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = fade;
+      ctx.beginPath(); ctx.arc(p.x, p.y, size, 0, Math.PI * 2); ctx.fill();
+      if (d.kind === 'flagged') {
+        const pulse = (t * 0.8) % 1;
+        ctx.globalAlpha = (1 - pulse) * fade;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(p.x, p.y, size + 4 + pulse * 16, 0, Math.PI * 2); ctx.stroke();
+      }
+      if (d.kind !== 'device') {
+        const name = (d.dev && (d.dev.nickname || d.dev.name)) || d.live.name || familyName(d.live.sigId) || 'Tracker';
+        ctx.globalAlpha = fade;
+        ctx.fillStyle = C.label;
+        ctx.fillText(name.length > 22 ? name.slice(0, 21) + '…' : name, p.x + size + 5, p.y + 4);
+      }
+      this.hits.push({ x: p.x, y: p.y, key: d.live.key || null });
+    }
+    ctx.globalAlpha = 1;
+
+    this.raf = requestAnimationFrame(() => this.frame());
+  }
+};
+
 /* ---------------------------------------------------------------------------
  * Storage: IndexedDB when the browser has it, otherwise memory only.
  * ------------------------------------------------------------------------- */
@@ -1139,7 +1443,11 @@ function nearbyView() {
     rows.push({ l, dev });
   }
   rows.sort((a, b) => (b.l.sigId ? 1 : 0) - (a.l.sigId ? 1 : 0) || b.l.rssi - a.l.rssi);
-  const out = [el('h2', { text: `Nearby now (${rows.length})` })];
+  const out = [];
+  // The swarm is one long-lived element, moved back in on every render so its animation and
+  // particle positions carry on instead of restarting.
+  if (state.scanning) out.push(swarm.node());
+  out.push(el('h2', { text: `Nearby now (${rows.length})` }));
   if (!rows.length) {
     out.push(el('p', { class: 'empty', text: state.scanning ? 'Listening… devices heard in the last minute appear here.' : 'Press Start scanning. Devices heard in the last minute appear here.' }));
   }
@@ -1299,6 +1607,7 @@ function render(opts) {
   const view = $('view');
   const content = state.view === 'flagged' ? flaggedView() : state.view === 'detail' ? detailView() : state.view === 'finder' ? finderView() : nearbyView();
   view.replaceChildren(...content);
+  swarm.sync(Date.now());
 }
 
 /* --- actions -------------------------------------------------------------- */
@@ -1400,6 +1709,7 @@ setInterval(() => { if (state.scanning || state.finder) scheduleRender(); }, 200
 window.__sentinelWeb = {
   CFG, SIGNATURES, haversine, parseAdvertisement, matchSignature, ownerState, statusByte,
   createClusterer, createLinker, scoreOf, reasonOf, assess, decide, createProximity, project, fitZoom, tileLayout,
+  SWARM, swarm, rssiToRadius, deviceOrbit, projectPoint, fitScale, swarmDevices,
   state, store, handleAdvertisement, runCycle, runDetection, render, openDetail, dismissFlag, ignoreDevice, showView,
   setFix(fix) { state.fix = fix; },
   ready: boot()
