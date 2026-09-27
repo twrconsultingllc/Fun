@@ -110,6 +110,29 @@ To cover another page, add a `<page>.test.mjs` exporting `name` and a default
 `run(harness, page)` function, then register it in the `SUITES` array in
 `tests/run.mjs`. See `tests/README.md` for the harness API and conventions.
 
+### Run only the suites for the pages that changed
+
+Don't run the whole suite after every change. Run only the suites for the
+pages the change touched, one `--page=` run per changed page:
+
+```bash
+cd tests
+node run.mjs --page=snake.html
+```
+
+A new page runs only its new suite, an edit to `snake.html` runs only the
+snake suites, and an edit to `index.html` tests `index.html` (and would also
+test a page it pulls in, not every page it links to). Untouched pages aren't
+re-tested. The user asked for this on 2026-09-27, after a one-page addition
+(`ble-scan-test.html`) was followed by a run of all 1331 assertions.
+
+Two exceptions follow from what the suites share. An edit to `tests/lib/`
+(the harness or page loader) touches every suite, so it's the one case where
+`npm test` is the associated run. A Full Monty review (below) is a sitewide
+re-audit and runs everything. Adding a suite's line to `SUITES` in
+`tests/run.mjs` is not a shared change: run just that suite. In the review
+report, name which suites ran.
+
 When a test fails, re-derive the expected value from first principles before
 changing it. Do not "fix" a failure by pasting in whatever the page now prints —
 during the TriCalc 4.0 rewrite three failures turned out to be wrong
@@ -316,6 +339,25 @@ simulating the actual math in Node. Always say plainly which kind of check
 happened. A screenshot from headless Chromium counts as a visual check; a
 reading of the code doesn't. Ask the user to look at the deployed result when
 nothing could be rendered.
+
+## GitHub from claude.ai/code: what it can't do
+
+Claude Code on the web can work inside repos the user has given it, but two
+things were refused on 2026-09-27 and have to be done by the user on
+github.com:
+
+- **Creating a repo.** `create_repository` returned `403 Resource not
+  accessible by integration`. The user creates it at
+  <https://github.com/new>. After that, `add_repo` (with push access)
+  attaches it to the running session, with no restart needed, as long as
+  the Claude GitHub App has access to it ("All repositories", or the new
+  repo added to its selected list).
+- **Deleting a remote branch.** `git push origin --delete <branch>` got
+  HTTP 403 from the session's git proxy, and there's no GitHub tool for it.
+  After merging a PR, tell the user to click **Delete branch** on the PR if
+  they want it gone. Don't retry or look for a way around it.
+
+Opening and merging pull requests does work, through the GitHub tools.
 
 ## My Daily Wire (`daily-wire.html`): two traps
 
