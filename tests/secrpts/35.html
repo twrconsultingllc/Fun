@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #35 — sentinel-web.html My gear</title>
+<meta name="description" content="Security and code-quality review of My gear in sentinel-web.html: registering your own Bluetooth devices with a photo, and guarding them with In use and Parked alarms, while the page is open.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #35 — <code>sentinel-web.html</code> My gear</h1>
+    <p class="sub">A new <b>My gear</b> tab for guarding your own devices, built for a triathlete's heart-rate strap, watch and bike computer. <b>Register a device</b> lists what's heard, strongest first, marks the closest, and names what it broadcasts. You add a name, owner, type and a photo taken inside the page. Each device then has a mode. <b>In use</b> alarms when it goes quiet and keeps where it was last heard. <b>Parked</b> arms after a quiet minute, alarms if the device wakes up, then logs every ping with the time and place. The alarm beeps, vibrates, shows a banner and, if allowed, sends a notification, until "I have it". Registered gear is never flagged as following you.</p>
+    <div class="meta">Review performed 2026-09-27 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>sentinel-web.html</code> (gear logic, alarm, camera, three screens, storage version 2, CSP <code>img-src</code>), <code>tests/sentinel-web.dom.test.mjs</code>, <code>tests/README.md</code> · suites run: <code>sentinel-web</code> · follows: <a href="34.html">34.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 73%;"></div></div>
+    <div class="progress-label">11 items: 8 verified clean (3 of them fixed during review), 3 open. Open items from <a href="32.html">32.html</a> and <a href="34.html">34.html</a> are unchanged.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security &amp; privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">One CSP change: <code>blob:</code> images, for the page's own photos</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Gear photos are shown from object URLs, so <code>img-src</code> is now <code>'self' blob: https://tile.openstreetmap.org</code>. A <code>blob:</code> URL can only point at data this page created itself (a photo just taken, or one read back from its own storage), so this doesn't open a route to another site. <code>connect-src 'none'</code>, <code>script-src</code> and everything else are unchanged. The camera preview uses <code>srcObject</code>, which the CSP doesn't govern. The suite asserts the exact <code>img-src</code>.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Photos and gear stay on the device, and "Delete all data" removes them</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Photos are taken with <code>getUserMedia</code> inside the page, which the camera permission prompt covers. They're drawn to a canvas, saved as a JPEG of at most 1024 px, and kept in two new IndexedDB stores (<code>gear</code>, <code>photos</code>), never sent anywhere. The database upgrade to version 2 only adds those stores, and keeps existing sightings, devices, flags and settings (the version checks are in <code>onupgradeneeded</code>). The camera stream stops when a photo is taken, cancelled, or the screen is left. "Delete all data" clears all six stores and revokes the object URLs, and removing one device deletes its photo. In Chromium, both registered devices, the photo and the pings came back after a reload.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Your own gear is never flagged, and names are still text</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Detection skips any device whose Chrome IDs belong to registered gear, and registering one removes an existing flag for it. The suite registers an AirTag on a bike and takes it to three places 3 km apart. Unregistered it would score 70 and be flagged (the Find My case from <a href="32.html">32.html</a>). Registered, it isn't. Names typed by the user, and advertised names, are only ever set with <code>textContent</code> or <code>value</code>, and the source grep for HTML-building calls still finds nothing. A photo's <code>alt</code> text is set with <code>setAttribute</code>.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Recognising gear by name can be fooled</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Watches often change their Chrome ID, so a device can also be recognised by its exact advertised name (on by default when it has one, and switchable when registering). Two people with the same model can share a name, such as "Edge 540", and anyone can advertise any name. So a Parked alarm could miss a stolen device if a same-named device is nearby, or fire because of someone else's. A name match also teaches the device a new ID (up to 10). The detail screen says how a device is recognised. Left open as a limit of what a browser can see. The Android app could match on stable data that Chrome hides.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Alarm rules, tested with hand-set times</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The rules are pure functions (<code>gearOnReading</code>, <code>gearTick</code>, <code>setGearMode</code>, <code>gearStatus</code>), tested at exact times:</p><ul><li><b>In use:</b> no alarm at 44 s quiet, "gone" just after 45 s, once, cleared when heard again. A device never heard since guarding started also counts as gone after the delay.</li><li><b>Parked:</b> not armed 50 s after its last ping, armed after 60 s, "woke" exactly once, pings logged at most every 5 s with where they were heard.</li></ul><p>Making Parked arm straight away turned a check red. So did removing the "never flag my gear" rule, once the test used a device that would really be flagged. Its first version used a heart-rate strap that only scores 35, which proved nothing, so the test was changed.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The whole flow in Chromium, with a fake camera</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Chromium's fake camera and simulated Bluetooth, run end to end:</p><ul><li>Registered "My HRM-Pro" with a photo, found as the closest device and named "Garmin · Heart rate", then "Edge 540" as Parked.</li><li>Stopped the strap: after the 20 s delay the banner read "My HRM-Pro has gone quiet", the tab showed 1, and the beep loop ran with audio "running".</li><li>The parked Edge armed, then woke on its next ping and logged 2 pings with locations. "I have it" stopped the beeping.</li><li>After a reload: both devices, the photo and the pings were there.</li></ul><p>No page errors. The one console noise is map tiles this container can't download.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Card and banner status colours leaked into their text</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The gear cards and status banner used the classes <code>ok</code>, <code>warn</code> and <code>alarm</code>, and the page already has <code>.ok</code> and <code>.warn</code> as text colours. So a guarded device's whole card, name included, turned green or orange (seen in the first screenshot). The level classes are now <code>lvl-ok</code>, <code>lvl-warn</code>, <code>lvl-alarm</code> and <code>lvl-idle</code>, which only colour the border.</p><div class="fix-note"><b>Fix:</b> renamed the level classes.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Alarm count badge contrast</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The red alarm count on the My gear tab first used white text. On the dark theme's <code>#ff6b6b</code> that's below 4.5:1. It now uses the page background colour: <code>#0b0e14</code> on <code>#ff6b6b</code> is 6.96:1, and <code>#f5f6f9</code> on <code>#c62828</code> is 5.2:1. Other new pairs: the "mine" tag 8.61:1 and 5.11:1, alarm status text 6.52:1 and 5.62:1, form fields 13.21:1 and 13.94:1.</p><div class="fix-note"><b>Fix:</b> <code>.count.alarm</code> text uses <code>var(--bg)</code>.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A map pin hid another</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>A woken device's map listed its last-heard spot first and then its pings. The last-heard spot is usually the latest ping, so pin 3 was drawn on top of pin 1. The map now lists pings in time order, and adds the last-heard spot only when it differs from the latest ping.</p><div class="fix-note"><b>Fix:</b> ordered and de-duplicated map points.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not yet tried with real triathlon gear</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Still unknown: which of the user's heart-rate strap, watch and bike computer broadcast Bluetooth LE when idle or when connected to something else (ANT+ is invisible to browsers), how loud the alarm is on the tablet, and whether Samsung's Chrome allows the notification. A strap connected to a watch may go quiet and set off a false "gone". The page says guarding only works while it's open with the screen on. Left open until the user has tested it.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span>Recorded for later (not built)</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Background guarding and a shared race-day network</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>The user's future idea, recorded 2026-09-27. <b>In an Android app:</b> guarding runs passively in the background, which the Sentinel app's foreground service already makes possible. <b>A shared network:</b> everyone at a triathlon or marathon who runs the app quietly watches for everyone's registered gear, so a stolen device that's moving is reported and followed through the crowd. Designing that later will need what Apple's and Google's finding networks do. Reports should be encrypted to the owner, so the crowd can't see whose gear is where. Identifiers should rotate, so the network can't be used to track a person rather than a device. And the server should never learn anyone's location history. Not started. The page's Setup panel mentions it under "Coming later".</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Suite run: <code>sentinel-web</code> (157 passed), per the repo's rule to run only the changed page's suites. See <a href="34.html">34.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>

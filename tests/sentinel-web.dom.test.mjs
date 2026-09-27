@@ -66,7 +66,7 @@ export default async function run(t, page) {
 
         const csp = document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content || '';
         t.ok('the CSP forbids all fetches (connect-src \'none\')', /connect-src 'none'/.test(csp));
-        t.ok('images only from the page and OpenStreetMap tiles', /img-src 'self' https:\/\/tile\.openstreetmap\.org;/.test(csp));
+        t.ok('images only from the page, its own photo blobs and OpenStreetMap tiles', /img-src 'self' blob: https:\/\/tile\.openstreetmap\.org;/.test(csp));
         t.ok('the CSP has form-action \'none\' and base-uri \'none\'', /form-action 'none'/.test(csp) && /base-uri 'none'/.test(csp));
         t.eq('loads no external scripts', document.querySelectorAll('script[src]').length, 0);
         t.eq('has a referrer policy', document.querySelector('meta[name="referrer"]')?.content, 'strict-origin-when-cross-origin');
@@ -352,6 +352,101 @@ export default async function run(t, page) {
         t.eq('the plan is a labelled canvas', document.querySelector('#view .survey-canvas canvas')?.getAttribute('role'), 'img');
         api.showView('nearby');
         t.ok('leaving the map ends the survey', !S.active);
+
+        t.section('My gear: the rules');
+
+        const hrAdv = api.parseAdvertisement(event(window, { id: 'x', uuids: [0x180D, 0x180F], manufacturer: { 0x0087: [0x01] } }));
+        const hr = api.describeBroadcast(hrAdv);
+        t.eq('a heart-rate strap\'s services are named', hr.services.join(', '), 'Heart rate, Battery');
+        t.eq('…and company 0x0087 is Garmin', hr.maker, 'Garmin');
+        t.eq('its type is guessed as a heart-rate strap', api.guessType(hr.services), 'Heart-rate strap');
+        t.eq('cycling power is guessed as a power meter', api.guessType(['Cycling power']), 'Power meter');
+        t.eq('"Edge 540" with no services is guessed as a bike computer', api.guessType([], 'Edge 540'), 'Bike computer');
+        t.eq('"Forerunner 965" is guessed as a watch', api.guessType([], 'Forerunner 965'), 'Watch');
+        t.eq('"TICKR X" is guessed as a heart-rate strap', api.guessType([], 'TICKR X'), 'Heart-rate strap');
+        t.eq('an unknown name stays "Other"', api.guessType([], 'Living Room TV'), 'Other');
+
+        const mk = (mode) => { const g = { id: 'g1', name: 'Strap', ids: ['HR1'], matchName: 'HRM-Pro', mode: 'use', pings: [], alarm: null, lastHeard: null }; api.setGearMode(g, mode, 0); return g; };
+        const rd = (id, ts, name = '', rssi = -60) => ({ id, ts, rssi, name });
+        const use = mk('use');
+        api.gearOnReading(use, rd('HR1', 1000), null);
+        t.eq('In use, heard 44 s ago: no alarm', api.gearTick(use, 45000, 0, 45000), null);
+        t.eq('In use, quiet for more than 45 s: "gone"', api.gearTick(use, 46001, 0, 45000), 'gone');
+        t.eq('…raised only once', api.gearTick(use, 50000, 0, 45000), null);
+        api.gearOnReading(use, rd('HR1', 52000), null);
+        t.ok('heard again: the alarm clears by itself', use.alarm === null && use.backAt === 52000);
+        const fresh = mk('use');
+        t.eq('In use but never heard since guarding started, after the delay: "gone"', api.gearTick(fresh, 100000 + 45001, 100000, 45000), 'gone');
+
+        const parked = mk('parked');
+        api.gearOnReading(parked, rd('HR1', 10000), null);
+        api.gearTick(parked, 60000, 0, 45000);
+        t.ok('Parked and heard 50 s ago: not armed yet', !parked.armed);
+        api.gearTick(parked, 70001, 0, 45000);
+        t.ok('Parked and quiet for a minute: armed', parked.armed);
+        t.eq('an armed parked device heard again: "woke"', api.gearOnReading(parked, rd('HR1', 80000), { lat: 26.1, lon: -81.8, acc: 10 }), 'woke');
+        api.gearOnReading(parked, rd('HR1', 82000), null);
+        api.gearOnReading(parked, rd('HR1', 85000), { lat: 26.2, lon: -81.8, acc: 10 });
+        t.eq('pings are logged at most every 5 s', parked.pings.map((p) => p.ts).join(','), '80000,85000');
+        t.ok('…with where it was heard', parked.pings[0].lat === 26.1 && parked.lastFix.lat === 26.2);
+        t.eq('waking doesn\'t fire twice', api.gearOnReading(parked, rd('HR1', 95000), null), null);
+        t.ok('recognised by name under a new Chrome ID, and the ID is learned', api.gearMatches(use, rd('NEWID', 1, 'HRM-Pro')) && (api.gearOnReading(use, rd('NEWID', 100000, 'HRM-Pro'), null), use.ids.includes('NEWID')));
+        t.ok('another device with a different name isn\'t matched', !api.gearMatches(use, rd('OTHER', 1, 'Edge 540')));
+        t.eq('status text for a woken device', api.gearStatus(parked, 95000, true).level, 'alarm');
+
+        t.section('My gear: the screens');
+
+        const G = api.gear;
+        api.state.scanning = true;
+        const nowG = Date.now();
+        api.handleAdvertisement(event(window, { id: 'HRM', rssi: -41, name: 'HRM-Pro:123', uuids: [0x180D], manufacturer: { 0x0087: [0x01] } }), nowG);
+        api.handleAdvertisement(event(window, { id: 'SPEAKER', rssi: -67, name: 'Speaker' }), nowG);
+        api.showView('gear');
+        t.ok('the My gear tab is selected', document.getElementById('tab-gear').getAttribute('aria-selected') === 'true');
+        Array.from(document.querySelectorAll('#view button')).find((b) => b.textContent === 'Register a device').click();
+        const pickRows = document.querySelectorAll('#view .row');
+        t.eq('registering lists the devices heard, strongest first', pickRows[0]?.querySelector('.name')?.textContent, 'HRM-Pro:123closest');
+        t.ok('…with what it broadcasts', /Garmin · Heart rate/.test(pickRows[0]?.textContent || ''));
+        pickRows[0].querySelector('button').click();
+        t.eq('the type is filled in from its services', document.getElementById('regType')?.value, 'Heart-rate strap');
+        t.ok('the camera button is off without camera access in this browser', Array.from(document.querySelectorAll('#view button')).find((b) => b.textContent === 'Open camera')?.disabled === true);
+        document.getElementById('regName').value = 'My HRM-Pro';
+        document.getElementById('regName').dispatchEvent(new window.Event('input'));
+        document.getElementById('regOwner').value = 'Me';
+        document.getElementById('regOwner').dispatchEvent(new window.Event('input'));
+        Array.from(document.querySelectorAll('#view button')).find((b) => b.textContent === 'Save device').click();
+        t.eq('saving adds it to My gear', G.list.length, 1);
+        const saved = G.list[0];
+        t.ok('…with its name, owner, type, ID and name match', saved.name === 'My HRM-Pro' && saved.owner === 'Me' && saved.type === 'Heart-rate strap' && saved.ids[0] === 'HRM' && saved.matchName === 'HRM-Pro:123');
+        t.ok('the gear card shows it', /My HRM-Pro/.test(document.getElementById('view').textContent));
+        api.showView('nearby');
+        t.ok('Nearby labels it as yours', Array.from(document.querySelectorAll('#view .row')).some((r) => /My HRM-Pro/.test(r.textContent) && r.querySelector('.tag.mine')));
+
+        // Registered gear is never flagged. An AirTag on your own bike goes with you to three places
+        // 3 km apart: unregistered it would score 15 + 20 + 0 + 35 = 70 and be flagged.
+        G.add({ id: 'gTag', name: 'Bike AirTag', owner: 'Me', type: 'Bike', mode: 'use', ids: ['BIKETAG'], matchName: '', services: [], maker: 'Apple', createdAt: Date.now(), lastHeard: null, lastRssi: null, lastFix: null, pings: [], alarm: null }, null);
+        const baseG = Date.now() - 2 * 60 * MIN;
+        [['A', 0], ['B', 10], ['C', 25]].forEach(([pl, m]) => {
+            const ts = baseG + m * MIN;
+            api.setFix({ ...PLACE[pl], acc: 20, ts });
+            api.handleAdvertisement(event(window, { id: 'BIKETAG', rssi: -45, manufacturer: { 0x004C: [0x12, 0x19, 0x10] } }), ts);
+            api.runCycle(ts);
+        });
+        const bikeDev = Array.from(api.state.devices.values()).find((d) => d.ids.has('BIKETAG'));
+        t.ok('your own registered AirTag following you to three places isn\'t flagged', !!bikeDev && !api.state.flags.has(bikeDev.key));
+        G.remove('gTag');
+
+        // In use and gone: the alarm banner, the tab count, then silence.
+        G.guardFrom = Date.now() - 120000;
+        saved.lastHeard = Date.now() - 60000;
+        saved.alarm = null;
+        G.tick(Date.now());
+        api.render();
+        t.ok('quiet for a minute while in use: the alarm banner names it', /My HRM-Pro has gone quiet/.test(document.getElementById('banner').textContent));
+        t.eq('the My gear tab shows 1 alarm', document.querySelector('#tab-gear .count')?.textContent, '1');
+        Array.from(document.querySelectorAll('#banner button')).find((b) => /silence/.test(b.textContent)).click();
+        t.ok('"I have it" silences it', saved.alarm.ack === true && !document.querySelector('#banner .alarm'));
+        api.state.scanning = false;
 
         t.section('Dismissing, and flagging again only at a new place');
 
