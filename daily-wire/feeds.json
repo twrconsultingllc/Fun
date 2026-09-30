@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-09-30T06:38:57.716Z",
+ "generatedAt": "2026-09-30T12:42:50.175Z",
  "refreshHours": 6,
  "categories": [
   {
@@ -46,7 +46,7 @@
    "category": "swfl",
    "ok": true,
    "count": 10,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "gn-bonita",
@@ -54,7 +54,7 @@
    "category": "swfl",
    "ok": true,
    "count": 10,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "gn-collier",
@@ -62,7 +62,7 @@
    "category": "swfl",
    "ok": true,
    "count": 10,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "gn-lee",
@@ -70,15 +70,15 @@
    "category": "swfl",
    "ok": true,
    "count": 10,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "nws-swfl",
    "source": "NWS alerts: Collier & Lee",
    "category": "swfl",
    "ok": true,
-   "count": 0,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "count": 1,
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "bbc-world",
@@ -86,7 +86,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "bbc-us",
@@ -94,7 +94,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "npr",
@@ -102,7 +102,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "guardian-world",
@@ -110,7 +110,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "guardian-us",
@@ -118,7 +118,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "pbs",
@@ -126,7 +126,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "nyt",
@@ -135,7 +135,7 @@
    "paywall": true,
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "ars",
@@ -143,7 +143,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "verge",
@@ -151,7 +151,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "wired",
@@ -159,7 +159,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "hn",
@@ -167,7 +167,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "techcrunch",
@@ -175,7 +175,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "bbc-tech",
@@ -183,7 +183,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "github-blog",
@@ -191,7 +191,7 @@
    "category": "dev",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "willison",
@@ -199,7 +199,7 @@
    "category": "dev",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "chrome-dev",
@@ -207,7 +207,7 @@
    "category": "dev",
    "ok": true,
    "count": 2,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "claude-code",
@@ -215,7 +215,7 @@
    "category": "dev",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "threejs",
@@ -223,7 +223,7 @@
    "category": "dev",
    "ok": true,
    "count": 2,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "nasa-news",
@@ -231,7 +231,7 @@
    "category": "science",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "nasa-iotd",
@@ -239,7 +239,7 @@
    "category": "science",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "quanta",
@@ -247,7 +247,7 @@
    "category": "science",
    "ok": true,
    "count": 5,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "sciencedaily",
@@ -255,7 +255,7 @@
    "category": "science",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "nature",
@@ -263,7 +263,7 @@
    "category": "science",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "cisa",
@@ -271,7 +271,7 @@
    "category": "security",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "krebs",
@@ -279,7 +279,7 @@
    "category": "security",
    "ok": true,
    "count": 3,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "schneier",
@@ -287,7 +287,7 @@
    "category": "security",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "usgs",
@@ -295,15 +295,15 @@
    "category": "live",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "nws-fl",
    "source": "NWS Florida alerts",
    "category": "live",
    "ok": true,
-   "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "count": 5,
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "xkcd",
@@ -311,43 +311,39 @@
    "category": "fun",
    "ok": true,
    "count": 4,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "veritasium",
    "source": "Veritasium",
    "category": "fun",
-   "ok": false,
-   "error": "HTTP 404",
+   "ok": true,
    "count": 4,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "kurzgesagt",
    "source": "Kurzgesagt",
    "category": "fun",
-   "ok": false,
-   "error": "HTTP 404",
+   "ok": true,
    "count": 5,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "mark-rober",
    "source": "Mark Rober",
    "category": "fun",
-   "ok": false,
-   "error": "HTTP 404",
+   "ok": true,
    "count": 2,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "fireship",
    "source": "Fireship",
    "category": "fun",
-   "ok": false,
-   "error": "HTTP 404",
+   "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "fed",
@@ -355,7 +351,7 @@
    "category": "business",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   },
   {
    "id": "sec",
@@ -363,21 +359,10 @@
    "category": "business",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-09-30T06:38:57.716Z"
+   "checkedAt": "2026-09-30T12:42:50.175Z"
   }
  ],
  "items": [
-  {
-   "id": "8311235a2d35",
-   "feed": "usgs",
-   "category": "live",
-   "source": "USGS Earthquakes",
-   "title": "M 2.6 - 6 km W of Yountville, CA",
-   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/nc75444432",
-   "date": "2026-09-30T06:38:31.610Z",
-   "summary": "DYFI? - III Time2026-09-29 16:06:37 UTC2026-09-29 16:06:37 UTC at epicenterLocation38.399°N 122.424°WDepth8.30 km (5.16 mi)",
-   "image": null
-  },
   {
    "id": "9299587bb7aa",
    "feed": "usgs",
@@ -385,118 +370,250 @@
    "source": "USGS Earthquakes",
    "title": "M 4.2 - 6 km WNW of Wauna, Washington",
    "link": "https://earthquake.usgs.gov/earthquakes/eventpage/uw714111952",
-   "date": "2026-09-30T06:37:39.748Z",
+   "date": "2026-09-30T12:40:25.587Z",
    "summary": "PAGER - GREEN ShakeMap - III DYFI? - IV Time2026-09-29 21:05:56 UTC2026-09-29 21:05:56 UTC at epicenterLocation47.400°N 122.722°WDepth27.92 km (17.35 mi)",
    "image": null
   },
   {
-   "id": "3a07676dfb2b",
-   "feed": "usgs",
-   "category": "live",
-   "source": "USGS Earthquakes",
-   "title": "M 5.6 - 74 km S of Yonakuni, Japan",
-   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000tyhk",
-   "date": "2026-09-30T06:33:11.900Z",
-   "summary": "PAGER - GREEN ShakeMap - IV DYFI? - IV Time2026-09-30 05:00:24 UTC2026-09-30 05:00:24 UTC at epicenterLocation23.803°N 122.915°EDepth10.79 km (6.71 mi)",
-   "image": null
-  },
-  {
-   "id": "de4d8b7a077b",
+   "id": "150dda4ea393",
    "feed": "guardian-world",
    "category": "news",
    "source": "The Guardian",
-   "title": "Australia news live: five-year-old seriously injured after being struck by ebike rider in Sydney",
-   "link": "https://www.theguardian.com/australia-news/live/2026/sep/30/labor-anthony-albanese-coalition-polling-new-greens-leader-openai-hack-ntwnfb",
-   "date": "2026-09-30T06:22:15.000Z",
-   "summary": "Follow the day’s news live Get our breaking news email, free app or daily news podcast Who is potential Greens deputy leader candidate Steph Hodgins-May? So who is the first-term senator expected to announce a leadership ticket tilt with David Shoebridge? Get your dirty hands…",
-   "image": "https://i.guim.co.uk/img/media/a3330cc755b106fe79451aa20e59760c6ea208f7/1814_419_6109_4890/master/6109.jpg?width=140&quality=85&auto=format&fit=max&s=fd1c0c6481da770a24f6eef9ad7cda92"
+   "title": "Ranulph Fiennes’ stepson says he intends to speak to police about explorer’s wellbeing",
+   "link": "https://www.theguardian.com/uk-news/2026/sep/30/ranulph-fiennes-stepson-speak-police-explorer-wellbeing",
+   "date": "2026-09-30T12:39:25.000Z",
+   "summary": "Exclusive: Alexander Millington-Cotes says call from police has given him hope concerns are being taken seriously The stepson of Sir Ranulph Fiennes has been contacted by police and says he intends to speak to them this week over his concerns about the wellbeing of the…",
+   "image": "https://i.guim.co.uk/img/media/d86f45de4fc65117b381fcf51284def8368155c3/997_456_2738_2190/master/2738.jpg?width=140&quality=85&auto=format&fit=max&s=f1e726d7369a98abfb45e578e898491c"
   },
   {
-   "id": "a624aef6fe31",
+   "id": "540907cac2e8",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "Donor Gives $3 Billion to Carnegie Mellon, the Largest University Gift Ever",
+   "link": "https://www.nytimes.com/2026/09/30/us/3-billion-donation-carnegie-mellon-largest-university-gift.html",
+   "date": "2026-09-30T12:38:55.000Z",
+   "summary": "The donation by Kenneth Griffin, intended mostly to help build a campus in Miami, was the biggest single gift in the history of U.S. higher education.",
+   "image": "https://static01.nyt.com/images/2026/09/30/multimedia/30nat-carnegie-mellon-02-kfvg/30nat-carnegie-mellon-02-kfvg-mediumSquareAt3X-v2.jpg"
+  },
+  {
+   "id": "12d57cbb8fd4",
    "feed": "guardian-world",
    "category": "news",
    "source": "The Guardian",
-   "title": "Energy bills in Great Britain forecast to jump by £276 a year from January",
-   "link": "https://www.theguardian.com/money/2026/sep/30/energy-bills-great-britain-forecast-to-rise-iran-war",
-   "date": "2026-09-30T06:17:33.000Z",
-   "summary": "Cap poised to rise by 16% to equivalent of £1,999 for dual-fuel bill as impact of Iran war puts squeeze on homes Household energy bills in Great Britain are predicted to soar by £276 a year for the typical household from January as the impact of the Middle East war continues…",
-   "image": "https://i.guim.co.uk/img/media/bf895d419b661bb8e452da929fdd018e71fffbe0/1271_90_6628_5303/master/6628.jpg?width=140&quality=85&auto=format&fit=max&s=3fd08f9b71c4eb82e044c4ad166394d6"
+   "title": "Israeli minister claims ‘terrorist’ wanted to crash plane after Israel-bound flight’s emergency landing – latest",
+   "link": "https://www.theguardian.com/world/live/2026/sep/30/dubai-israel-saudi-arabia-flydubai-flight-diversion-pilots-fight-latest-news-updates",
+   "date": "2026-09-30T12:36:12.000Z",
+   "summary": "Israeli media say incident, which raised fears of possible hijacking, stemmed from feud between plane’s two pilots Full report: Israel-bound passenger plane makes emergency landing in Saudi Arabia A key piece of information from the FlyDubai flight is that someone in the…",
+   "image": "https://i.guim.co.uk/img/media/dd8e6f7f0e37fbfeab727848d2e30203b218a290/0_0_1253_1002/master/1253.jpg?width=140&quality=85&auto=format&fit=max&s=c6b8ec672c6cd40b2f49f8aa6efa316a"
   },
   {
-   "id": "08157dd26837",
+   "id": "99ef96192e1f",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "Vying for Undecideds, L.A. Mayor Candidates Talk Affordability and Israel",
+   "link": "https://www.nytimes.com/2026/09/30/us/politics/los-angeles-mayor-bass-raman.html",
+   "date": "2026-09-30T12:34:57.000Z",
+   "summary": "Mayor Karen Bass and her onetime ally, Nithya Raman, made their case to voters with just five weeks left until the election.",
+   "image": "https://static01.nyt.com/images/2026/09/29/multimedia/29nat-la-mayor-promo/29nat-la-mayor-promo-mediumSquareAt3X-v2.png"
+  },
+  {
+   "id": "45d59ddd1c33",
+   "feed": "guardian-world",
+   "category": "news",
+   "source": "The Guardian",
+   "title": "Voters back Burnham’s plan to cut back triple lock to fund social care reform by 48% to 28%, poll suggests – as it happened",
+   "link": "https://www.theguardian.com/politics/live/2026/sep/30/andy-burnham-eu-brexit-rejoin-customs-union-fuel-duty-budget-latest-news-updates",
+   "date": "2026-09-30T12:30:15.000Z",
+   "summary": "This live blog is now closed ‘Oozing everyman charm’: what the papers said about Burnham’s speech Andy Burnham has suggested that it would not be legitimate for a party to form a majority government with less than 30% of the vote. In his Today interview, asked why he wanted…",
+   "image": "https://i.guim.co.uk/img/media/14f0f163e3ac716da4a16c06d5442a6e4bf56bdb/1258_0_6990_5592/master/6990.jpg?width=140&quality=85&auto=format&fit=max&s=b1535909f71b817dd75e74dda0858324"
+  },
+  {
+   "id": "03f9e6db3c4a",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "After Two Decades, U.S. Forces Leave Iraq to an Uncertain Future",
+   "link": "https://www.nytimes.com/2026/09/30/world/middleeast/iraq-us-forces.html",
+   "date": "2026-09-30T12:29:23.000Z",
+   "summary": "Some Iraqis are celebrating the end of an American military presence that unleashed waves of bloodshed. Others fear what happens next for their country, trapped between Washington and Tehran.",
+   "image": "https://static01.nyt.com/images/2026/09/30/multimedia/30int-iraq-us-withdrawal-mkqv/30int-iraq-us-withdrawal-mkqv-mediumSquareAt3X.jpg"
+  },
+  {
+   "id": "c25d421c0d16",
    "feed": "npr",
    "category": "news",
    "source": "NPR",
-   "title": "Hurricane Polo's remnants bringing more rain to flood-struck U.S. Southwest",
-   "link": "https://www.npr.org/2026/09/30/g-s1-145590/hurricane-polo-us-southwest",
-   "date": "2026-09-30T06:16:44.000Z",
-   "summary": "The storm's remnants battered the U.S. Southwest, flooding roadways and forcing residents in small New Mexico towns to evacuate over concerns about a dam failing.",
-   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/3129x2086+0+0/resize/3129x2086!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Ff7%2F58%2Fc1f814384bf7a3242d2b4a514562%2Fap26272592619386.jpg"
+   "title": "FBI hunting the hackers who stole its employees' sensitive data",
+   "link": "https://www.npr.org/2026/09/30/nx-s1-5985202/fbi-hack-shinyhunters",
+   "date": "2026-09-30T12:29:05.000Z",
+   "summary": "The FBI says it's addressing a massive data breach, vowing to go after the hackers they believe are responsible.",
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/5397x3600+0+0/resize/5397x3600!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Fc3%2Fe0%2F04058fb141a5a7aed4b559f4a2e2%2Fgettyimages-2237218326.jpg"
   },
   {
-   "id": "baea56a21481",
-   "feed": "gn-lee",
-   "category": "swfl",
-   "source": "North Fort Myers Neighbor",
-   "title": "Arts and Culture Town Hall set for Monday in Cape Coral",
-   "link": "https://news.google.com/rss/articles/CBMiugFBVV95cUxOZjFfTG9UUld2Y3lUVlZOaU9FYlNqSEJfNk53SkhXbkNwckdqenh4ZVBScXZwZ3Q4eXVtSlhjcDFvTUt1QTZIa2gtRUJDZkhDV0lkdU9DdFk2dHg3d1pXMG8wWkZsRkRrMm83Ql9nZW9zT1JmQV9WenRpemoxckhxRnBkcEdSLTdYTjduY3prSEtMYzBkV195c1c0ZUk5TlJwY0t3cGxEaDJtOU4xWGk4c1NkMUs1Z3ZJWEE?oc=5",
-   "date": "2026-09-30T06:12:15.000Z",
-   "summary": "",
-   "image": null
+   "id": "1af24fd8cdc9",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "Can Trump Legally Demolish the Kennedy Center? Experts Say Not Easily.",
+   "link": "https://www.nytimes.com/2026/09/30/arts/trump-demolish-kennedy-center.html",
+   "date": "2026-09-30T12:25:02.000Z",
+   "summary": "The president has entertained the idea of tearing down the performing arts venue. Analysts say any plan would face multiple daunting challenges.",
+   "image": "https://static01.nyt.com/images/2026/09/30/multimedia/30cul-kennedy-demo-wcpv/30cul-kennedy-demo-wcpv-mediumSquareAt3X.jpg"
   },
   {
-   "id": "19e23ea4b5b4",
+   "id": "04885edf45af",
+   "feed": "verge",
+   "category": "tech",
+   "source": "The Verge",
+   "title": "Here’s how tech leaders will self-police AI safety under Trump’s deal",
+   "link": "https://www.theverge.com/ai-artificial-intelligence/1002584/trump-us-ai-safety-deal-self-regulation-tech-execs",
+   "date": "2026-09-30T12:24:32.000Z",
+   "summary": "We now have the full details of the \"morally binding\" AI safety deal announced by President Trump yesterday, in which top executives agreed to self-regulate their artificial intelligence technology. The accord, officially titled the Joint Commitment On Frontier…",
+   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/09/gettyimages-2297269621.jpg?quality=90&strip=all&crop=0,0,100,100"
+  },
+  {
+   "id": "437c3f457185",
    "feed": "guardian-world",
    "category": "news",
    "source": "The Guardian",
-   "title": "Half a million trees to be planted in England in three years, says government",
-   "link": "https://www.theguardian.com/environment/2026/sep/30/half-million-trees-planted-england-three-years-angela-eagle",
-   "date": "2026-09-30T06:08:17.000Z",
-   "summary": "Exclusive: Environment secretary Angela Eagle to make pledge as part of efforts to protect against extreme weather Half a million trees will be planted across England in the next three years to protect against extreme weather, the environment secretary, Angela Eagle, will…",
-   "image": "https://i.guim.co.uk/img/media/9180db3f9519fc2a08e087c42137e2e6b47f08f1/656_0_3280_2624/master/3280.jpg?width=140&quality=85&auto=format&fit=max&s=840d98e82db62a5a6e36d07e174178d7"
+   "title": "Europe ‘faces window of vulnerability until 2030,’ Dutch chief of defence warns - Europe live",
+   "link": "https://www.theguardian.com/world/live/2026/sep/30/russia-ukraine-war-strikes-zelenskyy-putin-poland-romania-macron-sanchez-spain-europe-latest-news-updates",
+   "date": "2026-09-30T12:23:35.000Z",
+   "summary": "Chief of defence of the Dutch armed forces, Gen Onno Eichelsheim, says Europe urgently needs to learn lessons from Ukraine Meanwhile, Ukraine’s total war costs will reach $155bn this year and ⁠the government is struggling to close a $27bn funding gap to ensure it can still…",
+   "image": "https://i.guim.co.uk/img/media/45398104dea14793129a35a633a60c2cb97118d1/290_0_4169_3335/master/4169.jpg?width=140&quality=85&auto=format&fit=max&s=2aa55540d8a5f1e8f130ffb3616cba88"
   },
   {
-   "id": "560d05a6b71e",
+   "id": "b5dbeef7868b",
    "feed": "guardian-world",
    "category": "news",
    "source": "The Guardian",
-   "title": "Malaysia begins Myanmar repatriations despite warnings from UN and rights groups",
-   "link": "https://www.theguardian.com/world/2026/sep/30/malaysia-begins-myanmar-repatriations-despite-warnings-from-un-and-rights-groups",
-   "date": "2026-09-30T06:05:11.000Z",
-   "summary": "Kuala Lumpur plans to send a total of 5,000 Myanmar nationals back to the war-torn country despite persecution concerns Malaysia began sending back about 1,500 Myanmar nationals on Tuesday, the government confirmed, as it launched a scheme that rights groups say may endanger…",
-   "image": "https://i.guim.co.uk/img/media/d6322487e65959fb8cbf133843b8295362b0ce38/0_0_3825_3061/master/3825.jpg?width=140&quality=85&auto=format&fit=max&s=2449c5f8eaadceba9e89b9521d583232"
+   "title": "‘Oozing everyman charm’: what the papers say about Andy Burnham’s speech",
+   "link": "https://www.theguardian.com/politics/2026/sep/30/what-papers-say-andy-burnham-speech-labour-conference",
+   "date": "2026-09-30T12:23:31.000Z",
+   "summary": "PM’s oratory at least as good as Blair’s, says Andrew Marr, while Mail asks who pays for Honest Andy’s ‘New Jerusalem’ UK politics live – latest updates When assessing British political speeches, even many critics of the New Labour years measure success against Tony Blair, a…",
+   "image": "https://i.guim.co.uk/img/media/e342eac12c6b5a4d9390879a4e9b77b041e45c8c/0_0_5000_4000/master/5000.jpg?width=140&quality=85&auto=format&fit=max&s=ccbe5c18713401edb94320378d1a6121"
   },
   {
-   "id": "81b837266462",
-   "feed": "guardian-world",
-   "category": "news",
-   "source": "The Guardian",
-   "title": "World’s seas heated by a record 23 zettajoules last year",
-   "link": "https://www.theguardian.com/environment/2026/sep/30/worlds-seas-warmed-23-zettajoules-2025",
-   "date": "2026-09-30T06:00:13.000Z",
-   "summary": "The injection of thermal energy, 40 times that used by humanity in total, comes amid an increasing rise in sea levels and continuing acidification A record-breaking 23 zettajoules of heat was sunk into the world’s seas last year, leaving ocean waters hotter, higher and less…",
-   "image": "https://i.guim.co.uk/img/media/2bdc72b5bc11ccf5d1859f17fd5d425d21944b92/1093_0_5466_4373/master/5466.jpg?width=140&quality=85&auto=format&fit=max&s=bb495ba2af8b9dd353841ce4469bc6ab"
-  },
-  {
-   "id": "312a97d35725",
-   "feed": "guardian-world",
-   "category": "news",
-   "source": "The Guardian",
-   "title": "Menopause supplements costing more than £400 a year ‘no better than cheap multivitamin’",
-   "link": "https://www.theguardian.com/society/2026/sep/30/menopause-supplements-no-better-than-multivitamin-which",
-   "date": "2026-09-30T06:00:11.000Z",
-   "summary": "Many products aimed at women over 45 lack meaningful quantities of key nutrients, consumer watchdog Which? found Menopause supplements costing more than £400 a year are no better than a £22-a-year multivitamin, according to analysis by the consumer watchdog Which?. Which? found…",
-   "image": "https://i.guim.co.uk/img/media/f423c7ff9402d466eece57419aca2080bc7930d8/722_0_7216_5773/master/7216.jpg?width=140&quality=85&auto=format&fit=max&s=957491b78a8e87409f065b6fb0c80e66"
-  },
-  {
-   "id": "ee8a84472a62",
+   "id": "23eede2595be",
    "feed": "usgs",
    "category": "live",
    "source": "USGS Earthquakes",
-   "title": "M 4.8 - 97 km W of Petrolia, CA",
-   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/nc75444322",
-   "date": "2026-09-30T05:56:14.899Z",
-   "summary": "PAGER - GREEN ShakeMap - II DYFI? - III Time2026-09-29 11:36:39 UTC2026-09-29 11:36:39 UTC at epicenterLocation40.423°N 125.418°WDepth10.00 km (6.21 mi)",
+   "title": "M 3.6 - 127 km NNE of Vieques, Puerto Rico",
+   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/pr2026273001",
+   "date": "2026-09-30T12:21:45.580Z",
+   "summary": "Time2026-09-30 10:56:40 UTC2026-09-30 10:56:40 UTC at epicenterLocation19.462°N 65.304°WDepth77.00 km (47.85 mi)",
+   "image": null
+  },
+  {
+   "id": "c6a83b73af05",
+   "feed": "bbc-world",
+   "category": "news",
+   "source": "BBC News",
+   "title": "Botswana condemned for slaughtering elephants for independence celebrations",
+   "link": "https://www.bbc.co.uk/news/articles/cxm2qmpy57ggo?at_medium=RSS&at_campaign=rss",
+   "date": "2026-09-30T12:06:28.000Z",
+   "summary": "The government authorises the hunting of 23 elephants and dozens of other wild animals for independence day feasts.",
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/025d/live/fe636f10-bcc3-11f1-874a-09d072a27eab.jpg"
+  },
+  {
+   "id": "3df0942dcead",
+   "feed": "guardian-world",
+   "category": "news",
+   "source": "The Guardian",
+   "title": "Top Trump figures push to direct human rights funding to rightwing causes",
+   "link": "https://www.theguardian.com/us-news/2026/sep/30/trump-state-department-human-rights-fund",
+   "date": "2026-09-30T12:00:42.000Z",
+   "summary": "Support for white Afrikaners, anti-communism and others reveals how US redefining what qualifies as human rights With hours left before the funding expires, the Trump administration is pushing to direct more than $175m of the state department’s flagship human rights fund to a…",
+   "image": "https://i.guim.co.uk/img/media/41ac63906656f3420c997c8618d3b3a1a86a0811/720_0_7200_5760/master/7200.jpg?width=140&quality=85&auto=format&fit=max&s=0eae8119b24ab17bf968b2c5bced162e"
+  },
+  {
+   "id": "9077ab28bf36",
+   "feed": "guardian-us",
+   "category": "news",
+   "source": "The Guardian US",
+   "title": "‘So much uncertainty’: Michigan’s Arab American businesses navigate Trump’s Canada trade war",
+   "link": "https://www.theguardian.com/us-news/2026/sep/30/michigan-arab-american-business-trump-canada-trade-war",
+   "date": "2026-09-30T12:00:42.000Z",
+   "summary": "Arab communities on both sides of the border grapple with ongoing tensions as US-Canada relations continue to sour In Dearborn, Michigan, home to the largest community of Arab Americans in the US, one industry has risen above all others in recent years: Yemeni cafes. At the…",
+   "image": "https://i.guim.co.uk/img/media/f7b902ebf02b5d9baf17a3645e08f54cc490bdb8/443_0_4411_3531/master/4411.jpg?width=140&quality=85&auto=format&fit=max&s=30ff691ad99c0c6b51eee82e7a79dad1"
+  },
+  {
+   "id": "26ce368aa0f6",
+   "feed": "techcrunch",
+   "category": "tech",
+   "source": "TechCrunch",
+   "title": "Airbnb adds AI search, more social features",
+   "link": "https://techcrunch.com/2026/09/30/airbnb-adds-ai-search-more-social-features/",
+   "date": "2026-09-30T12:00:00.000Z",
+   "summary": "Airbnb is also launching new services such as meal delivery and laundry in select locations.",
+   "image": null
+  },
+  {
+   "id": "990b51e95e8a",
+   "feed": "verge",
+   "category": "tech",
+   "source": "The Verge",
+   "title": "Samsung gives its two-year-old Galaxy Tab S Plus an overhaul",
+   "link": "https://www.theverge.com/tech/1002533/samsung-galaxy-tab-s12-plus-ultra-android-tablets-specs-price",
+   "date": "2026-09-30T12:00:00.000Z",
+   "summary": "Since the Galaxy Tab S10 line, Samsung has updated its flagship Ultra tablet annually, but alternates its regular and Plus variants. It means that this year's Galaxy Tab S12 series includes an Ultra model with few changes from last year's Tab S11 Ultra, and a Plus variant that…",
+   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/09/samsung-galaxy-tab-s12-plus-ultra-hero.jpg?quality=90&strip=all&crop=0,0,100,100"
+  },
+  {
+   "id": "aa008185c3fc",
+   "feed": "verge",
+   "category": "tech",
+   "source": "The Verge",
+   "title": "Samsung’s new SmartTag is smaller, longer-lasting, and works with iPhones",
+   "link": "https://www.theverge.com/tech/1002552/samsung-galaxy-smarttag-3-design-battery-price-features",
+   "date": "2026-09-30T12:00:00.000Z",
+   "summary": "Samsung has announced its third-generation Bluetooth tracker, the Galaxy SmartTag 3. It combines a smaller design and improved battery life with a few new tracking and software features, including cross-OS support intended to make it easier to share tracking information with…",
+   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/09/samsung-galaxy-smarttag-3-hero.jpg?quality=90&strip=all&crop=0,0,100,100"
+  },
+  {
+   "id": "ae8a67bc4c9d",
+   "feed": "nws-fl",
+   "category": "live",
+   "source": "NWS Florida alerts",
+   "title": "Coastal Flood Statement issued September 30 at 8:00AM EDT until October 1 at 5:00PM EDT by NWS Miami FL",
+   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.9e565d02140f1bd812895ef6a4e8bc916b0b8f7e.001.2.cap",
+   "date": "2026-09-30T12:00:00.000Z",
+   "summary": "* WHAT...Isolated minor coastal flooding expected. * WHERE...Coastal Palm Beach County, Coastal Broward County and Coastal Miami Dade County. * WHEN...Through Thursday afternoon. * IMPACTS...Some water on low lying roads and property.",
+   "image": null
+  },
+  {
+   "id": "c3bc568250c0",
+   "feed": "nws-swfl",
+   "category": "swfl",
+   "source": "NWS alerts: Collier & Lee",
+   "title": "Coastal Flood Statement issued September 30 at 8:00AM EDT until October 1 at 12:00PM EDT by NWS Miami FL",
+   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.9e565d02140f1bd812895ef6a4e8bc916b0b8f7e.002.1.cap",
+   "date": "2026-09-30T12:00:00.000Z",
+   "summary": "* WHAT...Isolated minor coastal flooding. * WHERE...Coastal Collier County, Mainland Monroe and Far South Miami-Dade County. * WHEN...Through Thursday morning. * IMPACTS...Some water on low lying roads and property.",
+   "image": null
+  },
+  {
+   "id": "f38f1ab759fa",
+   "feed": "techcrunch",
+   "category": "tech",
+   "source": "TechCrunch",
+   "title": "Two Google alumni raise $11.3M to back AI startups that enterprises will actually pay for",
+   "link": "https://techcrunch.com/2026/09/30/bag-ventures-sets-its-eyes-deeper-into-the-ai-stack/",
+   "date": "2026-09-30T12:00:00.000Z",
+   "summary": "BAG Ventures announces close of a $11.3M Fund I to invest in all things AI.",
+   "image": null
+  },
+  {
+   "id": "79b5d6331f9b",
+   "feed": "usgs",
+   "category": "live",
+   "source": "USGS Earthquakes",
+   "title": "M 4.4 - 47 km S of Trà My, Vietnam",
+   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000tyjl",
+   "date": "2026-09-30T11:59:53.040Z",
+   "summary": "Time2026-09-30 11:24:41 UTC2026-09-30 11:24:41 UTC at epicenterLocation14.917°N 108.296°EDepth10.00 km (6.21 mi)",
    "image": null
   },
   {
@@ -506,31 +623,438 @@
    "source": "USGS Earthquakes",
    "title": "M 3.8 - 4 km SE of Piru, CA",
    "link": "https://earthquake.usgs.gov/earthquakes/eventpage/ci41340823",
-   "date": "2026-09-30T05:55:12.764Z",
+   "date": "2026-09-30T11:53:28.060Z",
    "summary": "ShakeMap - III DYFI? - III Time2026-09-30 03:00:27 UTC2026-09-30 03:00:27 UTC at epicenterLocation34.395°N 118.762°WDepth10.70 km (6.65 mi)",
    "image": null
   },
   {
-   "id": "64400f48c866",
+   "id": "38619c509b19",
+   "feed": "bbc-world",
+   "category": "news",
+   "source": "BBC News",
+   "title": "Russia launches largest attack on Ukraine energy infrastructure since spring",
+   "link": "https://www.bbc.co.uk/news/articles/ckjw5jx2l393o?at_medium=RSS&at_campaign=rss",
+   "date": "2026-09-30T11:47:27.000Z",
+   "summary": "In total 11 regions of the country were attacked overnight, with residential buildings and railways also targeted, the Ukrainian PM says.",
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/4cc3/live/0f9ce800-bcc0-11f1-babe-4199b0e7ccea.jpg"
+  },
+  {
+   "id": "8844be7d11af",
    "feed": "usgs",
    "category": "live",
    "source": "USGS Earthquakes",
-   "title": "M 4.8 - 18 km SW of Tayaman, Philippines",
-   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000tygs",
-   "date": "2026-09-30T05:50:10.011Z",
-   "summary": "DYFI? - III Time2026-09-30 01:34:05 UTC2026-09-30 01:34:05 UTC at epicenterLocation13.092°N 120.473°EDepth10.00 km (6.21 mi)",
+   "title": "M 3.1 - 20 km WNW of Stanton, Texas",
+   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/tx2026tgcgrj",
+   "date": "2026-09-30T11:43:35.872Z",
+   "summary": "DYFI? - III Time2026-09-30 10:25:49 UTC2026-09-30 10:25:49 UTC at epicenterLocation32.221°N 101.981°WDepth8.06 km (5.01 mi)",
    "image": null
   },
   {
-   "id": "79a6fc28bc52",
+   "id": "53bb2368ab50",
    "feed": "nyt",
    "category": "news",
    "source": "New York Times",
-   "title": "D.A. in Cornell Case Hopes to Speak to Accuser as He Weighs New Evidence",
-   "link": "https://www.nytimes.com/2026/09/29/nyregion/van-houten-cornell-district-attorney.html",
-   "date": "2026-09-30T05:44:01.000Z",
-   "summary": "District Attorney Matthew Van Houten said a woman’s report to police in 2024 saying she had been raped at a fraternity did not support a criminal case. But he said he is now reaching out to her.",
-   "image": "https://static01.nyt.com/images/2026/09/29/nyregion/29met-cornell-da/29met-cornell-da-mediumSquareAt3X.jpg"
+   "title": "Passenger Describes Chaos Aboard FlyDubai Flight",
+   "link": "https://www.nytimes.com/2026/09/30/world/middleeast/flydubai-flight-israel-plane-passenger.html",
+   "date": "2026-09-30T11:37:41.000Z",
+   "summary": "The passenger, Miriam Ohayon, said people on board felt the jet lose control and heard screams. “When they opened the cockpit, there was a lot of blood,” she told Israeli television.",
+   "image": "https://static01.nyt.com/images/2026/09/30/multimedia/30israel-plane-passenger-account-qlmp/30israel-plane-passenger-account-qlmp-mediumSquareAt3X.jpg"
+  },
+  {
+   "id": "543752e81afb",
+   "feed": "bbc-world",
+   "category": "news",
+   "source": "BBC News",
+   "title": "Last UK and US troops leave Iraq as anti-Islamic State mission ends",
+   "link": "https://www.bbc.co.uk/news/articles/c65ym1dyn92mo?at_medium=RSS&at_campaign=rss",
+   "date": "2026-09-30T11:36:23.000Z",
+   "summary": "The withdrawal of coalition forces, under a deal agreed two years ago, was a key demand of the Iraqi government.",
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/a1f4/live/bfefaa90-bcba-11f1-babe-4199b0e7ccea.jpg"
+  },
+  {
+   "id": "84c462e57196",
+   "feed": "wired",
+   "category": "tech",
+   "source": "Wired",
+   "title": "The Best Gifts for Book Lovers (2026): E-Readers, Handy Accessories, Book Sets",
+   "link": "https://www.wired.com/story/gifts-for-book-lovers/",
+   "date": "2026-09-30T11:36:00.000Z",
+   "summary": "Any one of these gift ideas will make your favorite bookworm very happy, from e-readers and accessories to handy reading essentials.",
+   "image": "https://media.wired.com/photos/6abc28200532d5d813ae2f5c/master/pass/The-Best-Gifts-for-Book-Lovers,-According-to-an-Avid-Reader.jpg"
+  },
+  {
+   "id": "b91e19d779a9",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "As E-Bikes and Scooters Surge on New York Streets, So Do Fatal Crashes",
+   "link": "https://www.nytimes.com/2026/09/30/nyregion/e-bike-scooter-deaths-safety.html",
+   "date": "2026-09-30T11:32:08.000Z",
+   "summary": "More than two dozen people have died in crashes involving electric bikes and scooters in New York City this year. Officials are moving to address a growing safety crisis.",
+   "image": "https://static01.nyt.com/images/2026/09/30/multimedia/30met-ebike-hwlm/30met-ebike-hwlm-mediumSquareAt3X.jpg"
+  },
+  {
+   "id": "02f57e5290ec",
+   "feed": "usgs",
+   "category": "live",
+   "source": "USGS Earthquakes",
+   "title": "M 5.0 - 27 km N of Kupang, Indonesia",
+   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000tyjb",
+   "date": "2026-09-30T11:29:44.285Z",
+   "summary": "DYFI? - III Time2026-09-30 10:58:50 UTC2026-09-30 10:58:50 UTC at epicenterLocation9.924°S 123.646°EDepth19.37 km (12.03 mi)",
+   "image": null
+  },
+  {
+   "id": "1f7706314cac",
+   "feed": "bbc-world",
+   "category": "news",
+   "source": "BBC News",
+   "title": "Africa's richest man launches Kenya oil refinery despite land protests",
+   "link": "https://www.bbc.co.uk/news/articles/cmkg8dpwy25po?at_medium=RSS&at_campaign=rss",
+   "date": "2026-09-30T11:25:12.000Z",
+   "summary": "The Kenya refinery is part of Dangote's ambitious bid to expand and help industralise Africa by 2030.",
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/c3ff/live/eb5c7d60-bcac-11f1-a3e9-bbda6f9b9e25.jpg"
+  },
+  {
+   "id": "862aad4af470",
+   "feed": "guardian-us",
+   "category": "news",
+   "source": "The Guardian US",
+   "title": "‘Third country’ deportation can resume, US supreme court rules | First Thing",
+   "link": "https://www.theguardian.com/us-news/2026/sep/30/first-thing-third-country-deportation-can-resume-us-supreme-court-rules",
+   "date": "2026-09-30T11:18:40.000Z",
+   "summary": "Trump administration can deport immigrants to countries other than their homeland. Plus, 550lb bear returns to LA neighborhood Good morning. The supreme court has ruled the Trump administration can resume deporting immigrants to “third countries”, or countries other than their…",
+   "image": "https://i.guim.co.uk/img/media/8e3e1b76c86720b09b563a4a738e9da63b6e1e92/471_0_4321_3457/master/4321.jpg?width=140&quality=85&auto=format&fit=max&s=8def92f64150ae98e63fa0baee6f7455"
+  },
+  {
+   "id": "686b46df2932",
+   "feed": "ars",
+   "category": "tech",
+   "source": "Ars Technica",
+   "title": "Cloudflare plans to issue quantum-safe TLS certificates",
+   "link": "https://arstechnica.com/security/2026/09/cloudflare-plans-to-issue-quantum-safe-tls-certificates/",
+   "date": "2026-09-30T11:15:14.000Z",
+   "summary": "The move will be part of a major overhaul of the ecosystem for website authentication.",
+   "image": "https://cdn.arstechnica.net/wp-content/uploads/2025/06/https-1152x648.jpg"
+  },
+  {
+   "id": "9b5070c95018",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "WINK News",
+   "title": "UFC Hall of Famer Tito Ortiz to shut down Cape Coral restaurant after 3 years",
+   "link": "https://news.google.com/rss/articles/CBMi8wFBVV95cUxNY1JzUlVCdEFZZVllcDZ3UlFuS1NaLWkzRHFpdk5wY0FWVkpZSUdJaE5TdTQ5OFpOU1h2THBJUzJWeUNLcXRuNWdKdnNuUzNiUlJpMGEtQXcxdHRBSVVGcUJiQTRkbTM3djlzQU4xcEpyZTlNbWxha3V5RmdIUlFRdzhZRm1OcGNrZWpYZkJwTzlvVmUwbjNnamRWWjZYTUZ5R0djWVBPMU5iZlY0Zy1nRmxaMlp4cW56SVQ0bUdaVUh0QllJQnc5UVhJZk1KakJ1a0pDUXRydTFQeFJtOXdCZ0c2TTZkeWRnWk9kZmxJczNwSUk?oc=5",
+   "date": "2026-09-30T11:14:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "6c12c6e911ce",
+   "feed": "npr",
+   "category": "news",
+   "source": "NPR",
+   "title": "U.S. forces exit Iraq amid Iran war. And, SCOTUS revives Trump deportation policy",
+   "link": "https://www.npr.org/2026/09/30/g-s1-145604/up-first-newsletter-iraq-us-troops-scotus-deportations-trump-ai",
+   "date": "2026-09-30T11:13:17.000Z",
+   "summary": "The U.S. has withdrawn its final troops from Iraq, leaving its defense future uncertain. And, the Supreme Court has sided for now with the Trump administration on third-country deportations.",
+   "image": null
+  },
+  {
+   "id": "db881304d336",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "Gulf Coast News and Weather",
+   "title": "Student accused of bringing loaded gun to Lehigh Acres school after bag found hidden in bush",
+   "link": "https://news.google.com/rss/articles/CBMirgFBVV95cUxPSFRBSnduT3Y4cXMwdFN4anBPV29XYzZtMlBla0MzWmdzYkRfTk5SRnJQTWU1RmVkMFZxTWxqb2tCZE1FSERoZ3pEYTJONU1tNG1iU1pXb25NdjF5VEs2aVFGdDJlTGRoeC1TUHlIbDE5eDZPZ2t0QmtYM1ZaMHZqc0t3MFV4YjY4TFpKUkt2ZlFiOU15MThTS2Y4bkIyOGNHeEdXTkF4MGNERjh4dVE?oc=5",
+   "date": "2026-09-30T11:13:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "a08a3cff4209",
+   "feed": "verge",
+   "category": "tech",
+   "source": "The Verge",
+   "title": "Apple’s ‘HomePad’ will reportedly launch on October 13th",
+   "link": "https://www.theverge.com/news/1002563/apple-smart-home-hub-homepad-rumor-launch-date",
+   "date": "2026-09-30T11:11:24.000Z",
+   "summary": "Apple's long-rumored smart home hub will reportedly be revealed on October 13th. Bloomberg's Mark Gurman reports that the smart home device will be revealed alongside a new HomePod mini and an upgraded Apple TV device. All three products are set to showcase Siri AI, Apple's…",
+   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2025/04/STK071_APPLE_H.jpg?quality=90&strip=all&crop=0,0,100,100"
+  },
+  {
+   "id": "96835b5dcd5a",
+   "feed": "schneier",
+   "category": "security",
+   "source": "Schneier on Security",
+   "title": "I Want Better Reporting on AI Genie Behavior",
+   "link": "https://www.schneier.com/blog/archives/2026/09/i-want-better-reporting-on-ai-genie-behavior.html",
+   "date": "2026-09-30T11:05:35.000Z",
+   "summary": "AI systems are regularly completing tasks in ways that their prompters don’t want or intend. Some of them are disturbing, and some of them are dangerous. This is something I’ve been calling “genie behavior,” because I think that really gets at the core of what’s happening. I…",
+   "image": null
+  },
+  {
+   "id": "177f907ac074",
+   "feed": "bbc-world",
+   "category": "news",
+   "source": "BBC News",
+   "title": "Couple describes relief at rescue after whale destroys their yacht",
+   "link": "https://www.bbc.co.uk/news/videos/c6n4ken4n7n7o?at_medium=RSS&at_campaign=rss",
+   "date": "2026-09-30T11:01:58.000Z",
+   "summary": "Jeremy and Gemma Cooper were 500 miles off the coast of New Zealand when their yacht, the Tai Tam, collided with a sperm whale.",
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/377f/live/82a69bb0-bcb7-11f1-a64c-550be9e3c66b.jpg"
+  },
+  {
+   "id": "f9cb6022e5f6",
+   "feed": "guardian-us",
+   "category": "news",
+   "source": "The Guardian US",
+   "title": "California rushes to prepare for massive ‘Kelvin’ wave and predicted sea level rise",
+   "link": "https://www.theguardian.com/us-news/2026/sep/30/california-kelvin-wave-sea-level-rise",
+   "date": "2026-09-30T11:00:39.000Z",
+   "summary": "Wave nearing southern California expected to reach San Francisco Bay Area by October as it crawls toward Alaska Communities across California are rushing to prepare for the imminent arrival of the so-called “Kelvin wave”, a massive underwater band of warm water threatening to…",
+   "image": "https://i.guim.co.uk/img/media/3012a692470bc55fb6169ac325755d5b8fa99adf/308_0_3075_2460/master/3075.jpg?width=140&quality=85&auto=format&fit=max&s=923144f54f0513f8a8305757d27d40d6"
+  },
+  {
+   "id": "19fed891e74e",
+   "feed": "wired",
+   "category": "tech",
+   "source": "Wired",
+   "title": "The Best Gaming Routers (2026): Tested By a Family of Gamers",
+   "link": "https://www.wired.com/story/best-gaming-routers/",
+   "date": "2026-09-30T11:00:00.000Z",
+   "summary": "Gaming online can seriously strain your internet connection, but the best gaming routers could give you the edge.",
+   "image": "https://media.wired.com/photos/6abc319d33f7a1f1af2fadf2/master/pass/The-Best-Gaming-Routers.jpg"
+  },
+  {
+   "id": "2e3ab134daf7",
+   "feed": "npr",
+   "category": "news",
+   "source": "NPR",
+   "title": "Travel plans? Here's what to know as measles exposures reach trains and games",
+   "link": "https://www.npr.org/2026/09/30/nx-s1-5978940/traveling-measles-exposure-vaccines-transportation",
+   "date": "2026-09-30T11:00:00.000Z",
+   "summary": "Measles is traveling, with outbreaks in Pennsylvania, Ohio and New York, and exposures on transportation and in sports. What should you know before getting on a plane or train?",
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/2070x1449+0+0/resize/2070x1449!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Ffa%2Fdb%2F61048f5f431c95b6b2afcef73760%2Fgettyimages-1572895908.jpg"
+  },
+  {
+   "id": "faeb363f3320",
+   "feed": "hn",
+   "category": "tech",
+   "source": "Hacker News",
+   "title": "Most data centers refusing to say how much water, electricity they use",
+   "link": "https://nltimes.nl/2026/09/30/data-centers-refusing-say-much-water-electricity-use",
+   "date": "2026-09-30T10:49:32.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "f36baabe1563",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "Gulf Coast News and Weather",
+   "title": "North Fort Myers man gets 5 years in prison after taking plea deal in teen sex case",
+   "link": "https://news.google.com/rss/articles/CBMijgFBVV95cUxNN01Icy1ITjB6MWVKRzh6NTNIYmpqNGphM3lXbU5PczJYTXJaMzNOSUtHd215SjdRQ1NlRmpabXh0UGtxLUUzVGtES1phdHJ0QVRJdDZUYUZhTGo4bWQwNnMyRHZlWnV1LWtQN2VqR1FSV0Etejl5NkFHTHg0SmhMQ3NSYnI4eG1hNDN5UkJn?oc=5",
+   "date": "2026-09-30T10:43:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "67f38fd4a8dc",
+   "feed": "bbc-world",
+   "category": "news",
+   "source": "BBC News",
+   "title": "Luxury prison in Indonesia demolished after public outcry",
+   "link": "https://www.bbc.co.uk/news/videos/cmwyz8j9j85wo?at_medium=RSS&at_campaign=rss",
+   "date": "2026-09-30T10:41:03.000Z",
+   "summary": "Indonesian lawmakers on Wednesday ordered the demolition of a controversial luxury compound inside a penitentiary near the capital.",
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/6916/live/797be060-bcb5-11f1-babe-4199b0e7ccea.jpg"
+  },
+  {
+   "id": "1d44a8a70651",
+   "feed": "wired",
+   "category": "tech",
+   "source": "Wired",
+   "title": "Black Twitter Is Thriving—on Threads",
+   "link": "https://www.wired.com/story/threads-is-black-twitters-unlikely-spiritual-successor/",
+   "date": "2026-09-30T10:30:00.000Z",
+   "summary": "From outrage over Nolan Wells’ death to analysis of HBO Max’s Lanterns, Threads has transformed into a vital artery of the Black social media ecosystem.",
+   "image": "https://media.wired.com/photos/6abaff642122500d82924081/master/pass/Black-Threads-Thriving-Culture.jpg"
+  },
+  {
+   "id": "e200963ec8d1",
+   "feed": "bbc-tech",
+   "category": "tech",
+   "source": "BBC Technology",
+   "title": "Regulating AI 'not the right place to start' says Bailey",
+   "link": "https://www.bbc.co.uk/news/articles/cvzez7k0pn40o?at_medium=RSS&at_campaign=rss",
+   "date": "2026-09-30T10:20:20.000Z",
+   "summary": "AI needs \"rigorous\" testing and safeguards to contain risk, Andrew Bailey says.",
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/e249/live/7e528b30-bcb4-11f1-a3e9-bbda6f9b9e25.jpg"
+  },
+  {
+   "id": "7fea385347fb",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "Bradenton Herald",
+   "title": "ParrotPhest returns to Fort Myers Beach; Sand & Suds Beerfest",
+   "link": "https://news.google.com/rss/articles/CBMiYkFVX3lxTE5Eb1FqbnZ6Q2NyQkc5SU1DcDBEOFE3dWk1TWVkNERDbTExdnoweXFVOFdwTkNrTDlTa0htcWdmLVgzbVZHNFZfQS1JT1huWkcxWmF0SUxnVWtYUllxOGF6bkhR?oc=5",
+   "date": "2026-09-30T10:04:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "27c2b12e7e2a",
+   "feed": "guardian-us",
+   "category": "news",
+   "source": "The Guardian US",
+   "title": "From mass raids to quiet crackdown: a timeline of Trump’s strategic ICE pivot",
+   "link": "https://www.theguardian.com/us-news/2026/sep/30/immigration-tactics-detention-approach",
+   "date": "2026-09-30T10:00:24.000Z",
+   "summary": "After switching tactics, federal agents are detaining and deporting record numbers of people from the US When federal agents fatally shot US citizen protesters Alex Pretti and Renee Good in Minneapolis in January during the nation’s largest immigration-enforcement operation…",
+   "image": "https://i.guim.co.uk/img/media/a93eb0b7bf6e025e46b72f278f3363b1acf48a92/589_0_4768_3815/master/4768.jpg?width=140&quality=85&auto=format&fit=max&s=08d83252924b7b9a8b11c6c3d947cca8"
+  },
+  {
+   "id": "d4891537fda5",
+   "feed": "guardian-us",
+   "category": "news",
+   "source": "The Guardian US",
+   "title": "A ‘freaked out’ US food industry is hitting back at Maha – with social media influencers",
+   "link": "https://www.theguardian.com/business/2026/sep/30/us-food-industry-maga-social-media-influencers",
+   "date": "2026-09-30T10:00:24.000Z",
+   "summary": "Cross-partisan support in Washington on issues like pesticides and food additives pose a threat to the industry’s bottom line Some of the biggest food and agriculture corporations in the US are funding a campaign that pays social media influencers to combat elements of Robert F…",
+   "image": "https://i.guim.co.uk/img/media/5d92fe9dcc608d70041236c593c4a57655a6789a/0_0_3000_2400/master/3000.jpg?width=140&quality=85&auto=format&fit=max&s=e42487a26c4563bd008f47496cc2fd46"
+  },
+  {
+   "id": "dc0527dec1c9",
+   "feed": "wired",
+   "category": "tech",
+   "source": "Wired",
+   "title": "How Israeli Checkpoints Choke Palestinian Life in the Occupied West Bank",
+   "link": "https://www.wired.com/story/how-israeli-checkpoints-choke-palestinian-life-occupied-west-bank/",
+   "date": "2026-09-30T10:00:00.000Z",
+   "summary": "Lost time. Lost jobs. Lost friends. Lost family. Lost lives. Our joint investigation reveals the system that has divided the West Bank and measures what it cost people to move through it.",
+   "image": "https://media.wired.com/photos/6abbf437aaebf176f00cbd89/master/pass/GettyImages-1249548135.jpg"
+  },
+  {
+   "id": "73fddb677439",
+   "feed": "hn",
+   "category": "tech",
+   "source": "Hacker News",
+   "title": "Pi.dev: You Said No MCP",
+   "link": "https://earendil.com/posts/you-said-no-mcp/",
+   "date": "2026-09-30T09:55:23.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "bf506f4dcc56",
+   "feed": "wired",
+   "category": "tech",
+   "source": "Wired",
+   "title": "Best Mattresses for Kids (2026): Saatva, Birch, Helix, and More",
+   "link": "https://www.wired.com/gallery/the-best-kids-mattresses/",
+   "date": "2026-09-30T09:32:00.000Z",
+   "summary": "Learn what to look for when buying a kids’ mattress, plus how six top models stack up, according to my 2-year-old.",
+   "image": "https://media.wired.com/photos/6abc3abdadb8c46babb74b7e/master/pass/The-Best-Kids%E2%80%99-Mattresses,-Put-Through-the-Toddler-Test.jpg"
+  },
+  {
+   "id": "ab873bfecf4f",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "The News-Press",
+   "title": "Popular Italian restaurant returns to Cape Coral. And it's a gem",
+   "link": "https://news.google.com/rss/articles/CBMizwFBVV95cUxOV2w0OEtDTk5pazd1dUVjTHB5Yms1TWN3blFNR3dwVDlPdkhWMy1oRnRELTAySWE1aGNvcDlKV0NCN2pCZUNsX0xMZlEzY1JjbDlnQ3ZfeTJndHFNME83NzRTX0wzV3dsUTB2ZUN6dEpzMS1MOFpQUVJSWmZjVWQyQktzNmNFS3ZvWnd4MmNLc2hVbnQwTHVYVUk1dDNrVzY4VHNRZVhRbTBQanNuMUJDOUgxbjF6SWZZak0yaG9zOFdIYmh3WTlSWm1aQWFkVDg?oc=5",
+   "date": "2026-09-30T09:29:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "eecc4b1c8a5a",
+   "feed": "bbc-us",
+   "category": "news",
+   "source": "BBC US & Canada",
+   "title": "What we know about Cornell University frat house rape investigation",
+   "link": "https://www.bbc.co.uk/news/articles/cmpq0r1ljpqwo?at_medium=RSS&at_campaign=rss",
+   "date": "2026-09-30T09:12:44.000Z",
+   "summary": "The woman alleges she was drugged and raped at a fraternity house at the university two years ago.",
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/51ee/live/53a0d690-bcb8-11f1-babe-4199b0e7ccea.jpg"
+  },
+  {
+   "id": "126177bb336a",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "The News-Press",
+   "title": "Halloween, concerts and more things to do this October in Lee County",
+   "link": "https://news.google.com/rss/articles/CBMi_AFBVV95cUxNajlmMlNESTNrVVh4NnpwaVpTajB4NDFxU0FwTWp5NzIxbTJjS1VHQ3Z1dWxUOGFMOEdxOERDeDFsc1pyOVZOMy14RE9rQ21KWG41aTlpN2JnVmtiS2NhZDBCTlFxVnVUU3R6MHY2UnZyenZ1eGktd2JyRmdxUjdmaHBndEpfekphZXl4MGY4bmRQTEdxNjNTTWdJMXpDSlJHZHZ0N0NvQWtxdE1xYmU0X0RBYmV4QmI0Wkx0U0E1QjhndnA0SHItaXFNTEtTUVoxVTdyQ2g4MVROR254bzQ2ZzM1V2djTW5mMFJiYXpaSlZ0ZloydW95Mkh3akI?oc=5",
+   "date": "2026-09-30T09:02:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "f2bef9f7b4b0",
+   "feed": "npr",
+   "category": "news",
+   "source": "NPR",
+   "title": "A startup wants to build a massive nuclear-powered data center on public land in Utah",
+   "link": "https://www.npr.org/2026/09/30/nx-s1-5983482/valar-atomic-nuclear-data-center-project-beehive-utah",
+   "date": "2026-09-30T09:01:00.000Z",
+   "summary": "Valar Atomics wants to place over 450 reactors on more than 9,500 acres in Utah to power a huge data center project.",
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/3813x2542+0+0/resize/3813x2542!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Fc4%2F8d%2Fdfada92447689b6490f5d6f578de%2Fap26050704729644.jpg"
+  },
+  {
+   "id": "06d42c48d6bd",
+   "feed": "npr",
+   "category": "news",
+   "source": "NPR",
+   "title": "What's behind HHS claims that gender-affirming care 'may' radicalize",
+   "link": "https://www.npr.org/2026/09/30/nx-s1-5962843/hhs-study-gender-ideology-flaws-missing-context",
+   "date": "2026-09-30T09:00:00.000Z",
+   "summary": "The report is the agency's latest effort to chip away at trust in established health care models for transgender people. Critics say it frames transgender identity as illegitimate or even dangerous.",
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/5333x3000+0+0/resize/5333x3000!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F1b%2Fcc%2Fcd93720f461ebc4e61f6b7d8ebfe%2Fnpr-ustransreport-final-applepodcast.jpg"
+  },
+  {
+   "id": "980eaa3c8ca2",
+   "feed": "npr",
+   "category": "news",
+   "source": "NPR",
+   "title": "The moment you've been waiting for: America's best student podcasts",
+   "link": "https://www.npr.org/2026/09/30/nx-s1-5930430/student-podcast-challenge-2026-finalists",
+   "date": "2026-09-30T09:00:00.000Z",
+   "summary": "We've listened to nearly 1,500 podcasts from all around the U.S. and narrowed them down to 10 middle school and 10 high school finalists.",
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/1590x894+0+0/resize/1590x894!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F71%2F00%2F54aa38874896b0038b4b24632903%2Fspc-logo.jpg"
+  },
+  {
+   "id": "1feb2cab9d84",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "pineisland-eagle.com",
+   "title": "Arts and Culture Town Hall set for Monday in Cape Coral",
+   "link": "https://news.google.com/rss/articles/CBMisgFBVV95cUxPYUF5Ukd2SVJxSkFiNGUweTJmQy1uZHJvTEY3ajVCV0NhSm9BWmpGaThQYVV6bG1BdEY1LXktcWhvaGxlVU5xSE9lOVVjVFNya0l4YnFadDlEQktvOXZhWVhoZERZeUJWQTFqZzk2OWFwdHVBdUVnR3ctdzM1RUJreF9Sa2ZXaERaVDVTSzZUVHdSSmF3dkE3TTd3d1ZIZ3RjZjRmaFFjVXNEWmVpNXh4WjJR?oc=5",
+   "date": "2026-09-30T08:48:27.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "573fbf8d27d4",
+   "feed": "nws-fl",
+   "category": "live",
+   "source": "NWS Florida alerts",
+   "title": "Coastal Flood Advisory issued September 30 at 3:55AM EDT until September 30 at 5:00PM EDT by NWS Key West FL",
+   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.15b9d911bdcf0610d7d9af736cbd7790b54dbdb0.001.1.cap",
+   "date": "2026-09-30T07:55:00.000Z",
+   "summary": "* WHAT...Saltwater flooding. * WHERE...Upper Keys, particularly along the sounds, Bay side of Key Largo, Middle, and Lower Florida Keys. * WHEN...Through this afternoon. * IMPACTS...Saltwater flooding of low elevation streets and lots is expected. Some storm drains will…",
+   "image": null
+  },
+  {
+   "id": "721320739c3b",
+   "feed": "hn",
+   "category": "tech",
+   "source": "Hacker News",
+   "title": "September 2026: The world today, as seen by one Polish guy",
+   "link": "https://tomwojcik.com/posts/2026-09-21/september-2026-the-world-today/",
+   "date": "2026-09-30T07:12:31.000Z",
+   "summary": "",
+   "image": null
   },
   {
    "id": "b640aa75f483",
@@ -544,28 +1068,6 @@
    "image": "https://media.wired.com/photos/6870914c7df7ab0fb03f65d5/master/pass/The%20Best%20Laptop%20Docking%20Stations%20to%20Supercharge%20Your%20Workstation.png"
   },
   {
-   "id": "6a9f573ffc0c",
-   "feed": "bbc-world",
-   "category": "news",
-   "source": "BBC News",
-   "title": "South Korea demands apology from Pyongyang for landmine blasts that injured three",
-   "link": "https://www.bbc.co.uk/news/articles/cwj3dkvpm4e7o?at_medium=RSS&at_campaign=rss",
-   "date": "2026-09-30T05:24:52.000Z",
-   "summary": "Blasts in the Demilitarised Zone (DMZ) injured three South Korean personnel earlier this month.",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/1795/live/6e65f480-bc7f-11f1-8f6a-cb544b8fa0f7.jpg"
-  },
-  {
-   "id": "21602a0f8ec6",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "Jimmy Fallon Pokes Fun at America’s New A.I. Chatbot",
-   "link": "https://www.nytimes.com/2026/09/30/arts/television/jimmy-fallon-trump-america-ai-chatbot.html",
-   "date": "2026-09-30T05:21:13.000Z",
-   "summary": "“Yeah, everyone’s afraid of A.I., and nobody trusts the federal government, so Trump was like, ‘Let’s combine them,’” Jimmy Fallon said.",
-   "image": null
-  },
-  {
    "id": "0b10a0cc8ae1",
    "feed": "bbc-us",
    "category": "news",
@@ -577,72 +1079,6 @@
    "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/181a/live/455d3af0-bc41-11f1-bc1f-3f186ca4140c.jpg"
   },
   {
-   "id": "7ae3429c5a0e",
-   "feed": "bbc-world",
-   "category": "news",
-   "source": "BBC News",
-   "title": "Girl has multiple surgeries to control infections after strike in Gaza",
-   "link": "https://www.bbc.co.uk/news/videos/c8n5d0e0n6wdo?at_medium=RSS&at_campaign=rss",
-   "date": "2026-09-30T05:02:50.000Z",
-   "summary": "Witnesses say Raseel's tent was hit by an Israeli helicopter strike. Israel’s military says it has no record of the attack.",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/e9c7/live/7d112a00-bc92-11f1-bc1f-3f186ca4140c.jpg"
-  },
-  {
-   "id": "c33c1d9176ae",
-   "feed": "bbc-world",
-   "category": "news",
-   "source": "BBC News",
-   "title": "'Backpack' declared Alaska's Fat Bear Week winner",
-   "link": "https://www.bbc.co.uk/news/articles/ck8d3vl9mj13o?at_medium=RSS&at_campaign=rss",
-   "date": "2026-09-30T05:01:04.000Z",
-   "summary": "\"Backpack\" defeated a bear known only as \"910\" in the final round of the annual competition.",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/028c/live/57071760-bc89-11f1-bc1f-3f186ca4140c.jpg"
-  },
-  {
-   "id": "f59ec87a0ce7",
-   "feed": "guardian-us",
-   "category": "news",
-   "source": "The Guardian US",
-   "title": "The secret Trump deals sending migrants across the world - Full Story podcast",
-   "link": "https://www.theguardian.com/us-news/audio/2026/sep/30/the-secret-trump-deals-sending-migrants-across-the-world-full-story-podcast",
-   "date": "2026-09-30T05:00:13.000Z",
-   "summary": "A Sierra Leonean nurse detained, handcuffed and flown to Ghana. An Iranian dissident sent to Central African Republic. A Cameroonian deported to Equatorial Guinea. This is the face of the Trump administration’s policy since 2025 – striking deals with 35 countries and sending up…",
-   "image": "https://i.guim.co.uk/img/media/32b2de9ea554668a1af205a743cea383b969cf9d/313_0_1875_1500/master/1875.jpg?width=140&quality=85&auto=format&fit=max&s=8363969f7f68bd77494b452c66950784"
-  },
-  {
-   "id": "741972e1bdb4",
-   "feed": "wired",
-   "category": "tech",
-   "source": "Wired",
-   "title": "Fanatics Promo Code: 10% Off",
-   "link": "https://www.wired.com/story/fanatics-promo-code/",
-   "date": "2026-09-30T05:00:00.000Z",
-   "summary": "Gear up for the season with verified Fanatics coupons, free shipping codes, and student or military discounts on jerseys, hats, and team gear.",
-   "image": "https://media.wired.com/photos/67b63b9079f27a355461c964/master/pass/WIRED-Coupons-R2_2.png"
-  },
-  {
-   "id": "7f6f73dc3be6",
-   "feed": "wired",
-   "category": "tech",
-   "source": "Wired",
-   "title": "LG Promo Codes and Coupons for October 2026",
-   "link": "https://www.wired.com/story/lg-promo-code/",
-   "date": "2026-09-30T05:00:00.000Z",
-   "summary": "Save 20% with an LG promo code today, plus up to $1,000 off appliances, 40% off bestselling TVs and monitors.",
-   "image": "https://media.wired.com/photos/67b63b985a505b018b67ed90/master/pass/WIRED-Coupons-R2_17.png"
-  },
-  {
-   "id": "abd3c2ac85d0",
-   "feed": "wired",
-   "category": "tech",
-   "source": "Wired",
-   "title": "30% Off Canon Promo Codes | October 2026",
-   "link": "https://www.wired.com/story/canon-promo-code/",
-   "date": "2026-09-30T05:00:00.000Z",
-   "summary": "Save an extra 10% or 30% with Canon coupon codes, plus up to $1,600 on cameras, printers, and more this October 2026.",
-   "image": "https://media.wired.com/photos/66ea077251891e6d3cb5d5cf/master/pass/WIRED-Coupons-3.jpg"
-  },
-  {
    "id": "f4dacd96218d",
    "feed": "nws-fl",
    "category": "live",
@@ -652,39 +1088,6 @@
    "date": "2026-09-30T04:54:00.000Z",
    "summary": "* WHAT...Dangerous rip currents expected. * WHERE...In Alabama, Mobile Coastal and Baldwin Coastal Counties. In Florida, Escambia Coastal, Santa Rosa Coastal and Okaloosa Coastal Counties. * WHEN...From Thursday morning through Saturday evening. * IMPACTS...Rip currents can…",
    "image": null
-  },
-  {
-   "id": "99ef96192e1f",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "Los Angeles Mayoral Candidates Vie for Undecided Voters",
-   "link": "https://www.nytimes.com/2026/09/30/us/politics/los-angeles-mayor-bass-raman.html",
-   "date": "2026-09-30T04:42:37.000Z",
-   "summary": "Mayor Karen Bass and her onetime ally, Nithya Raman, made their case to voters with just five weeks left until the election.",
-   "image": "https://static01.nyt.com/images/2026/09/29/multimedia/29nat-la-mayor-promo/29nat-la-mayor-promo-mediumSquareAt3X-v2.png"
-  },
-  {
-   "id": "ad50c15972c7",
-   "feed": "hn",
-   "category": "tech",
-   "source": "Hacker News",
-   "title": "Tesla takes on $30B in credit as it approaches unprofitability",
-   "link": "https://electrek.co/2026/09/29/tesla-takes-on-30-billion-in-credit-as-it-approaches-unprofitability/",
-   "date": "2026-09-30T04:37:37.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
-   "id": "e966b5229e79",
-   "feed": "bbc-world",
-   "category": "news",
-   "source": "BBC News",
-   "title": "Restaurant named after Xi Jinping attacked by Chinese nationals in South Korea",
-   "link": "https://www.bbc.co.uk/news/articles/c9kgvm275ev8o?at_medium=RSS&at_campaign=rss",
-   "date": "2026-09-30T04:21:11.000Z",
-   "summary": "The owner said he chose the name because he wanted to run the \"best Chinese restaurant\" in South Korea.",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/0c90/live/65be9d30-bc81-11f1-a200-b9459c1e297a.jpg"
   },
   {
    "id": "e7c6a0bc5d6d",
@@ -710,9 +1113,9 @@
   },
   {
    "id": "1a186591d509",
-   "feed": "bbc-world",
+   "feed": "bbc-us",
    "category": "news",
-   "source": "BBC News",
+   "source": "BBC US & Canada",
    "title": "Three takeaways from Trump's 'Super Intelligence' summit",
    "link": "https://www.bbc.co.uk/news/articles/cme30dz5vkzko?at_medium=RSS&at_campaign=rss",
    "date": "2026-09-30T04:01:52.000Z",
@@ -731,13 +1134,13 @@
    "image": "https://assets.science.nasa.gov/dynamicimage/assets/science/esd/eo/images/iotd/2026/powerful-storms-continue-to-prowl-the-pacific/polonolo_epic_20260927.jpg?w=1440&h=1440&fit=clip&crop=faces%2Cfocalpoint"
   },
   {
-   "id": "c36129882ce8",
-   "feed": "gn-naples",
+   "id": "9925dd182334",
+   "feed": "gn-bonita",
    "category": "swfl",
-   "source": "The News-Press",
-   "title": "FBA volleyball tops Seacrest in top-ranked showdown. See photos",
-   "link": "https://news.google.com/rss/articles/CBMi-gFBVV95cUxNY3pXb2ZfcFpwRk1pd2RnSzdoZHA4TlpBUTh2bFVVY0pUUTVoa2hobXZXRHJOUE9SQ3diemUtY010UzA3Y3l0TnRxZGtxbDdQVHFVQUVLR3laS0JqNFdobTRPTHl5aWNBSTNmaXVYeXgyWVBXaUtuLURxaWpzT1RiR0xPX3RRUlZHRTQxWjFqZGZIQUhGTm83Rk1ySzJuY3plQXNuMFJQbFJzM3hBVUhvVkJ0aDBzN3hsc3ZqTEtwd2R0WEJ6bm9EXzVJdGlMdjEwRWdwSFFlWG1LUFFFN0JUSVROMFkyVGJCdHJBZ1RhS25lTXMzdHFINVBB?oc=5",
-   "date": "2026-09-30T03:47:00.000Z",
+   "source": "Realtor.com",
+   "title": "19397 Hinkley Dr, Estero, FL 33928",
+   "link": "https://news.google.com/rss/articles/CBMijgFBVV95cUxNZW0yR3VMMGl2WWMxaERIc2trMTE2LU0tUU1MZU1MaHRobHM3RzVmejRNVGpLamRpa2c5ZzZRRlRTTHQybmVocFN1SjNkQUIxYU1Gakk2QWJMdGVRdXRucnk4RThuYzc3Wk40NzFGMm5HTFBudHJCaGdremU5ZzcxbUlvUUhYak9wWEdMNk1R?oc=5",
+   "date": "2026-09-30T03:59:43.000Z",
    "summary": "",
    "image": null
   },
@@ -753,28 +1156,6 @@
    "image": null
   },
   {
-   "id": "f4acd49b0877",
-   "feed": "bbc-world",
-   "category": "news",
-   "source": "BBC News",
-   "title": "Watch: Moment a government building collapses into a river in Nepal amid floods",
-   "link": "https://www.bbc.co.uk/news/videos/cv70d2nd6r0yo?at_medium=RSS&at_campaign=rss",
-   "date": "2026-09-30T03:21:28.000Z",
-   "summary": "The municipality building in Baglung was left teetering on an unstable ledge due to floods before it fell into a river.",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/bea3/live/61d8c9c0-bc7c-11f1-a430-4d16ee157c41.jpg"
-  },
-  {
-   "id": "cf64edd36b9e",
-   "feed": "hn",
-   "category": "tech",
-   "source": "Hacker News",
-   "title": "PSSA: A non-transformer language model written from scratch in Rust",
-   "link": "https://github.com/Sparticle62ops/pssa",
-   "date": "2026-09-30T03:19:54.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
    "id": "c5a40c45187c",
    "feed": "hn",
    "category": "tech",
@@ -786,81 +1167,26 @@
    "image": null
   },
   {
-   "id": "f0d7d17962eb",
-   "feed": "guardian-us",
-   "category": "news",
-   "source": "The Guardian US",
-   "title": "WNBA playoffs: No 8 Liberty spring historic upset to take down No 1 seed Lynx",
-   "link": "https://www.theguardian.com/sport/2026/sep/29/wnba-playoffs-no-8-liberty-spring-historic-upset-to-take-down-no-1-seed-lynx",
-   "date": "2026-09-30T02:55:41.000Z",
-   "summary": "New York are first No 8 seed to beat first seed Liberty ease to 2-0 series victory over Minnesota Jonquel Jones had 21 points and 13 rebounds and the No 8 seed New York Liberty beat the top-seeded Minnesota Lynx 87-71 in Game 2 of their WNBA playoff series on Tuesday night to…",
-   "image": "https://i.guim.co.uk/img/media/d679aa596c9c887c6fcd6fd49da0399c28d04e1c/0_916_2658_2126/master/2658.jpg?width=140&quality=85&auto=format&fit=max&s=e615783da8cf98b52ba5852169cb6d30"
-  },
-  {
-   "id": "04492f69d16d",
-   "feed": "guardian-us",
-   "category": "news",
-   "source": "The Guardian US",
-   "title": "WNBA playoffs: Caitlin Clark shines in Fever win as A’ja Wilson confronts fan after Cunningham foul",
-   "link": "https://www.theguardian.com/sport/2026/sep/29/caitlin-clark-wnba-playoffs-aja-wilson-fan",
-   "date": "2026-09-30T02:44:57.000Z",
-   "summary": "Clark has 27 points and 15 assists in Indiana win Wilson assessed technical foul after confrontation All Caitlin Clark wanted was one more chance to play this season. She delivered a masterpiece. The All-Star guard scored 27 points, had 15 assists, reached another milestone and…",
-   "image": "https://i.guim.co.uk/img/media/b0ec946f62fd2766ebae1348073b13f9898a6096/1624_626_5146_4117/master/5146.jpg?width=140&quality=85&auto=format&fit=max&s=f6d933aa1176a1b91a462ef3b78fa74e"
-  },
-  {
-   "id": "342beef107cc",
-   "feed": "nws-fl",
-   "category": "live",
-   "source": "NWS Florida alerts",
-   "title": "Coastal Flood Advisory issued September 29 at 10:42PM EDT until September 30 at 6:00AM EDT by NWS Key West FL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.6c3c932f9130de4b1ce56c5d86e06f73826ec9e7.002.1.cap",
-   "date": "2026-09-30T02:42:00.000Z",
-   "summary": "* WHAT...Saltwater flooding. * WHERE...Middle and Lower Florida Keys. * WHEN...Until 6 AM EDT Wednesday. * IMPACTS...Saltwater flooding of low elevation streets and lots is expected. Some storm drains will overflow, and some seawalls and docks will be overtopped. Boaters can…",
-   "image": null
-  },
-  {
-   "id": "3c25b920886a",
-   "feed": "nws-fl",
-   "category": "live",
-   "source": "NWS Florida alerts",
-   "title": "Coastal Flood Advisory issued September 29 at 10:42PM EDT until September 30 at 6:00AM EDT by NWS Key West FL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.6c3c932f9130de4b1ce56c5d86e06f73826ec9e7.001.2.cap",
-   "date": "2026-09-30T02:42:00.000Z",
-   "summary": "* WHAT...Saltwater flooding. * WHERE...Upper Florida Keys, particularly along the sounds, Bay side of Key Largo. * WHEN...Until 6 AM EDT Wednesday. * IMPACTS...Saltwater flooding of low elevation streets and lots is expected. Some storm drains will overflow, and some seawalls…",
-   "image": null
-  },
-  {
-   "id": "25f44a147239",
-   "feed": "hn",
-   "category": "tech",
-   "source": "Hacker News",
-   "title": "Responsible Release of AI-Generated Mathematics",
-   "link": "https://agmai.org/general-sep29/",
-   "date": "2026-09-30T02:36:12.000Z",
+   "id": "5f3a32135d4b",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "WINK News",
+   "title": "Collier County veteran survives flesh-eating bacteria",
+   "link": "https://news.google.com/rss/articles/CBMi0wFBVV95cUxQS3gzbXRJUVEtRGFyWlA0dEc1RE5aaGt1a0hqcGJta19MWldtQmw2WnIzdGVKUlN4Si1rNGUtbWE2LUhNdFB0MU92a296ZDRwc0hMQ3VrTEZUejBab0xSLVpGWWNvR0tiWnpPdERlcGRwVzdRUWRiTGxCQmpCNW02bndpV0k2ek5USklxNGM5VVlxMXhldWNHOFRBU2tueXlZczhqMTduVkU4LUN2Z1ZoYWphWU1SalNucUdqcnIxMXp0bGdxczZ5dXpkNHI4SWRPU01B?oc=5",
+   "date": "2026-09-30T02:21:00.000Z",
    "summary": "",
    "image": null
   },
   {
-   "id": "5bd4efe139a0",
-   "feed": "hn",
-   "category": "tech",
-   "source": "Hacker News",
-   "title": "Ballmer Peak",
-   "link": "https://en.wikipedia.org/wiki/Ballmer_Peak",
-   "date": "2026-09-30T02:35:58.000Z",
+   "id": "7d6924acfed7",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "WINK News",
+   "title": "Fort Myers man nearly loses leg to flesh-eating bacteria after fishing",
+   "link": "https://news.google.com/rss/articles/CBMi6gFBVV95cUxPVGdURVFXYTgwZGlkY3pCVmhGZFdkZWQwcUhQdHQzV2tMWXpFMjkzZTBPN1I5VXg3T0VmeWtiNkY1VzlpaER3a0E3a3VqdFdEcTc0Ull5N1JZdXlOa0dRZllGREQxVTYtVTR4UGg0b0xsMmF0dlhHd3dZQVV2OTczbk1oNHE3N212X0tORl9veF92N1ZNdFZSLU9Ba2Vnd2dNNHJvWmxHWkExNHlNNUhfSXFtbG5Mb3RBOFlBOWVXamMxczZlaDB2cEJZUllNRlBmbTBfU3RxWUVKcjUtenpOLXJINGhkRDVEVXc?oc=5",
+   "date": "2026-09-30T02:21:00.000Z",
    "summary": "",
    "image": null
-  },
-  {
-   "id": "1db84e4fc550",
-   "feed": "guardian-us",
-   "category": "news",
-   "source": "The Guardian US",
-   "title": "USMNT youth shines again in contentious 4-2 win over Chile",
-   "link": "https://www.theguardian.com/football/2026/sep/29/usmnt-chile-match-report",
-   "date": "2026-09-30T02:18:05.000Z",
-   "summary": "Sebastian Berhalter scores and assists on winner Two scuffles between teams erupt as match ends Julian Hall, Mathis Albert set records for youngest scorers Riding goals from Sebastian Berhalter, Julian Hall, Chris Richards and 17-year-old newcomer Mathis Albert, the US men’s…",
-   "image": "https://i.guim.co.uk/img/media/e5f4cf8f9dea6c834a07027907740e275bf71486/527_0_4115_3292/master/4115.jpg?width=140&quality=85&auto=format&fit=max&s=d5eeafa01c50f652a6a6e42f1e761213"
   },
   {
    "id": "7fbc4c25be3f",
@@ -870,61 +1196,6 @@
    "title": "Cape Coral fans meet Everblades players, Kelly Cup at Huey Magoos",
    "link": "https://news.google.com/rss/articles/CBMi4gFBVV95cUxNdTJscWFIa2pwWlJNVG4zMDZFZFVMNUEydUI0TkFrczZZVHJTQnVBbUlzTW5xVDlsT1dmczFhbzRPQVoxOHg5SjRkblEzbU11X3Z0a3RrbWZuWUt2bXZibnRYdVAxSHZCOXplNU1ESG82aXFvcEF1ZFZyZzZ4R2pGU0FhWllhdEY1OFBGNWx5RlVPMGJjUjYyTm9IS3ZuMVJYVm91cXFjZlgxOVRNTklTdGU1YmZ0RG5iOGlwOXpUbTBPa3BaT2NUT3RRUUQzNEZNODlWQ3V0MzZVeFFrT0lkclZ3?oc=5",
    "date": "2026-09-30T02:15:00.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
-   "id": "64d8407c4c0a",
-   "feed": "guardian-us",
-   "category": "news",
-   "source": "The Guardian US",
-   "title": "Judge ends federal oversight of Oakland police department after 23 years",
-   "link": "https://www.theguardian.com/us-news/2026/sep/29/oakland-police-federal-oversight-ends",
-   "date": "2026-09-30T02:02:28.000Z",
-   "summary": "Group of officers known as ‘riders’ in 2000s prompted longest arrangement of its kind in US history After 23 years, a district judge has released the Oakland police department (OPD) from federal oversight, marking the end of the longest arrangement of this kind in US history…",
-   "image": "https://i.guim.co.uk/img/media/1713fef2c96e70a28e25101554487c3d386e28fe/168_0_2501_2001/master/2501.jpg?width=140&quality=85&auto=format&fit=max&s=36124a95566efc7725152f58ffa60ec0"
-  },
-  {
-   "id": "c2001864a45f",
-   "feed": "guardian-us",
-   "category": "news",
-   "source": "The Guardian US",
-   "title": "Supreme court allows Trump to temporarily resume deporting people to third countries – as it happened",
-   "link": "https://www.theguardian.com/us-news/live/2026/sep/29/donald-trump-iran-ai-jack-smith-media-white-house-latest-news-updates",
-   "date": "2026-09-30T01:53:11.000Z",
-   "summary": "This live blog is now closed. US supreme court allows Trump officials to resume deportations to third countries Sign up to the US Breaking News email For some context, it’s worth remembering that Smith had a two-volume report of his findings as a result of his criminal…",
-   "image": "https://i.guim.co.uk/img/media/8c3c9bf044f86b5634e02ff865c702e30427298c/276_0_4408_3527/master/4408.jpg?width=140&quality=85&auto=format&fit=max&s=81bf9a3130294254e76819d404b1bafa"
-  },
-  {
-   "id": "d63b47480453",
-   "feed": "hn",
-   "category": "tech",
-   "source": "Hacker News",
-   "title": "Strange Parodies of Atari 2600 Video Game Box Cover Art (2008)",
-   "link": "https://mightygodking.com/2008/04/21/fun-from-yesterday/",
-   "date": "2026-09-30T01:47:14.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
-   "id": "880a53a14d26",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "Students at Cornell Daily Sun Pursued Sexual Assault Case for Two Years",
-   "link": "https://www.nytimes.com/2026/09/29/nyregion/cornell-daily-sun-newspaper-rape.html",
-   "date": "2026-09-30T01:29:50.000Z",
-   "summary": "The student newspaper, The Cornell Daily Sun, covered the allegations of rape at a fraternity party since they were first made in 2024 and led the reporting on the case.",
-   "image": "https://static01.nyt.com/images/2026/09/29/multimedia/29met-cornell-sun-cpqj/29met-cornell-sun-cpqj-mediumSquareAt3X-v2.jpg"
-  },
-  {
-   "id": "5b56a955418d",
-   "feed": "gn-lee",
-   "category": "swfl",
-   "source": "Gulf Coast News and Weather",
-   "title": "Cape Coral residents push back against costly North 3 utilities expansion project",
-   "link": "https://news.google.com/rss/articles/CBMimAFBVV95cUxORXhNQWZPNXJDQ2djbGNoOFIzMXA3Sm9UWDlDUWgwUGpISFUxSkUtU0dETFIwbDRYOGVYSjBTbFhFQW53YzVCV1JtdWlNN2N3Z2NzSTd0cnRUSzl3c0FlNmJQUUxGM1kyNXAxdS1iYlh4anc0SDJFbGlURGhEOVFmOFg2MmlwaDBJLWpPdXBrdTc5b1hoR2JuYg?oc=5",
-   "date": "2026-09-30T00:57:00.000Z",
    "summary": "",
    "image": null
   },
@@ -940,17 +1211,6 @@
    "image": null
   },
   {
-   "id": "9a497439f626",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "Democrats in Congress Embrace a More Punitive Posture Toward Israel",
-   "link": "https://www.nytimes.com/2026/09/29/us/politics/democrats-congress-israel.html",
-   "date": "2026-09-30T00:46:16.000Z",
-   "summary": "Nearly every Democratic senator voted to advance a measure calling for a human rights report on Israel’s conduct in the West Bank, as some in the party propose punishing settlement activity with sanctions.",
-   "image": "https://static01.nyt.com/images/2026/09/29/multimedia/29dc-cong-israel-phqf/29dc-cong-israel-phqf-mediumSquareAt3X.jpg"
-  },
-  {
    "id": "d6b003b6ebfa",
    "feed": "verge",
    "category": "tech",
@@ -960,17 +1220,6 @@
    "date": "2026-09-30T00:19:13.000Z",
    "summary": "For months, people have wondered when OpenAI will go public. CEO Sam Altman says it won't happen until the company can make better promises about model safety, with no firm timeline in sight. \"We intend to continue with AI progress … but as the models have had this surge…",
    "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/04/STK201_SAM_ALTMAN_CVIRGINIA2D_717b98.jpg?quality=90&strip=all&crop=0,0,100,100"
-  },
-  {
-   "id": "6de01fd4a6bc",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "A.I. Is ‘Better Informed’ Than Doctors, Kennedy Tells Industry-Backed MAHA Summit",
-   "link": "https://www.nytimes.com/2026/09/29/health/maha-summit-kennedy-vance.html",
-   "date": "2026-09-30T00:10:27.000Z",
-   "summary": "The health secretary, Vice President JD Vance and other top officials addressed a conference sponsored by corporations, including A.I. companies and others with business before the government.",
-   "image": "https://static01.nyt.com/images/2026/09/29/multimedia/29dc-maha-mgvh/29dc-maha-mgvh-mediumSquareAt3X.jpg"
   },
   {
    "id": "e423fdb51186",
@@ -984,14 +1233,58 @@
    "image": null
   },
   {
-   "id": "1e9509047211",
-   "feed": "gn-lee",
-   "category": "swfl",
-   "source": "Gulf Coast News and Weather",
-   "title": "Teen's sexual battery report leads police to second teen at Fort Myers apartment, 2 arrested",
-   "link": "https://news.google.com/rss/articles/CBMipAFBVV95cUxObmlZSWRwR3NSdW83Q0luak84X05aN2JSWWoxYlFmM3QtYXg3LWJxeDJERkNNNk9Mak5HaGRjbDFpY0luSVNoaU1ONWhMbUx1NUJDM0oxbDRHUzVQeURvWWtld0tHaE5hWXptUVBSYTZfNmE4MWFPTGd2QmxWbGlla00xVzFCRllINVp3WWdTUkc3WXRURnN6UGpDS2lUX3ZNbU1NMg?oc=5",
-   "date": "2026-09-29T23:52:00.000Z",
-   "summary": "",
+   "id": "4fa25d938953",
+   "feed": "nature",
+   "category": "science",
+   "source": "Nature",
+   "title": "Beware sham scientific societies: the research community must be more vigilant",
+   "link": "https://www.nature.com/articles/d41586-026-03047-6",
+   "date": "2026-09-30T00:00:00.000Z",
+   "summary": "Nature, Published online: 30 September 2026; doi:10.1038/d41586-026-03047-6 As AI content makes bad actors harder to spot, scrutiny of organizations must increase without reducing trust.",
+   "image": null
+  },
+  {
+   "id": "7b24ca7e23d6",
+   "feed": "nature",
+   "category": "science",
+   "source": "Nature",
+   "title": "The super El Niño is cooking coral reefs — can lullabies and probiotics save them?",
+   "link": "https://www.nature.com/articles/d41586-026-02965-9",
+   "date": "2026-09-30T00:00:00.000Z",
+   "summary": "Nature, Published online: 30 September 2026; doi:10.1038/d41586-026-02965-9 Researchers are trying everything they can to help coral reefs to survive severe heat stress from climate change, including playing sounds underwater.",
+   "image": null
+  },
+  {
+   "id": "b64d7fea5b50",
+   "feed": "nature",
+   "category": "science",
+   "source": "Nature",
+   "title": "The buck stops with me",
+   "link": "https://www.nature.com/articles/d41586-026-02863-0",
+   "date": "2026-09-30T00:00:00.000Z",
+   "summary": "Nature, Published online: 30 September 2026; doi:10.1038/d41586-026-02863-0 A note to self.",
+   "image": null
+  },
+  {
+   "id": "d4a5d35733ef",
+   "feed": "nature",
+   "category": "science",
+   "source": "Nature",
+   "title": "Tuberculosis treatment has advanced — now we need to stop drug resistance dragging us backwards",
+   "link": "https://www.nature.com/articles/d41586-026-02963-x",
+   "date": "2026-09-30T00:00:00.000Z",
+   "summary": "Nature, Published online: 30 September 2026; doi:10.1038/d41586-026-02963-x The next major advancement in TB might not be a new drug, but a better understanding of how and why resistance to medicines emerges.",
+   "image": null
+  },
+  {
+   "id": "f80229846387",
+   "feed": "nature",
+   "category": "science",
+   "source": "Nature",
+   "title": "I turn up late to meetings to dodge small talk. Am I wrong?",
+   "link": "https://www.nature.com/articles/d41586-026-02201-4",
+   "date": "2026-09-30T00:00:00.000Z",
+   "summary": "Nature, Published online: 30 September 2026; doi:10.1038/d41586-026-02201-4 A jury weighs in on whether a latecomer is simply using their time efficiently or disrespecting their colleagues.",
    "image": null
   },
   {
@@ -1015,17 +1308,6 @@
    "date": "2026-09-29T23:39:58.000Z",
    "summary": "The Tennessee inmate has been awaiting execution since she was sentenced to death in 1996 for the murder of a teenage classmate.",
    "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/d7cd/live/e4a1ffd0-bbdb-11f1-bd21-bdf910f2cec6.jpg"
-  },
-  {
-   "id": "60e801911e9b",
-   "feed": "gn-lee",
-   "category": "swfl",
-   "source": "Gulf Coast News and Weather",
-   "title": "Videos, texts shed new light on sexual misconduct allegations against Fort Myers mayor",
-   "link": "https://news.google.com/rss/articles/CBMiogFBVV95cUxORjN1SDV5Q1lpRVlDNTRQN2Y0akFYMHFRV1hTX0ZUUkhOUktiVlJKV3BDVGhaWlFvek41YWN1am9xTFUwbzRjSmtVNTc3VENwMHllOGoyZFdWZTlpZW1QT1BDZHRDYVBPbFZvQXhjMERQcGJ4OXAzRWFYNGVGTHRwMW9qREt1SW1OQjc2d1R5Tnd0eXc2c3diVHlpQUg2d1pMRkE?oc=5",
-   "date": "2026-09-29T23:39:00.000Z",
-   "summary": "",
-   "image": null
   },
   {
    "id": "71e6ed4c5cc0",
@@ -1061,6 +1343,17 @@
    "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/925f/live/79ba4b60-bc25-11f1-bd53-1b67dc8fba34.jpg"
   },
   {
+   "id": "0d25cb1e7960",
+   "feed": "hn",
+   "category": "tech",
+   "source": "Hacker News",
+   "title": "Floppy Emu Hardware Failure Analysis Results",
+   "link": "https://www.bigmessowires.com/2026/09/29/floppy-emu-hardware-failure-analysis-results/",
+   "date": "2026-09-29T23:10:26.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
    "id": "0480765c69fc",
    "feed": "bbc-tech",
    "category": "tech",
@@ -1083,35 +1376,13 @@
    "image": "https://d3i6fh83elv35t.cloudfront.net/static/2026/09/2026-09-29T195241Z_1514814340_RC27TNAH40GF_RTRMADP_3_MOROCCO-PARLIAMENT-ELECTION-1024x683.jpg"
   },
   {
-   "id": "6d6a7752fc68",
-   "feed": "gn-lee",
-   "category": "swfl",
-   "source": "Gulf Coast News and Weather",
-   "title": "Man accused of breaking into Cape Coral home, claiming ownership, attempting to start a fire",
-   "link": "https://news.google.com/rss/articles/CBMiogFBVV95cUxNWnBZY1lZTmI3Si1YR1VoT3Npa1FYMVVsd0dpSzhxMjdnMnRHXzdveHhaU0h4SlJsR0lScHJiUnhpVDBQeXBVNk44bXRJT0xjcXdxWmx5TkcyTnVDU2luNF9ENGF1NXRoZkwtaU01VmtGek5mc1M5V283cGRoMFBBU3F5UVd6eXQ3RGZiX0VlS0xnd2lCUDJQazdTYnlvT05TYnc?oc=5",
-   "date": "2026-09-29T23:06:00.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
-   "id": "61870e034a13",
-   "feed": "wired",
+   "id": "2628bd8584c4",
+   "feed": "hn",
    "category": "tech",
-   "source": "Wired",
-   "title": "Range Rover Sport Electric: Price, Specs, Availability",
-   "link": "https://www.wired.com/story/range-rover-sport-electric-arrives-with-more-for-less/",
-   "date": "2026-09-29T23:01:00.000Z",
-   "summary": "By sharing the same platform, the Sport gets the same specs as the classier Range Rover Electric, but with added torque at a smaller outlay.",
-   "image": "https://media.wired.com/photos/6aba6196add005d32caeaf5b/master/pass/Range%20Rover%20Sport%20Electric%2027MY%20Front%20300927.jpg"
-  },
-  {
-   "id": "15871558af34",
-   "feed": "gn-lee",
-   "category": "swfl",
-   "source": "WINK News",
-   "title": "Fort Myers couple arrested for interfering with teen's custody",
-   "link": "https://news.google.com/rss/articles/CBMizwFBVV95cUxNMnBWWVl0dWhNREl6a3QxT1dEVjRMVXRKdlF6QjByeWtENXRFd0JSM2ExVk5RUlVHUU5WdUpjc18tNGNaZFFPRDNtMHhVNE9EbFY4cmtucm1FeGdxeURmUXVDNXcwbVpyOURwQUlLSDhfalE3WENKSWg5NUhkTUQ1QkliaFB2SmRXamJqRFV1ZmtnNGJVTkVXZUdWSGo0THAzMTJaRHdkMXVWeWpyVUY3UmtBekc2RGt0UXBPR3RKVmlKekY3TGlaRGNDTDJWWkE?oc=5",
-   "date": "2026-09-29T22:56:00.000Z",
+   "source": "Hacker News",
+   "title": "NRC issues first U.S. construction permit for a BWRX-300 small modular reactor",
+   "link": "https://www.gevernova.com/news/press-releases/nrc-issues-first-us-construction-permit-bwrx-300-small-modular-reactor-tva-clinch-river",
+   "date": "2026-09-29T23:03:38.000Z",
    "summary": "",
    "image": null
   },
@@ -1226,61 +1497,6 @@
    "image": null
   },
   {
-   "id": "ad49f2e8b365",
-   "feed": "gn-lee",
-   "category": "swfl",
-   "source": "WINK News",
-   "title": "Fort Myers couple arrested, accused of interfering with teen’s custody",
-   "link": "https://news.google.com/rss/articles/CBMi6AFBVV95cUxQMTJFUmo2YzZhS0VEazgtOXVYVEdEdTV3a1lDdDVHNy01cGc4eVF5ZW16Q3FoUGNKcGFkNl8xa2RrLTdDY0J6eXFndHAtWFVrRnljLUNxblVtOEpSc3h1RkhHV2RSbDNjN3BOVm83YVV6NmYyb1ZQQTFKdWNodG9ZSDNEaVdCTWNrTUUwbjc0Ulo5TjZWZS1JNVotczllOGtMRVh6QW92aVgyTUUtNzZBblJ4VFVKSHlyNmF3Mms3VUtxNzdjelktWmFUbFEyZGJFcVRjWURieVA5SEQzSTU3WFE1enRxQkRs?oc=5",
-   "date": "2026-09-29T22:17:00.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
-   "id": "16d4086c4603",
-   "feed": "bbc-us",
-   "category": "news",
-   "source": "BBC US & Canada",
-   "title": "Former American Idol contestant and pastor found guilty of murdering wife",
-   "link": "https://www.bbc.co.uk/news/articles/c5rm9gv7n07xo?at_medium=RSS&at_campaign=rss",
-   "date": "2026-09-29T22:13:36.000Z",
-   "summary": "Caleb Flynn weeps in court as he is convicted of shooting his wife, Ashley, dead in their Ohio home.",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/c946/live/279db040-bc4f-11f1-b0ee-af1df8a6445f.jpg"
-  },
-  {
-   "id": "b2ba8d21a4a7",
-   "feed": "gn-lee",
-   "category": "swfl",
-   "source": "pineisland-eagle.com",
-   "title": "Players from the Florida Everblades will be at Huey Magoo’s in Cape Coral tonight — And they’re bringing the Kelly Cup!",
-   "link": "https://news.google.com/rss/articles/CBMihwJBVV95cUxQNDBNUUllNDRST2l3UEFOaUtKMGF2X1VxYVJSWHM3dEoxbTd6Vm9qTkhfc3R0c3B0dzlqaTJ6SXdCUkZoOVVydmhlUV9EdzFQRVFDR3JhQnEtZG1SdTkxdmNwT3JtRDNhdnFQTFF5QU5vN2F0SU9qNVN2Y0I3QjdGekJQV3NKa0ZzcTBkdV8zbU9fNlN6c1lHektCZkNQdS1JMnRrSW1uQm1fdWhzZFZ2WUY3cHlOTmNQcU9uelkwODMzb1Fpc0dMLWlCb2dtNTdFX0liSzRwTUNZQ2Y4OS03SXNEUnVZejl4a3M3bnE1THRmV1VKM0hDcER6YkFuMjQ4cG0wLXZDRQ?oc=5",
-   "date": "2026-09-29T22:05:46.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
-   "id": "307ef7681044",
-   "feed": "gn-lee",
-   "category": "swfl",
-   "source": "City of Sanibel, FL",
-   "title": "2nd Annual Touch A Truck",
-   "link": "https://news.google.com/rss/articles/CBMiY0FVX3lxTE5hQ2xGczRoQWNmUU1QVXp5NkFQYlZobm0wTzhVVXNQVjFHbk9Dc3kwVm5mY1MyYVNYd01vbEd3Q3Bxd2lzR28taFJNRUVzZDdZYzgtVW5VdzRFSlNZUHV1QXZEVQ?oc=5",
-   "date": "2026-09-29T22:02:14.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
-   "id": "f7df048676ed",
-   "feed": "verge",
-   "category": "tech",
-   "source": "The Verge",
-   "title": "BMW’s revamped i3 boasts up to 468 miles of range",
-   "link": "https://www.theverge.com/transportation/1002173/bmws-revamped-i3-boasts-up-to-468-miles-of-range",
-   "date": "2026-09-29T22:01:00.000Z",
-   "summary": "When BMW first announced it was reimagining the i3 as an all-electric four-door sedan built on its Neue Klasse platform, it left out a lot of important details, like battery capacity, range, and price. Today, the German automaker is finally starting to fill in the blanks on the…",
-   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/09/26_03_BMW_Preview-Gruppe.jpg?quality=90&strip=all&crop=0,0,100,100"
-  },
-  {
    "id": "879babcdd3fe",
    "feed": "ars",
    "category": "tech",
@@ -1292,50 +1508,6 @@
    "image": "https://cdn.arstechnica.net/wp-content/uploads/2026/09/IMG_0886-1152x648.jpg"
   },
   {
-   "id": "7414811d518e",
-   "feed": "techcrunch",
-   "category": "tech",
-   "source": "TechCrunch",
-   "title": "a16z-backed EliseAI raises $350M, doubles valuation to $4B",
-   "link": "https://techcrunch.com/2026/09/29/a16z-backed-eliseai-raises-350m-doubles-valuation-to-4b/",
-   "date": "2026-09-29T21:51:36.000Z",
-   "summary": "EliseAI raises $350M, doubles valuation in a year.",
-   "image": null
-  },
-  {
-   "id": "9b5562e51005",
-   "feed": "verge",
-   "category": "tech",
-   "source": "The Verge",
-   "title": "Suspected ShinyHunters leader arrested in the Netherlands",
-   "link": "https://www.theverge.com/tech/1002410/shinyhunters-hacking-suspect-arrested",
-   "date": "2026-09-29T21:50:31.000Z",
-   "summary": "Dutch police say they arrested a 24-year-old Amsterdam man in connection with ShinyHunters, the hacking group that claimed responsibility for high-profile attacks on Ticketmaster, Rockstar Games, and more recently, the FBI. In a press release, Dutch authorities state that they…",
-   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/09/akrales_220209_4977_0226.webp?quality=90&strip=all&crop=0,0,100,100"
-  },
-  {
-   "id": "21aea061ef98",
-   "feed": "verge",
-   "category": "tech",
-   "source": "The Verge",
-   "title": "Elon Musk’s AI-powered Grokipedia is updating again",
-   "link": "https://www.theverge.com/tech/1002448/elon-musk-grokipedia-ai-updating-again",
-   "date": "2026-09-29T21:49:09.000Z",
-   "summary": "Grokipedia, the AI-powered online encyclopedia from SpaceXAI, appears to be updating articles once again after a months-long pause. In August, Lawfare reported that articles on Grokipedia hadn't reviewed edits since April, but the platform's live updates site is now showing…",
-   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2025/04/STK171_VRG_Illo_16_Normand_ElonMusk_16.jpg?quality=90&strip=all&crop=0,0,100,100"
-  },
-  {
-   "id": "fc4148f49d84",
-   "feed": "npr",
-   "category": "news",
-   "source": "NPR",
-   "title": "The federal law aimed at protecting college students from sexual abuse",
-   "link": "https://www.npr.org/2026/09/29/nx-s1-5983779/investigating-sexual-abuse-on-campus",
-   "date": "2026-09-29T21:29:21.000Z",
-   "summary": "The lawsuit by a former Cornell University student, alleging she was raped in 2024 by seven male students, has renewed long-standing concerns about how colleges deal with sexual assault.",
-   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/6000x4000+0+0/resize/6000x4000!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Fa5%2Fda%2F37d7e2d7430491f707ec5014d15c%2Fap26271556664976.jpg"
-  },
-  {
    "id": "c3bccf2fbab3",
    "feed": "nasa-news",
    "category": "science",
@@ -1345,17 +1517,6 @@
    "date": "2026-09-29T21:27:56.000Z",
    "summary": "NASA’s 2027 Human Lander Challenge is seeking ideas from college and university students to help address one of the most critical needs for sustained lunar exploration: reliable communications. As NASA prepares for long-term human presence on the Moon through the Artemis and…",
    "image": "https://www.nasa.gov/wp-content/uploads/2026/09/2027-hulc-graphic-header-conceptual-lunar-communications-and-navigation-orbiter.png?w=1536"
-  },
-  {
-   "id": "7e313f551a3e",
-   "feed": "techcrunch",
-   "category": "tech",
-   "source": "TechCrunch",
-   "title": "Tesla secures $30B in new credit lines as it looks to scale Cybercab, Optimus",
-   "link": "https://techcrunch.com/2026/09/29/tesla-secures-30b-in-new-credit-lines-as-it-looks-to-scale-cybercab-optimus/",
-   "date": "2026-09-29T21:20:12.000Z",
-   "summary": "The company says it won't draw on the new debt facilities this year, as it has already planned at least $25 billion in capital expenditures.",
-   "image": null
   },
   {
    "id": "24c99954919c",
@@ -1468,12 +1629,12 @@
    "image": null
   },
   {
-   "id": "e12e4919bf95",
+   "id": "89c3123e9896",
    "feed": "bbc-tech",
    "category": "tech",
    "source": "BBC Technology",
    "title": "Tech Life",
-   "link": "https://www.bbc.co.uk/sounds/play/w3ct8jyh?at_medium=RSS&at_campaign=rss",
+   "link": "https://www.bbc.co.uk/sounds/play/live:bbc_world_service_west_africa?at_medium=RSS&at_campaign=rss",
    "date": "2026-09-29T19:30:00.000Z",
    "summary": "How a Chinese AI model was persuaded to ignore its rules and give dangerous advice.",
    "image": "https://ichef.bbci.co.uk/images/ic/240x135/p0pd1gb8.jpg"
@@ -1501,28 +1662,6 @@
    "image": null
   },
   {
-   "id": "ab4c9d0cb863",
-   "feed": "npr",
-   "category": "news",
-   "source": "NPR",
-   "title": "U.S. Supreme Court sides with Trump administration in third-country deportations",
-   "link": "https://www.npr.org/2026/09/29/g-s1-145266/supreme-court-trump-third-country-deportations",
-   "date": "2026-09-29T19:19:37.000Z",
-   "summary": "The Supreme Court allowed the Trump administration to resume deportations of migrants to countries that are not identified in their removal orders. It also plans to hear full arguments on the case.",
-   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/6192x4128+0+0/resize/6192x4128!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F52%2Fa4%2F09bbed3f4f69bab9f978810def56%2Fgettyimages-2270391041.jpg"
-  },
-  {
-   "id": "e4cef31d0720",
-   "feed": "wired",
-   "category": "tech",
-   "source": "Wired",
-   "title": "OpenAI Gets Sued Over the Hugging Face Hack",
-   "link": "https://www.wired.com/story/openai-sued-over-the-hugging-face-hack/",
-   "date": "2026-09-29T19:05:00.000Z",
-   "summary": "A nonprofit in California is doing what Hugging Face has not—attempting to hold OpenAI legally accountable for the actions of its agents.",
-   "image": "https://media.wired.com/photos/6abbb935c1a080d8e4e23844/master/pass/GettyImages-2265991617.jpg"
-  },
-  {
    "id": "2c774205441f",
    "feed": "ars",
    "category": "tech",
@@ -1545,39 +1684,6 @@
    "image": null
   },
   {
-   "id": "7e62df2683d0",
-   "feed": "ars",
-   "category": "tech",
-   "source": "Ars Technica",
-   "title": "Here's what actually happened in OpenAI's Australian gov't server hack",
-   "link": "https://arstechnica.com/ai/2026/09/heres-what-actually-happened-in-openais-australian-govt-server-hack/",
-   "date": "2026-09-29T18:11:09.000Z",
-   "summary": "Without a \"full set of safeguards,\" agent accessed \"system information and source code.\"",
-   "image": "https://cdn.arstechnica.net/wp-content/uploads/2026/09/GettyImages-1840671728-1152x648.jpg"
-  },
-  {
-   "id": "b5a04a220878",
-   "feed": "npr",
-   "category": "news",
-   "source": "NPR",
-   "title": "Lindsay Clancy's lawyer now questions whether she killed her 3 children",
-   "link": "https://www.npr.org/2026/09/29/g-s1-145539/lindsay-clancy-trial-hearing-lawyer",
-   "date": "2026-09-29T18:00:50.000Z",
-   "summary": "Lindsay Clancy's lawyer is arguing that there wasn't enough evidence to prove she killed her three children. It's a striking turn after a lengthy trial that focused more on her mental state than on whether she took their lives.",
-   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/3000x2128+0+0/resize/3000x2128!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F68%2Fc4%2Ff1b1fe8f479dbfa20ffb50753e44%2Fap26247685382832.jpg"
-  },
-  {
-   "id": "4715e6b9f27d",
-   "feed": "verge",
-   "category": "tech",
-   "source": "The Verge",
-   "title": "AI researchers put out videos saying superintelligence is ‘exactly as dangerous as it sounds’",
-   "link": "https://www.theverge.com/ai-artificial-intelligence/1002238/openai-google-anthropic-ai-researchers-safety-interviews",
-   "date": "2026-09-29T17:35:03.000Z",
-   "summary": "\"The chance of human extinction is about a coin flip, in my view,\" Geoffrey Irving, a former OpenAI and Google DeepMind employee, said in a new interview. It's one of a dozen interviews with AI researchers, including current and former employees at OpenAI, Google, and…",
-   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2025/09/STK485_STK414_AI_SAFETY_B.webp?quality=90&strip=all&crop=0,0,100,100"
-  },
-  {
    "id": "4fbd1df7a0de",
    "feed": "gn-naples",
    "category": "swfl",
@@ -1589,28 +1695,6 @@
    "image": null
   },
   {
-   "id": "10b4251e1a84",
-   "feed": "bbc-tech",
-   "category": "tech",
-   "source": "BBC Technology",
-   "title": "Oura pulls $15bn stock market listing days after announcement",
-   "link": "https://www.bbc.co.uk/news/articles/cjwyz5v190qwo?at_medium=RSS&at_campaign=rss",
-   "date": "2026-09-29T17:17:07.000Z",
-   "summary": "The wearable technology company had been expected to list its shares in the US.",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/fc0e/live/21da3ca0-bc1d-11f1-a9cf-939723882d7f.jpg"
-  },
-  {
-   "id": "0385fc96feb8",
-   "feed": "npr",
-   "category": "news",
-   "source": "NPR",
-   "title": "Potential Taiwan tension sparked 'last minute' change in Trump-Xi National Archives visit",
-   "link": "https://www.npr.org/2026/09/29/nx-s1-5984989/digital-archives-trump-xi",
-   "date": "2026-09-29T17:17:04.000Z",
-   "summary": "The sudden change was precipitated because of Chinese displeasure over one document that the U.S. had planned to show.",
-   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/4408x3017+0+0/resize/4408x3017!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F2b%2Fbf%2Ff612e9154c1f92d1c4a55d775a55%2Fgettyimages-2297118196.jpg"
-  },
-  {
    "id": "06330bed7ec6",
    "feed": "gn-collier",
    "category": "swfl",
@@ -1620,17 +1704,6 @@
    "date": "2026-09-29T17:04:00.000Z",
    "summary": "",
    "image": null
-  },
-  {
-   "id": "b573219c47a8",
-   "feed": "npr",
-   "category": "news",
-   "source": "NPR",
-   "title": "This startup wants to prove gene-editing embryos is safe for making healthy babies",
-   "link": "https://www.npr.org/2026/09/29/nx-s1-5950439/embryo-gene-editing-babies-biotech",
-   "date": "2026-09-29T17:00:08.000Z",
-   "summary": "Origin Genomics aims to prove that the potential benefits of its technology for editing disease-causing genes in human embryos outweigh the risks.",
-   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/5182x3455+0+0/resize/5182x3455!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F56%2F87%2Fae45aab04fdf8d47954c20869c83%2Fcalle-20260914-00352.jpg"
   },
   {
    "id": "1d49226ea6a4",
@@ -1652,28 +1725,6 @@
    "link": "https://simonwillison.net/2026/Sep/29/openai-devday-2026-live-blog/",
    "date": "2026-09-29T15:55:13.000Z",
    "summary": "I'm at OpenAI DevDay today, in Fort Mason, San Francisco. Same as last year I'll be live blogging the keynote and some other notes during the day. OpenAI gave me a free ticket and a seat in the \"creator\" area for the keynote. Tags: ai, openai, generative-ai, llms…",
-   "image": null
-  },
-  {
-   "id": "4116e6b2a47d",
-   "feed": "nws-fl",
-   "category": "live",
-   "source": "NWS Florida alerts",
-   "title": "Coastal Flood Advisory issued September 29 at 11:41AM EDT until September 30 at 8:00AM EDT by NWS Miami FL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.f7ff4c3d4fd1ad9a0641216d12cc7dba7a0bf355.001.1.cap",
-   "date": "2026-09-29T15:41:00.000Z",
-   "summary": "* WHAT...Moderate coastal flooding * WHERE...Coastal Palm Beach County, Coastal Broward County and Coastal Miami Dade County. * WHEN...For the Coastal Flood Advisory, until 8 AM EDT Wednesday. For the Coastal Flood Statement, from Wednesday morning through Wednesday afternoon…",
-   "image": null
-  },
-  {
-   "id": "a5265573b540",
-   "feed": "nws-fl",
-   "category": "live",
-   "source": "NWS Florida alerts",
-   "title": "Coastal Flood Statement issued September 29 at 11:41AM EDT until September 30 at 2:00PM EDT by NWS Miami FL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.f7ff4c3d4fd1ad9a0641216d12cc7dba7a0bf355.002.1.cap",
-   "date": "2026-09-29T15:41:00.000Z",
-   "summary": "* WHAT...Isolated minor coastal flooding. * WHERE...Mainland Monroe and Far South Miami-Dade County. * WHEN...Through Wednesday afternoon. * IMPACTS...Some water on low lying roads and property.",
    "image": null
   },
   {
@@ -1952,6 +2003,17 @@
    "image": null
   },
   {
+   "id": "d681f548bd6d",
+   "feed": "gn-collier",
+   "category": "swfl",
+   "source": "openPR.com",
+   "title": "Same-Day Foot and Ankle Care Expanded Across Naples and Marco Island",
+   "link": "https://news.google.com/rss/articles/CBMingFBVV95cUxQemc3c3ctcE1iNXA3Q21hN09XeWZ1U1hUU1IwdDVGd3pYSTBKYzA2bkZmazhlOVY3eWNxUDRRdy01cDdvSTlHYU5xY3pFWEZZQlFTVjdzb1VDWGM3bGEta195ZnRKcmdELWYyOGVlVFFsRjhZZUZNWURaVnZSSm8yTERNWEFWUzR0bEpBc0JpTmdyYWRuVEFWVTNERDVEQQ?oc=5",
+   "date": "2026-09-29T04:36:03.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
    "id": "8d1cc2db43b8",
    "feed": "sciencedaily",
    "category": "science",
@@ -1960,17 +2022,6 @@
    "link": "https://www.sciencedaily.com/releases/2026/09/260927225034.htm",
    "date": "2026-09-29T03:45:39.000Z",
    "summary": "CosmoCube will use the far side of the Moon as a shield from Earth’s radio noise to search for a faint signal from the universe before the first stars existed. The suitcase-sized satellite could reveal how the cosmic dark ages ended and how dark matter helped build the first…",
-   "image": null
-  },
-  {
-   "id": "722f962915a7",
-   "feed": "gn-collier",
-   "category": "swfl",
-   "source": "WINK News",
-   "title": "Collier County Teacher Negotiations",
-   "link": "https://news.google.com/rss/articles/CBMirAFBVV95cUxQQkR2Q3QzZnJWUHl2dndHY1lNZWNxUENNb0tKb1JXU203MXp3QWEtMnpNLWlYUEdZTnVkR0xDT2g4bnd5MlJvVHNwaW1PUGZ1akVyS1IzLUNrZVBDY3FnU05JcFpZeTJVaEZva0EtM09ldjBpTlktdU1iaUxuSE5kNlZmVDIzOVZZY0c0eWRUOEpXMEt6QnBXRGFPbWRTOHJCNEF3c1ktV3ZWQld4?oc=5",
-   "date": "2026-09-29T03:26:00.000Z",
-   "summary": "",
    "image": null
   },
   {
@@ -1996,58 +2047,14 @@
    "image": null
   },
   {
-   "id": "03d1cce620ff",
-   "feed": "nature",
-   "category": "science",
-   "source": "Nature",
-   "title": "Author Correction: Proteasome-guided haem signalling axis contributes to T cell exhaustion",
-   "link": "https://www.nature.com/articles/s41586-026-11083-5",
-   "date": "2026-09-29T00:00:00.000Z",
-   "summary": "Nature, Published online: 29 September 2026; doi:10.1038/s41586-026-11083-5 Author Correction: Proteasome-guided haem signalling axis contributes to T cell exhaustion",
-   "image": null
-  },
-  {
-   "id": "a1483195a7f8",
-   "feed": "nature",
-   "category": "science",
-   "source": "Nature",
-   "title": "Emissions after the Paris accord made Europe’s heatwaves more severe",
-   "link": "https://www.nature.com/articles/d41586-026-03035-w",
-   "date": "2026-09-29T00:00:00.000Z",
-   "summary": "Nature, Published online: 29 September 2026; doi:10.1038/d41586-026-03035-w A heatwave in 2025 would have been one-third of a degree cooler without the greenhouse gases released since 2015.",
-   "image": null
-  },
-  {
-   "id": "da27d297fcc8",
-   "feed": "nature",
-   "category": "science",
-   "source": "Nature",
-   "title": "Patents alone won’t unlock critical-mineral supply chains",
-   "link": "https://www.nature.com/articles/d41586-026-03054-7",
-   "date": "2026-09-29T00:00:00.000Z",
-   "summary": "Nature, Published online: 29 September 2026; doi:10.1038/d41586-026-03054-7 Patents alone won’t unlock critical-mineral supply chains",
-   "image": null
-  },
-  {
-   "id": "f2caff974964",
-   "feed": "nature",
-   "category": "science",
-   "source": "Nature",
-   "title": "PhD training should encourage ethical dissent",
-   "link": "https://www.nature.com/articles/d41586-026-03053-8",
-   "date": "2026-09-29T00:00:00.000Z",
-   "summary": "Nature, Published online: 29 September 2026; doi:10.1038/d41586-026-03053-8 PhD training should encourage ethical dissent",
-   "image": null
-  },
-  {
-   "id": "f86a264665ce",
-   "feed": "nature",
-   "category": "science",
-   "source": "Nature",
-   "title": "Biodiversity protection must include language preservation",
-   "link": "https://www.nature.com/articles/d41586-026-03056-5",
-   "date": "2026-09-29T00:00:00.000Z",
-   "summary": "Nature, Published online: 29 September 2026; doi:10.1038/d41586-026-03056-5 Biodiversity protection must include language preservation",
+   "id": "61907e86b0bc",
+   "feed": "gn-naples",
+   "category": "swfl",
+   "source": "Realtor.com",
+   "title": "401 Bayfront Pl Unit 1638014P, Naples, FL 34102",
+   "link": "https://news.google.com/rss/articles/CBMikAFBVV95cUxNcUJwYU5hNU84YWtGZWJHenh5eE5YenRiZ052T2sxenhrakl0enFkYWdXUFljNkpiUFRCaU5FSzJ0UERpTWlDOHI0LXVJa3pWejZYVXFYWDFvOU55UFJaSTdzcmlxVTlUbzZhb0Z5X1F5Ym5objlNT3hGQ19GQlJJRVYwRUY3SUI0RU9rMjc5djg?oc=5",
+   "date": "2026-09-29T00:57:50.000Z",
+   "summary": "",
    "image": null
   },
   {
@@ -2403,17 +2410,6 @@
    "image": "https://imgs.xkcd.com/comics/slab_graveyard.png"
   },
   {
-   "id": "535728ed58a5",
-   "feed": "gn-bonita",
-   "category": "swfl",
-   "source": "WINK News",
-   "title": "No-U-turn signs ignored on Bonita Beach Road, Bonita Springs couple raise safety concerns",
-   "link": "https://news.google.com/rss/articles/CBMiggJBVV95cUxNQ2hpbnBLUTR6VDkxMzBJNm1wNHJFOUNtU1RwRzJOT3JyV1d6QmJEdWctemwyamNzSlh4YmgydGNPWGNsejNFUXQzb05tbUlsT0JLZEgxUlNfMzRXLWNVeXJMckMyNWpfbHJUOS01aEhDSktfMjZYbzRqcUx6XzRkVXdfWUs5ZFZ2YnZLZ2dMY29ISFZsV0lwSm9tSkZtVW9TT1plWkZRUW03dFQxTkhNWDcxSmRNdzBUMm5BOFBjU19XWWJkdjJxT0VTRWItZTdVQ3RkZXlMTGFTeW9FMHJzQU1ucWQwWHNINUVRTmM4T0tqNlZpVGtkeDVEUkFvSDBVakE?oc=5",
-   "date": "2026-09-24T22:31:00.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
    "id": "3d1484489846",
    "feed": "github-blog",
    "category": "dev",
@@ -2577,17 +2573,6 @@
    "date": "2026-09-23T14:16:54.000Z",
    "summary": "Scientists have a history of trying — and failing — to link biology and quantum mechanics. The real connection between them may be in the math. The post Biology Might Not Be Quantum, but Its Math Is Quantumlike first appeared on Quanta Magazine",
    "image": "https://www.quantamagazine.org/wp-content/uploads/2026/09/Quantum-like-complex-systems-cr.Xavi-Bou-Default.webp"
-  },
-  {
-   "id": "f2be006e8ba8",
-   "feed": "schneier",
-   "category": "security",
-   "source": "Schneier on Security",
-   "title": "Research on Models Engaging in Genie-Like Behavior",
-   "link": "https://www.schneier.com/blog/archives/2026/09/research-on-models-engaging-in-genie-like-behavior.html",
-   "date": "2026-09-23T11:03:36.000Z",
-   "summary": "New paper: “Self-Jailbreaking: Language Models Can Reason Themselves Out of Safety Alignment After Benign Reasoning Training.” Abstract: We discover a novel and surprising phenomenon of unintentional misalignment in reasoning language models (RLMs), which we call…",
-   "image": null
   },
   {
    "id": "c255bf4cca23",
