@@ -152,6 +152,16 @@ export default async function run(t, page) {
         t.eq('"use your brain" is not a projector command', intent('use your brain'), null);
         t.eq('"brain teaser" is not a projector command', intent('tell me a brain teaser'), null);
         t.ok('help mentions the neural network', /show me your brain/.test(brain('help')));
+        t.eq('"suit up" assembles the suit', JSON.stringify(intent('Suit up!')), '{"kind":"suit","arg":"assemble"}');
+        t.eq('"suit me up" too', intent('suit me up')?.arg, 'assemble');
+        t.eq('"show me the suit" opens it ready-made', JSON.stringify(intent('show me the suit')), '{"kind":"suit","arg":null}');
+        t.eq('"can I see your armour"', kind('can I see your armour'), 'suit');
+        t.eq('"iron man suit"', kind('iron man suit'), 'suit');
+        t.eq('"make a suit" is the suit, not a word in lights', kind('make a suit'), 'suit');
+        t.eq('"show me the suitcase" is not the suit', intent('show me the suitcase')?.kind ?? null, null);
+        t.eq('"I need a new lawsuit" is not a projector command', intent('I need a new lawsuit'), null);
+        t.eq('"who is iron man" still gets the chat answer', intent('who is iron man'), null);
+        t.ok('help mentions suiting up', /suit up/.test(brain('help')));
 
         t.section('Particle shapes');
 
@@ -205,12 +215,65 @@ export default async function run(t, page) {
         t.ok('tapping a middle layer names it', /hidden layer 2/.test(layerLine(2, 4)));
         t.ok('tapping the last layer explains the output', /output layer/.test(layerLine(3, 4)));
 
+        t.section('Suit schematic (no three.js needed)');
+
+        const { SUIT_PARTS, SUIT_CALLOUTS, SUIT_LINES, SUIT_HALF, suitOrder, suitBuildTime, suitAssembly, layoutCallouts } = window.__jarvis;
+        const names = SUIT_PARTS.map((p) => p.name);
+        t.eq('31 parts', SUIT_PARTS.length, 31);
+        t.eq('every part has its own name', new Set(names).size, names.length);
+        t.ok('every part is a box, a cylinder or a ball, with the right number of sizes', SUIT_PARTS.every((p) => ({ box: 3, cyl: 3, ball: 1 })[p.shape] === p.size.length && p.size.every((v) => v > 0)));
+        t.ok('every part belongs to a group that has spec lines', SUIT_PARTS.every((p) => SUIT_LINES[p.group]?.length >= 2));
+        t.ok('left and right come in mirrored pairs', SUIT_PARTS.filter((p) => p.name.startsWith('Left ')).every((l) => { const r = SUIT_PARTS.find((p) => p.name === 'Right ' + l.name.slice(5)); return r && r.pos[0] === -l.pos[0] && r.pos[1] === l.pos[1] && r.pos[2] === l.pos[2]; }));
+        const lo = Math.min(...SUIT_PARTS.map((p) => p.pos[1])), hi = Math.max(...SUIT_PARTS.map((p) => p.pos[1]));
+        t.ok('the suit stands on the turntable and fits its half-height', lo > 0 && hi < SUIT_HALF.y + SUIT_HALF.h);
+        t.ok('and fits its half-width, arms included', SUIT_PARTS.every((p) => Math.abs(p.pos[0]) < SUIT_HALF.w));
+        t.eq('the plan\'s four callouts', JSON.stringify(SUIT_CALLOUTS.map((c) => c.label)), '["Helmet HUD","Arc reactor","Repulsor","Flight stabilizer"]');
+        t.ok('each callout points at a part of its own group', SUIT_CALLOUTS.every((c) => SUIT_PARTS.some((p) => p.group === c.key)));
+        t.ok('each callout knows which way it faces (a unit vector)', SUIT_CALLOUTS.every((c) => Math.abs(Math.hypot(...c.n) - 1) < 0.01));
+        t.ok('the arc reactor and the repulsors are on the front, the stabilizers on the back', SUIT_CALLOUTS.find((c) => c.key === 'reactor').n[2] > 0 && SUIT_CALLOUTS.find((c) => c.key === 'stabilizer').n[2] < 0);
+        t.ok('the fist line tells you to make a fist', /make a fist/i.test(SUIT_LINES.repulsor[0]));
+
+        t.eq('assembly order covers every part once', JSON.stringify([...suitOrder].sort((a, b) => a - b)), JSON.stringify(SUIT_PARTS.map((_, i) => i)));
+        const firstOn = SUIT_PARTS[suitOrder.indexOf(0)], lastOn = SUIT_PARTS[suitOrder.indexOf(SUIT_PARTS.length - 1)];
+        t.ok('boots go on first', /boot/.test(firstOn.name));
+        t.ok('the helmet\'s eyes go on last', /eye/.test(lastOn.name));
+        t.ok('a part never goes on before one lower down', SUIT_PARTS.every((p, i) => SUIT_PARTS.every((q, j) => !(suitOrder[i] < suitOrder[j]) || p.pos[1] <= q.pos[1])));
+        t.eq('nothing is in place at the start', suitAssembly(0, 0), 0);
+        t.ok('the last part is still away halfway through', suitAssembly(SUIT_PARTS.length - 1, suitBuildTime() / 2) === 0);
+        t.ok('every part is in place when the build ends', SUIT_PARTS.every((_, i) => suitAssembly(suitOrder[i], suitBuildTime()) === 1));
+        t.ok('a part only ever moves towards its place', [0, 5, 30].every((k) => { let last = -1; for (let s = 0; s <= 40; s++) { const e = suitAssembly(k, s / 10); if (e < last) return false; last = e; } return true; }));
+        t.ok('the whole build takes 2 to 4 seconds', suitBuildTime() >= 2 && suitBuildTime() <= 4);
+
+        // A phone, 390 × 844: labels between the top HUD (about 104 px) and the text box (about 660 px).
+        const b = { left: 12, right: 378, top: 104, bottom: 660 };
+        const fits = (out) => out.every((o) => o.x >= b.left && o.x + o.w <= b.right && o.y >= b.top && o.y + o.h <= b.bottom);
+        const apart = (out) => out.every((o, i) => out.every((p, j) => i >= j || o.x + o.w <= p.x || p.x + p.w <= o.x || o.y + o.h <= p.y || p.y + p.h <= o.y));
+        const rand = seeded(11);
+        let allFit = true, allApart = true;
+        for (let k = 0; k < 300; k++) {
+            const pts = SUIT_CALLOUTS.map(() => ({ x: 60 + rand() * 270, y: rand() * 844, w: 84, h: 23 + Math.round(rand()) * 13 }));
+            const out = layoutCallouts(pts, b);
+            allFit &&= fits(out); allApart &&= apart(out);
+        }
+        t.ok('300 random poses: every label stays inside the free area', allFit);
+        t.ok('300 random poses: no two labels overlap', allApart);
+        const crowd = layoutCallouts([0, 1, 2, 3].map(() => ({ x: 300, y: 700, w: 84, h: 36 })), b);
+        t.ok('four labels piled on one spot below the area stack up inside it', fits(crowd) && apart(crowd) && crowd.every((o) => o.side === 'R'));
+        const sideOf = (x, prev) => layoutCallouts([{ x, y: 400, w: 84, h: 23 }], b, prev)[0].side;
+        t.eq('an anchor left of the middle gets a label on the left', sideOf(100), 'L');
+        t.eq('right of the middle, on the right', sideOf(290), 'R');
+        t.eq('near the middle a label keeps last frame\'s side, so it doesn\'t flicker', sideOf(205, ['L']), 'L');
+        t.eq('well past the middle it switches', sideOf(240, ['L']), 'R');
+        t.eq('a label sits level with its anchor when there\'s room', layoutCallouts([{ x: 300, y: 400, w: 84, h: 24 }], b)[0].y, 388);
+
         t.section('Projector without WebGL');
 
         const scriptsBefore = document.querySelectorAll('script').length;
         const answer = await window.__jarvis.project({ kind: 'galaxy' });
         t.ok('says it needs WebGL', /needs WebGL/.test(answer));
         t.ok('the neural network says so too', /needs WebGL/.test(await window.__jarvis.project({ kind: 'neural' })));
+        t.ok('and the suit', /needs WebGL/.test(await window.__jarvis.project({ kind: 'suit', arg: 'assemble' })));
+        t.eq('no callout labels are left behind', document.getElementById('suit-labels'), null);
         t.eq('does not fetch three.js', document.querySelectorAll('script').length, scriptsBefore);
         t.ok('the projector stays hidden', document.getElementById('holo').hidden);
         t.eq('"close" with nothing open says so', await window.__jarvis.project({ kind: 'close' }), "The projector's already off.");
