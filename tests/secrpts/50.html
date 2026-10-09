@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #50 — Session 5, threat scan, in jarvis-test.html</title>
+<meta name="description" content="Review of Session 5 of the J.A.R.V.I.S. build plan in jarvis-test.html: a threat scan that locks targeting brackets onto faces from the camera, using a self-hosted MediaPipe face detector, with made-up readouts and nothing saved.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #50 — Session 5, threat scan, in jarvis-test.html</h1>
+    <p class="sub">Session 5 of <code>jarvis/build-plan.html</code>: "scan the room" opens the mirrored camera with targeting brackets that lock onto each face and made-up readouts. The face detector is MediaPipe's short-range model, self-hosted next to the hand tracker. Built in the test copy only.</p>
+    <div class="meta">Review performed 2026-10-09 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>jarvis/hands/blaze_face_short_range.tflite</code>, <code>jarvis/hands/README.md</code>, <code>tests/jarvis-test.dom.test.mjs</code> · suites run: <code>jarvis-test</code> (409 passed, 369 before), and <code>jarvis</code> (366 passed, unchanged) because it checks the hands README · follows: <a href="49.html">49.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 78%;"></div></div>
+    <div class="progress-label">9 items: 7 fixed or verified clean, 2 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security &amp; privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The CSP is unchanged: nothing the camera sees can leave the page</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The face model is a file on this site (<code>jarvis/hands/blaze_face_short_range.tflite</code>, 229,746 bytes), loaded through the same vision bundle and WebAssembly as hand control, so <code>connect-src 'self'</code> still covers it. The CSP meta tag is byte-for-byte the same, and the suite still pins <code>script-src</code>. In headless Chromium, a full scan, a tap, close, reopen and a switch to hand control requested only <code>127.0.0.1</code>, Google Fonts (already allowed) and cdnjs (three.js, only for the hand-control step), with no <code>Refused</code> messages in the console.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The model file is pinned</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>SHA-256 <code>b4578f35940bf5a1a655214a1cce5cab13eba73c1297cd78e1a04c2380b0152f</code>, fetched from Google's <code>mediapipe-models</code> bucket, the source listed in the README. The suite checks the file against that hash and checks that the README lists it, the same way it pins the four hand-tracker files. Apache-2.0, like the rest of the folder. The folder keeps the name <code>jarvis/hands/</code>: renaming it to <code>jarvis/vision/</code> would break <code>jarvis.html</code>, which loads from it and isn't being changed.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Camera only when asked, off on close, nothing saved</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The camera opens only from "scan the room" and similar phrasings, asks for video only (<code>audio:false</code>, so it can never compete with speech recognition for the mic), and stops every track in the scene's <code>dispose()</code>. That runs on the close button, Escape, "close" or "stop the scan", opening another scene, switching to hand control, and when the tab is hidden. In Chromium, a wrapper around <code>getUserMedia</code> counted 0 live tracks after each of those, and the scan canvas was removed. There's no screenshot, recording or download: a grep finds no <code>toDataURL</code>, <code>toBlob</code>, <code>MediaRecorder</code> or <code>.download=</code> in the page, and the suite keeps it that way. Nothing about the scan goes into <code>localStorage</code>. The hint says so on screen: "Camera stays on this device. Nothing is saved or recorded."</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">It finds faces, it doesn't recognise or judge them</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The detector returns boxes only. Targets are numbered in the order they appear, and a face that leaves for over half a second comes back as a new number, so nothing is remembered about anyone even within a visit. The readouts ("threat level: fluffy", "snack level: critical") are picked at random from fixed lists and are never derived from the picture: <code>scanReadout</code> takes only a random-number function. None of them comment on looks, age or anything else about a person. Faces of people who walk into the frame are processed the same way, on the device, and are never kept, which is the same position as hand control.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No new injection path</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>All scan text is drawn on a canvas with <code>fillText</code> or set with <code>textContent</code>, from fixed strings and numbers. The new code adds no <code>innerHTML</code>, <code>eval</code> or event-handler attribute.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Brackets land on the face, at both sizes</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Chromium's fake camera was fed a 640×480 frame made from a portrait photo (in a scratch folder, not committed). At 1280×800 the target box was x 558, y 40, 186×186, against an expected face area of x 544 to 744 and y 6 to 246, worked out from where the face sits in the frame and <code>coverMap</code>. At 390×844 it was x 123, y 106, 164×164 against x 111 to 286 and y 76 to 287. With a blank frame the stat line read "SCANNING… NO TARGETS". No page errors at either size. The mapping (cover-fit, then mirrored) and the tracker are tested as plain functions in the suite, with values worked out by hand.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Readouts stay readable over any camera picture</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Each readout sits on an 85% dark box. Computed over pure white, the worst case: text 12.35:1 (Jarvis), 12.52:1 (Matrix), 12.47:1 (Panthers); the amber "TARGET 01" heading 8.55:1, and 6.94:1 in the Panthers gold. The box is kept between the top HUD and the caption and on screen, and moves above or below the face when there's no room beside it, as at 390 px. The canvas isn't read by screen readers, so the first lock and every tap are also spoken and added to the chat log (which is <code>aria-live</code>), and the stat line gives the target count. Under reduced motion the scan line doesn't sweep and the brackets don't zoom in.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not tried on a real phone or a real face</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Headless Chromium proves the model loads, finds a face in a still photo and draws on it. It can't show how well it keeps up with a moving face, how fast it runs on a phone, or how it behaves on iPhone Safari, which draws the camera from a video element that isn't on the page (as hand control already does). These are for the user to try on the live test copy.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Hand control doesn't stop when the tab is hidden</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>The scan closes itself when the tab is hidden, so the camera can't be left on in the background. Hand control, which already shipped, doesn't do the same. Phones suspend a hidden tab's camera anyway, so the risk is mostly on desktop. Left for a later change, since this session doesn't touch hand control's behaviour.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: the <code>jarvis-test</code> suite (409 passed), the <code>jarvis</code> suite (366 passed), headless Chromium with a fake camera at 1280×800 and 390×844, a <code>getUserMedia</code> wrapper counting live tracks, computed WCAG contrast, and greps for unsafe sinks and capture APIs. See <a href="49.html">49.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
