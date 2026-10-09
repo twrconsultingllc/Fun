@@ -372,7 +372,7 @@
   </header>
 
   <div class="callout warning" style="grid-column: 1 / -1;">
-    <strong class="label">Status: Session 1 live in jarvis.html · Session 2 in test in jarvis-test.html</strong>
+    <strong class="label">Status: Session 1 live in jarvis.html · Sessions 2 and 3 in test in jarvis-test.html</strong>
     Written 2026-10-09, after the boot sequence, holo-projector (galaxy,
     solar system, particle sculptor) and hand control were merged (PRs
     #61–#64). Sessions are numbered in the suggested order, but each one
@@ -414,7 +414,7 @@
         Open a new Claude Code session on <code>twrconsultingllc/Fun</code>
         and paste this, changing the session number:
       </p>
-<pre><code>Work Session 3 of jarvis/build-plan.html. Read that page and CLAUDE.md first. Build it in jarvis-test.html, not jarvis.html. Build everything the session lists, run the checks it names, write the next numbered review in tests/secrpts/, update the session's badge and notes in jarvis/build-plan.html, then merge and tell me what to test on the live site.</code></pre>
+<pre><code>Work Session 4 of jarvis/build-plan.html. Read that page and CLAUDE.md first. Build it in jarvis-test.html, not jarvis.html. Build everything the session lists, run the checks it names, write the next numbered review in tests/secrpts/, update the session's badge and notes in jarvis/build-plan.html, then merge and tell me what to test on the live site.</code></pre>
       <p>
         <span class="who"><span class="badge claude">Claude</span></span>
         The session reads this page for what to build and
@@ -461,7 +461,7 @@
         <tbody>
           <tr><td>1</td><td><a href="#s1">Polish and voice-reactive orb</a></td><td>Option 8 and four open review items</td><td>Small</td><td><span class="badge done">Done</span></td></tr>
           <tr><td>2</td><td><a href="#s2">Neural network</a></td><td>Option 6</td><td>Small–medium</td><td><span class="badge in-progress">In test</span></td></tr>
-          <tr><td>3</td><td><a href="#s3">Iron Man suit schematic</a></td><td>Option 3</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>3</td><td><a href="#s3">Iron Man suit schematic</a></td><td>Option 3</td><td>Medium</td><td><span class="badge in-progress">In test</span></td></tr>
           <tr><td>4</td><td><a href="#s4">Earth globe</a></td><td>Option 4</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
           <tr><td>5</td><td><a href="#s5">Threat scan</a></td><td>Option 11</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
           <tr><td>6</td><td><a href="#s6">Wake word, briefing, gesture tuning</a></td><td>Options 7 and 12, and the hand-control review item</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
@@ -471,19 +471,19 @@
 
     <section id="map">
       <h2><span class="kicker">Read this before changing anything</span>Where things live</h2>
-      <p>Everything is in one page, plus the self-hosted hand tracker and its test suite. There are two copies of that page: build in <code>jarvis-test.html</code> (about 960 lines with Session 2), and leave <code>jarvis.html</code> alone until the user says to <a href="#test-first">promote</a>. The names below are the same in both.</p>
+      <p>Everything is in one page, plus the self-hosted hand tracker and its test suite. There are two copies of that page: build in <code>jarvis-test.html</code> (about 1,140 lines with Sessions 2 and 3), and leave <code>jarvis.html</code> alone until the user says to <a href="#test-first">promote</a>. The names below are the same in both.</p>
       <div class="table-wrap"><table>
         <thead><tr><th>Piece</th><th>Where</th><th>How to extend it</th></tr></thead>
         <tbody>
           <tr><td>Chat answers</td><td><code>brain()</code></td><td>Add a regex rule. The help answer lists what Jarvis can do, so update it too.</td></tr>
           <tr><td>Projector commands</td><td><code>intent()</code>, checked before <code>brain()</code></td><td>Return <code>{kind, arg}</code>. Order matters: more specific patterns first. The suite pins about 30 phrasings, so add yours.</td></tr>
-          <tr><td>3D scenes</td><td><code>buildGalaxy</code>, <code>buildSolar</code>, <code>buildParticles</code>, registered in <code>BUILDERS</code></td><td>A builder returns <code>{scene, camera, rig, title, stat, hint, update(dt,t)}</code>, plus optional <code>setArg</code>, <code>pick(ndc)</code>, <code>next(dir)</code> and <code>squeeze(on)</code>. Hand control uses those last three automatically.</td></tr>
+          <tr><td>3D scenes</td><td><code>buildGalaxy</code>, <code>buildSolar</code>, <code>buildParticles</code>, <code>buildNeural</code>, <code>buildSuit</code>, registered in <code>BUILDERS</code></td><td>A builder returns <code>{scene, camera, rig, title, stat, hint, update(dt,t)}</code>, plus optional <code>setArg</code>, <code>pick(ndc)</code>, <code>next(dir)</code> and <code>squeeze(on)</code>. Hand control uses those last three automatically. A scene that adds HTML of its own (like the suit's labels) returns <code>dispose()</code>, which <code>closeHolo</code> calls. For labels that follow 3D points, reuse <code>layoutCallouts</code>.</td></tr>
           <tr><td>Camera framing</td><td><code>makeRig()</code>, <code>fitDist()</code></td><td>Use <code>fitDist(halfWidth, halfHeight)</code> so an upright phone sees the whole object.</td></tr>
           <tr><td>three.js</td><td><code>loadThree()</code></td><td>r128 from cdnjs with an SRI hash, loaded only when a scene opens. Use r128 APIs (e.g. <code>BufferGeometry.setAttribute</code>).</td></tr>
           <tr><td>Hand control</td><td><code>classifyHand</code>, <code>createGestures</code>, <code>startHands</code>; files in <code>jarvis/hands/</code></td><td>The vendored files are pinned by hash (see <a href="hands/README.md">hands/README.md</a>). <code>tasks-vision</code> 0.10.14 also has a face detector, which Session 5 can reuse.</td></tr>
           <tr><td>Orb</td><td><code>draw()</code>, <code>orbPulse()</code></td><td>Reads <code>mode</code>, <code>energy</code> and <code>bootP</code>. While listening, recognition's <code>speechstart</code>/<code>speechend</code> set <code>hearing</code>. Never open a mic stream here: it takes the mic from speech recognition. While speaking, <code>lastWord</code> (from <code>onboundary</code>) drives the pulse. Under reduced motion, <code>orbPulse</code> holds still.</td></tr>
           <tr><td>Privacy line</td><td>CSP meta tag</td><td><code>connect-src 'self'</code>. Anything that would widen it to an outside host is a decision for you, not the session.</td></tr>
-          <tr><td>Tests</td><td><code>tests/jarvis-test.dom.test.mjs</code> for the test copy (160 checks), <code>tests/jarvis.dom.test.mjs</code> for the main page (128)</td><td>jsdom has no WebGL, canvas or camera, so pure logic is exposed on <code>window.__jarvis</code> and tested directly.</td></tr>
+          <tr><td>Tests</td><td><code>tests/jarvis-test.dom.test.mjs</code> for the test copy (201 checks), <code>tests/jarvis.dom.test.mjs</code> for the main page (128)</td><td>jsdom has no WebGL, canvas or camera, so pure logic is exposed on <code>window.__jarvis</code> and tested directly.</td></tr>
         </tbody>
       </table></div>
 <pre><code>cd tests && node run.mjs --page=jarvis-test.html</code></pre>
@@ -528,14 +528,19 @@
 
     <section id="s3">
       <h2><span class="kicker">Session 3 · medium</span>Iron Man suit schematic</h2>
-      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> nothing</span></div>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge in-progress">In test</span></span><span><strong>Needs:</strong> nothing</span></div>
       <ol class="substeps">
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>A <code>suit</code> scene:</strong> a generic armoured figure built from three.js primitives in glowing wireframe, on a turntable with a scanning line. It should be a look-alike, not a copy of Marvel's design, and use no downloaded 3D model. That avoids licensing questions and keeps the page self-contained.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Callouts:</strong> HTML labels projected from 3D points ("Repulsor", "Arc reactor", "Flight stabilizer", "Helmet HUD"), with leader lines that follow the model as it turns. Tapping or pinching a part gives a fun spec line.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Voice:</strong> "Suit up" and "show me the suit" open it, and "suit up" plays a short assembly animation with pieces flying into place. A fist <code>squeeze</code> fires the repulsors.</li>
       </ol>
       <p><strong>Checks:</strong> callout positions stay on screen at 390×844 (measure the boxes in Chromium, as review 38 did for the HUD). Suite checks for the commands and the part list.</p>
-      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+      <div class="callout notes"><strong class="label">Session notes</strong>
+        <p>Built 2026-10-09 in commit <code>a5cc16e</code>, in <code>jarvis-test.html</code> only, reviewed in <a href="../tests/secrpts/43.html">review 43</a>. Suite: 201 checks, up from 160. Waiting for you to try it before promotion.</p>
+        <p><strong>How it works.</strong> The suit is 31 parts (boxes, 8-sided cylinders and low-poly balls) listed as plain data in <code>SUIT_PARTS</code>, each drawn as a faint fill plus bright edges. A scanning ring sweeps up and down and brightens the plates it passes. The four labels are HTML buttons, so Tab reaches them. <code>layoutCallouts</code> places them in a column down each side of the figure, level with their anchors where there's room, never overlapping, and between the top HUD and the caption. A label near the middle keeps its side, so it doesn't flicker as the suit turns. A label whose part is round the back dims. "Suit up" flies the parts in from all round, boots first and helmet last, over 2.9 s, with a count in the stat line. A fist lights both palms and fires two beams for as long as it's held. A tap on a label or a part gives a spec line, and repeated taps step through two or three lines each. A swipe moves to the next callout.</p>
+        <p><strong>Divergences from the plan.</strong> "Show me the suit", "can I see your armour", "iron man suit" and "make a suit" open it ready-made, and only "suit up" or "suit me up" assemble it. Tapping a part that has no callout (a knee, the abdomen) names the part and gives a plating, or boot thruster, line. The brain's old "Suit diagnostics complete" answer is now only reached by phrasings like "who is iron man". Under reduced motion "suit up" skips the flight. The screenshots caught two things, both fixed: during assembly the labels and palm glows showed before their parts had arrived, and on desktop the turntable sat under the caption. Dimmed labels needed 0.8 opacity, not 0.7, to keep 4.5:1 over a white beam. In Chromium, 24 measurements over a full turn at 1280×800 and 390×844 found no label off screen, under the HUD or text box, or overlapping, and there were no page errors or CSP violations.</p>
+        <p><strong>Still open.</strong> Trying it on your devices: whether the labels are readable on the phone, how it looks, and the frame rate, which is unmeasured (about 1,100 edge lines, much lighter than the galaxy).</p>
+      </div>
     </section>
 
     <section id="s4">

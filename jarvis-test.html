@@ -112,6 +112,19 @@ body.holo-on #log{display:none}
 body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:linear-gradient(to top,rgba(2,10,6,.92),rgba(2,10,6,0));
   padding-bottom:max(18px,env(safe-area-inset-bottom,0px))}
 
+/* Suit schematic callouts: labels down each side, joined to the suit by leader lines */
+#suit-labels{inset:0;visibility:hidden}
+#suit-labels.ready{visibility:visible}
+#suit-labels svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#suit-labels line{stroke:var(--phos);stroke-width:1;opacity:.75}
+#suit-labels circle{fill:var(--phos)}
+#suit-labels line.back,#suit-labels circle.back{opacity:.3}
+.suit-label{position:absolute;left:0;top:0;pointer-events:auto;max-width:130px;padding:5px 8px;background:rgba(2,10,6,.85);
+  border:1px solid var(--phos-dim);color:var(--phos);font-size:.72rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;line-height:1.25;text-align:left}
+.suit-label.on{border-color:var(--amber);color:var(--amber)}
+.suit-label.back{opacity:.8} /* the lowest that keeps 4.5:1 over pure white (5.61:1) */
+@media (max-width:600px){.suit-label{max-width:84px;padding:4px 6px;font-size:.66rem;letter-spacing:.04em}}
+
 @media (prefers-reduced-motion:reduce){
   #log{scroll-behavior:auto}
   #boot-go{animation:none}
@@ -279,7 +292,7 @@ function brain(raw){
   if(/suit up|iron man|armor/.test(s))return "Suit diagnostics complete. Repulsors charged, flight stabilizers online. Try not to hit any buildings.";
   if(/how are you/.test(s))return "Running at peak efficiency, thank you for asking.";
   if(/thank/.test(s))return pick(["Always a pleasure.","Anytime.","You're welcome."]);
-  if(/what can you do|help/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say show me your brain to watch me think. Say hand control to steer it with your hands through the camera. Say close to turn it off, or reboot to watch me power up again.";
+  if(/what can you do|help/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say show me your brain to watch me think, or suit up to build a suit of armour. Say hand control to steer it with your hands through the camera. Say close to turn it off, or reboot to watch me power up again.";
   const math=mathAnswer(s);if(math)return math;
   return pick(["That's beyond my demo programming. Ask me what I can do.","I don't have that in my databanks yet. Try asking for a fun fact.","Interesting question. My full brain isn't installed in this demo."]);
 }
@@ -294,6 +307,7 @@ function intent(raw){
   if(/\b(hand|hands|gesture|gestures) (control|tracking|mode)\b|\buse my hands?\b|\b(enable|start|turn on)( the)? (hand|gesture)/.test(s))return {kind:'hands',arg:true};
   if(/^(close|exit|stop|dismiss|hide|go back|back)( (it|that|this|the (hologram|projector|scene)))?$/.test(s)||/\b(close|turn off|shut down) the (hologram|projector|holo-projector)\b/.test(s))return {kind:'close'};
   if(/\b(reboot|restart|boot (up|sequence)|power (up|cycle))\b/.test(s))return {kind:'boot'};
+  if(/\bsuit (?:me )?up\b|\biron ?man (?:suit|armou?r)\b|\bsuit schematic\b|\b(?:show|see|open|display|look at|make|build)\b.*\b(?:suit|armou?r)s?\b/.test(s))return {kind:'suit',arg:/\bsuit (?:me )?up\b/.test(s)?'assemble':null};
   if(/\bneural (?:network|net)s?\b|\b(?:show|see|open|display|look at)\b.*\byour brain\b/.test(s))return {kind:'neural'};
   if(m=s.match(new RegExp(`\\b(?:take me to|go to|fly to|show me|zoom (?:in )?(?:on|to)|visit|focus on)(?: the)? (${PLANETS})\\b`)))return {kind:'solar',arg:m[1]};
   if(/\b(solar system|planets)\b/.test(s))return {kind:'solar',arg:null};
@@ -662,7 +676,178 @@ function buildNeural(T){
     }};
 }
 
-const BUILDERS={galaxy:buildGalaxy,solar:buildSolar,particles:buildParticles,neural:buildNeural};
+/* Scene 5: a suit of armour on a turntable, with callouts. It's a generic look-alike built from
+   three.js primitives, not a copy of any film's design, and no 3D model is downloaded.
+   The part list, the assembly timing and the callout layout are plain data, so they're tested without WebGL. */
+// shape: box [w,h,d] · cyl [radius top, radius bottom, height] · ball [r]. y is up and the boots stand on y=0.
+// The suit faces +z, so its own left is +x.
+const SUIT_PARTS=(()=>{
+  const p=[],add=(name,group,shape,size,pos,rot=[0,0,0])=>p.push({name,group,shape,size,pos,rot});
+  const both=(name,group,shape,size,[x,y,z],rot=[0,0,0])=>{add('Left '+name,group,shape,size,[x,y,z],rot);add('Right '+name,group,shape,size,[-x,y,z],[rot[0],-rot[1],-rot[2]])};
+  both('boot','thruster','box',[1.3,1,2.1],[1.1,.5,.25]);
+  both('shin','plating','cyl',[.55,.45,4],[1.1,3,0]);
+  both('knee','plating','ball',[.55],[1.1,5.15,.12]);
+  both('thigh','plating','cyl',[.75,.58,3.8],[1.1,7.1,0]);
+  add('Hip plate','plating','box',[3.2,1.4,1.8],[0,9.4,0]);
+  add('Abdomen','plating','box',[2.6,1.6,1.6],[0,10.9,0]);
+  both('gauntlet','repulsor','box',[.8,1,.55],[2.95,7.5,0]);
+  both('repulsor','repulsor','cyl',[.28,.28,.08],[2.95,7.5,.3],[Math.PI/2,0,0]);
+  both('forearm','repulsor','cyl',[.52,.45,2.6],[2.95,9.3,0]);
+  both('elbow','plating','ball',[.45],[2.95,10.7,0]);
+  both('upper arm','plating','cyl',[.55,.5,2.8],[2.95,12.25,0]);
+  add('Chest plate','reactor','box',[4.2,3,2.2],[0,13.2,0]);
+  add('Arc reactor','reactor','cyl',[.55,.55,.2],[0,13.4,1.15],[Math.PI/2,0,0]);
+  both('flight stabilizer','stabilizer','box',[1,2.2,.2],[1.25,13,-1.25],[0,0,-.3]);
+  both('shoulder','plating','ball',[.95],[2.75,14.2,0]);
+  add('Neck seal','plating','cyl',[.5,.6,.7],[0,15.05,0]);
+  add('Helmet','helmet','box',[1.7,2.1,1.9],[0,16.45,0]);
+  add('Faceplate','helmet','box',[1.3,1.3,.2],[0,16.25,1]);
+  both('eye','helmet','box',[.45,.12,.08],[.33,16.6,1.12]);
+  return p;
+})();
+const SUIT_HALF={w:3.8,h:8.9,y:8.75}; // how far the suit reaches from its middle, arms out, and where that middle is
+// at: where the leader line points. n: which way that spot faces, so its label dims when it's round the back.
+const SUIT_CALLOUTS=[
+  {key:'helmet',label:'Helmet HUD',at:[0,16.7,1.05],n:[0,0,1]},
+  {key:'reactor',label:'Arc reactor',at:[0,13.4,1.27],n:[0,0,1]},
+  {key:'repulsor',label:'Repulsor',at:[2.95,7.5,.36],n:[0,0,1]},
+  {key:'stabilizer',label:'Flight stabilizer',at:[-1.6,13.4,-1.36],n:[-.5,0,-.87]}
+];
+const SUIT_LINES={
+  helmet:["It shows maps, messages and targets right in front of the pilot's eyes, and it talks back. Sound familiar?","It can track 400 things at once and still remind you to drink some water.","Night vision, zoom, and a voice assistant with a dry sense of humour. Built in."],
+  reactor:["It powers the whole suit. Three gigawatts, enough to run a small city, from something the size of a doughnut.","No batteries, no plug, no recharging overnight.","It glows so brightly the pilot has to wear a dark shirt to sneak around."],
+  repulsor:["A thruster in each palm, for steering, braking and very loud high fives. Make a fist to fire them.","They push against the air so hard the suit can hover. Point down to stop, point back to go.","Also excellent for drying your hair. Not recommended."],
+  stabilizer:["Little flaps on the back that tilt to keep the suit steady at 600 kilometres an hour.","They work like a bird's tail feathers: small moves, big turns.","Without them, flying would feel like riding a shopping trolley down a hill."],
+  thruster:["The main engines. They do most of the lifting, so the pilot stands on two jets of fire.","Landing on one knee is optional, but looks cooler."],
+  plating:["Armour plating: light enough to fly, strong enough to shrug off a hailstorm.","Each plate slides over the next, so the pilot can still bend, run and wave.","Polished to a mirror finish. Mostly for the photos."]
+};
+// The suit goes together bottom to top, boots first and helmet last.
+const SUIT_BUILD={dur:.8,gap:.07};
+const suitOrder=SUIT_PARTS.map((p,i)=>({i,y:p.pos[1]})).sort((a,b)=>a.y-b.y||a.i-b.i).reduce((o,x,k)=>(o[x.i]=k,o),[]);
+const suitBuildTime=()=>(SUIT_PARTS.length-1)*SUIT_BUILD.gap+SUIT_BUILD.dur;
+// How far part number `order` (0 = first on) has flown into place t seconds after "suit up": 0 = still away, 1 = on.
+function suitAssembly(order,t){const p=clamp((t-order*SUIT_BUILD.gap)/SUIT_BUILD.dur,0,1);return 1-Math.pow(1-p,3)}
+// Where each label goes: a column down each side of the figure, level with its anchor where it can be, never
+// overlapping and never outside b {left,right,top,bottom}. pts: [{x,y,w,h}] is each anchor on screen and its
+// label's size, in px. prev: last frame's sides, so a label near the middle doesn't flicker from side to side.
+function layoutCallouts(pts,b,prev=[]){
+  const mid=(b.left+b.right)/2,gap=6;
+  const out=pts.map((p,i)=>{let side=prev[i];if(!side||Math.abs(p.x-mid)>24)side=p.x<mid?'L':'R';
+    return {side,w:p.w,h:p.h,ax:p.x,ay:p.y,x:side==='L'?b.left:b.right-p.w,y:0}});
+  for(const side of ['L','R']){
+    const col=out.filter(o=>o.side===side).sort((a,c)=>a.ay-c.ay);
+    let floor=b.top;for(const o of col){o.y=Math.max(floor,Math.min(o.ay-o.h/2,b.bottom-o.h));floor=o.y+o.h+gap}
+    let ceil=b.bottom;for(let k=col.length-1;k>=0;k--){const o=col[k];o.y=Math.max(b.top,Math.min(o.y,ceil-o.h));ceil=o.y-gap}
+  }
+  return out;
+}
+function buildSuit(T){
+  const scene=new T.Scene(),camera=makeCamera(T),group=new T.Group(),dot=dotTexture(T),v=new T.Vector3(),n=new T.Vector3();
+  scene.add(group,starfield(T,1200));
+  const PHOS=0x39ff88,small=innerWidth<600;
+  // The figure sits in the gap between the two label columns, and between the top HUD and the text box.
+  const labelW=small?84:130,frac=clamp(1-2*(labelW+28)/innerWidth,.3,.6),vfrac=clamp((innerHeight-350)/innerHeight,.5,.78);
+  const dist=fitDist(SUIT_HALF.w/frac,SUIT_HALF.h/vfrac),pxPerUnit=innerHeight/2/(Math.tan(27.5*Math.PI/180)*dist);
+  const rig=makeRig(T,camera,{dist:dist*2.2,goal:dist,el:.6,elGoal:.12,min:12,max:dist*3,spin:0});
+  rig.want.set(0,SUIT_HALF.y+60/pxPerUnit,0);rig.target.copy(rig.want); // nudge the figure up into the middle of that gap
+  const geo=p=>p.shape==='box'?new T.BoxGeometry(...p.size):p.shape==='cyl'?new T.CylinderGeometry(...p.size,8):new T.IcosahedronGeometry(p.size[0],1);
+  const fills=[],parts=SUIT_PARTS.map((p,i)=>{
+    const g=geo(p),hot=p.name==='Arc reactor'||/repulsor|eye/.test(p.name),holder=new T.Group();
+    const fill=new T.Mesh(g,new T.MeshBasicMaterial({color:/eye/.test(p.name)?0xffc24a:hot?0xbfffe0:PHOS,transparent:true,opacity:hot?.7:.06,depthWrite:false,side:T.DoubleSide}));
+    fill.userData.part=i;fills.push(fill);
+    const edge=new T.LineSegments(new T.EdgesGeometry(g),new T.LineBasicMaterial({color:PHOS,transparent:true,opacity:.8}));
+    holder.add(fill,edge);holder.position.set(...p.pos);holder.rotation.set(...p.rot);group.add(holder);
+    const a=i*2.39996; // fly in from all round, spread by the golden angle
+    return {holder,edge,home:p.pos,rot:p.rot,from:[Math.cos(a)*26,8+(i%3)*5,Math.sin(a)*26]};
+  });
+  // turntable under the boots
+  const ringPts=(r,k=96)=>{const a=[];for(let i=0;i<k;i++){const t=i/k*TAU;a.push(new T.Vector3(Math.cos(t)*r,0,Math.sin(t)*r))}return new T.BufferGeometry().setFromPoints(a)};
+  const baseMat=new T.LineBasicMaterial({color:PHOS,transparent:true,opacity:.35});
+  group.add(new T.LineLoop(ringPts(4.6),baseMat),new T.LineLoop(ringPts(5.4),baseMat));
+  const ticks=[];for(let i=0;i<48;i++){const t=i/48*TAU,r2=i%4?5.0:4.8;ticks.push(new T.Vector3(Math.cos(t)*4.6,0,Math.sin(t)*4.6),new T.Vector3(Math.cos(t)*r2,0,Math.sin(t)*r2))}
+  group.add(new T.LineSegments(new T.BufferGeometry().setFromPoints(ticks),baseMat));
+  // the scanning line, which sweeps up and down and lights the plates it passes
+  const scan=new T.Group(),scanRing=new T.LineLoop(ringPts(4.4),new T.LineBasicMaterial({color:PHOS,transparent:true,opacity:.9}));
+  scan.add(scanRing,new T.Mesh(new T.CircleGeometry(4.4,64).rotateX(-Math.PI/2),new T.MeshBasicMaterial({color:PHOS,transparent:true,opacity:.05,depthWrite:false,side:T.DoubleSide})));
+  scene.add(scan);
+  // repulsor glow and beams, for a fist squeeze
+  const palms=SUIT_PARTS.map((p,i)=>i).filter(i=>/repulsor$/.test(SUIT_PARTS[i].name));
+  const beams=palms.map(i=>{const p=SUIT_PARTS[i].pos,glow=new T.Sprite(new T.SpriteMaterial({map:dot,color:0xd8fff0,transparent:true,opacity:.5,depthWrite:false,blending:T.AdditiveBlending}));
+    glow.position.set(p[0],p[1],p[2]+.15);glow.scale.set(1.4,1.4,1);
+    const beam=new T.Mesh(new T.CylinderGeometry(.22,.06,30,12,1,true).rotateX(Math.PI/2).translate(0,0,15.3),new T.MeshBasicMaterial({color:0xd8fff0,transparent:true,opacity:0,depthWrite:false,blending:T.AdditiveBlending}));
+    beam.position.set(p[0],p[1],p[2]);group.add(glow,beam);return {glow,beam}});
+  let fire=0,squeezed=false,build=null,said={},focus=-1,frame=0,bounds=null,sides=[],boxes=[];
+  // callout labels: HTML, so they stay sharp and readable over the 3D scene
+  const SVG='http://www.w3.org/2000/svg',root=document.createElement('div');root.className='hud';root.id='suit-labels';
+  const svg=document.createElementNS(SVG,'svg');svg.setAttribute('aria-hidden','true');root.appendChild(svg);
+  const line=key=>{const l=SUIT_LINES[key],k=said[key]||0;said[key]=k+1;return l[k%l.length]};
+  const calloutLine=i=>`${SUIT_CALLOUTS[i].label}. ${line(SUIT_CALLOUTS[i].key)}`;
+  const tags=SUIT_CALLOUTS.map((c,i)=>{
+    const b=document.createElement('button');b.type='button';b.className='suit-label';b.textContent=c.label;
+    b.addEventListener('click',()=>{focus=i;blip(1200,.06,.03);say(calloutLine(i))});root.appendChild(b);
+    const ln=document.createElementNS(SVG,'line'),pt=document.createElementNS(SVG,'circle');pt.setAttribute('r','3');svg.append(ln,pt);
+    return {b,ln,pt};
+  });
+  stage.after(root);
+  const readBounds=()=>{
+    const bot=[document.getElementById('f'),holoCap].map(e=>e.getBoundingClientRect()).filter(r=>r.height).map(r=>r.top);
+    const top=['holo-top','holo-close','holo-hands'].concat(HC?['hand-cam']:[]).map(id=>document.getElementById(id).getBoundingClientRect().bottom);
+    const mid=innerWidth/2,reach=SUIT_HALF.w*pxPerUnit*rig.goal/rig.dist+24,maxW=Math.max(...tags.map(t=>t.b.offsetWidth||labelW));
+    return {left:Math.max(12,mid-reach-maxW),right:Math.min(innerWidth-12,mid+reach+maxW),top:Math.max(...top)+8,bottom:Math.min(innerHeight-12,...bot)-8};
+  };
+  function place(){
+    if(!bounds||++frame%20===0)bounds=readBounds();
+    group.updateMatrixWorld();
+    const pts=SUIT_CALLOUTS.map((c,i)=>{v.set(...c.at).applyMatrix4(group.matrixWorld);n.set(...c.n).applyQuaternion(group.quaternion);
+      const facing=n.dot(camera.position.clone().sub(v))>0;v.project(camera);
+      return {x:(v.x+1)/2*innerWidth,y:(1-v.y)/2*innerHeight,w:tags[i].b.offsetWidth||labelW,h:tags[i].b.offsetHeight||28,facing}});
+    boxes=layoutCallouts(pts,bounds,sides);sides=boxes.map(o=>o.side);
+    boxes.forEach((o,i)=>{const t=tags[i],ex=o.side==='L'?o.x+o.w:o.x,ey=o.y+o.h/2;
+      t.b.style.transform=`translate(${Math.round(o.x)}px,${Math.round(o.y)}px)`;
+      t.b.classList.toggle('back',!pts[i].facing);t.b.classList.toggle('on',i===focus);
+      t.ln.setAttribute('x1',o.ax.toFixed(1));t.ln.setAttribute('y1',o.ay.toFixed(1));t.ln.setAttribute('x2',ex.toFixed(1));t.ln.setAttribute('y2',ey.toFixed(1));
+      t.pt.setAttribute('cx',o.ax.toFixed(1));t.pt.setAttribute('cy',o.ay.toFixed(1));
+      t.ln.classList.toggle('back',!pts[i].facing);t.pt.classList.toggle('back',!pts[i].facing)});
+    root.classList.toggle('ready',build===null); // the labels wait until there's a suit to point at
+  }
+  const ready=`${SUIT_PARTS.length} PARTS · ${SUIT_CALLOUTS.length} SYSTEMS · REPULSORS CHARGED`;
+  function setArg(a){
+    if(a==='assemble'&&!reduce){build=0;parts.forEach(p=>{p.holder.visible=false});setStat(`ASSEMBLING · 0 / ${SUIT_PARTS.length}`);blip(140,.6,.03,'sawtooth');
+      return "Suiting up. Boots first, helmet last."}
+    if(a==='assemble')return "Suit up complete. Every part is in place.";
+    return "Suit schematic on screen. Tap a label or a part for its specs, or make a fist to fire the repulsors.";
+  }
+  const ray=new T.Raycaster();
+  return {scene,camera,rig,title:'SUIT SCHEMATIC',stat:ready,
+    hint:'Drag to rotate · tap a label or a part · say "suit up" to watch it assemble',setArg,
+    next(dir){focus=(focus+dir+SUIT_CALLOUTS.length*2)%SUIT_CALLOUTS.length;return calloutLine(focus)},
+    squeeze(on){squeezed=on;if(on){fire=1;blip(1500,.3,.035,'sawtooth');blip(320,.4,.03,'square',.05)}},
+    pick(ndc){
+      const x=(ndc.x+1)/2*innerWidth,y=(1-ndc.y)/2*innerHeight,hit=boxes.findIndex(o=>x>=o.x&&x<=o.x+o.w&&y>=o.y&&y<=o.y+o.h);
+      if(hit>=0){focus=hit;return calloutLine(hit)}
+      ray.setFromCamera(ndc,camera);const h=ray.intersectObjects(fills,false)[0];if(!h)return null;
+      const p=SUIT_PARTS[h.object.userData.part],c=SUIT_CALLOUTS.findIndex(c=>c.key===p.group);focus=c;
+      return c>=0?calloutLine(c):`${p.name}. ${line(p.group)}`;
+    },
+    dispose(){root.remove()},
+    update(dt,t){
+      group.rotation.y+=dt*.35*amb;
+      if(build!==null){build+=dt;let on=0;
+        parts.forEach((p,i)=>{const e=suitAssembly(suitOrder[i],build),k=1-e;p.holder.visible=e>0;if(e>=1)on++;
+          p.holder.position.set(p.home[0]+p.from[0]*k,p.home[1]+p.from[1]*k,p.home[2]+p.from[2]*k);
+          p.holder.rotation.set(p.rot[0]+k*3,p.rot[1]+k*5,p.rot[2])});
+        setStat(`ASSEMBLING · ${on} / ${SUIT_PARTS.length}`);
+        if(build>suitBuildTime()){build=null;setStat(ready);blip(880,.2,.03,'sine');blip(1320,.3,.025,'sine',.1)}
+      }
+      const sy=SUIT_HALF.y+(SUIT_HALF.h+.3)*Math.sin(t*.9*amb);scan.position.y=sy;
+      parts.forEach(p=>{p.edge.material.opacity=.5+.5*Math.exp(-Math.abs(p.holder.position.y-sy)*.7)});
+      fire=squeezed?.75+.25*Math.sin(t*40):fire*Math.exp(-dt*5);
+      beams.forEach(b=>{b.glow.visible=b.beam.visible=build===null;b.beam.material.opacity=fire*.8;b.glow.material.opacity=.5+fire*.5;const s=1.4+fire*2.2;b.glow.scale.set(s,s,1)});
+      place();
+    }};
+}
+
+const BUILDERS={galaxy:buildGalaxy,solar:buildSolar,particles:buildParticles,neural:buildNeural,suit:buildSuit};
 function resizeHolo(){if(!H)return;H.renderer.setSize(innerWidth,innerHeight,false);H.camera.aspect=innerWidth/innerHeight;H.camera.updateProjectionMatrix()}
 function loop(now){
   if(!H)return;
@@ -686,7 +871,7 @@ function startHolo(T,kind,arg){
 function closeHolo(keepHands){
   if(!H)return false;
   if(!keepHands)stopHands();
-  const h=H;H=null;cancelAnimationFrame(h.raf);
+  const h=H;H=null;cancelAnimationFrame(h.raf);if(h.dispose)h.dispose();
   h.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(o.material.map)o.material.map.dispose();o.material.dispose()}});
   h.renderer.dispose();try{h.renderer.forceContextLoss()}catch(e){}
   h.renderer.domElement.remove();
@@ -949,7 +1134,7 @@ if(SR){
   mic.addEventListener('click',()=>{if(synth)synth.cancel();try{rec.start()}catch(e){rec.stop()}});
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,orbPulse,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing};
+window.__jarvis={SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,orbPulse,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing};
 showBoot();
 </script>
 </body>
