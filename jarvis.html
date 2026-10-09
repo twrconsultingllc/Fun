@@ -50,6 +50,8 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 #mic{width:52px;border-radius:50%;font-size:1.3rem;padding:0}
 #mic.on{background:var(--phos);color:var(--void)}
 #clock-box{text-align:right}
+#mic-note{max-width:640px;width:100%;margin:-8px auto 0;padding:0 18px 12px;font-size:.75rem;line-height:1.35;color:var(--label)}
+body.holo-on #mic-note{display:none}
 
 /* ---------- Boot screen ---------- */
 #boot{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;justify-content:flex-end;
@@ -78,9 +80,13 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .c-tr{top:12px;right:12px;border-left:0;border-bottom:0}
 .c-bl{bottom:12px;left:12px;border-right:0;border-top:0}
 .c-br{bottom:12px;right:12px;border-left:0;border-top:0}
-#holo-title{top:18px;left:60px;right:150px;font-size:.8rem;letter-spacing:.22em;color:var(--phos);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#holo-stat{top:38px;left:60px;right:150px;font-size:.75rem;letter-spacing:.08em;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#holo-hint{top:58px;left:60px;right:160px;font-size:.72rem;color:var(--label);opacity:.85}
+/* The top HUD sits on a dark strip, so a bright star or the galaxy core behind it can't wash the text out. */
+#holo-top{top:0;left:0;right:0;padding:18px 0 14px 60px;line-height:1.25;
+  background:linear-gradient(to bottom,rgba(2,10,6,.9) 0,rgba(2,10,6,.9) calc(100% - 14px),rgba(2,10,6,0) 100%)}
+#holo-title{margin-right:150px;font-size:.8rem;letter-spacing:.22em;color:var(--phos);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#holo-stat{margin:5px 150px 0 0;font-size:.75rem;letter-spacing:.08em;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#holo-stat:empty::before{content:"\a0"}
+#holo-hint{margin:5px 160px 0 0;font-size:.72rem;color:var(--label)}
 #holo-hands{position:absolute;top:58px;right:56px;padding:8px 14px;background:rgba(2,10,6,.7);font-size:.8rem;letter-spacing:.1em}
 #holo-hands[aria-pressed="true"]{background:var(--phos);color:var(--void)}
 #hand-cam{position:absolute;top:100px;right:16px;width:160px;height:120px;border:1px solid var(--phos-dim);background:#000;display:none;pointer-events:none}
@@ -90,9 +96,9 @@ body.hands-on #hand-cam{display:block}
 #reticle.on{display:block}
 #reticle.pinch{width:18px;height:18px;margin:-9px 0 0 -9px;border-color:var(--amber);background:rgba(255,194,74,.35)}
 @media (max-width:600px){
-  #holo-title{left:24px;right:196px;letter-spacing:.12em}#holo-stat{left:24px;right:196px}
+  #holo-top{padding-left:24px}#holo-title{margin-right:196px;letter-spacing:.12em}#holo-stat{margin-right:196px}
   #holo #holo-close{top:14px;right:16px;padding:7px 10px}#holo #holo-hands{top:14px;right:102px;padding:7px 10px}
-  #hand-cam{top:58px;width:120px;height:90px}#holo-hint{top:62px;left:24px;right:148px;font-size:.68rem}
+  #hand-cam{top:58px;width:120px;height:90px}#holo-hint{margin:9px 148px 0 0;font-size:.68rem}
 }
 #holo-close{position:absolute;top:16px;right:56px;padding:8px 14px;background:rgba(2,10,6,.7);font-size:.8rem;letter-spacing:.1em}
 #holo-cap{left:50%;transform:translateX(-50%);bottom:96px;width:max-content;max-width:min(640px,calc(100vw - 32px));text-align:center;
@@ -128,15 +134,18 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
   <input id="q" placeholder="Ask me something…" autocomplete="off" aria-label="Message">
   <button type="submit">Send</button>
 </form>
+<p id="mic-note" hidden>🎙 The mic uses your browser's online speech service. Typing stays on this device.</p>
 
 <div id="holo" role="region" aria-label="Holo-projector" hidden>
   <div id="stage"></div>
+  <div class="hud" id="holo-top">
+    <div id="holo-title"></div>
+    <div id="holo-stat"></div>
+    <div id="holo-hint"></div>
+  </div>
   <div class="scan hud"></div>
   <div class="hud corner c-tl"></div><div class="hud corner c-tr"></div>
   <div class="hud corner c-bl"></div><div class="hud corner c-br"></div>
-  <div class="hud" id="holo-title"></div>
-  <div class="hud" id="holo-stat"></div>
-  <div class="hud" id="holo-hint"></div>
   <div class="hud" id="holo-cap" aria-live="polite"></div>
   <button type="button" id="holo-close" aria-label="Close the holo-projector">✕ CLOSE</button>
   <button type="button" id="holo-hands" aria-pressed="false" aria-label="Hand control">✋ HANDS</button>
@@ -163,13 +172,28 @@ const reduce=!!window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)')
 const amb=reduce?.15:1; // ambient motion: slow everything right down when reduced motion is asked for
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function setMode(m){mode=m;stateEl.textContent={idle:'STANDBY',listen:'LISTENING',think:'PROCESSING',speak:'SPEAKING'}[m]}
+// Root-mean-square of a block of samples (-1..1): how loud it is.
+function rmsLevel(buf){let s=0;for(let i=0;i<buf.length;i++)s+=buf[i]*buf[i];return buf.length?Math.sqrt(s/buf.length):0}
+// Loudness to orb energy on a decibel scale: -50 dB (a quiet room) is 0, -12 dB (talking close to the mic) is 1.
+function levelToEnergy(rms){return rms>0?clamp((20*Math.log10(rms)+50)/38,0,1):0}
+// How hard the orb pulses this frame. live: the mic level is driving energy. sinceWord: seconds since
+// Jarvis started the last spoken word, or null when the voice doesn't report words.
+function orbPulse({mode,energy,t,live=false,sinceWord=null,still=false}){
+  if(still)return energy*.6; // reduced motion: hold steady
+  if(live)return energy;
+  if(mode==='speak'&&sinceWord!==null)return energy*(.45+.55*Math.exp(-sinceWord*7));
+  return energy*(.6+.4*Math.sin(t/(mode==='speak'?90:400)));
+}
+let lastWord=null; // when the current utterance last started a word (rAF time), or null
 function draw(t){
   requestAnimationFrame(draw);
   if(document.body.classList.contains('holo-on'))return; // hidden behind the hologram
   const W=cv.width,c=W/2,bp=bootP;cx.clearRect(0,0,W,W);
-  const target={idle:.15,listen:.6,think:.45,speak:.9}[mode];
-  energy+=(target-energy)*.06;
-  const pulse=energy*(0.6+0.4*Math.sin(t/(mode==='speak'?90:400)));
+  let target={idle:.15,listen:.6,think:.45,speak:.9}[mode];
+  const live=mode==='listen'&&!!(meter&&meter.an);
+  if(live){try{meter.an.getFloatTimeDomainData(meter.buf);target=.2+.8*levelToEnergy(rmsLevel(meter.buf))}catch(e){}}
+  energy+=(target-energy)*(live?(target>energy?.4:.12):.06); // the voice jumps the rings up fast and lets them settle
+  const pulse=orbPulse({mode,energy,t,live,still:reduce,sinceWord:mode==='speak'&&lastWord!==null?Math.max(0,(t-lastWord)/1000):null});
   // glow core
   const gr=W*.22*(.25+.75*bp),g=cx.createRadialGradient(c,c,0,c,c,gr);
   g.addColorStop(0,`rgba(180,255,210,${(.55+pulse*.4)*(.3+.7*bp)})`);g.addColorStop(.35,`rgba(57,255,136,${(.25+pulse*.3)*bp})`);g.addColorStop(1,'rgba(57,255,136,0)');
@@ -178,7 +202,7 @@ function draw(t){
   const rings=[[.16,6,1.2,.9],[.24,3,-.7,.6],[.31,12,.4,.5],[.38,2,-.25,.35],[.45,40,.1,.25]];
   rings.forEach(([r,segs,spd,a],i)=>{
     const k=clamp(bp*1.8-i*.18,0,1),shown=Math.round(segs*k);if(!shown)return;
-    const R=W*r*(1+pulse*.04*(i%2?1:-1)),rot=(reduce?0:t/1000*spd*(1+energy*2))+(1-k)*4*(i%2?-1:1);
+    const R=W*r*(reduce?1:1+pulse*.04*(i%2?1:-1)),rot=(reduce?0:t/1000*spd*(1+energy*2))+(1-k)*4*(i%2?-1:1);
     cx.strokeStyle=`rgba(57,255,136,${(a+pulse*.3)*k})`;cx.lineWidth=i===4?2:i===0?10:4;
     const gap=segs>20?.06:.25;
     for(let s=0;s<shown;s++){const a0=rot+s*Math.PI*2/segs;cx.beginPath();cx.arc(c,c,R,a0,a0+Math.PI*2/segs-gap);cx.stroke()}
@@ -200,6 +224,23 @@ function blip(freq=880,dur=.05,vol=.03,type='square',delay=0){
   }catch(e){}
 }
 
+/* ---------- Mic level: while listening, the orb follows your voice ----------
+   A second, local audio stream into an AnalyserNode. Nothing is recorded or sent; it is
+   closed as soon as listening ends. Skipped with reduced motion, since the orb holds still then. */
+let meter=null,meterOff=false;
+async function startMeter(){
+  if(meter||meterOff||reduce||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return;
+  const me=meter={pending:true};let stream;
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false})}catch(e){if(meter===me)meter=null;return}
+  if(meter!==me){stream.getTracks().forEach(t=>t.stop());return} // listening ended while the stream was opening
+  try{
+    ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();
+    const src=ac.createMediaStreamSource(stream),an=ac.createAnalyser();an.fftSize=1024;src.connect(an);
+    meter={stream,src,an,buf:new Float32Array(an.fftSize)};
+  }catch(e){stream.getTracks().forEach(t=>t.stop());meter=null}
+}
+function stopMeter(){const m=meter;meter=null;if(!m||m.pending)return false;try{m.src.disconnect()}catch(e){}m.stream.getTracks().forEach(t=>t.stop());return true}
+
 /* ---------- Voice out ---------- */
 const synth=window.speechSynthesis||null;
 let voice=null;
@@ -209,7 +250,9 @@ function say(text){
   add(text,'ai');
   if(!synth){setMode('idle');return}
   const u=new SpeechSynthesisUtterance(text);if(voice)u.voice=voice;u.rate=1.02;u.pitch=.9;
-  u.onstart=()=>setMode('speak');u.onend=u.onerror=()=>setMode('idle');
+  u.onstart=()=>{lastWord=null;setMode('speak')};u.onend=u.onerror=()=>{lastWord=null;setMode('idle')};
+  // There's no audio tap on speech synthesis, so pulse on each word where the voice reports them.
+  u.onboundary=e=>{if(!e.name||e.name==='word')lastWord=performance.now()};
   synth.cancel();synth.speak(u);
   // Some browsers never start speaking (no voices installed); don't stay stuck on PROCESSING.
   setTimeout(()=>{if(mode==='think')setMode('idle')},1500);
@@ -820,16 +863,22 @@ function handle(text){
 const f=document.getElementById('f'),q=document.getElementById('q'),mic=document.getElementById('mic');
 f.addEventListener('submit',e=>{e.preventDefault();handle(q.value);q.value=''});
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const micNote=document.getElementById('mic-note');
 if(SR){
+  // Shown until the mic has been used once on this device.
+  let noted=false;try{noted=!!localStorage.getItem('jarvis-mic-note')}catch(e){}
+  if(!noted)micNote.hidden=false;
   const rec=new SR();rec.lang='en-US';rec.interimResults=false;
-  rec.onstart=()=>{mic.classList.add('on');setMode('listen')};
-  rec.onend=()=>{mic.classList.remove('on');if(mode==='listen')setMode('idle')};
-  rec.onerror=()=>{mic.classList.remove('on');setMode('idle')};
+  rec.onstart=()=>{mic.classList.add('on');setMode('listen');startMeter();try{localStorage.setItem('jarvis-mic-note','1')}catch(e){}};
+  rec.onend=()=>{stopMeter();mic.classList.remove('on');if(mode==='listen')setMode('idle')};
+  // If recognition loses the mic while the level stream is open, the two don't share it on this
+  // device, so stop opening the level stream and let the orb pulse on its own.
+  rec.onerror=e=>{if(stopMeter()&&e&&e.error==='audio-capture')meterOff=true;mic.classList.remove('on');setMode('idle')};
   rec.onresult=e=>handle(e.results[0][0].transcript);
   mic.addEventListener('click',()=>{if(synth)synth.cancel();try{rec.start()}catch(e){rec.stop()}});
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures};
+window.__jarvis={brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,rmsLevel,levelToEnergy,orbPulse,energy:()=>energy,meterState:()=>meter?(meter.pending?'opening':'open'):meterOff?'off':'closed'};
 showBoot();
 </script>
 </body>
