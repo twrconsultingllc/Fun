@@ -331,6 +331,41 @@ rather than assume:
   the live site can't be fetched from there, which means "verify the live
   site" has to be handed to the user.
 
+### Headless Chromium recipes from the J.A.R.V.I.S. work (claude.ai/code)
+
+Worked out on 2026-10-09 while building `jarvis.html`'s holo-projector and
+hand control. Each one cost a failed run to discover:
+
+- **three.js without the CDN.** cdnjs is blocked, but the npm registry isn't.
+  `npm pack three@0.128.0` gives a `build/three.min.js` that is byte-identical
+  to cdnjs's r128, so it matches the SRI hash the pages use. Serve it to the
+  page with `page.route('https://cdnjs.cloudflare.com/**', r => r.fulfill({ path, contentType: 'application/javascript', headers: { 'access-control-allow-origin': '*' } }))`,
+  and the real scene renders with the integrity check still enforced. Launch
+  with `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader`
+  for WebGL.
+- **A fake camera only works with the fake-UI flag.** Launch with
+  `--use-fake-ui-for-media-stream --use-fake-device-for-media-stream --use-file-for-fake-video-capture=<file>.y4m`.
+  Granting the camera Playwright's normal way (`permissions: ['camera']`)
+  without `--use-fake-ui-for-media-stream` makes `getUserMedia` fail with
+  `NotSupportedError`, which looks like a page bug but isn't. To feed it a
+  picture or motion, draw frames with PIL and convert them with `ffmpeg`
+  (installed) to `-pix_fmt yuv420p` `.y4m`. A permission prompt can't be
+  shown headless, so test refusals by making `getUserMedia` reject with a
+  `DOMException` of that name in `addInitScript`.
+- **WebAssembly and model files need HTTP, not `file://`.** The MediaPipe
+  hand tracker in `jarvis/hands/` fetches its `.wasm` and model, which
+  `file://` can't do. Run `python3 -m http.server 8765 --bind 127.0.0.1` from
+  the repo root and load `http://127.0.0.1:8765/...`. That also enforces the
+  page's real CSP, so watch the console for `Refused` messages. To stop the
+  server, don't `pkill -f` with its command line from the same shell command:
+  the pattern matches that shell too and kills it.
+- **Software rendering is far too slow for timing.** Under SwiftShader the
+  hand tracker managed about one detection a second. So it can prove the
+  model loads, finds hands and draws them, but not that a flick or a pinch
+  registers. Test gesture logic with synthetic landmarks (see
+  `tests/jarvis.dom.test.mjs`), and test the page wiring by calling its
+  action handler from `page.evaluate`.
+
 Either way, jsdom itself never has a canvas (`getContext('2d')` returns null;
 see battle-bots-V2 above), so the committed `tests/` suites still exercise the
 no-renderer path. Where no browser is available, verify a visual change by
