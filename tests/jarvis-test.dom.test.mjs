@@ -42,7 +42,9 @@ const HAND_FILES = {
     'vision_bundle.js': 'e77f281f9619150d937023c355bae170e9120e3b9e43f1e23a2a7bee07197669',
     'vision_wasm_internal.js': '9440cf0cc0cea21800e31581ec32aeedcc5fbf9df4509796bbc7d3f99e52ab9c',
     'vision_wasm_internal.wasm': 'f82a8e6c05e08a44cc9f9e7ec5f845935bcbb1b1500ebe8c2f4812fb4e2917dc',
-    'hand_landmarker.task': 'fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1'
+    'hand_landmarker.task': 'fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1',
+    // the threat scan's face detector (Session 5), next to the hand tracker
+    'blaze_face_short_range.tflite': 'b4578f35940bf5a1a655214a1cce5cab13eba73c1297cd78e1a04c2380b0152f'
 };
 
 export const name = 'J.A.R.V.I.S. Test (jarvis-test.html)';
@@ -445,6 +447,66 @@ export default async function run(t, page) {
         // thumb tip (0.20, 0.18) and index tip (0.26, 0.09): midway is (0.23, 0.135)
         t.ok('the cursor follows the thumb and index tips', cur.hands === 1 && Math.abs(cur.x - 0.23) < 0.005 && Math.abs(cur.y - 0.135) < 0.005);
         t.eq('no hands: the cursor hides', JSON.stringify(g([], 1).find((a) => a.type === 'cursor')), '{"type":"cursor","hands":0}');
+
+        t.section('Threat scan (Session 5)');
+
+        t.eq('"scan the room"', JSON.stringify(intent('Scan the room.')), '{"kind":"scan"}');
+        for (const q of ['threat scan', 'run a threat assessment', 'jarvis, scan me', 'scan for threats', 'start a scan', 'face lock', 'security scan please'])
+            t.eq(`"${q}" opens the scan`, kind(q), 'scan');
+        for (const q of ['stop the scan', 'stop scanning', 'close the scanner', 'end threat scan'])
+            t.eq(`"${q}" closes it`, kind(q), 'close');
+        for (const q of ['scan this barcode', 'what is a cat scan', 'show me the suit'])
+            t.ok(`"${q}" is not a threat scan`, kind(q) !== 'scan');
+        t.ok('help mentions the threat scan', /scan the room/.test(brain('help')));
+
+        const { scanReadout, coverMap, createFaceTracker, READOUTS } = window.__jarvis;
+        let seed = 1;
+        const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+        const readouts = Array.from({ length: 300 }, () => scanReadout(rnd));
+        const label = (l) => l.split(': ')[0];
+        t.ok('every readout has three lines, threat level first', readouts.every((r) => r.length === 3 && label(r[0]) === 'THREAT LEVEL'));
+        t.ok('and never the same kind of line twice', readouts.every((r) => new Set(r.map(label)).size === 3));
+        t.ok('every value comes from the list', readouts.every((r) => r.every((l) => READOUTS.some(([k, v]) => l === `${k}: ${v.find((x) => l.endsWith(': ' + x)) ?? '?'}`))));
+        t.eq('over many scans, every kind of line turns up', new Set(readouts.flat().map(label)).size, READOUTS.length);
+        t.ok('a random number of exactly 1 can\'t index past a list', scanReadout(() => 0.9999999999).length === 3 && scanReadout(() => 0.9999999999).every((l) => !/undefined/.test(l)));
+        t.ok('readouts are made up, not read from a face: scanReadout takes no picture', scanReadout.length <= 1);
+
+        // A 640x480 camera frame filling a 1280x800 screen: scale 2, 80 px cropped top and bottom, mirrored.
+        // Video x 100..150 scales to 200..300, and mirrored that's 1280-300 = 980 to 1080.
+        let m = coverMap(640, 480, 1280, 800);
+        t.ok('desktop: the frame is scaled to cover the screen', m.s === 2 && m.ox === 0 && m.oy === -80);
+        t.eq('a face on the left of the camera shows on the right (mirrored)', JSON.stringify(m.box({ originX: 100, originY: 100, width: 50, height: 60 })), '{"x":980,"y":120,"w":100,"h":120}');
+        // On an upright phone, 390x844: scale 844/480, the sides are cropped.
+        m = coverMap(640, 480, 390, 844);
+        const mid = m.box({ originX: 300, originY: 220, width: 40, height: 40 });
+        t.ok('phone: the middle of the camera is the middle of the screen', Math.abs(mid.x + mid.w / 2 - 195) < 1e-9 && Math.abs(mid.y + mid.h / 2 - 422) < 1e-9);
+
+        let tr = createFaceTracker(rnd);
+        let ks = tr([{ x: 100, y: 100, w: 80, h: 80 }], 0);
+        t.ok('a new face becomes target 1, with a readout', ks.length === 1 && ks[0].id === 1 && ks[0].fresh && ks[0].lines.length === 3);
+        const firstLines = ks[0].lines.join('|');
+        ks = tr([{ x: 110, y: 104, w: 82, h: 80 }], 0.05);
+        t.ok('moving a little, it stays target 1 with the same readout', ks.length === 1 && ks[0].id === 1 && ks[0].lines.join('|') === firstLines && !ks[0].fresh);
+        t.ok('and its brackets ease halfway to the new spot, so they don\'t jitter', ks[0].x === 105 && ks[0].y === 102);
+        ks = tr([{ x: 105, y: 102, w: 80, h: 80 }, { x: 600, y: 120, w: 70, h: 70 }], 0.1);
+        t.eq('a second face far away becomes target 2', JSON.stringify(ks.map((k) => k.id)), '[1,2]');
+        ks = tr([{ x: 600, y: 120, w: 70, h: 70 }], 0.4);
+        t.eq('a face missing for a moment is kept', ks.length, 2);
+        ks = tr([{ x: 600, y: 120, w: 70, h: 70 }], 0.7);
+        t.eq('gone for over half a second, it is dropped', JSON.stringify(ks.map((k) => k.id)), '[2]');
+        ks = tr([{ x: 100, y: 100, w: 80, h: 80 }, { x: 600, y: 120, w: 70, h: 70 }], 0.75);
+        t.eq('a face coming back is a new target, not an old number reused', JSON.stringify(ks.map((k) => k.id).sort()), '[2,3]');
+        tr = createFaceTracker(rnd);
+        tr([{ x: 100, y: 100, w: 80, h: 80 }, { x: 200, y: 100, w: 80, h: 80 }], 0);
+        ks = tr([{ x: 205, y: 100, w: 80, h: 80 }, { x: 95, y: 100, w: 80, h: 80 }], 0.03);
+        t.ok('two faces side by side keep their own numbers, whatever order the detector lists them', ks.find((k) => k.id === 1).x < 100 && ks.find((k) => k.id === 2).x > 200);
+
+        t.ok('without a camera, the scan says so', /needs a camera/.test(await window.__jarvis.project({ kind: 'scan' })));
+        t.ok('and the projector stays closed', document.getElementById('holo').hidden && !document.body.classList.contains('scan-on'));
+        t.ok('the scan has no way to save a picture: no toDataURL, toBlob, MediaRecorder or download link', !/toDataURL|toBlob|MediaRecorder|\.download\s*=/.test(src));
+        t.ok('the scan closes itself when the tab is hidden', /visibilitychange',\(\)=>\{if\(document\.hidden&&H&&H\.kind==='scan'\)closeHolo\(\)\}/.test(src));
+        t.ok('the scan asks the camera for video only, never audio', (src.match(/getUserMedia\(/g) || []).length === 2 && (src.match(/getUserMedia\(\{video:\{facingMode:'user',width:\{ideal:640\},height:\{ideal:480\}\},audio:false\}\)/g) || []).length === 2);
+        t.ok('the face detector loads from jarvis/hands/ on this site', /modelAssetPath:url\('blaze_face_short_range\.tflite'\)/.test(src));
 
         t.section('Self-hosted hand tracker');
 

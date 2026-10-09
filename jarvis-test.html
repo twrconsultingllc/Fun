@@ -107,6 +107,8 @@ body.holo-on #mic-note{display:none}
 #holo-hands[aria-pressed="true"]{background:var(--phos);color:var(--void)}
 #hand-cam{position:absolute;top:100px;right:16px;width:160px;height:120px;border:1px solid var(--phos-dim);background:#000;display:none;pointer-events:none}
 body.hands-on #hand-cam{display:block}
+body.scan-on #holo-hands,body.scan-on #hand-cam,body.scan-on #reticle{display:none}
+body.scan-on #stage{cursor:crosshair}
 #reticle{width:34px;height:34px;margin:-17px 0 0 -17px;border:2px solid var(--phos);border-radius:50%;left:0;top:0;display:none;
   box-shadow:0 0 12px rgba(57,255,136,.6);transition:width .12s,height .12s,margin .12s,background .12s}
 #reticle.on{display:block}
@@ -598,7 +600,7 @@ function brainKnown(raw){
   const s=raw.toLowerCase().trim(),name=userName?`, ${userName}`:'';
   let m;
   if((m=s.match(/\b(?:my name is|call me|i am|i'm) ([a-z]+)/))&&!notNames.has(m[1])){userName=m[1][0].toUpperCase()+m[1].slice(1);try{localStorage.setItem('jarvis-name',userName)}catch(e){}return `Nice to meet you, ${userName}. I'll remember that on this device.`}
-  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say show me your brain to watch me think, or suit up to build a suit of armour. Say show me Earth for the globe, or show me any country, US state or big city, like Florida or Tokyo. Say hand control to steer it with your hands through the camera. Say close to turn it off, or reboot to watch me power up again. Say switch to Matrix to talk to Morpheus, switch to Panthers for Stanley C. Panther, or back to Jarvis. If I don't understand you, tell me what you meant and I'll remember it on this device.";
+  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say show me your brain to watch me think, or suit up to build a suit of armour. Say show me Earth for the globe, or show me any country, US state or big city, like Florida or Tokyo. Say hand control to steer it with your hands through the camera, or scan the room for a threat scan. Say close to turn it off, or reboot to watch me power up again. Say switch to Matrix to talk to Morpheus, switch to Panthers for Stanley C. Panther, or back to Jarvis. If I don't understand you, tell me what you meant and I'll remember it on this device.";
   if(/\b(hello|hi|hey|good (morning|afternoon|evening))\b/.test(s))return pick([`Hello${name}. All systems are online.`,`Good to see you${name}. How can I help?`]);
   if(/what.*\btime\b/.test(s))return `It's ${new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}${name}.`;
   if(/what.*(date|day)/.test(s))return `Today is ${new Date().toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'})}.`;
@@ -629,6 +631,8 @@ function intent(raw){
   if(/\b(hand|hands|gesture|gestures) (control|tracking|mode)\b|\buse my hands?\b|\b(enable|start|turn on)( the)? (hand|gesture)/.test(s))return {kind:'hands',arg:true};
   if(/^(close|exit|stop|dismiss|hide|go back|back)( (it|that|this|the (hologram|projector|scene)))?$/.test(s)||/\b(close|turn off|shut down) the (hologram|projector|holo-projector)\b/.test(s))return {kind:'close'};
   if(/\b(reboot|restart|boot (up|sequence)|power (up|cycle))\b/.test(s))return {kind:'boot'};
+  if(/\b(?:stop|end|cancel|close|exit)(?: the)? (?:scan|scanning|scanner|threat scan|face scan)\b/.test(s))return {kind:'close'};
+  if(/\b(?:threat|security|face) (?:scan|scanner|assessment|analysis|check|lock|detection)\b|\bscan (?:the |this )?(?:room|area|me|us|my face|faces|everyone|for threats)\b|\b(?:run|start|do|begin) (?:a |the )?scan\b/.test(s))return {kind:'scan'};
   if(/\bsuit (?:me )?up\b|\biron ?man (?:suit|armou?r)\b|\bsuit schematic\b|\b(?:show|see|open|display|look at|make|build)\b.*\b(?:suit|armou?r)s?\b/.test(s))return {kind:'suit',arg:/\bsuit (?:me )?up\b/.test(s)?'assemble':null};
   if(/\b(?:show(?: me)?|open|display|spin|see|look at)(?: the)? (?:earth|world|globe|planet earth|earth globe|world map)$|^(?:the )?(?:earth globe|globe)$/.test(s))return {kind:'globe',arg:null};
   if(m=s.replace(/\?/g,'').match(/\b(?:show me|take me to|fly (?:me )?to|go to|where(?:'s| is)|find|zoom (?:in )?(?:on|to)|visit|focus on|point to)(?: the)? ([a-z .'-]+?)(?: please| now| on the (?:map|globe))?$/)){
@@ -1341,7 +1345,7 @@ function buildGlobe(T){
 }
 
 const BUILDERS={galaxy:buildGalaxy,solar:buildSolar,particles:buildParticles,neural:buildNeural,suit:buildSuit,globe:buildGlobe};
-function resizeHolo(){if(!H)return;H.renderer.setSize(innerWidth,innerHeight,false);H.camera.aspect=innerWidth/innerHeight;H.camera.updateProjectionMatrix()}
+function resizeHolo(){if(!H||!H.renderer)return;H.renderer.setSize(innerWidth,innerHeight,false);H.camera.aspect=innerWidth/innerHeight;H.camera.updateProjectionMatrix()}
 function loop(now){
   if(!H)return;
   const dt=Math.min(.05,H.last?(now-H.last)/1000:0);H.last=now;H.t+=dt;
@@ -1365,19 +1369,20 @@ function closeHolo(keepHands){
   if(!H)return false;
   if(!keepHands)stopHands();
   const h=H;H=null;cancelAnimationFrame(h.raf);if(h.dispose)h.dispose();
-  h.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(o.material.map)o.material.map.dispose();o.material.dispose()}});
-  h.renderer.dispose();try{h.renderer.forceContextLoss()}catch(e){}
-  h.renderer.domElement.remove();
+  if(h.scene)h.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(o.material.map)o.material.map.dispose();o.material.dispose()}});
+  if(h.renderer){h.renderer.dispose();try{h.renderer.forceContextLoss()}catch(e){}h.renderer.domElement.remove()}
   holo.classList.remove('open');document.body.classList.remove('holo-on');
   closeTimer=setTimeout(()=>{if(!H)holo.hidden=true},reduce?0:600);
   return true;
 }
 async function project(it){
   if(it.kind==='hands')return it.arg?startHands():stopHands()?"Hand control off. The camera is off too.":"Hand control is already off.";
-  if(it.kind==='close')return closeHolo()?pick(["Projector off.","Closing the hologram."]):"The projector's already off.";
+  if(it.kind==='close'){const k=H&&H.kind;return closeHolo()?(k==='scan'?SCAN_OFF:pick(["Projector off.","Closing the hologram."])):"The projector's already off."}
   if(it.kind==='boot'){closeHolo();showBoot();runBoot();return null}
+  if(it.kind==='scan')return startScan();
   if(it.kind==='zoom'){
     if(!H)return "Nothing on the projector yet. Try asking for the galaxy.";
+    if(H.kind==='scan')return "The scanner doesn't zoom. Step closer instead.";
     const r=H.rig;r.goal=clamp(r.goal*(it.arg==='in'?.3:2.5),r.min,r.max);return it.arg==='in'?"Taking us in.":"Pulling back.";
   }
   if(!hasWebGL())return "My holo-projector needs WebGL, and this browser doesn't have it turned on.";
@@ -1387,7 +1392,7 @@ async function project(it){
   closeHolo(true);
   return startHolo(T,it.kind,it.arg);
 }
-document.getElementById('holo-close').addEventListener('click',()=>{closeHolo();say("Projector off.")});
+document.getElementById('holo-close').addEventListener('click',()=>{const k=H&&H.kind;closeHolo();say(k==='scan'?SCAN_OFF:"Projector off.")});
 addEventListener('resize',resizeHolo);
 
 /* Drag to orbit, pinch or scroll to zoom, tap to pick. */
@@ -1487,7 +1492,7 @@ function loadLandmarker(){
 async function startHands(){
   if(HC)return "Hand control is already on.";
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return "Hand control needs a camera, and this browser can't use one here.";
-  if(!H){const r=await project({kind:'particles',arg:{shape:'sphere'}});if(!H)return r}
+  if(!H||H.kind==='scan'){const r=await project({kind:'particles',arg:{shape:'sphere'}});if(!H||H.kind==='scan')return r}
   holoHint.textContent='Starting hand tracking…';handsBtn.disabled=true;
   let stream=null,lm=null;
   try{
@@ -1563,6 +1568,154 @@ function handLoop(){
 }
 handsBtn.addEventListener('click',async()=>{const r=HC?(stopHands(),"Hand control off. The camera is off too."):await startHands();if(r)say(r)});
 
+/* ---------- Threat scan (MediaPipe face detector, self-hosted next to the hand tracker) ----------
+   The camera, mirrored, with brackets that lock onto each face and made-up readouts. The detector only
+   finds where faces are: it can't tell who anyone is, and the readouts are random, not read from the face.
+   Like hand control: the camera is on only while the scan is open, and nothing is saved or recorded. */
+const SCAN_OFF="Scan complete. The camera is off.";
+const SCAN_HINT='Camera stays on this device. Nothing is saved or recorded · tap a target to rescan it · say close to stop';
+const READOUTS=[
+  ['THREAT LEVEL',['MINIMAL','NEGLIGIBLE','MOSTLY HARMLESS','FLUFFY']],
+  ['SNACK LEVEL',['CRITICAL','DANGEROUSLY LOW','NEEDS PIZZA','ADEQUATE']],
+  ['COOLNESS',['OFF THE CHARTS','11 OUT OF 10','MAXIMUM','CLASSIFIED']],
+  ['HUMOR CIRCUITS',['FULLY CHARGED','DAD-JOKE READY','GIGGLING']],
+  ['SUPERHERO POTENTIAL',['97%','RISING FAST','CONFIRMED']],
+  ['DANCE MOVES',['LEGENDARY','UNSTOPPABLE','PENDING REVIEW']],
+  ['SLEEPINESS',['WIDE AWAKE','YAWN IMMINENT','MODERATE']]
+];
+// Three made-up readout lines: always the threat level first, then two other different ones.
+function scanReadout(rnd=Math.random){
+  const p=a=>a[Math.floor(rnd()*a.length)%a.length],rest=READOUTS.slice(1),a=Math.floor(rnd()*rest.length)%rest.length;
+  const b=(a+1+Math.floor(rnd()*(rest.length-1))%(rest.length-1))%rest.length;
+  return [READOUTS[0],rest[a],rest[b]].map(([k,v])=>`${k}: ${p(v)}`);
+}
+// How a video frame of vw×vh fills a W×Hh screen without stretching ("cover"), mirrored like a selfie.
+// Takes a box in video pixels and returns it in screen pixels.
+function coverMap(vw,vh,W,Hh){
+  const s=Math.max(W/vw,Hh/vh),ox=(W-vw*s)/2,oy=(Hh-vh*s)/2;
+  return {s,ox,oy,box:b=>({x:W-(ox+(b.originX+b.width)*s),y:oy+b.originY*s,w:b.width*s,h:b.height*s})};
+}
+// Follows faces from frame to frame, so each keeps its number and readout while it moves.
+// step(boxes, t) takes screen boxes and returns the targets, each {id, x, y, w, h, seen, born, lines, fresh}.
+function createFaceTracker(rnd=Math.random){
+  let tracks=[],nextId=1;
+  return function step(boxes,t){
+    const free=new Set(tracks);
+    for(const b of boxes){
+      const cx=b.x+b.w/2,cy=b.y+b.h/2;let best=null,bd=Infinity;
+      for(const k of free){const d=Math.hypot(k.x+k.w/2-cx,k.y+k.h/2-cy);if(d<bd&&d<Math.max(k.w,b.w)*.75){bd=d;best=k}}
+      if(best){free.delete(best);for(const q of ['x','y','w','h'])best[q]+=(b[q]-best[q])*.5;best.seen=t;best.fresh=false}
+      else tracks.push({id:nextId++,...b,seen:t,born:t,lines:scanReadout(rnd),fresh:true});
+    }
+    tracks=tracks.filter(k=>t-k.seen<=.5); // a face that's gone for half a second is dropped
+    return tracks;
+  };
+}
+let detectorP=null;
+function loadFaceDetector(){
+  if(detectorP)return detectorP;
+  const url=f=>new URL('jarvis/hands/'+f,location.href).href;
+  detectorP=(async()=>{
+    const {FaceDetector}=await import(url('vision_bundle.js'));
+    const files={wasmLoaderPath:url('vision_wasm_internal.js'),wasmBinaryPath:url('vision_wasm_internal.wasm')};
+    const opts=delegate=>({baseOptions:{modelAssetPath:url('blaze_face_short_range.tflite'),delegate},runningMode:'VIDEO',minDetectionConfidence:.6});
+    try{return await FaceDetector.createFromOptions(files,opts('GPU'))}catch(e){return await FaceDetector.createFromOptions(files,opts('CPU'))}
+  })();
+  detectorP.catch(()=>{detectorP=null});
+  return detectorP;
+}
+const NO_RIG={az:0,el:0,elGoal:0,dist:1,goal:1,min:1,max:1,dragging:false,kick:0,update(){}};
+async function startScan(){
+  if(H&&H.kind==='scan')return "I'm already scanning.";
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return "The threat scan needs a camera, and this browser can't use one here.";
+  closeHolo(); // also turns hand control off, since the scan needs the camera
+  const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
+  const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim();
+  const S={kind:'scan',rig:NO_RIG,raf:0,ctx,stream:null,video:null,det:null,track:createFaceTracker(),targets:[],lastVT:-1,announced:0,lastSaid:-9,t0:performance.now(),
+    colors:{phos:col('--phos')||'#39ff88',amber:col('--amber')||'#ffc24a',text:col('--text')||'#c9ffe0'},
+    hint:SCAN_HINT,
+    pick(ndc){
+      const x=(ndc.x+1)/2*innerWidth,y=(1-ndc.y)/2*innerHeight;
+      const k=S.targets.find(k=>x>=k.x&&x<=k.x+k.w&&y>=k.y&&y<=k.y+k.h);
+      if(!k)return null;k.lines=scanReadout();return `Rescanning target ${k.id}. ${k.lines.map(sentence).join(' ')}`;
+    },
+    dispose(){
+      cancelAnimationFrame(S.raf);if(S.stream)S.stream.getTracks().forEach(t=>t.stop());if(S.video)S.video.srcObject=null;
+      S.stream=S.video=null;canvas.remove();document.body.classList.remove('scan-on');
+    }};
+  H=S;
+  stage.appendChild(canvas);document.body.classList.add('scan-on');
+  holoTitle.textContent='THREAT SCAN // FACE LOCK';setStat('STARTING CAMERA…');holoHint.textContent=SCAN_HINT;holoCap.textContent='';
+  clearTimeout(closeTimer);holo.hidden=false;document.body.classList.add('holo-on');void holo.offsetWidth;holo.classList.add('open');
+  blip(220,.3,.03,'sawtooth');blip(440,.3,.025,'square',.15);
+  const fail=msg=>{if(H===S)closeHolo();else S.dispose();return msg};
+  try{S.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false})}
+  catch(e){
+    if(/NotAllowed|Security/.test(e.name))return fail("I need permission to use the camera for the threat scan. The video never leaves this device.");
+    if(/NotFound|Overconstrained/.test(e.name))return fail("I couldn't find a camera for the threat scan.");
+    if(/NotReadable/.test(e.name))return fail("Your camera seems to be busy in another app. Close it and try again.");
+    return fail("I couldn't start the camera for the threat scan.");
+  }
+  if(H!==S){S.stream.getTracks().forEach(t=>t.stop());return null} // closed while the camera was starting
+  setStat('LOADING FACE DETECTOR…');
+  try{S.det=await loadFaceDetector()}catch(e){return fail("The threat scan couldn't start in this browser.")}
+  if(H!==S){S.dispose();return null}
+  const video=S.video=document.createElement('video');video.playsInline=true;video.muted=true;video.srcObject=S.stream;
+  try{await video.play()}catch(e){}
+  if(H!==S){S.dispose();return null}
+  setStat('SCANNING… NO TARGETS');
+  S.raf=requestAnimationFrame(scanLoop);
+  return "Threat scan online. The camera stays on this device, and nothing is saved.";
+}
+const sentence=l=>{const [k,v]=l.split(': ');return `${k[0]+k.slice(1).toLowerCase()}: ${v.toLowerCase()}.`};
+function scanLoop(now){
+  const S=H;if(!S||S.kind!=='scan')return;S.raf=requestAnimationFrame(scanLoop);
+  const c=S.ctx;if(!c)return;const cvs=c.canvas;
+  const dpr=Math.min(window.devicePixelRatio||1,2),W=innerWidth,Hh=innerHeight;
+  if(cvs.width!==Math.round(W*dpr)||cvs.height!==Math.round(Hh*dpr)){cvs.width=Math.round(W*dpr);cvs.height=Math.round(Hh*dpr)}
+  c.setTransform(dpr,0,0,dpr,0,0);
+  const v=S.video,t=(now-S.t0)/1000;if(!v||v.readyState<2||!v.videoWidth){c.fillStyle='#000';c.fillRect(0,0,W,Hh);return}
+  const map=coverMap(v.videoWidth,v.videoHeight,W,Hh);
+  if(v.currentTime!==S.lastVT){
+    S.lastVT=v.currentTime;let res=null;
+    try{res=S.det.detectForVideo(v,now)}catch(e){}
+    if(res)S.targets=S.track((res.detections||[]).map(d=>map.box(d.boundingBox)),t);
+    const n=S.targets.length;setStat(n?`${n} TARGET${n>1?'S':''} LOCKED`:'SCANNING… NO TARGETS');
+    if(n>S.announced&&t-S.lastSaid>4){
+      const k=S.targets.find(k=>k.fresh)||S.targets[n-1];S.lastSaid=t;
+      say(n===1?`Target acquired. ${k.lines.slice(0,2).map(sentence).join(' ')}`:`${n} targets acquired. ${sentence(k.lines[0])}`);
+    }
+    S.announced=n;
+  }
+  c.save();c.translate(W,0);c.scale(-1,1);c.drawImage(v,map.ox,map.oy,v.videoWidth*map.s,v.videoHeight*map.s);c.restore();
+  c.fillStyle='rgba(2,20,10,.35)';c.fillRect(0,0,W,Hh);
+  const {phos,amber,text}=S.colors;
+  if(!reduce){ // a scan line sweeping down the picture
+    const y=(t*.35%1)*Hh,g=c.createLinearGradient(0,y-60,0,y);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,phos);
+    c.globalAlpha=.25;c.fillStyle=g;c.fillRect(0,y-60,W,60);c.globalAlpha=.9;c.fillStyle=phos;c.fillRect(0,y-1,W,2);c.globalAlpha=1;
+  }
+  const top=document.getElementById('holo-top').getBoundingClientRect().bottom+8;
+  const bottom=Math.min(holoCap.textContent?holoCap.getBoundingClientRect().top:Hh,f.getBoundingClientRect().top)-8;
+  const fs=W<600?11:13;c.font=`500 ${fs}px "Chakra Petch", sans-serif`;c.textBaseline='top';
+  for(const k of S.targets){
+    const age=t-k.born,lock=reduce?1:clamp(age/.35,0,1),grow=1+(1-lock)*.6;
+    const w=k.w*grow,h=k.h*grow,x=k.x+k.w/2-w/2,y=k.y+k.h/2-h/2,arm=Math.min(w,h)*.22;
+    c.strokeStyle=lock>=1?amber:phos;c.lineWidth=3;c.shadowColor=c.strokeStyle;c.shadowBlur=10;c.beginPath();
+    for(const [px,py,sx,sy] of [[x,y,1,1],[x+w,y,-1,1],[x,y+h,1,-1],[x+w,y+h,-1,-1]]){c.moveTo(px+sx*arm,py);c.lineTo(px,py);c.lineTo(px,py+sy*arm)}
+    c.stroke();c.shadowBlur=0;
+    if(lock<1)continue;
+    // the readout: beside the face where there's room, kept on screen and between the top HUD and the caption
+    const lines=[`TARGET ${String(k.id).padStart(2,'0')}`,...k.lines],lh=fs*1.45,pad=7;
+    const bw=Math.min(W-16,Math.max(...lines.map(l=>c.measureText(l).width))+pad*2),bh=lines.length*lh+pad*2-(lh-fs);
+    let bx=x+w+12;if(bx+bw>W-8)bx=x-12-bw;if(bx<8)bx=clamp(x+w/2-bw/2,8,W-8-bw);
+    let by=clamp(y,top,Math.max(top,bottom-bh));
+    if(bx<x+w&&bx+bw>x&&by<y+h&&by+bh>y)by=y+h+10<=bottom-bh?y+h+10:Math.max(top,y-10-bh); // no room beside it: above or below
+    c.fillStyle='rgba(2,10,6,.85)';c.fillRect(bx,by,bw,bh);c.strokeStyle=phos;c.lineWidth=1;c.strokeRect(bx+.5,by+.5,bw-1,bh-1);
+    lines.forEach((l,i)=>{c.fillStyle=i?text:amber;c.fillText(l,bx+pad,by+pad+i*lh)});
+  }
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&H&&H.kind==='scan')closeHolo()}); // never leave the camera on in a hidden tab
+
 /* ---------- Boot sequence ---------- */
 const boot=document.getElementById('boot'),bootGo=document.getElementById('boot-go'),bootLog=document.getElementById('boot-log');
 let booting=false,bootTimers=[];
@@ -1600,7 +1753,7 @@ document.getElementById('boot-skip').addEventListener('click',finishBoot);
 addEventListener('resize',placeBootButton);
 addEventListener('keydown',e=>{
   if(e.key!=='Escape')return;
-  if(!boot.hidden)finishBoot();else if(closeHolo())say("Projector off.");
+  const k=H&&H.kind;if(!boot.hidden)finishBoot();else if(closeHolo())say(k==='scan'?SCAN_OFF:"Projector off.");
 });
 
 /* ---------- Skin switching ---------- */
@@ -1665,7 +1818,7 @@ function learn(said,meant){
 }
 let pendingTeach=null; // the phrase Jarvis just didn't understand, while he waits to hear what it meant
 const NOPE=Symbol('not understood');
-const CAN_DO="Here's what I can do: tell the time or date, a joke, a fun fact or some math, flip a coin or roll a die, show you things on the holo-projector like Mars, Earth or your name, suit up, show my brain, or switch to the Matrix or Panthers skin.";
+const CAN_DO="Here's what I can do: tell the time or date, a joke, a fun fact or some math, flip a coin or roll a die, show you things on the holo-projector like Mars, Earth or your name, suit up, show my brain, run a threat scan, or switch to the Matrix or Panthers skin.";
 // One answer, or NOPE when nothing understood it. A learned phrase stands in for what it means.
 async function respond(text){
   const p=normPhrase(text);if(learned[p])text=learned[p];
@@ -1726,7 +1879,7 @@ if(SR){
   mic.addEventListener('click',()=>{if(synth)synth.cancel();try{rec.start()}catch(e){rec.stop()}});
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,orbPulse,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing};
+window.__jarvis={speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing};
 setSkin(skin);
 showBoot();
 </script>
