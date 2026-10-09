@@ -365,6 +365,19 @@ hand control. Each one cost a failed run to discover:
   registers. Test gesture logic with synthetic landmarks (see
   `tests/jarvis.dom.test.mjs`), and test the page wiring by calling its
   action handler from `page.evaluate`.
+- **A fake speech recognizer must behave like the real one.** Headless
+  Chromium can't run real speech recognition, so `jarvis.html`'s mic is
+  tested with a fake `SpeechRecognition` in `addInitScript`. The real
+  `start()` throws `InvalidStateError` if recognition is already running,
+  and the page's mic button relies on that: its handler is
+  `try{rec.start()}catch(e){rec.stop()}`, so a second tap stops listening.
+  A fake whose `start()` never throws means the second tap never stops
+  anything, and the check reports a stream left open, which looks like a
+  page bug but isn't. Make the fake's `start()` throw when it's already
+  running, and have it call `onstart`/`onend` asynchronously, as the real
+  one does. This cost a false alarm on 2026-10-09 (Session 1 of
+  `jarvis/build-plan.html`). The same applies to any browser API a page
+  relies on to throw or to call back later.
 
 Either way, jsdom itself never has a canvas (`getContext('2d')` returns null;
 see battle-bots-V2 above), so the committed `tests/` suites still exercise the
