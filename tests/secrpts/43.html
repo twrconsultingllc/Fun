@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #43 — the suit schematic in jarvis-test.html</title>
+<meta name="description" content="Security and code-quality review of Session 3 of the J.A.R.V.I.S. build plan in jarvis-test.html: a wireframe suit of armour on a turntable, with HTML callout labels, an assembly animation and repulsors fired by a fist.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #43 — the suit schematic in <code>jarvis-test.html</code></h1>
+    <p class="sub">Session 3 of <code>jarvis/build-plan.html</code>, built in the test copy only. "Show me the suit" opens a generic suit of armour drawn from 31 three.js primitives in glowing wireframe, turning on a turntable while a scanning ring sweeps up and down it. Four HTML callouts (Helmet HUD, Arc reactor, Repulsor, Flight stabilizer) follow the model with leader lines. A tap on a label or a part gives a spec line, "suit up" flies the parts in boots first and helmet last, and a fist fires the repulsors. <code>jarvis.html</code> is unchanged.</p>
+    <div class="meta">Review performed 2026-10-09 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>jarvis/build-plan.html</code> · suites run: <code>jarvis-test</code> (201 passed, up from 160) · follows: <a href="42.html">42.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 88%;"></div></div>
+    <div class="progress-label">8 items: 7 fixed or verified clean, 1 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No new network access, and nothing downloaded</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The plan asked for no downloaded 3D model, to avoid licensing questions and keep the page self-contained. The suit is built in code from boxes, cylinders and icosahedra listed in <code>SUIT_PARTS</code>. A diff of the CSP meta tags of <code>jarvis.html</code> and <code>jarvis-test.html</code> is empty, so <code>connect-src 'self'</code> still holds. The added lines contain 0 <code>fetch(</code>, <code>XMLHttpRequest</code>, <code>import(</code> or <code>src=</code>. In Chromium, both screen sizes ran with no page errors and no <code>Refused</code> CSP messages. <code>jarvis/build-plan.html</code> gains one link, a relative path to this review, and still has 0 scripts, event handlers and forms.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Callout labels are built without HTML strings</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The labels are <code>&lt;button&gt;</code> elements whose text is set with <code>textContent</code> from the fixed <code>SUIT_CALLOUTS</code> list. The leader lines are SVG elements made with <code>createElementNS</code>, and their positions are set as numbers. A grep of <code>jarvis-test.html</code> still finds 0 <code>innerHTML</code>, <code>insertAdjacentHTML</code>, <code>eval(</code> or <code>new Function</code>. Spec lines are fixed strings that go through <code>say()</code> and <code>add()</code>, which use <code>textContent</code>. Nothing the user types reaches the scene: the command only picks between <code>'assemble'</code> and <code>null</code>.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The labels go away with the scene</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The labels are HTML outside the WebGL canvas, so <code>closeHolo()</code> now calls a scene's optional <code>dispose()</code>, which removes them. In Chromium, both "close" and Escape left no <code>#suit-labels</code> in the page. Without WebGL, the suite checks that <code>project({kind:'suit'})</code> says so and creates no labels.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Callouts stay on screen at 390×844, measured</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>As review 38 did for the HUD, a Chromium script measured every label's box 24 times over 18 s, which is more than a full turn of the turntable, at 1280×800 and 390×844. It compared each box with the screen, with the bottom of the top HUD and its buttons (93 px on desktop, 104 px on the phone) and with the top of the caption and text box (639 px and 662 px). It found 0 labels off screen, under the HUD or under the text box, and 0 overlaps.</p><p>The layout is a pure function, <code>layoutCallouts</code>. It puts a column of labels down each side of the figure, each label level with its anchor where there's room. Labels are stacked so they don't overlap and clamped to the free area. A label within 24 px of the middle keeps the side it had last frame, so it doesn't flicker as the suit turns. The suite runs it on 300 random seeded poses at phone size and checks that every label fits and none overlap. It also checks a pile-up of all four labels below the free area, the side rules, and that a label sits level with its anchor (anchor at 400 px and label 24 px tall gives a top of 388 px).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Two problems found in the screenshots, both fixed</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><ul><li>During "suit up", the labels and the repulsor glows showed before their parts had arrived, so leader lines pointed at empty space. Now the labels and glows appear only once the suit is together.</li><li>On the desktop the turntable sat under the caption box. The figure now fits in the space between the top HUD and the bottom 350 px, and is lifted 60 px. On the phone the boots are clear of the caption. The turntable ring can still pass under a three-line caption, which is fine because the caption box is opaque enough to read.</li></ul></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Contrast of the labels, including dimmed ones</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>A label's anchor can be on the back of the suit, so its leader line dims to 0.3 and the label dims too. Labels are <code>#39ff88</code> on <code>rgba(2,10,6,.85)</code>. Worked out from the WCAG formula: 15.12:1 over the dark scene, and 10.36:1 even over pure white. The selected label (<code>#ffc24a</code>) is 12.48:1 and 8.55:1. A dimmed label at the first opacity I tried, 0.7, fell to <b>4.16:1</b> over white, which can happen behind it when the repulsors fire their near-white beams. At 0.8 it's 5.61:1, so that's the value used. 0.75 would give 4.82:1, but that leaves less margin. Labels are real buttons, so they can be reached with Tab and get the page's amber focus ring.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What the suite now pins</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>41 new checks (160 to 201). Commands: "suit up" and "suit me up" assemble it, while "show me the suit", "can I see your armour", "iron man suit" and "make a suit" open it ready-made. "show me the suitcase", "I need a new lawsuit" and "who is iron man" don't open it. The help answer mentions suiting up. Parts: 31 parts with unique names, each with valid sizes and a group that has spec lines. Left and right parts mirror each other exactly. The suit stands above y = 0 and fits the half-width and half-height used to frame it. The four callouts are the ones in the plan, and each faces a unit direction (front for the reactor, back for the stabilizers). Assembly: every part has one place in the order. Boots go on first and the helmet's eyes last, and no part goes on before one lower down. Every part's progress only increases and reaches 1 by the end, and the whole build takes 2 to 4 s (it's 2.9 s).</p><p>In Chromium: a tap on the Arc reactor label, a pick near the middle (the abdomen, which gets a plating line), a swipe (the next callout), a squeeze (beams in the screenshot), "suit up" (the stat counts the parts on, then reads "31 PARTS · 4 SYSTEMS · REPULSORS CHARGED"), and "close". With reduced motion on, "suit up" skips the flight and says the suit is complete, and the turntable turned 0.10 rad in 2 s instead of about 0.7.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not yet tried on the user's devices</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>All rendering here was software WebGL, where frames are slow and the assembly looks slower than it will on a phone. The scene is light, at 31 parts with about 1,100 edge lines (12 boxes × 12, 11 cylinders × 24, 6 balls × 120), so it should run well, but phone frame rate is unmeasured. Whether the labels feel readable at phone size, and whether the look is right, is for the user to judge on the live test copy. One more thing to note: "suit up" used to get a chat answer ("Suit diagnostics complete…"). The projector command now catches it first, so that answer is only reached by "iron man" or "armor" in other phrasings.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: the <code>jarvis-test</code> suite, greps for unsafe sinks and network calls, a CSP diff against <code>jarvis.html</code>, WCAG contrast from the formula, and headless Chromium at two sizes plus reduced motion. See <a href="42.html">42.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
