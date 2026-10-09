@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #41 — jarvis.html: the mic stopped transcribing</title>
+<meta name="description" content="Review of the jarvis.html fix for a regression from review 40: a second mic stream opened for the voice-reactive orb stopped speech recognition transcribing on a phone.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #41 — <code>jarvis.html</code>: the mic stopped transcribing</h1>
+    <p class="sub">A fix for a regression shipped in <a href="40.html">40.html</a>. The user reported that after that update, tapping the mic showed LISTENING but nothing was ever transcribed. The cause was the risk review 40 left open: a second mic stream, opened so the orb could follow your loudness, took the mic away from speech recognition. The orb now reacts through speech recognition's own <code>speechstart</code> and <code>speechend</code> events, and the page never opens a mic stream of its own.</p>
+    <div class="meta">Review performed 2026-10-09 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis.html</code>, <code>tests/jarvis.dom.test.mjs</code>, <code>jarvis/build-plan.html</code> (Session 1 notes), <code>tests/secrpts/40.html</code> (one badge) · suites run: <code>jarvis</code> only (128 passed, 0 failed) · follows: <a href="40.html">40.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 75%;"></div></div>
+    <div class="progress-label">4 items: 3 fixed or verified clean, 1 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>The regression</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Speech recognition heard nothing</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>From review 40, recognition's <code>onstart</code> called <code>getUserMedia({audio:true})</code> and fed the stream into an <code>AnalyserNode</code>. On the user's phone, that stream got the mic and recognition got silence: it showed LISTENING, then ended with no result. Review 40 marked this as a possibility (Open). Its guard only covered a device that reports <code>audio-capture</code>, and this phone failed silently. The level meter (<code>startMeter</code>, <code>stopMeter</code>, <code>rmsLevel</code>, <code>levelToEnergy</code>) is gone. The listening path is back to what it was before review 40, plus two event handlers. A grep finds one <code>getUserMedia</code> call left in the page, hand control's camera request, which asks for <code>audio:false</code>.</p><div class="fix-note"><b>Fix:</b> <code>rec.onspeechstart</code>/<code>onspeechend</code> set a <code>hearing</code> flag. While it's set, the orb's energy jumps to 0.95 and flutters between 70% and 100% of it (<code>orbPulse({hearing})</code>). The flag clears on <code>onend</code>, <code>onerror</code> and <code>onstart</code>.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A test that would have caught it</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Review 40's suite checked that the second stream opened and closed correctly. It treated opening the stream as intended, so it couldn't catch this. The suite now records every <code>getUserMedia</code> call through a fake recognizer's full cycle: tap, start, speech, result, end, error. It requires zero calls. Against review 40's code that check fails, because <code>onstart</code> made one call. It also checks that a spoken transcript reaches the chat log, and that the <code>hearing</code> flag follows the speech events and clears on end and on error.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Checked in Chromium</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>At 1280×800 and 390×844, with <code>getUserMedia</code> wrapped to count calls and a fake recognizer whose <code>start()</code> throws when already running (as the real one does; see <code>CLAUDE.md</code>): the orb's energy was 0.43 while listening quietly and 0.95 after <code>speechstart</code>. A spoken "what is seven times eight" was answered "That would be 56." The page made 0 calls to <code>getUserMedia</code>. No page errors, no CSP violations. The CSP and the rest of review 40's changes (mic note, HUD strip, word pulse, reduced motion) are unchanged.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Still open</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Real speech recognition on the user's phone</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Headless Chromium has no working speech service, so recognition itself was faked here, as in review 40. The fix removes the only thing that changed in the listening path, but the proof is the user talking to it on the same phone. The orb reacts when recognition says it hears speech, not to how loud you are. It is a coarser reaction than review 40 aimed for, and it's the one that doesn't compete for the mic.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: the <code>jarvis</code> suite (128 passed; down from review 40's 145 because the loudness and level-stream checks went with the code they tested), a grep for <code>getUserMedia</code>, and headless Chromium at two sizes with a fake recognizer. See <a href="40.html">40.html</a> for the update that introduced the bug.
+  </footer>
+
+</div>
+</body>
+</html>
