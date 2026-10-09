@@ -176,8 +176,8 @@
       <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
       <span><span class="dot open"></span> Open</span>
     </div>
-    <div class="progress-bar"><div class="progress-fill" style="width: 63%;"></div></div>
-    <div class="progress-label">8 items: 5 fixed or verified clean (3 of them carried over from reviews 36 and 37), 1 partial, 2 open.</div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 67%;"></div></div>
+    <div class="progress-label">9 items: 6 fixed or verified clean (3 of them carried over from reviews 36 and 37), 1 partial, 2 open.</div>
   </header>
 
   <section>
@@ -193,6 +193,10 @@
     <div class="item">
       <div class="item-head"><div class="item-title">The level stream is a second claim on the mic</div><span class="badge open">Open</span></div>
       <div class="item-body"><p>Desktop Chrome lets speech recognition and a page stream share the mic. Some phones may not. If recognition reports <code>audio-capture</code> while the level stream is open, the page stops the stream and doesn't open it again that visit, so the next tap works with the old sine pulse. The test suite covers that path. But a phone that quietly hands the mic to one of them, with no error, would need a real device to see. That is the <b>You</b> step of Session 1: talk to it on your phone. If the mic stops understanding you there, this is the cause.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The build plan's session notes</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>jarvis/build-plan.html</code> gained Session 1's notes, its Done badges and an updated map row. A count of the file still finds 0 <code>&lt;script&gt;</code> tags, 0 inline event handlers and 0 forms. A script resolved every <code>href</code>: every in-page anchor matches an <code>id</code>, every relative link, including the new <code>../tests/secrpts/40.html</code>, points to a file in the repo, and the one absolute link is the live site's own page. The notes reuse the page's existing <code>.badge</code> and <code>.callout</code> styles, so no new colours were added.</p></div>
     </div>
   </section>
 
