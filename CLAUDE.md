@@ -448,6 +448,18 @@ Headless Chromium has no voices, so this can't be heard in a test. The
 suites check it with a fake speech engine instead, so keep that fake
 behaving like the real one.
 
+Each skin in `jarvis-test.html` (Jarvis, Morpheus, Stanley C. Panther) has
+a face in the orb's centre, drawn by `orbFace()`. Each face is a picture
+drawn once on a hidden canvas: the helmet and Stanley in colour, Morpheus in
+grey. Every frame, it's redrawn as a grid of code characters that take their
+colour or brightness from that picture, with code raining through it. To
+change a face, change the picture function (`drawHelmet`, `drawMorpheus`,
+`drawPanther`), not the character grid. Thin details vanish when sampled
+into characters, so those functions draw trim, eyes and features thicker
+for this (the `bold`/`code` options). jsdom has no canvas, so the suites
+never draw a face. Check a face change with headless Chromium screenshots of
+each skin. The faces were picked on 2026-10-09 (review 46).
+
 ## Long sessions: hand off with a prompt
 
 When a session's context is getting full, finish and merge the current
