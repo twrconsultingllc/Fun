@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<meta name="description" content="J.A.R.V.I.S. Demo: a talking assistant that runs in your browser, with a boot-up sequence, an animated orb, voice in and out, and a holo-projector that shows a 3D galaxy, the solar system and particle sculptures, which you can steer with hand gestures.">
+<meta name="description" content="J.A.R.V.I.S. Demo: a talking assistant that runs in your browser, with a boot-up sequence, an animated orb with a face, voice in and out, three skins (Jarvis, Morpheus from The Matrix and Stanley C. Panther of the Florida Panthers), phrases it learns from you, and a holo-projector that shows a 3D galaxy, the solar system, the Earth, a suit schematic and its own neural network, which you can steer with hand gestures.">
 <title>J.A.R.V.I.S. Demo</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%23020a06'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%2339ff88' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%2339ff88'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -52,6 +52,21 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 #clock-box{text-align:right}
 #mic-note{max-width:640px;width:100%;margin:-8px auto 0;padding:0 18px 12px;font-size:.75rem;line-height:1.35;color:var(--label)}
 body.holo-on #mic-note{display:none}
+
+/* ---------- Skins ---------- */
+:root[data-skin="matrix"]{--void:#000300;--deep:#001a06;--phos:#00ff41;--phos-dim:#0b6e26;--label:#2ec95a;--glass:rgba(0,255,65,.06);--text:#d4ffdc}
+:root[data-skin="panther"]{--void:#020814;--deep:#0a2552;--phos:#ff7381;--phos-dim:#8f2a3a;--label:#d4b47a;--amber:#d4b47a;--glass:rgba(200,16,46,.08);--text:#f1f4fa}
+:root[data-skin="panther"] #state{opacity:1}
+:root[data-skin="panther"] .me{color:#fff3dc;background:rgba(185,151,91,.08)}
+:root[data-skin="panther"] body::after{background:repeating-linear-gradient(0deg,rgba(200,16,46,.04) 0 1px,transparent 1px 3px)}
+#rain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1;opacity:.35}
+#rain[hidden]{display:none}
+.skin-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
+#skin{padding:3px 8px;font-size:.7rem;letter-spacing:.12em;font-weight:500}
+#voice{font:inherit;font-size:.7rem;letter-spacing:.06em;font-weight:500;background:var(--void);color:var(--phos);border:1px solid var(--phos);padding:3px 4px;max-width:min(40vw,240px);cursor:pointer}
+#clock-box{flex-shrink:0}
+#clock{white-space:nowrap}
+#voice:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 
 /* ---------- Boot screen ---------- */
 #boot{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;justify-content:flex-end;
@@ -111,6 +126,19 @@ body.holo-on #log{display:none}
 body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:linear-gradient(to top,rgba(2,10,6,.92),rgba(2,10,6,0));
   padding-bottom:max(18px,env(safe-area-inset-bottom,0px))}
 
+/* Suit schematic callouts: labels down each side, joined to the suit by leader lines */
+#suit-labels{inset:0;visibility:hidden}
+#suit-labels.ready{visibility:visible}
+#suit-labels svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#suit-labels line{stroke:var(--phos);stroke-width:1;opacity:.75}
+#suit-labels circle{fill:var(--phos)}
+#suit-labels line.back,#suit-labels circle.back{opacity:.3}
+.suit-label{position:absolute;left:0;top:0;pointer-events:auto;max-width:130px;padding:5px 8px;background:rgba(2,10,6,.85);
+  border:1px solid var(--phos-dim);color:var(--phos);font-size:.72rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;line-height:1.25;text-align:left}
+.suit-label.on{border-color:var(--amber);color:var(--amber)}
+.suit-label.back{opacity:.8} /* the lowest that keeps 4.5:1 over pure white (5.61:1) */
+@media (max-width:600px){.suit-label{max-width:84px;padding:4px 6px;font-size:.66rem;letter-spacing:.04em}}
+
 @media (prefers-reduced-motion:reduce){
   #log{scroll-behavior:auto}
   #boot-go{animation:none}
@@ -120,8 +148,10 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
 </style>
 </head>
 <body>
+<canvas id="rain" aria-hidden="true" hidden></canvas>
 <header>
-  <div><b>J.A.R.V.I.S.</b>Demo build · no internet brain · <a href="index.html">← Fun</a></div>
+  <div><b><span id="who">J.A.R.V.I.S.</span></b>Demo build · no internet brain · <a href="index.html">← Fun</a>
+    <span class="skin-row"><button type="button" id="skin" aria-label="Change skin">SKIN: JARVIS</button><select id="voice" aria-label="Voice" hidden></select></span></div>
   <div id="clock-box"><b id="clock">--:--</b><span id="date"></span></div>
 </header>
 
@@ -167,7 +197,8 @@ tick();setInterval(tick,1000);
 
 /* ---------- Orb ---------- */
 const cv=document.getElementById('orb'),cx=cv.getContext('2d'),stateEl=document.getElementById('state');
-let mode='idle',energy=0,bootP=0; // bootP: how much of the orb has assembled, 0..1
+let mode='idle',energy=0,bootP=0;
+let ringRGB='57,255,136',coreRGB='180,255,210'; // the orb's colours, set by the skin // bootP: how much of the orb has assembled, 0..1
 const reduce=!!window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 const amb=reduce?.15:1; // ambient motion: slow everything right down when reduced motion is asked for
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -184,6 +215,222 @@ let lastWord=null; // when the current utterance last started a word (rAF time),
 // Set by recognition's own speechstart/speechend events. The orb never opens a mic stream of its own:
 // a second stream took the mic away from speech recognition on a phone (2026-10-09).
 let hearing=false;
+/* ---------- Orb faces: each skin's face in the orb's centre, drawn in code characters ---------- */
+// Jarvis gets an Iron Man style helmet, Morpheus his portrait, Stanley C. Panther the mascot. Each is drawn
+// once in full colour (or grey for Morpheus) on a hidden canvas, then redrawn every frame as a grid of
+// characters that takes its colour from that picture, with code raining down through it.
+const orbFace=(()=>{
+const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+const grey=(v,a=1)=>`rgba(${v*255|0},${v*255|0},${v*255|0},${a})`;
+function blob(g,x,y,rx,ry,v,a){const r=g.createRadialGradient(x,y,0,x,y,1);r.addColorStop(0,grey(v,a));r.addColorStop(1,grey(v,0));g.save();g.translate(x,y);g.scale(rx,ry);g.translate(-x,-y);g.fillStyle=r;g.beginPath();g.arc(x,y,1,0,7);g.fill();g.restore()}
+let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const GREEN='#39ff88',ORANGE='#ffa64a',CYAN='#7fe8ff';
+
+/* ---------- Morpheus (round 2's portrait, unchanged) ---------- */
+function morphHead(g){
+  g.beginPath();g.moveTo(0,-.86);
+  g.bezierCurveTo(.36,-.86,.6,-.62,.6,-.26);g.bezierCurveTo(.62,.05,.6,.3,.5,.5);g.bezierCurveTo(.42,.68,.24,.8,0,.82);
+  g.bezierCurveTo(-.24,.8,-.42,.68,-.5,.5);g.bezierCurveTo(-.6,.3,-.62,.05,-.6,-.26);g.bezierCurveTo(-.6,-.62,-.36,-.86,0,-.86);g.closePath();
+}
+function drawMorpheus(g){
+  let lg=g.createLinearGradient(0,.4,0,1.2);lg.addColorStop(0,grey(.18));lg.addColorStop(1,grey(.42));
+  g.fillStyle=lg;g.beginPath();g.moveTo(-.34,.45);g.lineTo(.34,.45);g.lineTo(.42,1.2);g.lineTo(-.42,1.2);g.fill();
+  g.fillStyle=grey(.07);
+  for(const s of[-1,1]){g.beginPath();g.moveTo(s*.32,.72);g.lineTo(s*.62,.62);g.lineTo(s*1.1,.9);g.lineTo(s*1.1,1.2);g.lineTo(s*.12,1.2);g.closePath();g.fill()}
+  g.strokeStyle=grey(.35);g.lineWidth=.012;for(const s of[-1,1]){g.beginPath();g.moveTo(s*.32,.72);g.lineTo(s*.62,.62);g.lineTo(s*1.0,.84);g.stroke()}
+  for(const s of[-1,1]){g.fillStyle=grey(s<0?.5:.32);g.beginPath();g.ellipse(s*.6,.03,.085,.17,s*.12,0,7);g.fill();g.fillStyle=grey(.15);g.beginPath();g.ellipse(s*.61,.04,.035,.09,s*.12,0,7);g.fill()}
+  morphHead(g);let rg=g.createRadialGradient(-.22,-.42,.02,-.05,-.1,1.05);
+  rg.addColorStop(0,grey(.95));rg.addColorStop(.3,grey(.72));rg.addColorStop(.7,grey(.46));rg.addColorStop(1,grey(.24));g.fillStyle=rg;g.fill();
+  g.save();morphHead(g);g.clip();
+  lg=g.createLinearGradient(-.62,0,.62,0);lg.addColorStop(0,grey(0,.35));lg.addColorStop(.22,grey(0,0));lg.addColorStop(.7,grey(0,0));lg.addColorStop(1,grey(0,.55));g.fillStyle=lg;g.fillRect(-1,-1,2,2);
+  blob(g,-.2,-.6,.2,.1,1,.75);blob(g,-.34,.06,.16,.12,1,.22);blob(g,.36,.08,.14,.12,0,.18);
+  g.strokeStyle=grey(0,.16);g.lineWidth=.014;for(const y of[-.47,-.4]){g.beginPath();g.moveTo(-.22,y);g.quadraticCurveTo(0,y-.03,.22,y);g.stroke()}
+  for(const s of[-1,1])blob(g,s*.23,-.11,.22,.13,0,.5);
+  g.fillStyle=grey(.12);
+  for(const s of[-1,1]){g.beginPath();g.moveTo(s*.45,-.21);g.quadraticCurveTo(s*.32,-.3,s*.1,-.255);g.lineTo(s*.07,-.215);g.quadraticCurveTo(s*.28,-.245,s*.45,-.18);g.closePath();g.fill()}
+  blob(g,0,-.27,.07,.05,0,.35);
+  g.strokeStyle=grey(1,.22);g.lineWidth=.03;g.beginPath();g.moveTo(-.02,-.06);g.quadraticCurveTo(-.03,.06,-.02,.17);g.stroke();
+  g.fillStyle=grey(0,.22);g.beginPath();g.moveTo(.05,-.06);g.quadraticCurveTo(.11,.06,.14,.2);g.lineTo(.07,.18);g.quadraticCurveTo(.06,.05,.03,-.04);g.fill();
+  for(const s of[-1,1]){blob(g,s*.12,.2,.07,.06,s<0?.9:0,s<0?.18:.3);g.fillStyle=grey(.06);g.beginPath();g.ellipse(s*.085,.245,.045,.022,s*-.25,0,7);g.fill()}
+  blob(g,0,.19,.06,.05,1,.3);blob(g,0,.29,.16,.035,0,.4);
+  g.strokeStyle=grey(0,.3);g.lineWidth=.022;for(const s of[-1,1]){g.beginPath();g.moveTo(s*.16,.18);g.quadraticCurveTo(s*.27,.3,s*.25,.44);g.stroke()}
+  g.fillStyle=grey(.08);g.beginPath();g.moveTo(-.21,.385);g.quadraticCurveTo(0,.31,.21,.385);g.quadraticCurveTo(0,.355,-.21,.385);g.fill();
+  g.fillStyle=grey(.3);g.beginPath();g.moveTo(-.18,.395);g.quadraticCurveTo(-.06,.36,0,.38);g.quadraticCurveTo(.06,.36,.18,.395);g.quadraticCurveTo(0,.425,-.18,.395);g.fill();
+  g.fillStyle=grey(.4);g.beginPath();g.moveTo(-.17,.405);g.quadraticCurveTo(0,.42,.17,.405);g.quadraticCurveTo(.12,.51,0,.505);g.quadraticCurveTo(-.12,.51,-.17,.405);g.fill();
+  blob(g,-.03,.455,.06,.02,1,.35);
+  g.fillStyle=grey(.07);g.beginPath();g.moveTo(-.2,.4);g.quadraticCurveTo(-.23,.55,-.15,.68);g.quadraticCurveTo(0,.84,.15,.68);g.quadraticCurveTo(.23,.55,.2,.4);
+  g.lineTo(.17,.42);g.quadraticCurveTo(.15,.55,0,.54);g.quadraticCurveTo(-.15,.55,-.17,.42);g.closePath();g.fill();
+  g.strokeStyle=grey(.32,.5);g.lineWidth=.008;seed=7;
+  for(let i=0;i<70;i++){const x=(rnd()-.5)*.32,y=.56+rnd()*.22;if(Math.abs(x)>.17-(y-.56)*.6)continue;g.beginPath();g.moveTo(x,y);g.lineTo(x+(rnd()-.5)*.02,y+.035);g.stroke()}
+  g.restore();
+  for(const s of[-1,1]){
+    const x=s*.215,y=-.1;const r=g.createRadialGradient(x-.05,y-.05,.01,x,y,.15);r.addColorStop(0,grey(.28));r.addColorStop(.5,grey(.05));r.addColorStop(1,grey(.02));
+    g.fillStyle=r;g.beginPath();g.ellipse(x,y,.15,.135,0,0,7);g.fill();
+    g.strokeStyle=grey(.75);g.lineWidth=.016;g.stroke();
+    g.strokeStyle=grey(1,.75);g.lineWidth=.02;g.beginPath();g.ellipse(x,y,.105,.09,0,Math.PI*1.08,Math.PI*1.42);g.stroke();
+  }
+  g.strokeStyle=grey(.75);g.lineWidth=.018;g.beginPath();g.moveTo(-.07,-.13);g.quadraticCurveTo(0,-.19,.07,-.13);g.stroke();
+  for(const s of[-1,1]){g.beginPath();g.moveTo(s*.07,-.13);g.lineTo(s*.045,-.07);g.stroke()}
+}
+
+
+/* ---------- The helmet (front view, x right, y down, about 1.8 units tall) ---------- */
+function shell(g){
+  g.beginPath();g.moveTo(0,-.94);
+  g.bezierCurveTo(.38,-.94,.62,-.72,.62,-.32);g.bezierCurveTo(.62,-.05,.64,.2,.56,.42);g.bezierCurveTo(.48,.62,.3,.8,0,.88);
+  g.bezierCurveTo(-.3,.8,-.48,.62,-.56,.42);g.bezierCurveTo(-.64,.2,-.62,-.05,-.62,-.32);g.bezierCurveTo(-.62,-.72,-.38,-.94,0,-.94);g.closePath();
+}
+function plate(g){
+  g.beginPath();g.moveTo(0,-.7);
+  g.bezierCurveTo(.22,-.7,.4,-.62,.44,-.42);g.lineTo(.46,-.12);g.lineTo(.4,0);g.lineTo(.43,.16);
+  g.bezierCurveTo(.42,.4,.3,.62,.13,.74);g.lineTo(0,.78);g.lineTo(-.13,.74);
+  g.bezierCurveTo(-.3,.62,-.42,.4,-.43,.16);g.lineTo(-.4,0);g.lineTo(-.46,-.12);g.lineTo(-.44,-.42);g.bezierCurveTo(-.4,-.62,-.22,-.7,0,-.7);g.closePath();
+}
+function eyes(g){for(const s of[-1,1]){g.moveTo(s*.38,-.21);g.lineTo(s*.09,-.125);g.lineTo(s*.1,-.06);g.lineTo(s*.34,-.105);g.closePath()}}
+function panelLines(g){
+  g.moveTo(-.18,.44);g.quadraticCurveTo(0,.475,.18,.44); // mouth slit
+  for(const s of[-1,1]){
+    g.moveTo(s*.36,-.06);g.quadraticCurveTo(s*.31,.24,s*.19,.44); // cheek plates
+    g.moveTo(s*.19,.44);g.lineTo(s*.11,.7);                        // chin
+    g.moveTo(s*.44,-.3);g.quadraticCurveTo(s*.22,-.33,s*.06,-.26); // brow
+  }
+  g.moveTo(0,-.26);g.lineTo(0,-.08);
+}
+function trim(g){ // the orange bits: forehead stripe and the cheek vents
+  g.moveTo(0,-.7);g.lineTo(0,-.44);
+  for(const s of[-1,1]){g.moveTo(s*.41,.06);g.lineTo(s*.36,.2);g.moveTo(s*.39,.24);g.lineTo(s*.33,.36)}
+}
+function ears(g,fill){for(const s of[-1,1]){g.beginPath();g.arc(s*.6,-.05,.1,0,7);g.fillStyle=fill;g.fill()}}
+// H1 base: solid armour, built once (also the colour map for H3)
+function drawHelmet(g,eyeGlow=1,bold=1){
+  let rg=g.createRadialGradient(-.22,-.55,.02,0,-.1,1.05);
+  rg.addColorStop(0,'#b9ffd6');rg.addColorStop(.25,'#4fe08f');rg.addColorStop(.65,'#178a4c');rg.addColorStop(1,'#063a1e');
+  shell(g);g.fillStyle=rg;g.fill();g.strokeStyle='#021a0c';g.lineWidth=.02;g.stroke();
+  ears(g,'#0a4a27');for(const s of[-1,1]){g.strokeStyle=ORANGE;g.lineWidth=.025;g.beginPath();g.arc(s*.6,-.05,.075,0,7);g.stroke()}
+  g.save();shell(g);g.clip();
+  g.strokeStyle='rgba(0,0,0,.55)';g.lineWidth=.07;plate(g);g.stroke();g.restore();
+  rg=g.createLinearGradient(-.45,-.7,.45,.75);rg.addColorStop(0,'#d9ffe9');rg.addColorStop(.3,'#6ff2a8');rg.addColorStop(.7,'#22a85f');rg.addColorStop(1,'#0b5530');
+  plate(g);g.fillStyle=rg;g.fill();
+  g.save();plate(g);g.clip();
+  const lg=g.createLinearGradient(-.46,0,.46,0);lg.addColorStop(0,'rgba(0,0,0,.25)');lg.addColorStop(.3,'rgba(0,0,0,0)');lg.addColorStop(.75,'rgba(0,0,0,0)');lg.addColorStop(1,'rgba(0,0,0,.4)');g.fillStyle=lg;g.fillRect(-1,-1,2,2);
+  g.restore();
+  g.strokeStyle=ORANGE;g.lineWidth=.022*bold;plate(g);g.stroke();
+  g.beginPath();panelLines(g);g.strokeStyle='#03200f';g.lineWidth=.022*bold;g.stroke();
+  g.beginPath();panelLines(g);g.strokeStyle='rgba(200,255,220,.35)';g.lineWidth=.008;g.save();g.translate(-.008,-.008);g.stroke();g.restore();
+  g.beginPath();trim(g);g.strokeStyle=ORANGE;g.lineWidth=.035*bold;g.lineCap='round';g.stroke();g.lineCap='butt';
+  g.beginPath();eyes(g);g.fillStyle='#03140a';g.fill();if(bold>1){g.beginPath();eyes(g);g.strokeStyle=CYAN;g.lineWidth=.05;g.lineJoin='round';g.stroke()}
+  g.save();g.shadowColor=CYAN;g.shadowBlur=.08*eyeGlow*40;g.beginPath();eyes(g);g.fillStyle='#effdff';g.globalAlpha=Math.min(1,.6+.4*eyeGlow);g.fill();g.restore();
+}
+
+
+/* ---------- Stanley C. Panther (front view, x right, y down) ---------- */
+const P_RED='#c8102e',P_GOLD='#ffd25a',P_TAN='#e8d2a6';
+function pHead(g){
+  g.beginPath();g.moveTo(0,-.66);
+  g.bezierCurveTo(.3,-.68,.5,-.58,.56,-.36);g.bezierCurveTo(.64,-.14,.68,.12,.6,.3);
+  g.lineTo(.68,.37);g.lineTo(.55,.42);g.lineTo(.6,.51);g.lineTo(.45,.54);g.bezierCurveTo(.34,.72,.18,.8,0,.8);
+  g.bezierCurveTo(-.18,.8,-.34,.72,-.45,.54);g.lineTo(-.6,.51);g.lineTo(-.55,.42);g.lineTo(-.68,.37);g.lineTo(-.6,.3);
+  g.bezierCurveTo(-.68,.12,-.64,-.14,-.56,-.36);g.bezierCurveTo(-.5,-.58,-.3,-.68,0,-.66);g.closePath();
+}
+function pEar(g,s,k=1){const c=[s*.42,-.6];g.beginPath();
+  g.moveTo(c[0]+(s*.22-c[0])*k,c[1]+(-.62-c[1])*k);g.quadraticCurveTo(c[0]+(s*.5-c[0])*k,c[1]+(-1.02-c[1])*k,c[0]+(s*.62-c[0])*k,c[1]+(-.92-c[1])*k);
+  g.quadraticCurveTo(c[0]+(s*.66-c[0])*k,c[1]+(-.62-c[1])*k,c[0]+(s*.58-c[0])*k,c[1]+(-.36-c[1])*k);g.closePath()}
+function pMuzzle(g){g.beginPath();g.moveTo(-.07,-.05);g.quadraticCurveTo(0,-.09,.07,-.05);g.lineTo(.1,.08);
+  g.arc(.14,.2,.16,-2.2,1.25);g.quadraticCurveTo(0,.42,-.05,.355);g.arc(-.14,.2,.16,1.9,5.35);g.closePath()}
+function pChin(g,open){g.beginPath();g.ellipse(0,.44+open*.12,.13,.09,0,0,7)}
+function pEye(g,s,open,pupil,glow,big=false){
+  g.save();g.translate(s*.24,-.17);g.rotate(s*.28);if(big)g.scale(1.35,1.5);g.scale(1,Math.max(.06,open));
+  g.beginPath();g.moveTo(-.13,0);g.quadraticCurveTo(0,-.11,.13,0);g.quadraticCurveTo(0,.09,-.13,0);g.closePath();
+  g.shadowColor=P_GOLD;g.shadowBlur=glow;const r=g.createRadialGradient(0,0,0,0,0,.13);r.addColorStop(0,'#fff3b0');r.addColorStop(.6,P_GOLD);r.addColorStop(1,'#d18a12');g.fillStyle=r;g.fill();g.shadowBlur=0;
+  g.fillStyle='#0a0606';g.beginPath();g.ellipse(0,0,.025+pupil*.04,.075,0,0,7);g.fill();
+  g.fillStyle='rgba(255,255,255,.85)';g.beginPath();g.arc(-.04,-.03,.016,0,7);g.fill();
+  g.strokeStyle='#05070f';g.lineWidth=.022;g.beginPath();g.moveTo(-.14,.005);g.quadraticCurveTo(0,-.12,.14,0);g.stroke();g.restore();
+}
+// The whole mascot. open: mouth 0..1, blink: eye openness 0..1, code: brighter fur and bolder features for sampling
+function drawPanther(g,{open=0,blink=1,code=false,glow=8}={}){
+  const fur=code?['#7d9be0','#3d5ca8','#22386e']:['#3a4d7d','#16234a','#060b1d'];
+  // jersey collar
+  g.fillStyle=P_RED;g.beginPath();g.moveTo(-1.1,.86);g.quadraticCurveTo(-.5,.66,-.28,.7);g.lineTo(0,.98);g.lineTo(.28,.7);g.quadraticCurveTo(.5,.66,1.1,.86);g.lineTo(1.1,1.2);g.lineTo(-1.1,1.2);g.fill();
+  g.strokeStyle=code?'#4d6fc4':'#0b1a3d';g.lineWidth=code?.08:.05;g.beginPath();g.moveTo(-.9,.86);g.quadraticCurveTo(-.5,.73,-.3,.76);g.lineTo(0,1.04);g.lineTo(.3,.76);g.quadraticCurveTo(.5,.73,.9,.86);g.stroke();
+  g.strokeStyle=P_GOLD;g.lineWidth=code?.04:.02;g.stroke();
+  // ears
+  for(const s of[-1,1]){pEar(g,s);g.fillStyle=fur[1];g.fill();pEar(g,s,.62);g.fillStyle=P_RED;g.fill()}
+  // head with a red rim light from the orb on the right
+  pHead(g);let rg=g.createRadialGradient(-.2,-.35,.02,0,0,1.05);rg.addColorStop(0,fur[0]);rg.addColorStop(.5,fur[1]);rg.addColorStop(1,fur[2]);g.fillStyle=rg;g.fill();
+  g.save();pHead(g);g.clip();
+  g.strokeStyle='rgba(255,60,80,.55)';g.lineWidth=.06;g.save();g.translate(-.03,0);pHead(g);g.stroke();g.restore();
+  g.strokeStyle=code?'rgba(10,20,50,.6)':'rgba(0,0,0,.35)';g.lineWidth=code?.035:.02;  // forehead markings
+  for(const [x0,x1] of[[-.06,-.1],[0,0],[.06,.1]]){g.beginPath();g.moveTo(x0,-.6);g.lineTo(x1,-.4);g.stroke()}
+  // brow ridge
+  g.fillStyle=code?'rgba(10,20,50,.7)':'rgba(0,0,0,.4)';for(const s of[-1,1]){g.beginPath();g.moveTo(s*.06,-.27);g.quadraticCurveTo(s*.24,-.36,s*.42,-.26);g.quadraticCurveTo(s*.24,-.3,s*.06,-.23);g.fill()}
+  g.restore();
+  // mouth, behind the muzzle
+  if(open>.02){g.fillStyle='#2a0207';g.beginPath();g.moveTo(-.2,.32);g.quadraticCurveTo(0,.36+open*.36,.2,.32);g.fill();
+    g.fillStyle='#e2435a';g.beginPath();g.ellipse(0,.36+open*.2,.1,.05+open*.03,0,0,7);g.fill()}
+  pChin(g,open);g.fillStyle='#cdb27e';g.fill();
+  // muzzle
+  pMuzzle(g);rg=g.createRadialGradient(-.05,.12,.02,0,.2,.35);rg.addColorStop(0,'#fff6e4');rg.addColorStop(.6,P_TAN);rg.addColorStop(1,'#b9975b');g.fillStyle=rg;g.fill();
+  g.fillStyle='rgba(90,60,30,.5)';for(const s of[-1,1])for(const [dx,dy] of[[.1,.17],[.16,.2],[.12,.24],[.19,.15],[.2,.25]]){g.beginPath();g.arc(s*dx,dy,.012,0,7);g.fill()}
+  // fangs
+  g.fillStyle='#fffaf0';for(const s of[-1,1]){g.beginPath();g.moveTo(s*.13,.33);g.lineTo(s*.07,.335);g.lineTo(s*.1,.39+open*.06);g.closePath();g.fill()}
+  // nose and the line down from it
+  g.fillStyle='#e2435a';g.beginPath();g.moveTo(-.09,.02);g.quadraticCurveTo(0,-.02,.09,.02);g.quadraticCurveTo(.06,.08,0,.11);g.quadraticCurveTo(-.06,.08,-.09,.02);g.fill();
+  g.fillStyle='rgba(255,255,255,.5)';g.beginPath();g.ellipse(-.03,.025,.025,.012,0,0,7);g.fill();
+  g.strokeStyle='#3a2414';g.lineWidth=.015;g.beginPath();g.moveTo(0,.11);g.lineTo(0,.2);g.stroke();
+  // eyes
+  for(const s of[-1,1])pEye(g,s,blink,.15+open*.4,glow,code);
+  // whiskers
+  g.strokeStyle=code?'#ffffff':'rgba(255,255,255,.8)';g.lineWidth=code?.016:.008;
+  for(const s of[-1,1])for(const k of[-1,0,1]){g.beginPath();g.moveTo(s*.24,.2+k*.04);g.quadraticCurveTo(s*.5,.16+k*.08,s*.78,.1+k*.15);g.stroke()}
+}
+
+const PS=360,cache={};
+const STYLE={
+  jarvis:{draw:g=>drawHelmet(g,1,3),colour:true,hi:'#e6fff0',glyphs:'0123456789ABCDEF01',n:40},
+  matrix:{draw:drawMorpheus,colour:false,ring:'0,255,65',hi:'#d4ffdc',glyphs:'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン0123456789',n:34},
+  panther:{draw:g=>drawPanther(g,{code:true,glow:0}),colour:true,dimFur:true,hi:'#fff4dc',glyphs:'0123456789ABCDEF01',n:40}
+};
+function picture(k){
+  if(cache[k])return cache[k];
+  const c=document.createElement('canvas');c.width=c.height=PS;const g=c.getContext('2d');if(!g)return null;
+  g.translate(PS/2,PS/2);g.scale(PS/2.3,PS/2.3);g.save();g.beginPath();g.arc(0,0,1.12,0,7);g.clip();STYLE[k].draw(g);g.restore();
+  const px=g.getImageData(0,0,PS,PS).data;
+  return cache[k]=(x,y)=>{x=x|0;y=y|0;const i=(y*PS+x)*4;return px[i+3]<80?null:[px[i],px[i+1],px[i+2]]};
+}
+const drift=Array.from({length:60},(_,i)=>((i*37)%23)/23);
+// x: the orb's 2D context, centred on the orb; R: face scale in pixels; m: 0..1, how open the mouth is
+return function(x,R,t,k,m,fade){
+  const S=STYLE[k],at=picture(k);if(!S||!at)return;
+  const n=S.n,step=PS/n,sz=R*2.3/n,G=S.glyphs;
+  x.save();x.globalAlpha=fade;x.font=`bold ${sz*1.1}px monospace`;x.textAlign='center';x.textBaseline='middle';
+  for(let i=0;i<n;i++){const head=reduce?drift[i]:(t/(2200+i*70)+drift[i])%1;
+    for(let j=0;j<n;j++){const p=at((i+.5)*step,(j+.5)*step);if(!p)continue;
+      const d=(head*1.3-j/n+1)%1,trail=d<.25?1-d/.25:0;let g,col;
+      if(S.colour){
+        g=((i*73856093^j*19349663^((t/180+i*3)|0)*83492791)>>>0)%G.length;
+        const [r,gg,b]=p,fur=S.dimFur&&b>r&&b>gg,f=Math.min(1.7,(fur?.55:1.05)+.7*trail);
+        col=trail>.92?S.hi:`rgb(${Math.min(255,r*f)|0},${Math.min(255,gg*f)|0},${Math.min(255,b*f)|0})`;
+      }else{
+        const L=p[0]/255;if(L<.05)continue;const bb=Math.min(1,.12+Math.pow(L,.8)*(1.15+.6*trail));
+        g=(i*7+j*13+((t/180+i)|0))%G.length;col=trail>.92?S.hi:`rgba(${S.ring},${bb})`;
+      }
+      x.fillStyle=col;x.fillText(G[g],-R*1.15+(i+.5)*sz,-R*1.15+(j+.5)*sz)}}
+  // what moves: Morpheus's mouth and the glint on his glasses, the helmet's and Stanley's eyes flaring as they talk
+  if(k==='matrix'){
+    if(m>.05){x.fillStyle='#000';x.beginPath();x.ellipse(0,R*.41,R*.15,R*(.01+.05*m),0,0,7);x.fill()}
+    const p=reduce?-1:(t%5200)/5200;
+    if(p>=0&&p<.18){const u=p/.18;
+      for(const s of[-1,1]){x.save();x.beginPath();x.ellipse(s*R*.215,-R*.1,R*.15,R*.135,0,0,7);x.clip();
+        const gx=s*R*.215+(u*2-1)*R*.3,gr=x.createLinearGradient(gx-R*.05,0,gx+R*.05,0);gr.addColorStop(0,'rgba(220,255,230,0)');gr.addColorStop(.5,'rgba(220,255,230,.8)');gr.addColorStop(1,'rgba(220,255,230,0)');
+        x.fillStyle=gr;x.translate(gx,-R*.1);x.rotate(.5);x.fillRect(-R*.05,-R*.3,R*.1,R*.6);x.restore()}}
+  }else if(m>.05){
+    x.scale(R,R);
+    if(k==='jarvis'){x.shadowColor=CYAN;x.shadowBlur=20*m;x.beginPath();eyes(x);x.fillStyle=`rgba(127,232,255,${.35*m})`;x.fill()}
+    else for(const s of[-1,1]){x.save();x.translate(s*.24,-.17);x.rotate(s*.28);x.shadowColor=P_GOLD;x.shadowBlur=20*m;x.beginPath();x.ellipse(0,0,.13,.06,0,0,7);x.fillStyle=`rgba(255,210,90,${.3*m})`;x.fill();x.restore()}
+  }
+  x.restore();
+};
+})();
 function draw(t){
   requestAnimationFrame(draw);
   if(document.body.classList.contains('holo-on'))return; // hidden behind the hologram
@@ -193,21 +440,26 @@ function draw(t){
   energy+=(target-energy)*(heard?.25:.06); // jump up as soon as it hears you
   const pulse=orbPulse({mode,energy,t,hearing:heard,still:reduce,sinceWord:mode==='speak'&&lastWord!==null?Math.max(0,(t-lastWord)/1000):null});
   // glow core
-  const gr=W*.22*(.25+.75*bp),g=cx.createRadialGradient(c,c,0,c,c,gr);
-  g.addColorStop(0,`rgba(180,255,210,${(.55+pulse*.4)*(.3+.7*bp)})`);g.addColorStop(.35,`rgba(57,255,136,${(.25+pulse*.3)*bp})`);g.addColorStop(1,'rgba(57,255,136,0)');
+  // the glow dims as the face fades in, so the face isn't washed out
+  const gr=W*.22*(.25+.75*bp),g=cx.createRadialGradient(c,c,0,c,c,gr),dim=1-.8*clamp(bp*2-1,0,1);
+  g.addColorStop(0,`rgba(${coreRGB},${(.55+pulse*.4)*(.3+.7*bp)*dim})`);g.addColorStop(.35,`rgba(${ringRGB},${(.25+pulse*.3)*bp*(.4+.6*dim)})`);g.addColorStop(1,`rgba(${ringRGB},0)`);
   cx.fillStyle=g;cx.beginPath();cx.arc(c,c,gr,0,7);cx.fill();
   // rings, which lock into place one by one while booting
   const rings=[[.16,6,1.2,.9],[.24,3,-.7,.6],[.31,12,.4,.5],[.38,2,-.25,.35],[.45,40,.1,.25]];
   rings.forEach(([r,segs,spd,a],i)=>{
     const k=clamp(bp*1.8-i*.18,0,1),shown=Math.round(segs*k);if(!shown)return;
     const R=W*r*(reduce?1:1+pulse*.04*(i%2?1:-1)),rot=(reduce?0:t/1000*spd*(1+energy*2))+(1-k)*4*(i%2?-1:1);
-    cx.strokeStyle=`rgba(57,255,136,${(a+pulse*.3)*k})`;cx.lineWidth=i===4?2:i===0?10:4;
+    cx.strokeStyle=`rgba(${ringRGB},${(a+pulse*.3)*k})`;cx.lineWidth=i===4?2:i===0?10:4;
     const gap=segs>20?.06:.25;
     for(let s=0;s<shown;s++){const a0=rot+s*Math.PI*2/segs;cx.beginPath();cx.arc(c,c,R,a0,a0+Math.PI*2/segs-gap);cx.stroke()}
   });
   // tick marks
-  cx.strokeStyle=`rgba(57,255,136,${.08+.32*clamp(bp*1.3,0,1)})`;cx.lineWidth=2;
+  cx.strokeStyle=`rgba(${ringRGB},${.08+.32*clamp(bp*1.3,0,1)})`;cx.lineWidth=2;
   for(let i=0;i<72;i++){const a=i*Math.PI/36,r1=W*.48,r2=W*(i%6?.47:.455);cx.beginPath();cx.moveTo(c+Math.cos(a)*r1,c+Math.sin(a)*r1);cx.lineTo(c+Math.cos(a)*r2,c+Math.sin(a)*r2);cx.stroke()}
+  // the skin's face fades in once the orb has assembled; its mouth follows the voice's word pulses
+  const fade=clamp(bp*2-1,0,1);
+  if(fade>0){cx.save();cx.translate(c,c);cx.scale(1+pulse*.02,1+pulse*.02);cx.beginPath();cx.arc(0,0,W*.148,0,7);cx.clip();
+    orbFace(cx,W*.13,t,skin,mode==='speak'?clamp(pulse*1.3,0,1):0,fade);cx.restore()}
 }
 if(cx)requestAnimationFrame(draw); // no 2D canvas (e.g. jsdom): skip the orb, the chat still works
 
@@ -222,11 +474,75 @@ function blip(freq=880,dur=.05,vol=.03,type='square',delay=0){
   }catch(e){}
 }
 
+/* ---------- Skins: who answers, how they sound, how the page looks ---------- */
+// Morpheus has no real voice in the browser, so a slow, low pitch on a male voice stands in for one.
+// Stanley C. Panther is the Florida Panthers' mascot (named for the Stanley Cup), so he's quick and bright.
+const SKINS={
+  jarvis:{name:'J.A.R.V.I.S.',short:'Jarvis',label:'JARVIS',ring:'57,255,136',core:'180,255,210',lang:/en-GB/i,voice:/male|daniel|arthur|george/i,rate:1.02,pitch:.9,tunedRate:1,tunedPitch:.95,
+    prefer:['daniel','microsoft ryan','microsoft thomas','microsoft george','google uk english male','arthur','oliver'],
+    sample:"This is my voice now. How do I sound?",
+    hello:"Jarvis here. Back to my usual self.",open:[],close:[]},
+  matrix:{name:'MORPHEUS',short:'Morpheus',label:'MATRIX',ring:'0,255,65',core:'200,255,210',lang:/en-(US|GB)/i,voice:/male|david|guy|mark|fred|alex|daniel|george/i,rate:.86,pitch:.55,tunedRate:.9,tunedPitch:.82,
+    prefer:['ralph','microsoft guy','microsoft davis','microsoft christopher','microsoft roger','fred','microsoft david','google uk english male'],
+    sample:"This is my voice now. Do you hear the difference?",
+    hello:"Welcome to the real world. I am Morpheus. Ask, and I will show you how deep the rabbit hole goes.",
+    who:"I am Morpheus. I can only show you the door. You're the one who has to walk through it.",
+    miss:"I don't understand that, and I won't pretend to.",
+    open:["Listen carefully.","What I'm about to tell you is the truth. Nothing more.","Free your mind."],
+    close:["Welcome to the real world.","Remember, there is no spoon.","The choice is yours."]},
+  panther:{name:'STANLEY C. PANTHER',short:'Stanley C. Panther',label:'PANTHERS',ring:'200,16,46',core:'255,214,150',lang:/en-US/i,voice:/male|david|guy|mark|fred|alex/i,rate:1.12,pitch:1.2,tunedRate:1.08,tunedPitch:1.08,
+    prefer:['microsoft andrew','microsoft brian','junior','superstar','microsoft eric','google us english'],
+    sample:"How's this sound? Let's go, Cats!",
+    hello:"Let's go, Cats! Stanley C. Panther here, the Florida Panthers' number one fan. What do you need?",
+    who:"I'm Stanley C. Panther, mascot of the Florida Panthers. My name comes from the Stanley Cup. Go Cats!",
+    miss:"Whoa, that one went wide of the net.",
+    open:["Let's go, Cats!","Puck drop!","Hold onto your rat!"],
+    close:["Go Panthers!","Time to light the lamp!","That's a power play!"]}
+};
+let skin='jarvis';try{const k=localStorage.getItem('jarvis-skin');if(k&&Object.hasOwn(SKINS,k))skin=k}catch(e){}
+
 /* ---------- Voice out ---------- */
 const synth=window.speechSynthesis||null;
-let voice=null;
-function pickVoice(){const v=synth.getVoices();voice=v.find(x=>/en-GB/i.test(x.lang)&&/male|daniel|arthur|george/i.test(x.name))||v.find(x=>/en-GB/i.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null}
-if(synth){pickVoice();synth.onvoiceschanged=pickVoice}
+// Each skin's voice: the one picked from the voice menu on this device, else the first of the skin's
+// preferred voices the device has (iPhone, Mac, Edge and Chrome name theirs differently), else any voice
+// with the right accent. A voice chosen for the character already sounds the part, so it gets a gentler
+// pitch and speed (tuned) than a generic voice, which needs pitch and speed to do all the work.
+let voice=null,tuned=false,voicePicks={};
+try{const o=JSON.parse(localStorage.getItem('jarvis-voices')||'{}');if(o&&typeof o==='object')for(const k of Object.keys(SKINS))if(typeof o[k]==='string'&&o[k].length<=200)voicePicks[k]=o[k]}catch(e){}
+const voiceSel=document.getElementById('voice');
+// Android lists one voice per accent, named after the language ("English United States"), sometimes
+// twice (on-device and online), so the menu drops repeated names.
+function englishVoices(){const v=synth.getVoices(),en=v.filter(x=>/^en/i.test(x.lang)),seen=new Set();
+  return (en.length?en:v).filter(x=>!seen.has(x.name)&&seen.add(x.name))}
+// A real character voice (one on the skin's own list) already sounds the part; anything else, including
+// Android's per-accent voices, needs the skin's full pitch and speed to sound like the character.
+const suits=(k,x)=>SKINS[k].prefer.some(n=>x.name.toLowerCase().startsWith(n));
+function autoVoice(k){
+  const v=synth.getVoices(),S=SKINS[k];
+  for(const n of S.prefer){const f=v.find(x=>x.name.toLowerCase().startsWith(n));if(f)return [f,true]}
+  return [v.find(x=>S.lang.test(x.lang)&&S.voice.test(x.name))||v.find(x=>S.lang.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null,false];
+}
+function pickVoice(){
+  const want=voicePicks[skin],mine=want&&synth.getVoices().find(x=>x.name===want);
+  if(mine){voice=mine;tuned=suits(skin,mine)}else[voice,tuned]=autoVoice(skin);
+  fillVoices();
+}
+const shortName=n=>n.replace(/\s*-\s*English.*$/,'').replace(/\s*\((?:Natural|Enhanced|Premium)\)/,'')
+  .replace(/^English\s+(.+)$/,(m,c)=>`English (${{'United States':'US','United Kingdom':'UK'}[c]||c})`);
+// The voice menu beside the skin button: Auto (the skin's own pick) and every English voice on this device.
+function fillVoices(){
+  const list=englishVoices();voiceSel.hidden=!list.length;if(!list.length)return;
+  const [auto]=autoVoice(skin);
+  voiceSel.replaceChildren(new Option('🔊 Auto'+(auto?' · '+shortName(auto.name):''),''),...list.map(x=>new Option(shortName(x.name)+(x.lang&&!/^english/i.test(x.name)?' · '+x.lang:''),x.name)));
+  voiceSel.value=voicePicks[skin]&&list.some(x=>x.name===voicePicks[skin])?voicePicks[skin]:'';
+}
+if(synth){pickVoice();synth.onvoiceschanged=pickVoice;
+  voiceSel.addEventListener('change',()=>{
+    if(voiceSel.value)voicePicks[skin]=voiceSel.value;else delete voicePicks[skin];
+    try{localStorage.setItem('jarvis-voices',JSON.stringify(voicePicks))}catch(e){}
+    pickVoice();say(SKINS[skin].sample);
+  });
+}
 // Chrome stops speaking a long utterance after about 15 seconds, so long answers go out a sentence or two
 // at a time: every sentence whole, each piece at most about 160 characters unless one sentence is longer.
 function speechChunks(text,max=160){
@@ -238,11 +554,13 @@ function speechChunks(text,max=160){
 let sayGen=0; // which answer is being spoken, so a cancelled one can't switch the orb back to idle
 function say(text){
   add(text,'ai');
+  if(H&&H.onAnswer)H.onAnswer(); // the neural network lights its output layer for each answer
   if(!synth){setMode('idle');return}
   const gen=++sayGen,parts=speechChunks(text);
   synth.cancel();
   parts.forEach((p,i)=>{
-    const u=new SpeechSynthesisUtterance(p);if(voice)u.voice=voice;u.rate=1.02;u.pitch=.9;
+    const u=new SpeechSynthesisUtterance(p);if(voice){u.voice=voice;u.lang=voice.lang} // Android Chrome ignores the voice unless the language matches it
+    u.rate=tuned?SKINS[skin].tunedRate:SKINS[skin].rate;u.pitch=tuned?SKINS[skin].tunedPitch:SKINS[skin].pitch;
     u.onstart=()=>{if(gen!==sayGen)return;lastWord=null;setMode('speak')};
     u.onend=u.onerror=()=>{if(gen!==sayGen||i<parts.length-1)return;lastWord=null;setMode('idle')};
     // There's no audio tap on speech synthesis, so pulse on each word where the voice reports them.
@@ -275,11 +593,11 @@ function mathAnswer(s){
   const a=+m[1],b=+m[3],r={'+':a+b,'-':a-b,'*':a*b,'/':b===0?null:a/b}[m[2]];
   return r===null?"Dividing by zero would tear a hole in the universe. Let's not.":`That would be ${+r.toFixed(4)}.`;
 }
-function brain(raw){
+function brainKnown(raw){
   const s=raw.toLowerCase().trim(),name=userName?`, ${userName}`:'';
   let m;
   if((m=s.match(/\b(?:my name is|call me|i am|i'm) ([a-z]+)/))&&!notNames.has(m[1])){userName=m[1][0].toUpperCase()+m[1].slice(1);try{localStorage.setItem('jarvis-name',userName)}catch(e){}return `Nice to meet you, ${userName}. I'll remember that on this device.`}
-  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say hand control to steer it with your hands through the camera. Say close to turn it off, or reboot to watch me power up again.";
+  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say show me your brain to watch me think, or suit up to build a suit of armour. Say show me Earth for the globe, or show me any country, US state or big city, like Florida or Tokyo. Say hand control to steer it with your hands through the camera. Say close to turn it off, or reboot to watch me power up again. Say switch to Matrix to talk to Morpheus, switch to Panthers for Stanley C. Panther, or back to Jarvis. If I don't understand you, tell me what you meant and I'll remember it on this device.";
   if(/\b(hello|hi|hey|good (morning|afternoon|evening))\b/.test(s))return pick([`Hello${name}. All systems are online.`,`Good to see you${name}. How can I help?`]);
   if(/what.*\btime\b/.test(s))return `It's ${new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}${name}.`;
   if(/what.*(date|day)/.test(s))return `Today is ${new Date().toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'})}.`;
@@ -293,6 +611,10 @@ function brain(raw){
   if(/how are you/.test(s))return "Running at peak efficiency, thank you for asking.";
   if(/thank/.test(s))return pick(["Always a pleasure.","Anytime.","You're welcome."]);
   const math=mathAnswer(s);if(math)return math;
+  return null;
+}
+function brain(raw){
+  const b=brainKnown(raw);if(b!==null)return b;
   return pick(["That's beyond my demo programming. Ask me what I can do.","I don't have that in my databanks yet. Try asking for a fun fact.","Interesting question. My full brain isn't installed in this demo."]);
 }
 
@@ -306,6 +628,12 @@ function intent(raw){
   if(/\b(hand|hands|gesture|gestures) (control|tracking|mode)\b|\buse my hands?\b|\b(enable|start|turn on)( the)? (hand|gesture)/.test(s))return {kind:'hands',arg:true};
   if(/^(close|exit|stop|dismiss|hide|go back|back)( (it|that|this|the (hologram|projector|scene)))?$/.test(s)||/\b(close|turn off|shut down) the (hologram|projector|holo-projector)\b/.test(s))return {kind:'close'};
   if(/\b(reboot|restart|boot (up|sequence)|power (up|cycle))\b/.test(s))return {kind:'boot'};
+  if(/\bsuit (?:me )?up\b|\biron ?man (?:suit|armou?r)\b|\bsuit schematic\b|\b(?:show|see|open|display|look at|make|build)\b.*\b(?:suit|armou?r)s?\b/.test(s))return {kind:'suit',arg:/\bsuit (?:me )?up\b/.test(s)?'assemble':null};
+  if(/\b(?:show(?: me)?|open|display|spin|see|look at)(?: the)? (?:earth|world|globe|planet earth|earth globe|world map)$|^(?:the )?(?:earth globe|globe)$/.test(s))return {kind:'globe',arg:null};
+  if(m=s.replace(/\?/g,'').match(/\b(?:show me|take me to|fly (?:me )?to|go to|where(?:'s| is)|find|zoom (?:in )?(?:on|to)|visit|focus on|point to)(?: the)? ([a-z .'-]+?)(?: please| now| on the (?:map|globe))?$/)){
+    const k=m[1].replace(/[.'-]/g,' ').replace(/\s+/g,' ').trim();if(PLACES[k])return {kind:'globe',arg:k};
+  }
+  if(/\bneural (?:network|net)s?\b|\b(?:show|see|open|display|look at)\b.*\byour brain\b/.test(s))return {kind:'neural'};
   if(m=s.match(new RegExp(`\\b(?:take me to|go to|fly to|show me|zoom (?:in )?(?:on|to)|visit|focus on)(?: the)? (${PLANETS})\\b`)))return {kind:'solar',arg:m[1]};
   if(/\b(solar system|planets)\b/.test(s))return {kind:'solar',arg:null};
   if(/\b(galaxy|galaxies|milky way|star clusters?|nebula|universe|deep space|the stars)\b/.test(s))return {kind:'galaxy'};
@@ -586,7 +914,432 @@ function buildParticles(T){
     }};
 }
 
-const BUILDERS={galaxy:buildGalaxy,solar:buildSolar,particles:buildParticles};
+/* Scene 4: a neural network that thinks when Jarvis thinks.
+   The network itself (layout, pulses, glow) is plain data, so it can be tested without WebGL. */
+const NEURAL_SHAPES=[[4,6,6,3],[3,5,7,5,2],[6,8,4],[5,7,7,7,4],[2,4,8,4,2]];
+const NEURAL_GAP={x:9,y:3.2};
+function neuralLayout(shape){
+  const nodes=[],edges=[],L=shape.length,start=[];let k=0;
+  shape.forEach((n,l)=>{start.push(k);k+=n;for(let j=0;j<n;j++)nodes.push({l,j,x:(l-(L-1)/2)*NEURAL_GAP.x,y:((n-1)/2-j)*NEURAL_GAP.y,z:0})});
+  for(let l=0;l<L-1;l++)for(let a=0;a<shape[l];a++)for(let b=0;b<shape[l+1];b++)edges.push([start[l]+a,start[l+1]+b]);
+  return {shape,nodes,edges,halfW:(L-1)/2*NEURAL_GAP.x,halfH:(Math.max(...shape)-1)/2*NEURAL_GAP.y};
+}
+// What a layer does, for a curious kid.
+function layerLine(l,L){
+  if(l===0)return "That's the input layer. It's like my eyes and ears: each node takes in one small piece of what you said.";
+  if(l===L-1)return "That's the output layer. Each node votes for an answer, and the brightest one wins.";
+  return `That's hidden layer ${l}. Its nodes look for patterns in what the layer before noticed, like spotting letters, then words, then ideas.`;
+}
+// Signals moving through the network: a pulse travels along one connection, lights the node it
+// reaches, and that node passes it on to two connections in the next layer.
+function createNeuralSim(net,rand=Math.random,max=400){
+  const out=net.nodes.map(()=>[]),last=net.shape.length-1;net.edges.forEach(([a],i)=>out[a].push(i));
+  const sim={glow:new Float32Array(net.nodes.length),pulses:[],arrivals:new Array(net.shape.length).fill(0),max,
+    send(e){if(sim.pulses.length<max)sim.pulses.push({e,p:0,v:1.4+rand()*.6})}, // v: connections crossed per second
+    fire(i,all){sim.glow[i]=1;const o=out[i];if(all)o.forEach(e=>sim.send(e));else for(let k=0;k<2&&o.length;k++)sim.send(o[Math.floor(rand()*o.length)])},
+    burst(){for(let k=0;k<2;k++)sim.fire(Math.floor(rand()*net.shape[0]))},
+    fireAll(){net.nodes.forEach((_,i)=>sim.fire(i,true))},
+    lightOutputs(){net.nodes.forEach((nd,i)=>{if(nd.l===last)sim.glow[i]=1})},
+    step(dt){
+      const fade=Math.exp(-dt*2.5);for(let i=0;i<sim.glow.length;i++)sim.glow[i]*=fade;
+      const arrived=[];sim.pulses=sim.pulses.filter(q=>{q.p+=q.v*dt;if(q.p<1)return true;arrived.push(net.edges[q.e][1]);return false});
+      for(const b of arrived){const l=net.nodes[b].l;sim.arrivals[l]++;if(l<last)sim.fire(b);else sim.glow[b]=1}
+    }};
+  return sim;
+}
+function buildNeural(T){
+  const scene=new T.Scene(),camera=makeCamera(T),group=new T.Group(),dot=dotTexture(T),v=new T.Vector3();
+  scene.add(group,starfield(T,1500));
+  const LAYER_COL=['#5aa9ff','#39ff88','#ffc24a'].map(c=>new T.Color(c));
+  const rig=makeRig(T,camera,{dist:110,goal:60,el:.5,elGoal:.12,min:12,max:160,spin:0});
+  let shapeIdx=0,net,sim,parts=null,burstT=0;
+  function build(i){
+    shapeIdx=(i+NEURAL_SHAPES.length)%NEURAL_SHAPES.length;
+    if(parts)parts.objs.forEach(o=>{group.remove(o);o.geometry.dispose();o.material.dispose()});
+    net=neuralLayout(NEURAL_SHAPES[shapeIdx]);sim=createNeuralSim(net);
+    const L=net.shape.length,N=net.nodes.length,pos=new Float32Array(N*3),col=new Float32Array(N*3);
+    net.nodes.forEach((n,i)=>{const c=LAYER_COL[n.l===0?0:n.l===L-1?2:1];pos.set([n.x,n.y,n.z],i*3);col.set([c.r,c.g,c.b],i*3)});
+    const pts=(geo,o)=>new T.Points(geo,new T.PointsMaterial({map:dot,transparent:true,depthWrite:false,blending:T.AdditiveBlending,...o}));
+    const ng=new T.BufferGeometry();ng.setAttribute('position',new T.BufferAttribute(pos,3));ng.setAttribute('color',new T.BufferAttribute(col,3));
+    // a second, bigger copy of the nodes whose colour is scaled by each node's glow (black adds nothing)
+    const glowCol=new Float32Array(N*3),gg=new T.BufferGeometry();gg.setAttribute('position',new T.BufferAttribute(pos,3));gg.setAttribute('color',new T.BufferAttribute(glowCol,3));
+    const ep=new Float32Array(net.edges.length*6);
+    net.edges.forEach(([a,b],i)=>{ep.set(pos.subarray(a*3,a*3+3),i*6);ep.set(pos.subarray(b*3,b*3+3),i*6+3)});
+    const eg=new T.BufferGeometry();eg.setAttribute('position',new T.BufferAttribute(ep,3));
+    const pp=new Float32Array(sim.max*3),pg=new T.BufferGeometry();pg.setAttribute('position',new T.BufferAttribute(pp,3));pg.setDrawRange(0,0);
+    const objs=[new T.LineSegments(eg,new T.LineBasicMaterial({color:0x39ff88,transparent:true,opacity:.14,depthWrite:false})),
+      pts(ng,{size:1.6,vertexColors:true,opacity:.75}),pts(gg,{size:4.2,vertexColors:true}),pts(pg,{size:1.1,color:0xfff1a0})];
+    group.add(...objs);parts={objs,pos,col,glowCol,gg,pg,pp};
+    rig.goal=Math.max(40,fitDist(net.halfW+2.5,net.halfH+2.5));
+    setStat(`${L} LAYERS · ${N} NEURONS · ${net.edges.length} CONNECTIONS`);
+    sim.burst();
+    return `Rewiring. This network has ${L} layers, ${N} neurons and ${net.edges.length} connections. A human brain has about 86 billion neurons.`;
+  }
+  build(0);
+  return {scene,camera,rig,title:'NEURAL NETWORK',stat:`${net.shape.length} LAYERS · ${net.nodes.length} NEURONS · ${net.edges.length} CONNECTIONS`,
+    hint:'Drag to rotate · tap a node to learn what its layer does · ask me anything and watch me think',
+    intro:"This is a tiny neural network, a toy version of how I think. Ask me something and watch the signals fire. Tap a node to find out what it does.",
+    next(dir){return build(shapeIdx+dir)},
+    squeeze(on){if(on){sim.fireAll();blip(220,.25,.03,'sawtooth')}},
+    onAnswer(){sim.lightOutputs()},
+    pick(ndc){ // the node nearest the tap on screen, within 48 px
+      let best=-1,bd=48;group.updateMatrixWorld();
+      net.nodes.forEach((n,i)=>{v.set(n.x,n.y,n.z).applyMatrix4(group.matrixWorld).project(camera);if(v.z>1)return;
+        const d=Math.hypot((v.x-ndc.x)*innerWidth/2,(v.y-ndc.y)*innerHeight/2);if(d<bd){bd=d;best=i}});
+      if(best<0)return null;
+      sim.fire(best,true);return layerLine(net.nodes[best].l,net.shape.length);
+    },
+    update(dt,t){
+      if(mode==='think'){burstT-=dt;if(burstT<=0){sim.burst();burstT=.18}}else burstT=0; // thinking fires bursts into the input layer
+      sim.step(dt);
+      const {pos,col,glowCol,gg,pg,pp}=parts;
+      for(let i=0;i<glowCol.length;i++)glowCol[i]=col[i]*sim.glow[Math.floor(i/3)];
+      gg.attributes.color.needsUpdate=true;
+      sim.pulses.forEach((q,k)=>{const [a,b]=net.edges[q.e];for(let c=0;c<3;c++)pp[k*3+c]=pos[a*3+c]+(pos[b*3+c]-pos[a*3+c])*q.p});
+      pg.setDrawRange(0,sim.pulses.length);pg.attributes.position.needsUpdate=true;
+      group.rotation.y=Math.sin(t*.3)*.35*amb; // sway rather than spin, so the layers stay readable
+    }};
+}
+
+/* Scene 5: a suit of armour on a turntable, with callouts. It's a generic look-alike built from
+   three.js primitives, not a copy of any film's design, and no 3D model is downloaded.
+   The part list, the assembly timing and the callout layout are plain data, so they're tested without WebGL. */
+// shape: box [w,h,d] · cyl [radius top, radius bottom, height] · ball [r]. y is up and the boots stand on y=0.
+// The suit faces +z, so its own left is +x.
+const SUIT_PARTS=(()=>{
+  const p=[],add=(name,group,shape,size,pos,rot=[0,0,0])=>p.push({name,group,shape,size,pos,rot});
+  const both=(name,group,shape,size,[x,y,z],rot=[0,0,0])=>{add('Left '+name,group,shape,size,[x,y,z],rot);add('Right '+name,group,shape,size,[-x,y,z],[rot[0],-rot[1],-rot[2]])};
+  both('boot','thruster','box',[1.3,1,2.1],[1.1,.5,.25]);
+  both('shin','plating','cyl',[.55,.45,4],[1.1,3,0]);
+  both('knee','plating','ball',[.55],[1.1,5.15,.12]);
+  both('thigh','plating','cyl',[.75,.58,3.8],[1.1,7.1,0]);
+  add('Hip plate','plating','box',[3.2,1.4,1.8],[0,9.4,0]);
+  add('Abdomen','plating','box',[2.6,1.6,1.6],[0,10.9,0]);
+  both('gauntlet','repulsor','box',[.8,1,.55],[2.95,7.5,0]);
+  both('repulsor','repulsor','cyl',[.28,.28,.08],[2.95,7.5,.3],[Math.PI/2,0,0]);
+  both('forearm','repulsor','cyl',[.52,.45,2.6],[2.95,9.3,0]);
+  both('elbow','plating','ball',[.45],[2.95,10.7,0]);
+  both('upper arm','plating','cyl',[.55,.5,2.8],[2.95,12.25,0]);
+  add('Chest plate','reactor','box',[4.2,3,2.2],[0,13.2,0]);
+  add('Arc reactor','reactor','cyl',[.55,.55,.2],[0,13.4,1.15],[Math.PI/2,0,0]);
+  both('flight stabilizer','stabilizer','box',[1,2.2,.2],[1.25,13,-1.25],[0,0,-.3]);
+  both('shoulder','plating','ball',[.95],[2.75,14.2,0]);
+  add('Neck seal','plating','cyl',[.5,.6,.7],[0,15.05,0]);
+  add('Helmet','helmet','box',[1.7,2.1,1.9],[0,16.45,0]);
+  add('Faceplate','helmet','box',[1.3,1.3,.2],[0,16.25,1]);
+  both('eye','helmet','box',[.45,.12,.08],[.33,16.6,1.12]);
+  return p;
+})();
+const SUIT_HALF={w:3.8,h:8.9,y:8.75}; // how far the suit reaches from its middle, arms out, and where that middle is
+// at: where the leader line points. n: which way that spot faces, so its label dims when it's round the back.
+const SUIT_CALLOUTS=[
+  {key:'helmet',label:'Helmet HUD',at:[0,16.7,1.05],n:[0,0,1]},
+  {key:'reactor',label:'Arc reactor',at:[0,13.4,1.27],n:[0,0,1]},
+  {key:'repulsor',label:'Repulsor',at:[2.95,7.5,.36],n:[0,0,1]},
+  {key:'stabilizer',label:'Flight stabilizer',at:[-1.6,13.4,-1.36],n:[-.5,0,-.87]}
+];
+const SUIT_LINES={
+  helmet:["It shows maps, messages and targets right in front of the pilot's eyes, and it talks back. Sound familiar?","It can track 400 things at once and still remind you to drink some water.","Night vision, zoom, and a voice assistant with a dry sense of humour. Built in."],
+  reactor:["It powers the whole suit. Three gigawatts, enough to run a small city, from something the size of a doughnut.","No batteries, no plug, no recharging overnight.","It glows so brightly the pilot has to wear a dark shirt to sneak around."],
+  repulsor:["A thruster in each palm, for steering, braking and very loud high fives. Make a fist to fire them.","They push against the air so hard the suit can hover. Point down to stop, point back to go.","Also excellent for drying your hair. Not recommended."],
+  stabilizer:["Little flaps on the back that tilt to keep the suit steady at 600 kilometres an hour.","They work like a bird's tail feathers: small moves, big turns.","Without them, flying would feel like riding a shopping trolley down a hill."],
+  thruster:["The main engines. They do most of the lifting, so the pilot stands on two jets of fire.","Landing on one knee is optional, but looks cooler."],
+  plating:["Armour plating: light enough to fly, strong enough to shrug off a hailstorm.","Each plate slides over the next, so the pilot can still bend, run and wave.","Polished to a mirror finish. Mostly for the photos."]
+};
+// The suit goes together bottom to top, boots first and helmet last.
+const SUIT_BUILD={dur:.8,gap:.07};
+const suitOrder=SUIT_PARTS.map((p,i)=>({i,y:p.pos[1]})).sort((a,b)=>a.y-b.y||a.i-b.i).reduce((o,x,k)=>(o[x.i]=k,o),[]);
+const suitBuildTime=()=>(SUIT_PARTS.length-1)*SUIT_BUILD.gap+SUIT_BUILD.dur;
+// How far part number `order` (0 = first on) has flown into place t seconds after "suit up": 0 = still away, 1 = on.
+function suitAssembly(order,t){const p=clamp((t-order*SUIT_BUILD.gap)/SUIT_BUILD.dur,0,1);return 1-Math.pow(1-p,3)}
+// Where each label goes: a column down each side of the figure, level with its anchor where it can be, never
+// overlapping and never outside b {left,right,top,bottom}. pts: [{x,y,w,h}] is each anchor on screen and its
+// label's size, in px. prev: last frame's sides, so a label near the middle doesn't flicker from side to side.
+function layoutCallouts(pts,b,prev=[]){
+  const mid=(b.left+b.right)/2,gap=6;
+  const out=pts.map((p,i)=>{let side=prev[i];if(!side||Math.abs(p.x-mid)>24)side=p.x<mid?'L':'R';
+    return {side,w:p.w,h:p.h,ax:p.x,ay:p.y,x:side==='L'?b.left:b.right-p.w,y:0}});
+  for(const side of ['L','R']){
+    const col=out.filter(o=>o.side===side).sort((a,c)=>a.ay-c.ay);
+    let floor=b.top;for(const o of col){o.y=Math.max(floor,Math.min(o.ay-o.h/2,b.bottom-o.h));floor=o.y+o.h+gap}
+    let ceil=b.bottom;for(let k=col.length-1;k>=0;k--){const o=col[k];o.y=Math.max(b.top,Math.min(o.y,ceil-o.h));ceil=o.y-gap}
+  }
+  return out;
+}
+function buildSuit(T){
+  const scene=new T.Scene(),camera=makeCamera(T),group=new T.Group(),dot=dotTexture(T),v=new T.Vector3(),n=new T.Vector3();
+  scene.add(group,starfield(T,1200));
+  const PHOS=0x39ff88,small=innerWidth<600;
+  // The figure sits in the gap between the two label columns, and between the top HUD and the text box.
+  const labelW=small?84:130,frac=clamp(1-2*(labelW+28)/innerWidth,.3,.6),vfrac=clamp((innerHeight-350)/innerHeight,.5,.78);
+  const dist=fitDist(SUIT_HALF.w/frac,SUIT_HALF.h/vfrac),pxPerUnit=innerHeight/2/(Math.tan(27.5*Math.PI/180)*dist);
+  const rig=makeRig(T,camera,{dist:dist*2.2,goal:dist,el:.6,elGoal:.12,min:12,max:dist*3,spin:0});
+  rig.want.set(0,SUIT_HALF.y+60/pxPerUnit,0);rig.target.copy(rig.want); // nudge the figure up into the middle of that gap
+  const geo=p=>p.shape==='box'?new T.BoxGeometry(...p.size):p.shape==='cyl'?new T.CylinderGeometry(...p.size,8):new T.IcosahedronGeometry(p.size[0],1);
+  const fills=[],parts=SUIT_PARTS.map((p,i)=>{
+    const g=geo(p),hot=p.name==='Arc reactor'||/repulsor|eye/.test(p.name),holder=new T.Group();
+    const fill=new T.Mesh(g,new T.MeshBasicMaterial({color:/eye/.test(p.name)?0xffc24a:hot?0xbfffe0:PHOS,transparent:true,opacity:hot?.7:.06,depthWrite:false,side:T.DoubleSide}));
+    fill.userData.part=i;fills.push(fill);
+    const edge=new T.LineSegments(new T.EdgesGeometry(g),new T.LineBasicMaterial({color:PHOS,transparent:true,opacity:.8}));
+    holder.add(fill,edge);holder.position.set(...p.pos);holder.rotation.set(...p.rot);group.add(holder);
+    const a=i*2.39996; // fly in from all round, spread by the golden angle
+    return {holder,edge,home:p.pos,rot:p.rot,from:[Math.cos(a)*26,8+(i%3)*5,Math.sin(a)*26]};
+  });
+  // turntable under the boots
+  const ringPts=(r,k=96)=>{const a=[];for(let i=0;i<k;i++){const t=i/k*TAU;a.push(new T.Vector3(Math.cos(t)*r,0,Math.sin(t)*r))}return new T.BufferGeometry().setFromPoints(a)};
+  const baseMat=new T.LineBasicMaterial({color:PHOS,transparent:true,opacity:.35});
+  group.add(new T.LineLoop(ringPts(4.6),baseMat),new T.LineLoop(ringPts(5.4),baseMat));
+  const ticks=[];for(let i=0;i<48;i++){const t=i/48*TAU,r2=i%4?5.0:4.8;ticks.push(new T.Vector3(Math.cos(t)*4.6,0,Math.sin(t)*4.6),new T.Vector3(Math.cos(t)*r2,0,Math.sin(t)*r2))}
+  group.add(new T.LineSegments(new T.BufferGeometry().setFromPoints(ticks),baseMat));
+  // the scanning line, which sweeps up and down and lights the plates it passes
+  const scan=new T.Group(),scanRing=new T.LineLoop(ringPts(4.4),new T.LineBasicMaterial({color:PHOS,transparent:true,opacity:.9}));
+  scan.add(scanRing,new T.Mesh(new T.CircleGeometry(4.4,64).rotateX(-Math.PI/2),new T.MeshBasicMaterial({color:PHOS,transparent:true,opacity:.05,depthWrite:false,side:T.DoubleSide})));
+  scene.add(scan);
+  // repulsor glow and beams, for a fist squeeze
+  const palms=SUIT_PARTS.map((p,i)=>i).filter(i=>/repulsor$/.test(SUIT_PARTS[i].name));
+  const beams=palms.map(i=>{const p=SUIT_PARTS[i].pos,glow=new T.Sprite(new T.SpriteMaterial({map:dot,color:0xd8fff0,transparent:true,opacity:.5,depthWrite:false,blending:T.AdditiveBlending}));
+    glow.position.set(p[0],p[1],p[2]+.15);glow.scale.set(1.4,1.4,1);
+    const beam=new T.Mesh(new T.CylinderGeometry(.22,.06,30,12,1,true).rotateX(Math.PI/2).translate(0,0,15.3),new T.MeshBasicMaterial({color:0xd8fff0,transparent:true,opacity:0,depthWrite:false,blending:T.AdditiveBlending}));
+    beam.position.set(p[0],p[1],p[2]);group.add(glow,beam);return {glow,beam}});
+  let fire=0,squeezed=false,build=null,said={},focus=-1,frame=0,bounds=null,sides=[],boxes=[];
+  // callout labels: HTML, so they stay sharp and readable over the 3D scene
+  const SVG='http://www.w3.org/2000/svg',root=document.createElement('div');root.className='hud';root.id='suit-labels';
+  const svg=document.createElementNS(SVG,'svg');svg.setAttribute('aria-hidden','true');root.appendChild(svg);
+  const line=key=>{const l=SUIT_LINES[key],k=said[key]||0;said[key]=k+1;return l[k%l.length]};
+  const calloutLine=i=>`${SUIT_CALLOUTS[i].label}. ${line(SUIT_CALLOUTS[i].key)}`;
+  const tags=SUIT_CALLOUTS.map((c,i)=>{
+    const b=document.createElement('button');b.type='button';b.className='suit-label';b.textContent=c.label;
+    b.addEventListener('click',()=>{focus=i;blip(1200,.06,.03);say(calloutLine(i))});root.appendChild(b);
+    const ln=document.createElementNS(SVG,'line'),pt=document.createElementNS(SVG,'circle');pt.setAttribute('r','3');svg.append(ln,pt);
+    return {b,ln,pt};
+  });
+  stage.after(root);
+  const readBounds=()=>{
+    const bot=[document.getElementById('f'),holoCap].map(e=>e.getBoundingClientRect()).filter(r=>r.height).map(r=>r.top);
+    const top=['holo-top','holo-close','holo-hands'].concat(HC?['hand-cam']:[]).map(id=>document.getElementById(id).getBoundingClientRect().bottom);
+    const mid=innerWidth/2,reach=SUIT_HALF.w*pxPerUnit*rig.goal/rig.dist+24,maxW=Math.max(...tags.map(t=>t.b.offsetWidth||labelW));
+    return {left:Math.max(12,mid-reach-maxW),right:Math.min(innerWidth-12,mid+reach+maxW),top:Math.max(...top)+8,bottom:Math.min(innerHeight-12,...bot)-8};
+  };
+  function place(){
+    if(!bounds||++frame%20===0)bounds=readBounds();
+    group.updateMatrixWorld();
+    const pts=SUIT_CALLOUTS.map((c,i)=>{v.set(...c.at).applyMatrix4(group.matrixWorld);n.set(...c.n).applyQuaternion(group.quaternion);
+      const facing=n.dot(camera.position.clone().sub(v))>0;v.project(camera);
+      return {x:(v.x+1)/2*innerWidth,y:(1-v.y)/2*innerHeight,w:tags[i].b.offsetWidth||labelW,h:tags[i].b.offsetHeight||28,facing}});
+    boxes=layoutCallouts(pts,bounds,sides);sides=boxes.map(o=>o.side);
+    boxes.forEach((o,i)=>{const t=tags[i],ex=o.side==='L'?o.x+o.w:o.x,ey=o.y+o.h/2;
+      t.b.style.transform=`translate(${Math.round(o.x)}px,${Math.round(o.y)}px)`;
+      t.b.classList.toggle('back',!pts[i].facing);t.b.classList.toggle('on',i===focus);
+      t.ln.setAttribute('x1',o.ax.toFixed(1));t.ln.setAttribute('y1',o.ay.toFixed(1));t.ln.setAttribute('x2',ex.toFixed(1));t.ln.setAttribute('y2',ey.toFixed(1));
+      t.pt.setAttribute('cx',o.ax.toFixed(1));t.pt.setAttribute('cy',o.ay.toFixed(1));
+      t.ln.classList.toggle('back',!pts[i].facing);t.pt.classList.toggle('back',!pts[i].facing)});
+    root.classList.toggle('ready',build===null); // the labels wait until there's a suit to point at
+  }
+  const ready=`${SUIT_PARTS.length} PARTS · ${SUIT_CALLOUTS.length} SYSTEMS · REPULSORS CHARGED`;
+  function setArg(a){
+    if(a==='assemble'&&!reduce){build=0;parts.forEach(p=>{p.holder.visible=false});setStat(`ASSEMBLING · 0 / ${SUIT_PARTS.length}`);blip(140,.6,.03,'sawtooth');
+      return "Suiting up. Boots first, helmet last."}
+    if(a==='assemble')return "Suit up complete. Every part is in place.";
+    return "Suit schematic on screen. Tap a label or a part for its specs, or make a fist to fire the repulsors.";
+  }
+  const ray=new T.Raycaster();
+  return {scene,camera,rig,title:'SUIT SCHEMATIC',stat:ready,
+    hint:'Drag to rotate · tap a label or a part · say "suit up" to watch it assemble',setArg,
+    next(dir){focus=(focus+dir+SUIT_CALLOUTS.length*2)%SUIT_CALLOUTS.length;return calloutLine(focus)},
+    squeeze(on){squeezed=on;if(on){fire=1;blip(1500,.3,.035,'sawtooth');blip(320,.4,.03,'square',.05)}},
+    pick(ndc){
+      const x=(ndc.x+1)/2*innerWidth,y=(1-ndc.y)/2*innerHeight,hit=boxes.findIndex(o=>x>=o.x&&x<=o.x+o.w&&y>=o.y&&y<=o.y+o.h);
+      if(hit>=0){focus=hit;return calloutLine(hit)}
+      ray.setFromCamera(ndc,camera);const h=ray.intersectObjects(fills,false)[0];if(!h)return null;
+      const p=SUIT_PARTS[h.object.userData.part],c=SUIT_CALLOUTS.findIndex(c=>c.key===p.group);focus=c;
+      return c>=0?calloutLine(c):`${p.name}. ${line(p.group)}`;
+    },
+    dispose(){root.remove()},
+    update(dt,t){
+      group.rotation.y+=dt*.35*amb;
+      if(build!==null){build+=dt;let on=0;
+        parts.forEach((p,i)=>{const e=suitAssembly(suitOrder[i],build),k=1-e;p.holder.visible=e>0;if(e>=1)on++;
+          p.holder.position.set(p.home[0]+p.from[0]*k,p.home[1]+p.from[1]*k,p.home[2]+p.from[2]*k);
+          p.holder.rotation.set(p.rot[0]+k*3,p.rot[1]+k*5,p.rot[2])});
+        setStat(`ASSEMBLING · ${on} / ${SUIT_PARTS.length}`);
+        if(build>suitBuildTime()){build=null;setStat(ready);blip(880,.2,.03,'sine');blip(1320,.3,.025,'sine',.1)}
+      }
+      const sy=SUIT_HALF.y+(SUIT_HALF.h+.3)*Math.sin(t*.9*amb);scan.position.y=sy;
+      parts.forEach(p=>{p.edge.material.opacity=.5+.5*Math.exp(-Math.abs(p.holder.position.y-sy)*.7)});
+      fire=squeezed?.75+.25*Math.sin(t*40):fire*Math.exp(-dt*5);
+      beams.forEach(b=>{b.glow.visible=b.beam.visible=build===null;b.beam.material.opacity=fire*.8;b.glow.material.opacity=.5+fire*.5;const s=1.4+fire*2.2;b.glow.scale.set(s,s,1)});
+      place();
+    }};
+}
+
+/* Scene 6: Earth. Coastlines are Natural Earth's public-domain 1:110m land, converted once into
+   jarvis/earth/land-110m.json (see jarvis/earth/README.md), so nothing comes from outside this site.
+   Places, the sun's position and the geometry are plain data and pure functions, tested without WebGL. */
+// name|lat|lon. Cities are also the lights on the night side.
+const CITY_DATA="Tokyo|35.7|139.7;Delhi|28.6|77.2;Shanghai|31.2|121.5;Sao Paulo|-23.6|-46.6;Mexico City|19.4|-99.1;Cairo|30|31.2;Mumbai|19.1|72.9;Beijing|39.9|116.4;Dhaka|23.8|90.4;Osaka|34.7|135.5;New York|40.7|-74;Karachi|24.9|67;Buenos Aires|-34.6|-58.4;Chongqing|29.6|106.5;Istanbul|41|29;Kolkata|22.6|88.4;Manila|14.6|121;Lagos|6.5|3.4;Rio de Janeiro|-22.9|-43.2;Tianjin|39.1|117.2;Kinshasa|-4.3|15.3;Guangzhou|23.1|113.3;Los Angeles|34.1|-118.2;Moscow|55.8|37.6;Shenzhen|22.5|114.1;Lahore|31.5|74.3;Bangalore|13|77.6;Paris|48.9|2.4;Bogota|4.7|-74.1;Jakarta|-6.2|106.8;Chennai|13.1|80.3;Lima|-12|-77;Bangkok|13.8|100.5;Seoul|37.6|127;Nagoya|35.2|136.9;Hyderabad|17.4|78.5;London|51.5|-0.1;Tehran|35.7|51.4;Chicago|41.9|-87.6;Chengdu|30.7|104.1;Nanjing|32.1|118.8;Wuhan|30.6|114.3;Ho Chi Minh City|10.8|106.7;Luanda|-8.8|13.2;Ahmedabad|23|72.6;Kuala Lumpur|3.1|101.7;Xian|34.3|108.9;Hong Kong|22.3|114.2;Hangzhou|30.3|120.2;Shenyang|41.8|123.4;Riyadh|24.7|46.7;Baghdad|33.3|44.4;Santiago|-33.4|-70.7;Surat|21.2|72.8;Madrid|40.4|-3.7;Pune|18.5|73.9;Harbin|45.8|126.6;Houston|29.8|-95.4;Dallas|32.8|-96.8;Toronto|43.7|-79.4;Dar es Salaam|-6.8|39.3;Miami|25.8|-80.2;Belo Horizonte|-19.9|-43.9;Singapore|1.35|103.8;Philadelphia|40|-75.2;Atlanta|33.7|-84.4;Fukuoka|33.6|130.4;Khartoum|15.6|32.5;Barcelona|41.4|2.2;Johannesburg|-26.2|28;Saint Petersburg|59.9|30.3;Qingdao|36.1|120.4;Dalian|38.9|121.6;Washington DC|38.9|-77;Yangon|16.8|96.2;Alexandria|31.2|29.9;Guadalajara|20.7|-103.3;Abidjan|5.3|-4;Ankara|39.9|32.9;Chittagong|22.3|91.8;Melbourne|-37.8|145;Sydney|-33.9|151.2;Monterrey|25.7|-100.3;Nairobi|-1.3|36.8;Hanoi|21|105.8;Brasilia|-15.8|-47.9;Cape Town|-33.9|18.4;Jeddah|21.5|39.2;Kabul|34.5|69.2;Casablanca|33.6|-7.6;Phoenix|33.4|-112.1;Rome|41.9|12.5;Berlin|52.5|13.4;Montreal|45.5|-73.6;Boston|42.4|-71.1;San Francisco|37.8|-122.4;Seattle|47.6|-122.3;Detroit|42.3|-83;Denver|39.7|-105;Las Vegas|36.2|-115.1;New Orleans|30|-90.1;Minneapolis|45|-93.3;Vancouver|49.3|-123.1;Calgary|51|-114.1;Havana|23.1|-82.4;Kingston|18|-76.8;Santo Domingo|18.5|-69.9;Panama City|9|-79.5;Guatemala City|14.6|-90.5;Caracas|10.5|-66.9;Quito|-0.2|-78.5;La Paz|-16.5|-68.1;Montevideo|-34.9|-56.2;Asuncion|-25.3|-57.6;Salvador|-13|-38.5;Recife|-8.1|-34.9;Fortaleza|-3.7|-38.5;Manaus|-3.1|-60;Medellin|6.2|-75.6;Anchorage|61.2|-149.9;Honolulu|21.3|-157.9;Reykjavik|64.1|-21.9;Dublin|53.3|-6.3;Lisbon|38.7|-9.1;Amsterdam|52.4|4.9;Brussels|50.8|4.4;Munich|48.1|11.6;Hamburg|53.6|10;Vienna|48.2|16.4;Prague|50.1|14.4;Warsaw|52.2|21;Budapest|47.5|19;Bucharest|44.4|26.1;Athens|38|23.7;Milan|45.5|9.2;Naples|40.9|14.3;Zurich|47.4|8.5;Stockholm|59.3|18.1;Oslo|59.9|10.8;Copenhagen|55.7|12.6;Helsinki|60.2|24.9;Kyiv|50.5|30.5;Minsk|53.9|27.6;Manchester|53.5|-2.2;Edinburgh|56|-3.2;Marseille|43.3|5.4;Lyon|45.8|4.8;Sofia|42.7|23.3;Belgrade|44.8|20.5;Tunis|36.8|10.2;Algiers|36.8|3.1;Tripoli|32.9|13.2;Accra|5.6|-0.2;Dakar|14.7|-17.4;Addis Ababa|9|38.7;Kampala|0.3|32.6;Kano|12|8.5;Durban|-29.9|31;Lusaka|-15.4|28.3;Harare|-17.8|31.1;Antananarivo|-18.9|47.5;Mogadishu|2|45.3;Dubai|25.2|55.3;Abu Dhabi|24.5|54.4;Doha|25.3|51.5;Kuwait City|29.4|48;Muscat|23.6|58.4;Tel Aviv|32.1|34.8;Jerusalem|31.8|35.2;Amman|31.9|35.9;Beirut|33.9|35.5;Damascus|33.5|36.3;Baku|40.4|49.9;Tashkent|41.3|69.3;Almaty|43.2|76.9;Islamabad|33.7|73;Kathmandu|27.7|85.3;Colombo|6.9|79.9;Novosibirsk|55|82.9;Yekaterinburg|56.8|60.6;Vladivostok|43.1|131.9;Ulaanbaatar|47.9|106.9;Taipei|25|121.6;Busan|35.2|129.1;Pyongyang|39|125.8;Sapporo|43.1|141.4;Phnom Penh|11.6|104.9;Cebu|10.3|123.9;Perth|-32|115.9;Brisbane|-27.5|153;Adelaide|-34.9|138.6;Auckland|-36.8|174.8;Wellington|-41.3|174.8;Port Moresby|-9.4|147.2;Darwin|-12.5|130.8;Orlando|28.5|-81.4;Tampa|28|-82.5;Jacksonville|30.3|-81.7;Fort Myers|26.6|-81.9;Austin|30.3|-97.7;San Antonio|29.4|-98.5;San Diego|32.7|-117.2;Portland|45.5|-122.7;Salt Lake City|40.8|-111.9;Nashville|36.2|-86.8;Charlotte|35.2|-80.8;St Louis|38.6|-90.2;Kansas City|39.1|-94.6;Cleveland|41.5|-81.7;Pittsburgh|40.4|-80;Baltimore|39.3|-76.6;Indianapolis|39.8|-86.2;Columbus|40|-83;Ottawa|45.4|-75.7;Quebec City|46.8|-71.2;Winnipeg|49.9|-97.1;Edmonton|53.5|-113.5;Tijuana|32.5|-117;Cancun|21.2|-86.8;Puebla|19|-98.2;Port-au-Prince|18.5|-72.3;San Juan|18.5|-66.1;Mecca|21.4|39.8;Isfahan|32.7|51.7;Mashhad|36.3|59.6;Basra|30.5|47.8;Lucknow|26.8|80.9;Jaipur|26.9|75.8;Kanpur|26.4|80.3;Faisalabad|31.4|73.1;Douala|4|9.7;Ibadan|7.4|3.9;Cordoba|-31.4|-64.2;Porto Alegre|-30|-51.2;Curitiba|-25.4|-49.3;Guayaquil|-2.2|-79.9;Cali|3.5|-76.5;Maracaibo|10.6|-71.6;Irkutsk|52.3|104.3;Murmansk|69|33.1;Nuuk|64.2|-51.7;Ushuaia|-54.8|-68.3;McMurdo Station|-77.8|166.7";
+const STATE_DATA="Alabama|32.8|-86.8;Alaska|64|-150;Arizona|34.3|-111.7;Arkansas|34.9|-92.4;California|37.2|-119.5;Colorado|39|-105.5;Connecticut|41.6|-72.7;Delaware|39|-75.5;Florida|28.1|-81.7;Georgia|32.7|-83.4;Hawaii|20.8|-156.3;Idaho|44.4|-114.6;Illinois|40|-89.2;Indiana|39.9|-86.3;Iowa|42.1|-93.5;Kansas|38.5|-98.4;Kentucky|37.5|-85.3;Louisiana|31|-92;Maine|45.4|-69.2;Maryland|39|-76.8;Massachusetts|42.3|-71.8;Michigan|44.3|-85.4;Minnesota|46.3|-94.3;Mississippi|32.7|-89.7;Missouri|38.4|-92.5;Montana|47|-109.6;Nebraska|41.5|-99.8;Nevada|39.3|-116.6;New Hampshire|43.7|-71.6;New Jersey|40.2|-74.7;New Mexico|34.4|-106.1;New York State|42.9|-75.5;North Carolina|35.6|-79.4;North Dakota|47.5|-100.5;Ohio|40.3|-82.8;Oklahoma|35.6|-97.5;Oregon|43.9|-120.6;Pennsylvania|40.9|-77.8;Rhode Island|41.7|-71.5;South Carolina|33.9|-80.9;South Dakota|44.4|-100.2;Tennessee|35.9|-86.4;Texas|31.5|-99.3;Utah|39.3|-111.7;Vermont|44.1|-72.7;Virginia|37.5|-78.9;Washington|47.4|-120.5;West Virginia|38.6|-80.6;Wisconsin|44.6|-89.9;Wyoming|43|-107.6";
+const COUNTRY_DATA="United States|39.8|-98.6;Canada|56|-96;Mexico|23.6|-102.5;Brazil|-10.8|-52.9;Argentina|-35|-65;Chile|-30|-71;Peru|-9.2|-75;Colombia|4|-73;Venezuela|7|-66;Bolivia|-17|-65;Ecuador|-1.5|-78.4;Cuba|21.6|-79.5;Jamaica|18.1|-77.3;Greenland|72|-40;Iceland|65|-18.5;United Kingdom|54|-2.5;England|52.5|-1.5;Scotland|56.8|-4.2;Ireland|53.2|-8;France|46.6|2.4;Spain|40.2|-3.6;Portugal|39.6|-8;Germany|51.1|10.4;Italy|42.8|12.6;Switzerland|46.8|8.2;Netherlands|52.2|5.3;Belgium|50.6|4.6;Austria|47.6|14.1;Poland|52.1|19.4;Czechia|49.8|15.5;Greece|39.1|22;Sweden|62|15;Norway|64.5|12;Finland|64.5|26;Denmark|56|9.5;Ukraine|49|31.4;Russia|61.5|98;Turkey|39|35.2;Egypt|26.8|30.8;Morocco|31.8|-7.1;Algeria|28|2.6;Libya|27|17.2;Nigeria|9.1|8.7;Ghana|7.9|-1;Kenya|0.2|37.9;Ethiopia|9.1|40.5;Tanzania|-6.4|34.9;South Africa|-30.6|22.9;Madagascar|-19|46.9;DR Congo|-2.9|23.6;Sudan|15.6|30;Somalia|5.2|46.2;Saudi Arabia|23.9|45.1;Iran|32.4|53.7;Iraq|33.2|43.7;Israel|31.4|35;Pakistan|30.4|69.3;Afghanistan|33.9|67.7;India|22|79;Nepal|28.4|84.1;Bangladesh|23.7|90.4;Sri Lanka|7.9|80.8;China|35.9|104.2;Mongolia|46.9|103.8;Japan|36.2|138.3;South Korea|36.5|127.9;North Korea|40.3|127.5;Taiwan|23.7|121;Philippines|12.9|121.8;Vietnam|14.1|108.3;Thailand|15.9|100.9;Indonesia|-2.5|118;Malaysia|4.2|102;Kazakhstan|48|66.9;Australia|-25.3|133.8;New Zealand|-41.8|172.5;Papua New Guinea|-6.3|143.9;Fiji|-17.7|178.1";
+const CONTINENTS=[
+  {name:'North America',lat:45,lon:-100,fact:"It has the world's biggest freshwater lake by area, Lake Superior."},
+  {name:'South America',lat:-15,lon:-60,fact:"The Amazon river carries more water than any other river on Earth."},
+  {name:'Europe',lat:50,lon:15,fact:"The second-smallest continent, and home to about 750 million people."},
+  {name:'Africa',lat:5,lon:20,fact:"It has 54 countries, the Sahara desert and the Nile, one of the longest rivers in the world."},
+  {name:'Asia',lat:40,lon:90,fact:"The biggest continent. It has Mount Everest, and more than half of all the people on Earth live here."},
+  {name:'Australia',lat:-25,lon:135,fact:"It's a country and a continent, home to kangaroos, koalas and the Great Barrier Reef."},
+  {name:'Antarctica',lat:-80,lon:0,fact:"The coldest, windiest and driest continent. Nobody lives there for good, only visiting scientists."}
+];
+const parsePlaces=(s,kind)=>s.split(';').map(r=>{const [name,lat,lon]=r.split('|');return {name,lat:+lat,lon:+lon,kind}});
+const CITIES=parsePlaces(CITY_DATA,'city');
+const PLACES={};
+[...CONTINENTS.map(c=>({...c,kind:'continent'})),...parsePlaces(COUNTRY_DATA,'country'),...parsePlaces(STATE_DATA,'state'),...CITIES].forEach(p=>{
+  const k=p.name.toLowerCase().replace(/[.'-]/g,' ').replace(/\s+/g,' ').trim();if(!PLACES[k])PLACES[k]=p});
+// Other names people say for the same place.
+Object.entries({'usa':'united states','america':'united states','the us':'united states','us':'united states','united states of america':'united states','uk':'united kingdom','britain':'united kingdom','great britain':'united kingdom','holland':'netherlands','czech republic':'czechia','congo':'dr congo','korea':'south korea','oceania':'australia','nyc':'new york','new york city':'new york','la':'los angeles','washington d c':'washington dc','dc':'washington dc','sf':'san francisco','rio':'rio de janeiro','st petersburg':'saint petersburg','bombay':'mumbai','peking':'beijing','saigon':'ho chi minh city','kiev':'kyiv','the south pole':'antarctica','south pole':'antarctica'}).forEach(([a,b])=>{if(PLACES[b])PLACES[a]=PLACES[b]});
+const D2R=Math.PI/180;
+// Earth-fixed axes: y through the North Pole, z through 0°N 0°E, x through 0°N 90°E.
+function latLonVec(lat,lon,r=1){const a=lat*D2R,b=lon*D2R;return [r*Math.cos(a)*Math.sin(b),r*Math.sin(a),r*Math.cos(a)*Math.cos(b)]}
+function vecLatLon([x,y,z]){const r=Math.hypot(x,y,z)||1;return {lat:Math.asin(clamp(y/r,-1,1))/D2R,lon:Math.atan2(x,z)/D2R}}
+// makeRig puts the camera at target + dist·(cos el·sin az, sin el, cos el·cos az), which is latLonVec(el, az):
+// so a camera at az = lon, el = lat looks straight down at that place.
+const faceAngles=(lat,lon)=>({az:lon*D2R,el:lat*D2R});
+// Great-circle angle between two places, in degrees.
+function arcDeg(a,b){const p=latLonVec(a.lat,a.lon),q=latLonVec(b.lat,b.lon);return Math.acos(clamp(p[0]*q[0]+p[1]*q[1]+p[2]*q[2],-1,1))/D2R}
+// Where the Sun is overhead right now, to about 0.01° (the Astronomical Almanac's low-precision formulas).
+function subsolar(date){
+  const n=date.getTime()/864e5-10957.5; // days since 2000-01-01 12:00 UTC
+  const L=280.46+.9856474*n,g=(357.528+.9856003*n)*D2R,lam=(L+1.915*Math.sin(g)+.02*Math.sin(2*g))*D2R,eps=(23.439-4e-7*n)*D2R;
+  const ra=Math.atan2(Math.cos(eps)*Math.sin(lam),Math.cos(lam))/D2R;
+  const eot=((L-ra)%360+540)%360-180; // equation of time, in degrees of longitude
+  const hours=((date.getTime()%864e5)+864e5)%864e5/36e5;
+  return {lat:Math.asin(Math.sin(eps)*Math.sin(lam))/D2R,lon:((-15*(hours-12)-eot)%360+540)%360-180};
+}
+// Is it day, night, sunrise or sunset at this place?
+function daylight(p,sun){
+  const s=latLonVec(sun.lat,sun.lon),q=latLonVec(p.lat,p.lon),h=s[0]*q[0]+s[1]*q[1]+s[2]*q[2];
+  if(h>.05)return 'day';if(h<-.05)return 'night';
+  return ((p.lon-sun.lon)/15+12+48)%24<12?'sunrise':'sunset';
+}
+// Even-odd test against the land rings (tenths of a degree), so lakes like the Caspian count as water.
+function onLand(lat,lon,rings){
+  let c=false;const x=lon*10,y=lat*10;
+  for(const r of rings)for(let i=0,j=r.length-2;i<r.length;j=i,i+=2){const xi=r[i],yi=r[i+1],xj=r[j],yj=r[j+1];if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)c=!c}
+  return c;
+}
+// Coastline segments to draw, as pairs of [lat, lon]. Edges along the ±180° seam, or jumping across it, are
+// where the data was cut to lie flat, not real coast, so they're left out.
+function coastSegments(rings){
+  const out=[];
+  for(const r of rings)for(let i=0;i+3<r.length;i+=2){const a=r[i],b=r[i+2];if(Math.abs(a-b)>1800||(Math.abs(a)===1800&&Math.abs(b)===1800))continue;out.push([r[i+1]/10,a/10,r[i+3]/10,b/10])}
+  return out;
+}
+function oceanName(lat,lon){
+  if(lat>=66)return 'the Arctic Ocean';if(lat<=-60)return 'the Southern Ocean';
+  if(lat>=30&&lat<=46&&lon>=-6&&lon<=36)return 'the Mediterranean Sea';
+  if(lat>=18&&lat<=31&&lon>=-98&&lon<=-80)return 'the Gulf of Mexico';
+  if(lat>=10&&lat<18&&lon>=-86&&lon<=-60)return 'the Caribbean Sea';
+  if(lon>=-70&&lon<20)return 'the Atlantic Ocean';
+  if(lon>=20&&lon<120&&lat<30)return 'the Indian Ocean';
+  return 'the Pacific Ocean';
+}
+const fmtLatLon=(lat,lon)=>`${Math.abs(lat).toFixed(1)}°${lat<0?'S':'N'} ${Math.abs(lon).toFixed(1)}°${lon<0?'W':'E'}`;
+function placeLine(p,sun){
+  const d=daylight(p,sun),when={day:"It's daytime there right now.",night:"It's night there right now.",sunrise:"The sun is rising there right now.",sunset:"The sun is setting there right now."}[d];
+  return p.kind==='continent'?`${p.name}. ${p.fact} ${when}`:`${p.name}. ${fmtLatLon(p.lat,p.lon)}. ${when}`;
+}
+let landP=null;
+function loadLand(){
+  if(!landP){landP=fetch(new URL('jarvis/earth/land-110m.json',location.href).href).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(j=>j.rings);landP.catch(()=>{landP=null})}
+  return landP;
+}
+const SATS=[{name:'Space station',r:1.07,inc:51.6,node:0,period:9},{name:'Space telescope',r:1.09,inc:28.5,node:200,period:10},
+  {name:'GPS satellite',r:1.35,inc:55,node:120,period:26},{name:'Weather satellite',r:1.6,inc:0,node:0,period:60}];
+function buildGlobe(T){
+  const scene=new T.Scene(),camera=makeCamera(T),group=new T.Group(),dot=dotTexture(T),PHOS=0x39ff88;
+  scene.add(group,starfield(T,2500));
+  const V=(lat,lon,r)=>new T.Vector3(...latLonVec(lat,lon,r));
+  const ocean=new T.Mesh(new T.SphereGeometry(1,64,48),new T.MeshBasicMaterial({color:0x04161f}));group.add(ocean);
+  const halo=new T.Sprite(new T.SpriteMaterial({map:dotTexture(T,'rgba(90,200,255,1)',128),transparent:true,opacity:.35,depthWrite:false,blending:T.AdditiveBlending}));
+  halo.scale.set(2.7,2.7,1);group.add(halo);
+  // latitude and longitude lines every 30°
+  const grat=[];
+  for(let lat=-60;lat<=60;lat+=30)for(let lon=-180;lon<180;lon+=5)grat.push(V(lat,lon,1.001),V(lat,lon+5,1.001));
+  for(let lon=-180;lon<180;lon+=30)for(let lat=-90;lat<90;lat+=5)grat.push(V(lat,lon,1.001),V(lat+5,lon,1.001));
+  group.add(new T.LineSegments(new T.BufferGeometry().setFromPoints(grat),new T.LineBasicMaterial({color:PHOS,transparent:true,opacity:.1})));
+  let rings=null,coastNote='';
+  loadLand().then(r=>{if(!H||H.scene!==scene)return;rings=r;const pts=[];
+    for(const [a,b,c,d] of coastSegments(r))pts.push(V(a,b,1.002),V(c,d,1.002));
+    group.add(new T.LineSegments(new T.BufferGeometry().setFromPoints(pts),new T.LineBasicMaterial({color:PHOS})));
+  }).catch(()=>{coastNote=' · COASTLINES OFFLINE';setStat(stat())});
+  // day and night: a shell that tints the sunlit side and darkens everything facing away from the Sun
+  const sunU={value:new T.Vector3(0,0,1)};
+  const night=new T.Mesh(new T.SphereGeometry(1.003,64,48),new T.ShaderMaterial({uniforms:{sun:sunU},transparent:true,depthWrite:false,
+    vertexShader:'varying vec3 n;void main(){n=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:'uniform vec3 sun;varying vec3 n;void main(){float d=dot(n,sun);gl_FragColor=mix(vec4(0.0,0.01,0.02,0.72),vec4(0.1,0.42,0.6,0.28),smoothstep(-0.12,0.08,d));}'}));
+  group.add(night);
+  const term=new T.LineLoop(new T.BufferGeometry().setFromPoints(Array.from({length:128},(_,i)=>new T.Vector3(Math.cos(i/128*TAU)*1.004,Math.sin(i/128*TAU)*1.004,0))),
+    new T.LineBasicMaterial({color:0xffc24a,transparent:true,opacity:.45}));
+  group.add(term);
+  // city lights, shown on the night side
+  const cp=new Float32Array(CITIES.length*3),cc=new Float32Array(CITIES.length*3),cn=CITIES.map(c=>latLonVec(c.lat,c.lon));
+  CITIES.forEach((c,i)=>cp.set(latLonVec(c.lat,c.lon,1.005),i*3));
+  const cg=new T.BufferGeometry();cg.setAttribute('position',new T.BufferAttribute(cp,3));cg.setAttribute('color',new T.BufferAttribute(cc,3));
+  group.add(new T.Points(cg,new T.PointsMaterial({size:.035,map:dot,vertexColors:true,transparent:true,depthWrite:false,blending:T.AdditiveBlending})));
+  // satellites (heights not to scale)
+  const sats=SATS.map(s=>{
+    const tilt=new T.Group();tilt.rotation.set(0,s.node*D2R,s.inc*D2R);
+    tilt.add(new T.LineLoop(new T.BufferGeometry().setFromPoints(Array.from({length:96},(_,i)=>new T.Vector3(Math.cos(i/96*TAU)*s.r,0,Math.sin(i/96*TAU)*s.r))),
+      new T.LineBasicMaterial({color:0x7fd6ff,transparent:true,opacity:.18})));
+    const sp=new T.Sprite(new T.SpriteMaterial({map:dot,color:0xe6fbff,transparent:true,depthWrite:false,blending:T.AdditiveBlending}));sp.scale.set(.06,.06,1);
+    tilt.add(sp);group.add(tilt);return {...s,sp,ph:R()*TAU};
+  });
+  // the marker that pulses where you asked to go
+  const marker=new T.Group(),ringM=new T.Mesh(new T.RingGeometry(.03,.04,40),new T.MeshBasicMaterial({color:0xffc24a,transparent:true,side:T.DoubleSide,depthWrite:false}));
+  marker.add(ringM,new T.Mesh(new T.CircleGeometry(.012,20),new T.MeshBasicMaterial({color:0xffc24a,side:T.DoubleSide})));
+  marker.visible=false;group.add(marker);
+  const far=Math.max(2.4,fitDist(1.3,1.3)),near=Math.max(1.7,far*.72);
+  const rig=makeRig(T,camera,{dist:far*2.2,goal:far,el:.35,elGoal:.35,az:-1.4,min:1.25,max:8,spin:-.06});
+  let fly=null,focus=null,spinning=false,tour=-1,frame=0,sun=subsolar(new Date());
+  const stat=()=>(focus?`${focus.name.toUpperCase()} · ${fmtLatLon(focus.lat,focus.lon)}`:`${CITIES.length} CITIES · ${SATS.length} SATELLITES · DAY AND NIGHT LIVE`)+coastNote;
+  function go(p){
+    focus=p;const a=faceAngles(p.lat,p.lon);fly={az:a.az,el:clamp(a.el,-1.4,1.4)};if(reduce){rig.az=fly.az;rig.el=rig.elGoal=fly.el} // no swoop under reduced motion
+    rig.spin=0;rig.goal=p.kind==='continent'||p.kind==='country'?far*.85:near;
+    const v=V(p.lat,p.lon,1.006);marker.position.copy(v);marker.lookAt(v.clone().multiplyScalar(2));marker.visible=true;
+    setStat(stat());return placeLine(p,sun);
+  }
+  function setArg(key){
+    if(!key){focus=null;fly=null;marker.visible=false;rig.spin=-.06;rig.goal=far;setStat(stat());
+      return "Here's Earth, with the day and night side as they are right now. The lights are cities after dark. Ask me to show you a place, like Florida or Tokyo."}
+    return go(PLACES[key]);
+  }
+  const ray=new T.Raycaster();
+  return {scene,camera,rig,title:'EARTH',stat:stat(),
+    hint:'Drag to spin · tap a place · say "show me Florida" or "take me to Tokyo"',setArg,
+    next(dir){tour=(tour+dir+CONTINENTS.length*2)%CONTINENTS.length;return go({...CONTINENTS[tour],kind:'continent'})},
+    squeeze(on){spinning=on;if(on){fly=null;blip(240,.3,.03,'sawtooth')}},
+    pick(ndc){
+      ray.setFromCamera(ndc,camera);const hit=ray.intersectObject(ocean,false)[0];if(!hit)return null;
+      const g=vecLatLon(group.worldToLocal(hit.point.clone()).toArray());
+      const near=(list,max)=>{let best=null,bd=max;for(const p of list){const d=arcDeg(g,p);if(d<bd){bd=d;best=p}}return best};
+      const city=near(CITIES,2.5);if(city)return go(city);
+      if(rings&&!onLand(g.lat,g.lon,rings))return `That's ${oceanName(g.lat,g.lon)}, at ${fmtLatLon(g.lat,g.lon)}. Water covers about 71 percent of Earth.`;
+      const area=near(Object.values(PLACES).filter(p=>p.kind==='state'||p.kind==='country'),9);
+      return area?`That's in or near ${area.name}, at ${fmtLatLon(g.lat,g.lon)}.`:`That's ${fmtLatLon(g.lat,g.lon)}.`;
+    },
+    update(dt,t){
+      if(frame++%30===0){
+        sun=subsolar(new Date());const s=latLonVec(sun.lat,sun.lon);sunU.value.set(...s);term.lookAt(...s);
+        for(let i=0;i<CITIES.length;i++){const n=cn[i],h=n[0]*s[0]+n[1]*s[1]+n[2]*s[2],k=clamp((-h+.03)/.15,0,1)*.9+.1;cc.set([k,k*.82,k*.45],i*3)}
+        cg.attributes.color.needsUpdate=true;
+      }
+      if(rig.dragging)fly=null;
+      if(spinning)rig.az+=dt*2.5;
+      if(fly){let d=fly.az-rig.az;d=Math.atan2(Math.sin(d),Math.cos(d));rig.az+=d*(1-Math.pow(.04,dt));rig.elGoal=fly.el}
+      sats.forEach(s=>{const u=s.ph+t*TAU/s.period*amb;s.sp.position.set(Math.cos(u)*s.r,0,Math.sin(u)*s.r)});
+      if(marker.visible){const k=1+.6*((t*1.5*amb)%1);ringM.scale.set(k,k,1);ringM.material.opacity=1-((t*1.5*amb)%1)*.8}
+    }};
+}
+
+const BUILDERS={galaxy:buildGalaxy,solar:buildSolar,particles:buildParticles,neural:buildNeural,suit:buildSuit,globe:buildGlobe};
 function resizeHolo(){if(!H)return;H.renderer.setSize(innerWidth,innerHeight,false);H.camera.aspect=innerWidth/innerHeight;H.camera.updateProjectionMatrix()}
 function loop(now){
   if(!H)return;
@@ -610,7 +1363,7 @@ function startHolo(T,kind,arg){
 function closeHolo(keepHands){
   if(!H)return false;
   if(!keepHands)stopHands();
-  const h=H;H=null;cancelAnimationFrame(h.raf);
+  const h=H;H=null;cancelAnimationFrame(h.raf);if(h.dispose)h.dispose();
   h.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(o.material.map)o.material.map.dispose();o.material.dispose()}});
   h.renderer.dispose();try{h.renderer.forceContextLoss()}catch(e){}
   h.renderer.domElement.remove();
@@ -814,6 +1567,7 @@ const boot=document.getElementById('boot'),bootGo=document.getElementById('boot-
 let booting=false,bootTimers=[];
 function placeBootButton(){const r=cv.getBoundingClientRect();if(r.height)bootGo.style.top=(r.top+r.height/2)+'px'}
 function greeting(){
+  if(skin!=='jarvis')return SKINS[skin].hello;
   const h=new Date().getHours(),part=h<12?'morning':h<18?'afternoon':'evening';
   return `Good ${part}${userName?', '+userName:''}. All systems online. Tap the mic or type to talk to me.`;
 }
@@ -848,10 +1602,108 @@ addEventListener('keydown',e=>{
   if(!boot.hidden)finishBoot();else if(closeHolo())say("Projector off.");
 });
 
+/* ---------- Skin switching ---------- */
+const whoEl=document.getElementById('who'),skinBtn=document.getElementById('skin');
+function skinIntent(raw){
+  const s=normPhrase(raw);
+  const to='(?:switch|change|go|turn|put|set|use|load|activate|become|be|give me|i want)';
+  const want=(words)=>new RegExp(`\\b${to}\\b(?: (?:back|it|over|me|you|us|the|to|into|on|in|now|skin|mode|theme|voice|a|my))* (?:${words})\\b|\\b(?:${words}) (?:skin|mode|theme|voice|persona)\\b|^(?:${words})(?: please)?$`).test(s);
+  if(want('matrix|morpheus|the matrix')||/\b(?:take|taking) the red pill\b|^red pill$/.test(s))return 'matrix';
+  if(want('panthers?|florida panthers|stanley|stanley c panther|hockey'))return 'panther';
+  if(want('jarvis|normal|default|standard|original|usual')||/\b(?:take|taking) the blue pill\b|^blue pill$/.test(s))return 'jarvis';
+  return null;
+}
+let rainTimer=0;
+function setSkin(k){
+  if(!Object.hasOwn(SKINS,k))k='jarvis';
+  const was=skin;skin=k;const S=SKINS[k];
+  document.documentElement.dataset.skin=k;whoEl.textContent=S.name;skinBtn.textContent='SKIN: '+S.label;
+  ringRGB=S.ring;coreRGB=S.core;
+  try{localStorage.setItem('jarvis-skin',k)}catch(e){}
+  if(synth)pickVoice();
+  rain(k==='matrix');
+  return was===k?`I'm already ${S.short}.`:S.hello;
+}
+skinBtn.addEventListener('click',()=>{const ks=Object.keys(SKINS);say(setSkin(ks[(ks.indexOf(skin)+1)%ks.length]))});
+// Matrix digital rain behind everything, only for the Matrix skin, and still when reduced motion is asked for.
+const rainCv=document.getElementById('rain'),rainCx=rainCv.getContext&&rainCv.getContext('2d');
+function rain(on){
+  clearInterval(rainTimer);rainTimer=0;rainCv.hidden=!on||!rainCx;if(rainCv.hidden)return;
+  const W=rainCv.width=innerWidth,Hh=rainCv.height=innerHeight,fs=16,cols=Math.ceil(W/fs),drops=Array.from({length:cols},()=>Math.random()*Hh/fs);
+  const glyphs='アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン0123456789';
+  rainCx.fillStyle='#000300';rainCx.fillRect(0,0,W,Hh);rainCx.font=fs+'px monospace';
+  const step=()=>{
+    if(document.hidden||document.body.classList.contains('holo-on'))return;
+    rainCx.fillStyle='rgba(0,3,0,.08)';rainCx.fillRect(0,0,W,Hh);rainCx.fillStyle='#00ff41';
+    drops.forEach((y,i)=>{rainCx.fillText(glyphs[Math.floor(Math.random()*glyphs.length)],i*fs,y*fs);drops[i]=y*fs>Hh&&Math.random()>.975?0:y+1});
+  };
+  if(reduce){for(let i=0;i<40;i++)step();return}
+  rainTimer=setInterval(step,55);
+}
+addEventListener('resize',()=>{if(skin==='matrix')rain(true)});
+let flairN=0; // which chat answer this is, so persona lines take turns instead of every answer getting one
+function flair(text){
+  const S=SKINS[skin];if(!S.open.length)return text;
+  const n=flairN++;
+  return n%3===0?`${S.open[(n/3|0)%S.open.length]} ${text}`:n%3===1?`${text} ${S.close[(n/3|0)%S.close.length]}`:text;
+}
+
+/* ---------- Learned phrases (this browser only) ---------- */
+// When Jarvis doesn't understand something, he asks what you meant. If that turns out to be something he
+// knows, the phrase is saved here, so saying it again just works. Stored in localStorage, nowhere else.
+function normPhrase(t){return String(t).toLowerCase().replace(/[^a-z0-9' ]+/g,' ').replace(/\s+/g,' ').trim()}
+const LEARN_MAX=200;
+let learned=Object.create(null);
+try{const o=JSON.parse(localStorage.getItem('jarvis-learned')||'{}');if(o&&typeof o==='object'&&!Array.isArray(o))
+  for(const [k,v] of Object.entries(o))if(typeof v==='string'&&k.length<=120&&v.length<=200)learned[k]=v}catch(e){}
+function saveLearned(){try{localStorage.setItem('jarvis-learned',JSON.stringify(learned))}catch(e){}}
+function learn(said,meant){
+  delete learned[said];learned[said]=meant; // newest last
+  const ks=Object.keys(learned);ks.slice(0,Math.max(0,ks.length-LEARN_MAX)).forEach(k=>delete learned[k]);
+  saveLearned();
+}
+let pendingTeach=null; // the phrase Jarvis just didn't understand, while he waits to hear what it meant
+const NOPE=Symbol('not understood');
+const CAN_DO="Here's what I can do: tell the time or date, a joke, a fun fact or some math, flip a coin or roll a die, show you things on the holo-projector like Mars, Earth or your name, suit up, show my brain, or switch to the Matrix or Panthers skin.";
+// One answer, or NOPE when nothing understood it. A learned phrase stands in for what it means.
+async function respond(text){
+  const p=normPhrase(text);if(learned[p])text=learned[p];
+  const sk=skinIntent(text);if(sk)return setSkin(sk);
+  const it=intent(text);if(it)return await project(it);
+  if(skin!=='jarvis'&&/who are you|your name|what are you/.test(normPhrase(text)))return SKINS[skin].who;
+  const b=brainKnown(text);return b===null?NOPE:flair(b);
+}
+const MEANT=/^(?:what\s+)?i\s+(?:was\s+(?:trying|going)\s+to\s+(?:say|ask)|tried\s+to\s+(?:say|ask)|wanted\s+to\s+(?:say|ask)|meant\s+to\s+(?:say|ask)|wanted\s+(?:you\s+)?to|want\s+(?:you\s+)?to|meant|mean)(?:\s+(?:was|is))?[\s,:]*/i;
+async function answer(text){
+  const p=normPhrase(text);
+  if(/^(?:forget|clear|erase|wipe|reset|delete)\b.*\b(?:learned|learnt|taught|memory|phrases)\b/.test(p)){
+    pendingTeach=null;const n=Object.keys(learned).length;learned=Object.create(null);saveLearned();
+    return n?`Done. I've forgotten the ${n===1?'phrase':n+' phrases'} you taught me.`:"You haven't taught me anything yet.";
+  }
+  if(/^what (?:have you|did you|has jarvis) (?:learned|learnt)|^what (?:have i|did i) (?:taught|teach) you/.test(p)){
+    const ks=Object.keys(learned);if(!ks.length)return "Nothing yet. When I don't understand you, tell me what you meant and I'll remember it.";
+    return `You've taught me ${ks.length===1?'one phrase':ks.length+' phrases'}. `+ks.slice(-5).map(k=>`"${k}" means "${learned[k]}".`).join(' ');
+  }
+  if(pendingTeach!==null){
+    const said=pendingTeach;pendingTeach=null;
+    if(/^(?:nothing|never ?mind|forget it|no|nope|nah|cancel|skip|move on|it doesn't matter|doesn't matter)\b/.test(p))
+      return "Then we'll have to move on. I'm not programmed for this.";
+    const meant=text.trim().replace(MEANT,'').replace(/[.!]+$/,'').trim();
+    const r=meant?await respond(meant):NOPE;
+    if(r===NOPE)return "I don't understand that either, so we'll have to move on. I'm not programmed for this.";
+    if(normPhrase(meant)!==said)learn(said,meant);
+    const got=`Got it. Next time you say "${said}", I'll know you mean "${meant}".`;
+    return r?`${got} ${r}`:got;
+  }
+  const r=await respond(text);
+  if(r!==NOPE)return r;
+  if(p&&p.length<=120)pendingTeach=p;
+  return `${skin==='jarvis'?"I didn't understand that.":SKINS[skin].miss} ${CAN_DO} What were you trying to say?`;
+}
+
 function handle(text){
   if(!text.trim())return;add(text,'me');setMode('think');
-  const it=intent(text);
-  setTimeout(async()=>{const r=it?await project(it):brain(text);if(r)say(r);else if(mode==='think'&&!booting)setMode('idle')},450);
+  setTimeout(async()=>{const r=await answer(text);if(r)say(r);else if(mode==='think'&&!booting)setMode('idle')},450);
 }
 
 /* ---------- Input ---------- */
@@ -873,7 +1725,8 @@ if(SR){
   mic.addEventListener('click',()=>{if(synth)synth.cancel();try{rec.start()}catch(e){rec.stop()}});
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={speechChunks,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,orbPulse,energy:()=>energy,hearing:()=>hearing};
+window.__jarvis={speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,orbPulse,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing};
+setSkin(skin);
 showBoot();
 </script>
 </body>

@@ -400,6 +400,7 @@
       <li><a href="#s2">Neural network</a></li>
       <li><a href="#s3">Iron Man suit schematic</a></li>
       <li><a href="#s4">Earth globe</a></li>
+      <li><a href="#i1">Interim: skins, faces, voices, learned phrases</a></li>
       <li><a href="#s5">Threat scan</a></li>
       <li><a href="#s6">Wake word, briefing, gesture tuning</a></li>
       <li><a href="#done">Every session ends the same way</a></li>
@@ -460,9 +461,10 @@
         <thead><tr><th>#</th><th>Session</th><th>Covers</th><th>Size</th><th>Status</th></tr></thead>
         <tbody>
           <tr><td>1</td><td><a href="#s1">Polish and voice-reactive orb</a></td><td>Option 8 and four open review items</td><td>Small</td><td><span class="badge done">Done</span></td></tr>
-          <tr><td>2</td><td><a href="#s2">Neural network</a></td><td>Option 6</td><td>Small–medium</td><td><span class="badge in-progress">In test</span></td></tr>
-          <tr><td>3</td><td><a href="#s3">Iron Man suit schematic</a></td><td>Option 3</td><td>Medium</td><td><span class="badge in-progress">In test</span></td></tr>
-          <tr><td>4</td><td><a href="#s4">Earth globe</a></td><td>Option 4</td><td>Medium</td><td><span class="badge in-progress">In test</span></td></tr>
+          <tr><td>2</td><td><a href="#s2">Neural network</a></td><td>Option 6</td><td>Small–medium</td><td><span class="badge done">Done</span></td></tr>
+          <tr><td>3</td><td><a href="#s3">Iron Man suit schematic</a></td><td>Option 3</td><td>Medium</td><td><span class="badge done">Done</span></td></tr>
+          <tr><td>4</td><td><a href="#s4">Earth globe</a></td><td>Option 4</td><td>Medium</td><td><span class="badge done">Done</span></td></tr>
+          <tr><td>i1</td><td><a href="#i1">Interim: skins, faces, voices, learned phrases</a></td><td>Asked for in chat, not from the options list</td><td>Medium</td><td><span class="badge done">Done</span></td></tr>
           <tr><td>5</td><td><a href="#s5">Threat scan</a></td><td>Option 11</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
           <tr><td>6</td><td><a href="#s6">Wake word, briefing, gesture tuning</a></td><td>Options 7 and 12, and the hand-control review item</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
         </tbody>
@@ -511,7 +513,7 @@
 
     <section id="s2">
       <h2><span class="kicker">Session 2 · small–medium</span>Neural network</h2>
-      <div class="session-meta"><span><strong>Status:</strong> <span class="badge in-progress">In test</span></span><span><strong>Needs:</strong> nothing</span></div>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge done">Done</span></span><span><strong>Needs:</strong> nothing</span></div>
       <ol class="substeps">
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>A <code>neural</code> scene.</strong> Layers of glowing nodes joined by faint lines, with pulses travelling along the connections. "Show me your brain" or "neural network" opens it.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>It thinks when Jarvis thinks.</strong> While <code>mode</code> is <code>think</code>, a burst of pulses fires from the input layer to the output layer. Each answer lights the output nodes. With the scene closed, this does nothing.</li>
@@ -519,7 +521,7 @@
       </ol>
       <p><strong>Checks:</strong> commands in the suite, and Chromium screenshots at desktop and phone width while it's thinking.</p>
       <div class="callout notes"><strong class="label">Session notes</strong>
-        <p>Built 2026-10-09 in commit <code>cc52252</code>, in <a href="../jarvis-test.html">jarvis-test.html</a> only, reviewed in <a href="../tests/secrpts/42.html">review 42</a>. This session was paused halfway when the mic broke on the main page (<a href="../tests/secrpts/41.html">review 41</a>). The test copy itself was created when it resumed. Waiting for you to try it before promotion.</p>
+        <p>Built 2026-10-09 in commit <code>cc52252</code>, in <a href="../jarvis-test.html">jarvis-test.html</a> only, reviewed in <a href="../tests/secrpts/42.html">review 42</a>. This session was paused halfway when the mic broke on the main page (<a href="../tests/secrpts/41.html">review 41</a>). The test copy itself was created when it resumed. Promoted to <code>jarvis.html</code> on 2026-10-09 with the interim session's work (<a href="#i1">see below</a>, <a href="../tests/secrpts/49.html">review 49</a>).</p>
         <p><strong>How it works.</strong> The network is plain data (<code>neuralLayout</code>, <code>createNeuralSim</code>), so the suite tests it without WebGL. A pulse crosses one connection in 0.5–0.7 s, lights the node it reaches, and that node passes it on down two random connections. Pulses are capped at 400, so a held fist can't flood the frame. While Jarvis is thinking, a burst goes into the input layer every 0.18 s. <code>say()</code> lights the output layer for every answer, through an <code>onAnswer</code> hook the other scenes don't have. Five shapes, from 3 to 5 layers of up to 8 nodes. <code>next</code> cycles through them. A tap picks the node within 48 px of it on screen.</p>
         <p><strong>Divergences from the plan.</strong> The command also matches "can I see your brain" and "neural net", but not "use your brain" or "brain teaser". The network sways rather than spins, so its layers stay readable. In Chromium a tap, a hand tap, five swipes and a squeeze all worked at both sizes, with no errors.</p>
         <p><strong>Still open.</strong> Trying it on your devices. Frame rate on a phone GPU is unmeasured, though at 30 nodes and 161 connections at most, it's far lighter than the galaxy.</p>
@@ -528,7 +530,7 @@
 
     <section id="s3">
       <h2><span class="kicker">Session 3 · medium</span>Iron Man suit schematic</h2>
-      <div class="session-meta"><span><strong>Status:</strong> <span class="badge in-progress">In test</span></span><span><strong>Needs:</strong> nothing</span></div>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge done">Done</span></span><span><strong>Needs:</strong> nothing</span></div>
       <ol class="substeps">
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>A <code>suit</code> scene:</strong> a generic armoured figure built from three.js primitives in glowing wireframe, on a turntable with a scanning line. It should be a look-alike, not a copy of Marvel's design, and use no downloaded 3D model. That avoids licensing questions and keeps the page self-contained.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Callouts:</strong> HTML labels projected from 3D points ("Repulsor", "Arc reactor", "Flight stabilizer", "Helmet HUD"), with leader lines that follow the model as it turns. Tapping or pinching a part gives a fun spec line.</li>
@@ -536,7 +538,7 @@
       </ol>
       <p><strong>Checks:</strong> callout positions stay on screen at 390×844 (measure the boxes in Chromium, as review 38 did for the HUD). Suite checks for the commands and the part list.</p>
       <div class="callout notes"><strong class="label">Session notes</strong>
-        <p>Built 2026-10-09 in commit <code>a5cc16e</code>, in <code>jarvis-test.html</code> only, reviewed in <a href="../tests/secrpts/43.html">review 43</a>. Suite: 201 checks, up from 160. Waiting for you to try it before promotion.</p>
+        <p>Built 2026-10-09 in commit <code>a5cc16e</code>, in <code>jarvis-test.html</code> only, reviewed in <a href="../tests/secrpts/43.html">review 43</a>. Suite: 201 checks, up from 160. Promoted to <code>jarvis.html</code> on 2026-10-09 with the interim session's work (<a href="#i1">see below</a>, <a href="../tests/secrpts/49.html">review 49</a>).</p>
         <p><strong>How it works.</strong> The suit is 31 parts (boxes, 8-sided cylinders and low-poly balls) listed as plain data in <code>SUIT_PARTS</code>, each drawn as a faint fill plus bright edges. A scanning ring sweeps up and down and brightens the plates it passes. The four labels are HTML buttons, so Tab reaches them. <code>layoutCallouts</code> places them in a column down each side of the figure, level with their anchors where there's room, never overlapping, and between the top HUD and the caption. A label near the middle keeps its side, so it doesn't flicker as the suit turns. A label whose part is round the back dims. "Suit up" flies the parts in from all round, boots first and helmet last, over 2.9 s, with a count in the stat line. A fist lights both palms and fires two beams for as long as it's held. A tap on a label or a part gives a spec line, and repeated taps step through two or three lines each. A swipe moves to the next callout.</p>
         <p><strong>Divergences from the plan.</strong> "Show me the suit", "can I see your armour", "iron man suit" and "make a suit" open it ready-made, and only "suit up" or "suit me up" assemble it. Tapping a part that has no callout (a knee, the abdomen) names the part and gives a plating, or boot thruster, line. The brain's old "Suit diagnostics complete" answer is now only reached by phrasings like "who is iron man". Under reduced motion "suit up" skips the flight. The screenshots caught two things, both fixed: during assembly the labels and palm glows showed before their parts had arrived, and on desktop the turntable sat under the caption. Dimmed labels needed 0.8 opacity, not 0.7, to keep 4.5:1 over a white beam. In Chromium, 24 measurements over a full turn at 1280×800 and 390×844 found no label off screen, under the HUD or text box, or overlapping, and there were no page errors or CSP violations.</p>
         <p><strong>Still open.</strong> Trying it on your devices: whether the labels are readable on the phone, how it looks, and the frame rate, which is unmeasured (about 1,100 edge lines, much lighter than the galaxy).</p>
@@ -545,7 +547,7 @@
 
     <section id="s4">
       <h2><span class="kicker">Session 4 · medium</span>Earth globe</h2>
-      <div class="session-meta"><span><strong>Status:</strong> <span class="badge in-progress">In test</span></span><span><strong>Needs:</strong> nothing</span></div>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge done">Done</span></span><span><strong>Needs:</strong> nothing</span></div>
       <ol class="substeps">
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Land outlines:</strong> from Natural Earth's public-domain 110 m data (the <code>world-atlas</code> npm package carries it; npm is reachable from claude.ai/code). Convert it once into a small embedded outline, or a file under <code>jarvis/</code>, so the page fetches nothing from outside. NASA's image servers are blocked from the container, so don't plan on Blue Marble textures.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>A <code>globe</code> scene:</strong> a dark ocean sphere with glowing coastlines, a day/night line from the real time, city lights from an embedded list of about 200 large cities, and a few satellites in orbit.</li>
@@ -553,10 +555,29 @@
       </ol>
       <p><strong>Checks:</strong> a lat/lon-to-3D unit test (for example, Florida faces the camera after "show me Florida"), plus screenshots.</p>
       <div class="callout notes"><strong class="label">Session notes</strong>
-        <p>Built 2026-10-09 in commit <code>9351f5f</code>, in <code>jarvis-test.html</code> only, reviewed in <a href="../tests/secrpts/44.html">review 44</a>. Suite: 264 checks, up from 201. Waiting for you to try it before promotion.</p>
+        <p>Built 2026-10-09 in commit <code>9351f5f</code>, in <code>jarvis-test.html</code> only, reviewed in <a href="../tests/secrpts/44.html">review 44</a>. Suite: 264 checks, up from 201. Promoted to <code>jarvis.html</code> on 2026-10-09 with the interim session's work (<a href="#i1">see below</a>, <a href="../tests/secrpts/49.html">review 49</a>).</p>
         <p><strong>How it works.</strong> The coastlines are a file, <code>jarvis/earth/land-110m.json</code> (46 KB, 126 rings), not embedded in the page. It's converted by <code>jarvis/earth/build-land.mjs</code> from <code>world-atlas</code> 2.0.2, and pinned by hash in the suite and in <code>jarvis/earth/README.md</code>. That keeps both copies of the page small, and <code>connect-src 'self'</code> already allows it. A shell over the globe tints the sunlit side blue and darkens the night side, with an amber line along the edge. The Sun's position comes from the time on the device. 243 cities glow on the night side. The places table has 7 continents, 78 countries, 50 states and the cities, plus aliases like "USA", "NYC" and "Bombay". The camera's angles for a place are just its latitude and longitude (<code>faceAngles</code>), so it ends up looking straight down at it. A tap names the nearest city within 2.5°, or the sea, or the nearest state or country. A swipe tours the continents, and a fist spins the globe.</p>
         <p><strong>Divergences from the plan.</strong> The simple sun formula I started with was a degree off at the equinox, which the suite caught, so it's now the Astronomical Almanac's low-precision formulas, good to about 0.01°. "Take me to Earth" still goes to Earth in the solar system. Only "show me Earth", "show me the world" and "spin the globe" open the globe. A place matches only if all the words after the verb are its name, so "show me the world's tallest tower" doesn't open it. Jarvis says whether it's day, night, sunrise or sunset at the place. Under reduced motion the camera jumps instead of flying. In Chromium, Florida landed at the exact centre of the screen at both sizes, with no errors and no requests to any new host.</p>
         <p><strong>Still open.</strong> Trying it on your devices, and the frame rate on a phone. Ocean names come from rough boxes. 17 coastal cities sit just offshore of the coarse coastline, which only matters for the land-or-sea check, and a tap checks for a city first.</p>
+      </div>
+    </section>
+
+    <section id="i1">
+      <h2><span class="kicker">Interim session · medium</span>Skins, faces, voices, learned phrases</h2>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge done">Done</span></span><span><strong>Needs:</strong> nothing</span><span><strong>Reviews:</strong> <a href="../tests/secrpts/46.html">46</a>, <a href="../tests/secrpts/47.html">47</a>, <a href="../tests/secrpts/48.html">48</a>, <a href="../tests/secrpts/49.html">49</a></span></div>
+      <p>Not one of the planned sessions. You asked for these in chat on 2026-10-09. They were built in <code>jarvis-test.html</code>, tried live, then promoted to <code>jarvis.html</code> together with Sessions 2–4.</p>
+      <ul class="tasks">
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Learned phrases.</strong> When Jarvis doesn't understand, he says "I didn't understand that", lists what he can do and asks "What were you trying to say?" "Nothing" moves on ("I'm not programmed for this"). A reply he understands is saved in <code>localStorage['jarvis-learned']</code>, so the phrase works next time. "What have you learned" lists them, and "forget what you learned" clears them.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Skins.</strong> Jarvis, Matrix (Morpheus) and Panthers (Stanley C. Panther, the Florida Panthers' mascot, named after the Stanley Cup). Switched with the SKIN button or by voice ("switch to the Matrix", "Panthers mode", "back to Jarvis"). Each skin changes the name, colours, orb, voice and persona lines, and the Matrix skin adds digital rain. Saved in <code>localStorage['jarvis-skin']</code>.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Orb faces.</strong> Each skin has a face in the orb's centre, drawn in code characters by <code>orbFace()</code>: an Iron Man style helmet (green, orange trim, blue eyes) for Jarvis, Morpheus in Matrix green, and Stanley in red, navy and gold.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Voices.</strong> Each skin has a ranked list of voices that suit it (Daniel or Ryan for Jarvis, Ralph, Guy or Davis for Morpheus, Andrew, Brian or Junior for Stanley). A voice menu beside the SKIN button lists the device's English voices and saves a pick per skin in <code>localStorage['jarvis-voices']</code>.</li>
+      </ul>
+      <div class="callout notes"><strong class="label">Session notes</strong>
+        <p>Pull requests #75 (skins, faces, learned phrases), #76 (<code>CLAUDE.md</code> note on the faces), #77 (voices), #78 (the voice menu on Android) and #79 (promotion and these notes). Suites: <code>jarvis-test</code> 369 checks and <code>jarvis</code> 366, up from 287 and 151.</p>
+        <p><strong>How the faces were chosen.</strong> They were picked from preview renders in a claude.ai artifact (not in the repo). The first round, nine simple line faces, didn't land. You then asked for likenesses: a detailed Morpheus portrait in three styles (you picked M6, made of Matrix code) and a Robert Downey Jr. face for Jarvis. You replaced that with an Iron Man helmet in colour (picked H3, code again) because a likeness was harder to get right. In the films Jarvis is voiced by Paul Bettany, not Downey. Stanley followed the same pattern (picked P6). All three faces are drawn the same way: a picture on a hidden canvas, sampled into a grid of characters every frame.</p>
+        <p><strong>Voices and Android.</strong> The first voice menu listed languages and switching did nothing on your Android phone. Android gives web pages one voice per accent, named after the language, and Android Chrome ignores the chosen voice unless the utterance's <code>lang</code> matches it. Fixed in <a href="../tests/secrpts/48.html">review 48</a>. On Android the skins differ by accent, pitch and speed. Whether that voice is male or female is set in the phone's text-to-speech settings, not by the page.</p>
+        <p><strong>Decided against, for now.</strong> An online voice service (ElevenLabs, OpenAI, Azure) for real character voices. It would need a small server for the API key and a paid account, and Jarvis's answers would leave the device. Cloning real actors' voices isn't on the table either way.</p>
+        <p><strong>Still open.</strong> The voices haven't been heard in a test (headless Chromium has none), so the per-skin voice lists come from what Apple, Microsoft and Google publish. Any reply after "What were you trying to say?" that Jarvis understands is learned, even an unrelated question. Jarvis always says what he learned, so it's easy to undo.</p>
       </div>
     </section>
 

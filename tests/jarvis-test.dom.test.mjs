@@ -646,7 +646,7 @@ async function speechWiring(t, page) {
     }
 }
 
-// Test copy: skins (Matrix / Morpheus and Florida Panthers / Stanley C. Panther) and learned phrases.
+// Skins (Matrix / Morpheus and Florida Panthers / Stanley C. Panther) and learned phrases.
 async function skinsAndMemory(t, page) {
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     t.section('Skins');
@@ -742,7 +742,7 @@ async function skinsAndMemory(t, page) {
     }
 }
 
-// Test copy: the voice menu beside the skin button, and each skin's preferred voice.
+// The voice menu beside the skin button, and each skin's preferred voice.
 async function voicePicker(t, page) {
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     t.section('Voices');
