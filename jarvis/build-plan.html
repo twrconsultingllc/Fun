@@ -372,7 +372,7 @@
   </header>
 
   <div class="callout warning" style="grid-column: 1 / -1;">
-    <strong class="label">Status: Session 1 live in jarvis.html · Sessions 2, 3 and 4 in test in jarvis-test.html</strong>
+    <strong class="label">Status: Sessions 1 to 4 and the interim session live in jarvis.html · Session 5 in test in jarvis-test.html</strong>
     Written 2026-10-09, after the boot sequence, holo-projector (galaxy,
     solar system, particle sculptor) and hand control were merged (PRs
     #61–#64). Sessions are numbered in the suggested order, but each one
@@ -465,7 +465,7 @@
           <tr><td>3</td><td><a href="#s3">Iron Man suit schematic</a></td><td>Option 3</td><td>Medium</td><td><span class="badge done">Done</span></td></tr>
           <tr><td>4</td><td><a href="#s4">Earth globe</a></td><td>Option 4</td><td>Medium</td><td><span class="badge done">Done</span></td></tr>
           <tr><td>i1</td><td><a href="#i1">Interim: skins, faces, voices, learned phrases</a></td><td>Asked for in chat, not from the options list</td><td>Medium</td><td><span class="badge done">Done</span></td></tr>
-          <tr><td>5</td><td><a href="#s5">Threat scan</a></td><td>Option 11</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>5</td><td><a href="#s5">Threat scan</a></td><td>Option 11</td><td>Medium</td><td><span class="badge in-progress">In test</span></td></tr>
           <tr><td>6</td><td><a href="#s6">Wake word, briefing, gesture tuning</a></td><td>Options 7 and 12, and the hand-control review item</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
         </tbody>
       </table></div>
@@ -473,7 +473,7 @@
 
     <section id="map">
       <h2><span class="kicker">Read this before changing anything</span>Where things live</h2>
-      <p>Everything is in one page, plus the self-hosted hand tracker and its test suite. There are two copies of that page: build in <code>jarvis-test.html</code> (about 1,310 lines with Sessions 2 to 4), and leave <code>jarvis.html</code> alone until the user says to <a href="#test-first">promote</a>. The names below are the same in both.</p>
+      <p>Everything is in one page, plus the self-hosted hand tracker and its test suite. There are two copies of that page: build in <code>jarvis-test.html</code> (about 1,880 lines with Session 5), and leave <code>jarvis.html</code> alone until the user says to <a href="#test-first">promote</a>. The names below are the same in both.</p>
       <div class="table-wrap"><table>
         <thead><tr><th>Piece</th><th>Where</th><th>How to extend it</th></tr></thead>
         <tbody>
@@ -485,7 +485,7 @@
           <tr><td>Hand control</td><td><code>classifyHand</code>, <code>createGestures</code>, <code>startHands</code>; files in <code>jarvis/hands/</code></td><td>The vendored files are pinned by hash (see <a href="hands/README.md">hands/README.md</a>). <code>tasks-vision</code> 0.10.14 also has a face detector, which Session 5 can reuse.</td></tr>
           <tr><td>Orb</td><td><code>draw()</code>, <code>orbPulse()</code></td><td>Reads <code>mode</code>, <code>energy</code> and <code>bootP</code>. While listening, recognition's <code>speechstart</code>/<code>speechend</code> set <code>hearing</code>. Never open a mic stream here: it takes the mic from speech recognition. While speaking, <code>lastWord</code> (from <code>onboundary</code>) drives the pulse. Under reduced motion, <code>orbPulse</code> holds still.</td></tr>
           <tr><td>Privacy line</td><td>CSP meta tag</td><td><code>connect-src 'self'</code>. Anything that would widen it to an outside host is a decision for you, not the session.</td></tr>
-          <tr><td>Tests</td><td><code>tests/jarvis-test.dom.test.mjs</code> for the test copy (264 checks), <code>tests/jarvis.dom.test.mjs</code> for the main page (128)</td><td>jsdom has no WebGL, canvas or camera, so pure logic is exposed on <code>window.__jarvis</code> and tested directly.</td></tr>
+          <tr><td>Tests</td><td><code>tests/jarvis-test.dom.test.mjs</code> for the test copy (409 checks), <code>tests/jarvis.dom.test.mjs</code> for the main page (366)</td><td>jsdom has no WebGL, canvas or camera, so pure logic is exposed on <code>window.__jarvis</code> and tested directly.</td></tr>
         </tbody>
       </table></div>
 <pre><code>cd tests && node run.mjs --page=jarvis-test.html</code></pre>
@@ -583,14 +583,19 @@
 
     <section id="s5">
       <h2><span class="kicker">Session 5 · medium</span>Threat scan</h2>
-      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> nothing</span></div>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge in-progress">In test</span></span><span><strong>Needs:</strong> nothing</span><span><strong>Review:</strong> <a href="../tests/secrpts/50.html">50</a></span></div>
       <ol class="substeps">
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Face lock:</strong> add MediaPipe's short-range face detector next to the hand tracker in <code>jarvis/hands/</code> (or rename the folder to <code>jarvis/vision/</code> and update the hashes, the README and the test). Pin its hash the same way.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>A <code>scan</code> view:</strong> the mirrored camera with targeting brackets that lock onto each face, a sweeping scan line, and made-up readouts ("threat level: minimal · snack level: critical · coolness: off the charts"). "Scan the room" or "threat scan" opens it. It is camera-only, with no 3D scene, but uses the same HUD and close rules.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Privacy, same as hand control:</strong> camera on only when asked, off on close, nothing saved, and no screenshot or recording feature.</li>
       </ol>
       <p><strong>Checks:</strong> Chromium's fake camera fed a photo with a face (the hands sample image has one). The brackets land on it with no CSP violations.</p>
-      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+      <div class="callout notes"><strong class="label">Session notes</strong>
+        <p>Built 2026-10-09 in commit <code>e481166</code>, in <code>jarvis-test.html</code> only, reviewed in <a href="../tests/secrpts/50.html">review 50</a>. Suite: 409 checks, up from 369.</p>
+        <p><strong>How it works.</strong> The face model is <code>jarvis/hands/blaze_face_short_range.tflite</code> (0.2 MB), pinned by hash in the suite and the folder's README, and loaded through the same vision bundle and WebAssembly as hand control. The scan isn't a three.js scene: <code>startScan</code> puts a 2D canvas on the projector and gives it the same HUD, close button, Escape and "close" handling, through a scene object with <code>dispose()</code> that stops the camera. The camera is drawn mirrored and cropped to fill the screen (<code>coverMap</code>). <code>createFaceTracker</code> keeps each face's number and readout as it moves, eases the brackets so they don't jitter, and drops a face gone for half a second. Brackets zoom in and turn amber when locked, then a readout box appears beside the face (or above or below it on a narrow screen), kept between the top HUD and the caption. Three readout lines per target, threat level first, picked at random from seven fixed lists (<code>scanReadout</code>). Jarvis says the first lock aloud, and a tap on a target rescans it with new lines.</p>
+        <p><strong>Divergences from the plan.</strong> The folder stays <code>jarvis/hands/</code>: renaming it would break <code>jarvis.html</code>, which isn't being touched until promotion. The scan also closes itself when the tab is hidden, so the camera can't be left on in the background. It asks for video only, never audio, so it can't take the mic from speech recognition. "Hand control" while scanning closes the scan and opens the particle sphere, since both need the camera. The hands sample image wasn't in the repo, so the check used a portrait photo from MediaPipe's public test assets, kept in a scratch folder. In Chromium the brackets landed on the face at both 1280×800 and 390×844, with no page errors, no CSP violations and 0 camera tracks left live after close, a hidden tab, or switching to hand control.</p>
+        <p><strong>Still open.</strong> Trying it on your devices: whether it keeps up with a moving face, the frame rate on a phone, and iPhone Safari. Hand control still doesn't stop when the tab is hidden (review 50, open).</p>
+      </div>
     </section>
 
     <section id="s6">
