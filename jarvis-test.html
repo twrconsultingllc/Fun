@@ -62,7 +62,12 @@ body.holo-on #mic-note{display:none}
 :root[data-skin="panther"] body::after{background:repeating-linear-gradient(0deg,rgba(200,16,46,.04) 0 1px,transparent 1px 3px)}
 #rain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1;opacity:.35}
 #rain[hidden]{display:none}
-#skin{display:block;margin-top:6px;padding:3px 8px;font-size:.7rem;letter-spacing:.12em;font-weight:500}
+.skin-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
+#skin{padding:3px 8px;font-size:.7rem;letter-spacing:.12em;font-weight:500}
+#voice{font:inherit;font-size:.7rem;letter-spacing:.06em;font-weight:500;background:var(--void);color:var(--phos);border:1px solid var(--phos);padding:3px 4px;max-width:min(40vw,240px);cursor:pointer}
+#clock-box{flex-shrink:0}
+#clock{white-space:nowrap}
+#voice:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 
 /* ---------- Boot screen ---------- */
 #boot{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;justify-content:flex-end;
@@ -147,7 +152,7 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
 <canvas id="rain" aria-hidden="true" hidden></canvas>
 <header>
   <div><b><span id="who">J.A.R.V.I.S.</span><span class="test-tag">TEST</span></b>Test build · new features first · <a href="index.html">← Fun</a>
-    <button type="button" id="skin" aria-label="Change skin">SKIN: JARVIS</button></div>
+    <span class="skin-row"><button type="button" id="skin" aria-label="Change skin">SKIN: JARVIS</button><select id="voice" aria-label="Voice" hidden></select></span></div>
   <div id="clock-box"><b id="clock">--:--</b><span id="date"></span></div>
 </header>
 
@@ -474,15 +479,21 @@ function blip(freq=880,dur=.05,vol=.03,type='square',delay=0){
 // Morpheus has no real voice in the browser, so a slow, low pitch on a male voice stands in for one.
 // Stanley C. Panther is the Florida Panthers' mascot (named for the Stanley Cup), so he's quick and bright.
 const SKINS={
-  jarvis:{name:'J.A.R.V.I.S.',short:'Jarvis',label:'JARVIS',ring:'57,255,136',core:'180,255,210',lang:/en-GB/i,voice:/male|daniel|arthur|george/i,rate:1.02,pitch:.9,
+  jarvis:{name:'J.A.R.V.I.S.',short:'Jarvis',label:'JARVIS',ring:'57,255,136',core:'180,255,210',lang:/en-GB/i,voice:/male|daniel|arthur|george/i,rate:1.02,pitch:.9,tunedRate:1,tunedPitch:.95,
+    prefer:['daniel','microsoft ryan','microsoft thomas','microsoft george','google uk english male','arthur','oliver'],
+    sample:"This is my voice now. How do I sound?",
     hello:"Jarvis here. Back to my usual self.",open:[],close:[]},
-  matrix:{name:'MORPHEUS',short:'Morpheus',label:'MATRIX',ring:'0,255,65',core:'200,255,210',lang:/en-(US|GB)/i,voice:/male|david|guy|mark|fred|alex|daniel|george/i,rate:.86,pitch:.55,
+  matrix:{name:'MORPHEUS',short:'Morpheus',label:'MATRIX',ring:'0,255,65',core:'200,255,210',lang:/en-(US|GB)/i,voice:/male|david|guy|mark|fred|alex|daniel|george/i,rate:.86,pitch:.55,tunedRate:.9,tunedPitch:.82,
+    prefer:['ralph','microsoft guy','microsoft davis','microsoft christopher','microsoft roger','fred','microsoft david','google uk english male'],
+    sample:"This is my voice now. Do you hear the difference?",
     hello:"Welcome to the real world. I am Morpheus. Ask, and I will show you how deep the rabbit hole goes.",
     who:"I am Morpheus. I can only show you the door. You're the one who has to walk through it.",
     miss:"I don't understand that, and I won't pretend to.",
     open:["Listen carefully.","What I'm about to tell you is the truth. Nothing more.","Free your mind."],
     close:["Welcome to the real world.","Remember, there is no spoon.","The choice is yours."]},
-  panther:{name:'STANLEY C. PANTHER',short:'Stanley C. Panther',label:'PANTHERS',ring:'200,16,46',core:'255,214,150',lang:/en-US/i,voice:/male|david|guy|mark|fred|alex/i,rate:1.12,pitch:1.2,
+  panther:{name:'STANLEY C. PANTHER',short:'Stanley C. Panther',label:'PANTHERS',ring:'200,16,46',core:'255,214,150',lang:/en-US/i,voice:/male|david|guy|mark|fred|alex/i,rate:1.12,pitch:1.2,tunedRate:1.08,tunedPitch:1.08,
+    prefer:['microsoft andrew','microsoft brian','junior','superstar','microsoft eric','google us english'],
+    sample:"How's this sound? Let's go, Cats!",
     hello:"Let's go, Cats! Stanley C. Panther here, the Florida Panthers' number one fan. What do you need?",
     who:"I'm Stanley C. Panther, mascot of the Florida Panthers. My name comes from the Stanley Cup. Go Cats!",
     miss:"Whoa, that one went wide of the net.",
@@ -493,9 +504,39 @@ let skin='jarvis';try{const k=localStorage.getItem('jarvis-skin');if(k&&Object.h
 
 /* ---------- Voice out ---------- */
 const synth=window.speechSynthesis||null;
-let voice=null;
-function pickVoice(){const v=synth.getVoices(),k=SKINS[skin];voice=v.find(x=>k.lang.test(x.lang)&&k.voice.test(x.name))||v.find(x=>k.lang.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null}
-if(synth){pickVoice();synth.onvoiceschanged=pickVoice}
+// Each skin's voice: the one picked from the voice menu on this device, else the first of the skin's
+// preferred voices the device has (iPhone, Mac, Edge and Chrome name theirs differently), else any voice
+// with the right accent. A voice chosen for the character already sounds the part, so it gets a gentler
+// pitch and speed (tuned) than a generic voice, which needs pitch and speed to do all the work.
+let voice=null,tuned=false,voicePicks={};
+try{const o=JSON.parse(localStorage.getItem('jarvis-voices')||'{}');if(o&&typeof o==='object')for(const k of Object.keys(SKINS))if(typeof o[k]==='string'&&o[k].length<=200)voicePicks[k]=o[k]}catch(e){}
+const voiceSel=document.getElementById('voice');
+function englishVoices(){const v=synth.getVoices(),en=v.filter(x=>/^en/i.test(x.lang));return en.length?en:v}
+function autoVoice(k){
+  const v=synth.getVoices(),S=SKINS[k];
+  for(const n of S.prefer){const f=v.find(x=>x.name.toLowerCase().startsWith(n));if(f)return [f,true]}
+  return [v.find(x=>S.lang.test(x.lang)&&S.voice.test(x.name))||v.find(x=>S.lang.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null,false];
+}
+function pickVoice(){
+  const want=voicePicks[skin],mine=want&&synth.getVoices().find(x=>x.name===want);
+  if(mine){voice=mine;tuned=true}else[voice,tuned]=autoVoice(skin);
+  fillVoices();
+}
+const shortName=n=>n.replace(/\s*-\s*English.*$/,'').replace(/\s*\((?:Natural|Enhanced|Premium)\)/,'');
+// The voice menu beside the skin button: Auto (the skin's own pick) and every English voice on this device.
+function fillVoices(){
+  const list=englishVoices();voiceSel.hidden=!list.length;if(!list.length)return;
+  const [auto]=autoVoice(skin);
+  voiceSel.replaceChildren(new Option('VOICE: AUTO'+(auto?' · '+shortName(auto.name):''),''),...list.map(x=>new Option(shortName(x.name)+(x.lang?' · '+x.lang:''),x.name)));
+  voiceSel.value=voicePicks[skin]&&list.some(x=>x.name===voicePicks[skin])?voicePicks[skin]:'';
+}
+if(synth){pickVoice();synth.onvoiceschanged=pickVoice;
+  voiceSel.addEventListener('change',()=>{
+    if(voiceSel.value)voicePicks[skin]=voiceSel.value;else delete voicePicks[skin];
+    try{localStorage.setItem('jarvis-voices',JSON.stringify(voicePicks))}catch(e){}
+    pickVoice();say(SKINS[skin].sample);
+  });
+}
 // Chrome stops speaking a long utterance after about 15 seconds, so long answers go out a sentence or two
 // at a time: every sentence whole, each piece at most about 160 characters unless one sentence is longer.
 function speechChunks(text,max=160){
@@ -512,7 +553,7 @@ function say(text){
   const gen=++sayGen,parts=speechChunks(text);
   synth.cancel();
   parts.forEach((p,i)=>{
-    const u=new SpeechSynthesisUtterance(p);if(voice)u.voice=voice;u.rate=SKINS[skin].rate;u.pitch=SKINS[skin].pitch;
+    const u=new SpeechSynthesisUtterance(p);if(voice)u.voice=voice;u.rate=tuned?SKINS[skin].tunedRate:SKINS[skin].rate;u.pitch=tuned?SKINS[skin].tunedPitch:SKINS[skin].pitch;
     u.onstart=()=>{if(gen!==sayGen)return;lastWord=null;setMode('speak')};
     u.onend=u.onerror=()=>{if(gen!==sayGen||i<parts.length-1)return;lastWord=null;setMode('idle')};
     // There's no audio tap on speech synthesis, so pulse on each word where the voice reports them.

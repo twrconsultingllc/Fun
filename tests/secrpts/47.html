@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #47 — a voice for each skin, and a voice menu, in jarvis-test.html</title>
+<meta name="description" content="Review of the voice changes to jarvis-test.html: each skin now prefers a voice that suits it on iPhone, Mac, Edge and Chrome, and a voice menu beside the skin button lists the device's English voices and saves a pick per skin.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #47 — a voice for each skin, and a voice menu, in jarvis-test.html</h1>
+    <p class="sub">The user asked for the skins to sound more different before promoting the test copy. Each skin now has a ranked list of voices that suit it: Daniel, Ryan or a Google UK male voice for Jarvis; Ralph, Guy or Davis for Morpheus; Andrew, Brian or Junior for Stanley. The page uses the first one the device has. A voice menu beside the skin button lists every English voice on the device. Picking one switches straight away, plays a short line in that voice, and is remembered for that skin.</p>
+    <div class="meta">Review performed 2026-10-09 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>tests/jarvis-test.dom.test.mjs</code> · suite run: <code>jarvis-test</code> (362 passed, 342 before) · follows: <a href="46.html">46.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 80%;"></div></div>
+    <div class="progress-label">5 items: 4 fixed or verified clean, 1 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Voice names and the saved picks are handled as text</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The menu is built with <code>new Option(text, value)</code>, so a voice name is only ever text, never markup. A grep still finds 0 <code>innerHTML</code> or <code>eval(</code>. The saved picks (<code>localStorage['jarvis-voices']</code>) are read only for the three skin ids, and only as strings of up to 200 characters. A saved name is used only if a voice of exactly that name exists on the device. The suite loads a store holding a <code>constructor</code> key and a number, and the page opens with no errors. The CSP meta tag is unchanged, and nothing new is fetched: the voices are the device's own.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The menu fits beside the skin button on a phone</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>In headless Chromium at 390 px wide, with fake voices added so the menu shows, the first layout put the menu on a row of its own and squeezed the clock onto two lines. The menu is now capped at 40% of the screen width, with the clock kept to one line, so the menu sits beside the button. The page doesn't scroll sideways (<code>scrollWidth</code> 390). The menu is a native <code>&lt;select&gt;</code> labelled "Voice", with the page's amber focus outline and the skin's own colours, so it gets the device's own picker and works with a keyboard and screen readers.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Chosen voices get a gentler pitch</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>With only a generic voice, Morpheus drops to pitch 0.55 and Stanley rises to 1.2, because pitch and speed have to carry the character. A voice picked for the part (from the skin's list, or chosen in the menu) already sounds right, so it gets milder values: Morpheus 0.82, Stanley 1.08, Jarvis 0.95. Otherwise Ralph, already deep, would sound unnaturally low.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Suite extended for the voice menu</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>20 new checks in a "Voices" section, against a fake device with iPhone-style voices (Samantha, Daniel, Ralph, Junior, Karen, and a French voice). They check that the menu lists the five English voices plus Auto and leaves out the French one, that each skin gets its preferred voice, and that a pick plays a sample, is saved for that skin only, survives a reload, and is cleared by choosing Auto. One failure on the first run was a wrong expected count in the test (five English voices plus Auto makes six). The count was worked out again from the voice list before it was changed.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The voices themselves not heard</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Headless Chromium has no voices, so the voice names in each skin's list are what Apple, Microsoft and Google publish, not ones heard here. If a device has none of them, the skin falls back to its accent and the old pitch and speed, so it still works. The proof is the user trying it. Some iPhone voices, Ralph and Junior among them, may need downloading under Settings → Accessibility → Spoken Content → Voices before they appear in the menu.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: the <code>jarvis-test</code> suite, headless Chromium screenshots of the header at 390 px with fake voices, and greps for unsafe sinks and CSP changes. See <a href="46.html">46.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
