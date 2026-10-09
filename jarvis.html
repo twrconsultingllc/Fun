@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<meta name="description" content="J.A.R.V.I.S. Demo: a talking assistant that runs in your browser, with a boot-up sequence, an animated orb, voice in and out, and a holo-projector that shows a 3D galaxy, the solar system and particle sculptures.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="description" content="J.A.R.V.I.S. Demo: a talking assistant that runs in your browser, with a boot-up sequence, an animated orb, voice in and out, and a holo-projector that shows a 3D galaxy, the solar system and particle sculptures, which you can steer with hand gestures.">
 <title>J.A.R.V.I.S. Demo</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%23020a06'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%2339ff88' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%2339ff88'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -51,7 +51,7 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 #mic.on{background:var(--phos);color:var(--void)}
 #clock-box{text-align:right}
 
-/* ---------- Boot sequence ---------- */
+/* ---------- Boot screen ---------- */
 #boot{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;justify-content:flex-end;
   background:linear-gradient(to bottom,rgba(2,10,6,0) 0%,rgba(2,10,6,0) 52%,rgba(2,10,6,.94) 68%);transition:opacity .6s}
 #boot[hidden],#boot-go[hidden]{display:none}
@@ -80,8 +80,20 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .c-br{bottom:12px;right:12px;border-left:0;border-top:0}
 #holo-title{top:18px;left:60px;right:150px;font-size:.8rem;letter-spacing:.22em;color:var(--phos);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #holo-stat{top:38px;left:60px;right:150px;font-size:.75rem;letter-spacing:.08em;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#holo-hint{top:58px;left:60px;right:20px;font-size:.72rem;color:var(--label);opacity:.85}
-@media (max-width:600px){#holo-title{left:24px;right:130px;letter-spacing:.12em}#holo-stat{left:24px;right:130px}#holo-hint{top:62px;left:24px;right:24px;font-size:.68rem}}
+#holo-hint{top:58px;left:60px;right:160px;font-size:.72rem;color:var(--label);opacity:.85}
+#holo-hands{position:absolute;top:58px;right:56px;padding:8px 14px;background:rgba(2,10,6,.7);font-size:.8rem;letter-spacing:.1em}
+#holo-hands[aria-pressed="true"]{background:var(--phos);color:var(--void)}
+#hand-cam{position:absolute;top:100px;right:16px;width:160px;height:120px;border:1px solid var(--phos-dim);background:#000;display:none;pointer-events:none}
+body.hands-on #hand-cam{display:block}
+#reticle{width:34px;height:34px;margin:-17px 0 0 -17px;border:2px solid var(--phos);border-radius:50%;left:0;top:0;display:none;
+  box-shadow:0 0 12px rgba(57,255,136,.6);transition:width .12s,height .12s,margin .12s,background .12s}
+#reticle.on{display:block}
+#reticle.pinch{width:18px;height:18px;margin:-9px 0 0 -9px;border-color:var(--amber);background:rgba(255,194,74,.35)}
+@media (max-width:600px){
+  #holo-title{left:24px;right:196px;letter-spacing:.12em}#holo-stat{left:24px;right:196px}
+  #holo #holo-close{top:14px;right:16px;padding:7px 10px}#holo #holo-hands{top:14px;right:102px;padding:7px 10px}
+  #hand-cam{top:58px;width:120px;height:90px}#holo-hint{top:62px;left:24px;right:148px;font-size:.68rem}
+}
 #holo-close{position:absolute;top:16px;right:56px;padding:8px 14px;background:rgba(2,10,6,.7);font-size:.8rem;letter-spacing:.1em}
 #holo-cap{left:50%;transform:translateX(-50%);bottom:96px;width:max-content;max-width:min(640px,calc(100vw - 32px));text-align:center;
   padding:10px 14px;border:1px solid var(--phos-dim);background:rgba(2,10,6,.75);font-size:.95rem;line-height:1.4}
@@ -127,6 +139,9 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
   <div class="hud" id="holo-hint"></div>
   <div class="hud" id="holo-cap" aria-live="polite"></div>
   <button type="button" id="holo-close" aria-label="Close the holo-projector">✕ CLOSE</button>
+  <button type="button" id="holo-hands" aria-pressed="false" aria-label="Hand control">✋ HANDS</button>
+  <canvas id="hand-cam" width="160" height="120" aria-hidden="true"></canvas>
+  <div class="hud" id="reticle"></div>
 </div>
 
 <div id="boot">
@@ -238,7 +253,7 @@ function brain(raw){
   if(/suit up|iron man|armor/.test(s))return "Suit diagnostics complete. Repulsors charged, flight stabilizers online. Try not to hit any buildings.";
   if(/how are you/.test(s))return "Running at peak efficiency, thank you for asking.";
   if(/thank/.test(s))return pick(["Always a pleasure.","Anytime.","You're welcome."]);
-  if(/what can you do|help/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say close to turn it off, or reboot to watch me power up again.";
+  if(/what can you do|help/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say hand control to steer it with your hands through the camera. Say close to turn it off, or reboot to watch me power up again.";
   const math=mathAnswer(s);if(math)return math;
   return pick(["That's beyond my demo programming. Ask me what I can do.","I don't have that in my databanks yet. Try asking for a fun fact.","Interesting question. My full brain isn't installed in this demo."]);
 }
@@ -249,6 +264,8 @@ const SHAPE_WORDS={heart:'heart',love:'heart',rocket:'rocket',spaceship:'rocket'
 function cleanWord(w){return String(w||'').toUpperCase().replace(/[^A-Z0-9 !?'&-]/g,'').replace(/\s+/g,' ').trim().slice(0,14)}
 function intent(raw){
   const s=raw.toLowerCase().replace(/[.!,]+/g,' ').replace(/\s+/g,' ').trim();let m;
+  if(/\b(stop|end|disable|turn off|no more)\b.*\b(hand|hands|gesture|gestures)\b|\b(hand|gesture) (control|tracking|mode) off\b/.test(s))return {kind:'hands',arg:false};
+  if(/\b(hand|hands|gesture|gestures) (control|tracking|mode)\b|\buse my hands?\b|\b(enable|start|turn on)( the)? (hand|gesture)/.test(s))return {kind:'hands',arg:true};
   if(/^(close|exit|stop|dismiss|hide|go back|back)( (it|that|this|the (hologram|projector|scene)))?$/.test(s)||/\b(close|turn off|shut down) the (hologram|projector|holo-projector)\b/.test(s))return {kind:'close'};
   if(/\b(reboot|restart|boot (up|sequence)|power (up|cycle))\b/.test(s))return {kind:'boot'};
   if(m=s.match(new RegExp(`\\b(?:take me to|go to|fly to|show me|zoom (?:in )?(?:on|to)|visit|focus on)(?: the)? (${PLANETS})\\b`)))return {kind:'solar',arg:m[1]};
@@ -367,9 +384,10 @@ function makeCamera(T){return new T.PerspectiveCamera(55,innerWidth/innerHeight,
 function fitDist(hw,hh){const t=Math.tan(27.5*Math.PI/180);return Math.max(hh/t,hw/(t*innerWidth/innerHeight))*1.12}
 function makeRig(T,camera,o){
   const r={az:o.az||0,el:o.el,elGoal:o.elGoal??o.el,dist:o.dist,goal:o.goal??o.dist,min:o.min,max:o.max,spin:o.spin||0,
-    target:new T.Vector3(),want:new T.Vector3(),dragging:false,
+    target:new T.Vector3(),want:new T.Vector3(),dragging:false,kick:0,
     update(dt){
       if(!r.dragging)r.az+=r.spin*dt*amb;
+      r.az+=r.kick*dt;r.kick*=Math.pow(.15,dt);
       const e=1-Math.pow(.08,dt);
       r.dist+=(r.goal-r.dist)*e;if(!r.dragging)r.el+=(r.elGoal-r.el)*e;r.target.lerp(r.want,1-Math.pow(.02,dt));
       const ce=Math.cos(r.el);
@@ -475,8 +493,11 @@ function buildSolar(T){
     const b=bodies.find(x=>x.key===key);if(!b)return null;
     focus=b;rig.goal=b.r*7+5;rig.elGoal=.25;setStat(b.name.toUpperCase());return `${b.name}. ${b.fact}`;
   }
-  return {scene,camera,rig,title:'SOLAR SYSTEM',stat:'',hint:'Drag to rotate · scroll or pinch to zoom · tap a planet · say "take me to Saturn"',setArg,
-    pick(ndc){ray.setFromCamera(ndc,camera);const hit=ray.intersectObjects(picks,false)[0];return hit?setArg(hit.object.userData.key):null},
+  const order=['sun',...BODIES.map(b=>b.key)];let current=null;
+  const go=k=>{current=k;return setArg(k)};
+  return {scene,camera,rig,title:'SOLAR SYSTEM',stat:'',hint:'Drag to rotate · scroll or pinch to zoom · tap a planet · say "take me to Saturn"',setArg:go,
+    next(dir){const i=current?order.indexOf(current):-1;return go(order[(i+dir+order.length)%order.length])},
+    pick(ndc){ray.setFromCamera(ndc,camera);const hit=ray.intersectObjects(picks,false)[0];return hit?go(hit.object.userData.key):null},
     update(dt){
       for(const b of bodies){b.ang+=b.w*.25*dt*amb;b.holder.position.set(Math.cos(b.ang)*b.d,0,-Math.sin(b.ang)*b.d);b.mesh.rotation.y+=dt*.5*amb}
       moonAng+=dt*1.2*amb;moon.position.set(earth.holder.position.x+Math.cos(moonAng)*2.2,0,earth.holder.position.z-Math.sin(moonAng)*2.2);
@@ -496,9 +517,10 @@ function buildParticles(T){
   group.add(new T.Points(g,new T.PointsMaterial({size:.45,map:dotTexture(T),vertexColors:true,transparent:true,depthWrite:false,blending:T.AdditiveBlending})));
   scene.add(group,starfield(T,2000));
   const rig=makeRig(T,camera,{dist:120,goal:48,el:.5,elGoal:.12,min:10,max:160,spin:0});
-  let tgt=start.pos,tcol=start.col,flame=null,upright=false;
+  let tgt=start.pos,tcol=start.col,flame=null,upright=false,squeezed=false,current='sphere';
+  const SEQ=['heart','rocket','star','dna','reactor','sphere'];
   function setArg(a){
-    a=a||{shape:'sphere'};
+    a=a||{shape:'sphere'};current=a.shape||null;
     const o=a.text?textPoints(N,a.text):shapePoints(a.shape,N),fallback=!o;
     const shape=o||SHAPES.sphere(N);
     tgt=shape.pos;tcol=shape.col;flame=shape.flame||null;upright=!!a.text&&!fallback;
@@ -511,9 +533,12 @@ function buildParticles(T){
     return SHAPE_LINES[a.shape]||SHAPE_LINES.sphere;
   }
   return {scene,camera,rig,title:'PARTICLE SCULPTOR',stat:'',hint:'Drag to rotate · say "make a rocket", "make a heart", "make an arc reactor" or "write" any word',setArg,
+    next(dir){const i=SEQ.indexOf(current);return setArg({shape:SEQ[(i+dir+SEQ.length)%SEQ.length]})},
+    squeeze(on){if(on===squeezed)return;squeezed=on;if(!on)for(let i=0;i<N*3;i++)pos[i]*=1+R()*.6;blip(on?180:520,.15,.03,'sawtooth')},
     update(dt,t){
-      for(let i=0;i<N;i++){const e=1-Math.pow(.05,dt*speed[i]),j=i*3;
-        pos[j]+=(tgt[j]-pos[j])*e;pos[j+1]+=(tgt[j+1]-pos[j+1])*e;pos[j+2]+=(tgt[j+2]-pos[j+2])*e;
+      const s=squeezed?.07:1; // a fist crushes the sculpture into a tight ball
+      for(let i=0;i<N;i++){const e=1-Math.pow(.05,dt*speed[i]*(squeezed?2:1)),j=i*3;
+        pos[j]+=(tgt[j]*s-pos[j])*e;pos[j+1]+=(tgt[j+1]*s-pos[j+1])*e;pos[j+2]+=(tgt[j+2]*s-pos[j+2])*e;
         col[j]+=(tcol[j]-col[j])*e;col[j+1]+=(tcol[j+1]-col[j+1])*e;col[j+2]+=(tcol[j+2]-col[j+2])*e}
       if(flame&&amb===1)for(let i=flame[0];i<flame[1];i++){const j=i*3;pos[j]+=(R()-.5)*.35;pos[j+1]+=(R()-.5)*.6;pos[j+2]+=(R()-.5)*.35}
       pa.needsUpdate=true;ca.needsUpdate=true;
@@ -538,14 +563,15 @@ function startHolo(T,kind,arg){
   const s=BUILDERS[kind](T);
   H={kind,renderer,...s,t:0,last:0};
   stage.appendChild(renderer.domElement);resizeHolo();
-  holoTitle.textContent='HOLO-PROJECTOR // '+s.title;setStat(s.stat);holoHint.textContent=s.hint;holoCap.textContent='';
+  holoTitle.textContent='HOLO-PROJECTOR // '+s.title;setStat(s.stat);holoHint.textContent=HC?HANDS_HINT:s.hint;holoCap.textContent='';
   clearTimeout(closeTimer);holo.hidden=false;document.body.classList.add('holo-on');void holo.offsetWidth;holo.classList.add('open');
   blip(330,.25,.03,'sawtooth');blip(660,.3,.025,'sine',.12);blip(990,.35,.02,'sine',.24);
   H.raf=requestAnimationFrame(loop);
   return s.setArg?s.setArg(arg):s.intro;
 }
-function closeHolo(){
+function closeHolo(keepHands){
   if(!H)return false;
+  if(!keepHands)stopHands();
   const h=H;H=null;cancelAnimationFrame(h.raf);
   h.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(o.material.map)o.material.map.dispose();o.material.dispose()}});
   h.renderer.dispose();try{h.renderer.forceContextLoss()}catch(e){}
@@ -555,6 +581,7 @@ function closeHolo(){
   return true;
 }
 async function project(it){
+  if(it.kind==='hands')return it.arg?startHands():stopHands()?"Hand control off. The camera is off too.":"Hand control is already off.";
   if(it.kind==='close')return closeHolo()?pick(["Projector off.","Closing the hologram."]):"The projector's already off.";
   if(it.kind==='boot'){closeHolo();showBoot();runBoot();return null}
   if(it.kind==='zoom'){
@@ -565,7 +592,7 @@ async function project(it){
   let T;
   try{T=await loadThree()}catch(e){return "Holo-projector offline. I couldn't load the 3D engine, so check your internet connection."}
   if(H&&H.kind===it.kind)return H.setArg?H.setArg(it.arg):"It's already on the projector.";
-  closeHolo();
+  closeHolo(true);
   return startHolo(T,it.kind,it.arg);
 }
 document.getElementById('holo-close').addEventListener('click',()=>{closeHolo();say("Projector off.")});
@@ -593,6 +620,157 @@ addEventListener('resize',resizeHolo);
   stage.addEventListener('wheel',e=>{if(!H)return;e.preventDefault();const r=H.rig;r.goal=clamp(r.goal*Math.exp(e.deltaY*.0012),r.min,r.max)},{passive:false});
 }
 
+/* ---------- Hand control (MediaPipe hand landmarker, self-hosted in jarvis/hands/) ----------
+   Camera frames are processed on this device. The page's CSP (connect-src 'self') means
+   nothing it sees can be sent anywhere. */
+const HANDS_HINT='✋ Pinch and drag to turn · pinch with both hands and pull apart to zoom · quick pinch to select · swipe an open hand to change · make a fist to crush particles';
+// Is this landmark set (21 points, x already mirrored, 0..1) a pinch, an open hand, a fist?
+function classifyHand(lm){
+  const d=(a,b)=>Math.hypot(lm[a].x-lm[b].x,lm[a].y-lm[b].y),size=d(0,9)||1e-6;
+  const ext=[[8,6],[12,10],[16,14],[20,18]].filter(([t,p])=>d(0,t)>d(0,p)*1.15).length;
+  const indexOut=d(0,8)>d(0,5)*1.25; // a pinching index finger reaches past its knuckle; a fist's doesn't
+  return {size,ext,indexOut,pinchR:d(4,8)/size,fist:ext===0&&!indexOut,
+    cursor:{x:(lm[4].x+lm[8].x)/2,y:(lm[4].y+lm[8].y)/2},palm:{x:(lm[0].x+lm[9].x)/2,y:(lm[0].y+lm[9].y)/2}};
+}
+// Turns frames of hands into actions: rotate, zoom, tap, swipe, squeeze, grab, cursor.
+function createGestures(){
+  const st={hands:{},twoDist:0,zoomed:false,lastSwipe:-9,fistSince:null,squeeze:false};
+  return function step(list,t){
+    const out=[],seen=[];
+    for(const {key,lm} of list){
+      const c=classifyHand(lm);let h=st.hands[key];
+      if(!h)h=st.hands[key]={pinch:false,cur:{...c.cursor},last:null,down:null,palmHist:[]};
+      h.cur.x+=(c.cursor.x-h.cur.x)*.5;h.cur.y+=(c.cursor.y-h.cur.y)*.5;h.c=c;
+      const was=h.pinch;h.pinch=c.indexOut&&(was?c.pinchR<.42:c.pinchR<.26);
+      if(h.pinch&&!was){h.down={t,travel:0};h.last={...h.cur}}
+      if(!h.pinch&&was){if(h.down&&t-h.down.t<.4&&h.down.travel<.04&&!st.zoomed)out.push({type:'tap',x:h.cur.x,y:h.cur.y});h.down=null}
+      seen.push(h);
+    }
+    for(const k of Object.keys(st.hands))if(!list.some(x=>x.key===k))delete st.hands[k];
+    const pinched=seen.filter(h=>h.pinch);
+    if(pinched.length>=2){
+      const [a,b]=pinched,d=Math.hypot(a.cur.x-b.cur.x,a.cur.y-b.cur.y);
+      if(st.twoDist&&d>.01)out.push({type:'zoom',factor:st.twoDist/d});
+      st.twoDist=d;st.zoomed=true;for(const h of pinched){h.last={...h.cur};if(h.down)h.down.travel=1}
+    }else{
+      st.twoDist=0;
+      if(pinched.length===1){const h=pinched[0],dx=h.cur.x-h.last.x,dy=h.cur.y-h.last.y;h.last={...h.cur};
+        if(h.down)h.down.travel+=Math.abs(dx)+Math.abs(dy);if(dx||dy)out.push({type:'rotate',dx,dy})}
+    }
+    if(!pinched.length)st.zoomed=false;
+    out.push({type:'grab',on:pinched.length>0});
+    const p=seen[0];
+    if(p&&!p.pinch){
+      if(p.c.ext>=4){
+        p.palmHist.push({t,x:p.c.palm.x});while(t-p.palmHist[0].t>.4)p.palmHist.shift();
+        const dx=p.c.palm.x-p.palmHist[0].x;
+        // flick an open hand left for the next thing, right for the previous one
+        if(Math.abs(dx)>.22&&t-st.lastSwipe>.9){out.push({type:'swipe',dir:dx<0?1:-1});st.lastSwipe=t;p.palmHist=[]}
+      }else p.palmHist=[];
+      if(p.c.fist){if(st.fistSince===null)st.fistSince=t}else st.fistSince=null;
+    }else st.fistSince=null;
+    const sq=st.fistSince!==null&&t-st.fistSince>=.15;
+    if(sq!==st.squeeze){st.squeeze=sq;out.push({type:'squeeze',on:sq})}
+    out.push(p?{type:'cursor',x:p.cur.x,y:p.cur.y,pinch:p.pinch,hands:seen.length}:{type:'cursor',hands:0});
+    return out;
+  };
+}
+const HAND_LINKS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+const handsBtn=document.getElementById('holo-hands'),handCam=document.getElementById('hand-cam'),reticle=document.getElementById('reticle');
+let HC=null,landmarkerP=null;
+const toScreen=v=>clamp((v-.15)/.7,0,1); // the middle 70% of the camera's view covers the whole screen
+function loadLandmarker(){
+  if(landmarkerP)return landmarkerP;
+  const url=f=>new URL('jarvis/hands/'+f,location.href).href;
+  landmarkerP=(async()=>{
+    const {HandLandmarker}=await import(url('vision_bundle.js'));
+    const files={wasmLoaderPath:url('vision_wasm_internal.js'),wasmBinaryPath:url('vision_wasm_internal.wasm')};
+    const opts=delegate=>({baseOptions:{modelAssetPath:url('hand_landmarker.task'),delegate},runningMode:'VIDEO',numHands:2,
+      minHandDetectionConfidence:.6,minHandPresenceConfidence:.6,minTrackingConfidence:.5});
+    try{return await HandLandmarker.createFromOptions(files,opts('GPU'))}catch(e){return await HandLandmarker.createFromOptions(files,opts('CPU'))}
+  })();
+  landmarkerP.catch(()=>{landmarkerP=null});
+  return landmarkerP;
+}
+async function startHands(){
+  if(HC)return "Hand control is already on.";
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return "Hand control needs a camera, and this browser can't use one here.";
+  if(!H){const r=await project({kind:'particles',arg:{shape:'sphere'}});if(!H)return r}
+  holoHint.textContent='Starting hand tracking…';handsBtn.disabled=true;
+  let stream=null,lm=null;
+  try{
+    try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false})}
+    catch(e){
+      if(/NotAllowed|Security/.test(e.name))return "I need permission to use the camera for hand control. The video never leaves this device.";
+      if(/NotFound|Overconstrained/.test(e.name))return "I couldn't find a camera for hand control.";
+      if(/NotReadable/.test(e.name))return "Your camera seems to be busy in another app. Close it and try again.";
+      return "I couldn't start the camera for hand control.";
+    }
+    try{lm=await loadLandmarker()}catch(e){stream.getTracks().forEach(t=>t.stop());return "Hand tracking couldn't start in this browser."}
+    if(!H){stream.getTracks().forEach(t=>t.stop());return null}
+    const video=document.createElement('video');video.playsInline=true;video.muted=true;video.srcObject=stream;
+    try{await video.play()}catch(e){}
+    HC={stream,video,lm,step:createGestures(),lastVT:-1,raf:0,ctx:handCam.getContext('2d')};
+    document.body.classList.add('hands-on');handsBtn.setAttribute('aria-pressed','true');
+    HC.raf=requestAnimationFrame(handLoop);
+    blip(700,.1,.03,'sine');blip(1050,.15,.03,'sine',.1);
+    return "Hand control on. Pinch and drag to turn the hologram, pinch with both hands to zoom, and swipe an open hand to change it.";
+  }finally{
+    handsBtn.disabled=false;
+    if(H&&!HC)holoHint.textContent=H.hint;else if(HC)holoHint.textContent=HANDS_HINT;
+  }
+}
+function stopHands(){
+  if(!HC)return false;
+  cancelAnimationFrame(HC.raf);HC.stream.getTracks().forEach(t=>t.stop());HC.video.srcObject=null;HC=null;
+  document.body.classList.remove('hands-on');handsBtn.setAttribute('aria-pressed','false');reticle.className='hud';
+  if(H){H.rig.dragging=false;if(H.squeeze)H.squeeze(false);holoHint.textContent=H.hint}
+  return true;
+}
+function drawHands(list){
+  const c=HC.ctx;if(!c)return;const W=handCam.width,Hh=handCam.height;
+  c.save();c.translate(W,0);c.scale(-1,1);c.drawImage(HC.video,0,0,W,Hh);c.restore();
+  c.fillStyle='rgba(2,10,6,.55)';c.fillRect(0,0,W,Hh);c.lineWidth=2;
+  for(const {lm,pinch} of list){
+    c.strokeStyle=pinch?'#ffc24a':'#39ff88';c.beginPath();
+    for(const [a,b] of HAND_LINKS){c.moveTo(lm[a].x*W,lm[a].y*Hh);c.lineTo(lm[b].x*W,lm[b].y*Hh)}
+    c.stroke();
+  }
+  c.fillStyle='#39ff88';c.font='10px "Chakra Petch", sans-serif';c.fillText(list.length?`✋ ${list.length} HAND${list.length>1?'S':''}`:'SHOW ME YOUR HAND',6,Hh-6);
+}
+function applyGesture(a){
+  if(!H)return;const r=H.rig;
+  switch(a.type){
+    case 'rotate':r.az-=a.dx*9;r.el=clamp(r.el+a.dy*6,-1.45,1.45);r.elGoal=r.el;break;
+    case 'zoom':r.goal=clamp(r.goal*a.factor,r.min,r.max);break;
+    case 'grab':r.dragging=a.on;break;
+    case 'tap':if(H.pick){const t=H.pick({x:toScreen(a.x)*2-1,y:1-toScreen(a.y)*2});if(t){blip(1200,.06,.03);say(t)}}break;
+    case 'swipe':{blip(520,.08,.03);const t=H.next?H.next(a.dir):null;if(t)say(t);else r.kick=-a.dir*2.5;break}
+    case 'squeeze':if(H.squeeze)H.squeeze(a.on);break;
+    case 'cursor':
+      reticle.className='hud'+(a.hands?' on':'')+(a.pinch?' pinch':'');
+      if(a.hands){reticle.style.left=toScreen(a.x)*innerWidth+'px';reticle.style.top=toScreen(a.y)*innerHeight+'px'}
+      break;
+  }
+}
+function handLoop(){
+  if(!HC)return;HC.raf=requestAnimationFrame(handLoop);
+  const v=HC.video;if(v.readyState<2||v.currentTime===HC.lastVT)return;HC.lastVT=v.currentTime;
+  const now=performance.now();let res;
+  try{res=HC.lm.detectForVideo(v,now)}catch(e){return}
+  const keys=new Set();
+  const list=(res.landmarks||[]).map((lm,i)=>{
+    let key=(res.handedness&&res.handedness[i]&&res.handedness[i][0]&&res.handedness[i][0].categoryName)||'hand';
+    if(keys.has(key))key+=i;keys.add(key);
+    return {key,lm:lm.map(p=>({x:1-p.x,y:p.y,z:p.z}))};
+  });
+  const actions=HC.step(list,now/1000);
+  const grab=actions.find(a=>a.type==='grab'),pinchNow=!!(grab&&grab.on);
+  drawHands(list.map((h,i)=>({lm:h.lm,pinch:pinchNow&&i===0})));
+  for(const a of actions)applyGesture(a);
+}
+handsBtn.addEventListener('click',async()=>{const r=HC?(stopHands(),"Hand control off. The camera is off too."):await startHands();if(r)say(r)});
+
 /* ---------- Boot sequence ---------- */
 const boot=document.getElementById('boot'),bootGo=document.getElementById('boot-go'),bootLog=document.getElementById('boot-log');
 let booting=false,bootTimers=[];
@@ -610,6 +788,7 @@ function runBoot(){
   const lines=["J.A.R.V.I.S. kernel 4.2 ............ loaded","Arc reactor output ................ 3.2 GW",
     "Neural lattice .................... synced","Holo-projector .................... "+(hasWebGL()?'ready':'no WebGL'),
     "Voice synthesis ................... "+(synth?'online':'unavailable'),"Speech recognition ................ "+(SR?'online':'unavailable'),
+    "Hand tracking ..................... "+(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia?'camera ready':'no camera'),
     "Security protocols ................ armed","Wit module ........................ calibrated"];
   const dur=reduce?600:3200,t0=performance.now();
   lines.forEach((l,i)=>bootTimers.push(setTimeout(()=>{bootLog.textContent+=l+'\n';blip(660+i*90,.05,.025)},i*dur/lines.length)));
@@ -650,7 +829,7 @@ if(SR){
   mic.addEventListener('click',()=>{if(synth)synth.cancel();try{rec.start()}catch(e){rec.stop()}});
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={brain,mathAnswer,intent,shapePoints,project,finishBoot};
+window.__jarvis={brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures};
 showBoot();
 </script>
 </body>
