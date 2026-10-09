@@ -372,7 +372,7 @@
   </header>
 
   <div class="callout warning" style="grid-column: 1 / -1;">
-    <strong class="label">Status: Session 1 done · 1 of 6</strong>
+    <strong class="label">Status: Session 1 live in jarvis.html · Session 2 in test in jarvis-test.html</strong>
     Written 2026-10-09, after the boot sequence, holo-projector (galaxy,
     solar system, particle sculptor) and hand control were merged (PRs
     #61–#64). Sessions are numbered in the suggested order, but each one
@@ -414,7 +414,7 @@
         Open a new Claude Code session on <code>twrconsultingllc/Fun</code>
         and paste this, changing the session number:
       </p>
-<pre><code>Work Session 1 of jarvis/build-plan.html. Read that page and CLAUDE.md first. Build everything the session lists, run the checks it names, write the next numbered review in tests/secrpts/, update the session's badge and notes in jarvis/build-plan.html, then merge and tell me what to test on the live site.</code></pre>
+<pre><code>Work Session 3 of jarvis/build-plan.html. Read that page and CLAUDE.md first. Build it in jarvis-test.html, not jarvis.html. Build everything the session lists, run the checks it names, write the next numbered review in tests/secrpts/, update the session's badge and notes in jarvis/build-plan.html, then merge and tell me what to test on the live site.</code></pre>
       <p>
         <span class="who"><span class="badge claude">Claude</span></span>
         The session reads this page for what to build and
@@ -425,6 +425,32 @@
         <span class="badge done">Done</span> and writes what happened in
         the session's notes, so the next session starts from what's real.
       </p>
+      <h3 id="test-first">Test first, then promote</h3>
+      <p>
+        There are two copies of the page. <a href="../jarvis.html">jarvis.html</a>
+        is the one other people use. <a href="../jarvis-test.html">jarvis-test.html</a>
+        (marked <strong>TEST</strong>, and listed just below it on
+        <a href="../index.html">the Fun page</a>) is where every session's
+        work goes first. A finished session is
+        <span class="badge in-progress">In test</span> until you've tried it.
+        Several sessions can stack up in the test copy before you look.
+        Nothing reaches <code>jarvis.html</code> until you say so.
+      </p>
+      <p>
+        <span class="who"><span class="badge you">You</span></span>
+        When you've tried the test copy and are happy with it, paste this
+        into any session:
+      </p>
+<pre><code>Promote jarvis-test.html to jarvis.html. Read CLAUDE.md first.</code></pre>
+      <p>
+        <span class="who"><span class="badge claude">Claude</span></span>
+        That copies the test page over the main one (without the TEST
+        marking), copies the test suite over the main suite, writes a
+        review, flips every session that was <span class="badge in-progress">In test</span>
+        to <span class="badge done">Done</span>, merges, and tells you what
+        to check on the main page. A fix for something broken on the main
+        page goes into both copies at once.
+      </p>
     </section>
 
     <section id="index">
@@ -434,7 +460,7 @@
         <thead><tr><th>#</th><th>Session</th><th>Covers</th><th>Size</th><th>Status</th></tr></thead>
         <tbody>
           <tr><td>1</td><td><a href="#s1">Polish and voice-reactive orb</a></td><td>Option 8 and four open review items</td><td>Small</td><td><span class="badge done">Done</span></td></tr>
-          <tr><td>2</td><td><a href="#s2">Neural network</a></td><td>Option 6</td><td>Small–medium</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>2</td><td><a href="#s2">Neural network</a></td><td>Option 6</td><td>Small–medium</td><td><span class="badge in-progress">In test</span></td></tr>
           <tr><td>3</td><td><a href="#s3">Iron Man suit schematic</a></td><td>Option 3</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
           <tr><td>4</td><td><a href="#s4">Earth globe</a></td><td>Option 4</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
           <tr><td>5</td><td><a href="#s5">Threat scan</a></td><td>Option 11</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
@@ -445,7 +471,7 @@
 
     <section id="map">
       <h2><span class="kicker">Read this before changing anything</span>Where things live</h2>
-      <p>Everything is in one page, <code>jarvis.html</code> (about 885 lines), plus the self-hosted hand tracker and one test suite.</p>
+      <p>Everything is in one page, plus the self-hosted hand tracker and its test suite. There are two copies of that page: build in <code>jarvis-test.html</code> (about 960 lines with Session 2), and leave <code>jarvis.html</code> alone until the user says to <a href="#test-first">promote</a>. The names below are the same in both.</p>
       <div class="table-wrap"><table>
         <thead><tr><th>Piece</th><th>Where</th><th>How to extend it</th></tr></thead>
         <tbody>
@@ -457,10 +483,10 @@
           <tr><td>Hand control</td><td><code>classifyHand</code>, <code>createGestures</code>, <code>startHands</code>; files in <code>jarvis/hands/</code></td><td>The vendored files are pinned by hash (see <a href="hands/README.md">hands/README.md</a>). <code>tasks-vision</code> 0.10.14 also has a face detector, which Session 5 can reuse.</td></tr>
           <tr><td>Orb</td><td><code>draw()</code>, <code>orbPulse()</code></td><td>Reads <code>mode</code>, <code>energy</code> and <code>bootP</code>. While listening, recognition's <code>speechstart</code>/<code>speechend</code> set <code>hearing</code>. Never open a mic stream here: it takes the mic from speech recognition. While speaking, <code>lastWord</code> (from <code>onboundary</code>) drives the pulse. Under reduced motion, <code>orbPulse</code> holds still.</td></tr>
           <tr><td>Privacy line</td><td>CSP meta tag</td><td><code>connect-src 'self'</code>. Anything that would widen it to an outside host is a decision for you, not the session.</td></tr>
-          <tr><td>Tests</td><td><code>tests/jarvis.dom.test.mjs</code> (128 checks)</td><td>jsdom has no WebGL, canvas or camera, so pure logic is exposed on <code>window.__jarvis</code> and tested directly.</td></tr>
+          <tr><td>Tests</td><td><code>tests/jarvis-test.dom.test.mjs</code> for the test copy (160 checks), <code>tests/jarvis.dom.test.mjs</code> for the main page (128)</td><td>jsdom has no WebGL, canvas or camera, so pure logic is exposed on <code>window.__jarvis</code> and tested directly.</td></tr>
         </tbody>
       </table></div>
-<pre><code>cd tests && node run.mjs --page=jarvis.html</code></pre>
+<pre><code>cd tests && node run.mjs --page=jarvis-test.html</code></pre>
     </section>
 
     <section id="s1">
@@ -485,14 +511,19 @@
 
     <section id="s2">
       <h2><span class="kicker">Session 2 · small–medium</span>Neural network</h2>
-      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> nothing</span></div>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge in-progress">In test</span></span><span><strong>Needs:</strong> nothing</span></div>
       <ol class="substeps">
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>A <code>neural</code> scene.</strong> Layers of glowing nodes joined by faint lines, with pulses travelling along the connections. "Show me your brain" or "neural network" opens it.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>It thinks when Jarvis thinks.</strong> While <code>mode</code> is <code>think</code>, a burst of pulses fires from the input layer to the output layer. Each answer lights the output nodes. With the scene closed, this does nothing.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Hand control:</strong> <code>pick</code> a node to have Jarvis explain what a layer does (kid-friendly), <code>next</code> to rebuild with a different shape, <code>squeeze</code> to fire every node at once.</li>
       </ol>
       <p><strong>Checks:</strong> commands in the suite, and Chromium screenshots at desktop and phone width while it's thinking.</p>
-      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+      <div class="callout notes"><strong class="label">Session notes</strong>
+        <p>Built 2026-10-09 in commit <code>cc52252</code>, in <a href="../jarvis-test.html">jarvis-test.html</a> only, reviewed in <a href="../tests/secrpts/42.html">review 42</a>. This session was paused halfway when the mic broke on the main page (<a href="../tests/secrpts/41.html">review 41</a>). The test copy itself was created when it resumed. Waiting for you to try it before promotion.</p>
+        <p><strong>How it works.</strong> The network is plain data (<code>neuralLayout</code>, <code>createNeuralSim</code>), so the suite tests it without WebGL. A pulse crosses one connection in 0.5–0.7 s, lights the node it reaches, and that node passes it on down two random connections. Pulses are capped at 400, so a held fist can't flood the frame. While Jarvis is thinking, a burst goes into the input layer every 0.18 s. <code>say()</code> lights the output layer for every answer, through an <code>onAnswer</code> hook the other scenes don't have. Five shapes, from 3 to 5 layers of up to 8 nodes. <code>next</code> cycles through them. A tap picks the node within 48 px of it on screen.</p>
+        <p><strong>Divergences from the plan.</strong> The command also matches "can I see your brain" and "neural net", but not "use your brain" or "brain teaser". The network sways rather than spins, so its layers stay readable. In Chromium a tap, a hand tap, five swipes and a squeeze all worked at both sizes, with no errors.</p>
+        <p><strong>Still open.</strong> Trying it on your devices. Frame rate on a phone GPU is unmeasured, though at 30 nodes and 161 connections at most, it's far lighter than the galaxy.</p>
+      </div>
     </section>
 
     <section id="s3">
@@ -548,12 +579,12 @@
       <h2><span class="kicker">Definition of done</span>Every session ends the same way</h2>
       <ol class="substeps">
         <li><span class="who"><span class="badge claude">Claude</span></span> The suite passes, with new checks for the session's logic:
-<pre><code>cd tests && node run.mjs --page=jarvis.html</code></pre></li>
+<pre><code>cd tests && node run.mjs --page=jarvis-test.html</code></pre></li>
         <li><span class="who"><span class="badge claude">Claude</span></span> Headless Chromium screenshots at 1280×800 and 390×844, with no page errors and no CSP violations, using the recipes in <code>CLAUDE.md</code>.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span> The next numbered review in <code>tests/secrpts/</code>, and the help answer in <code>brain()</code> updated for new commands.</li>
-        <li><span class="who"><span class="badge claude">Claude</span></span> This page updated: the badge in the session and in the <a href="#index">index</a>, and real notes (what changed from the plan, commit hashes, what's still open).</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> This page updated: the badge in the session and in the <a href="#index">index</a> set to <span class="badge in-progress">In test</span>, and real notes (what changed from the plan, commit hashes, what's still open).</li>
         <li><span class="who"><span class="badge claude">Claude</span></span> PR opened and merged, and the Pages deploy watched.</li>
-        <li><span class="who"><span class="badge you">You</span></span> Try it on the live site, at <a href="https://twrconsultingllc.github.io/Fun/jarvis.html">twrconsultingllc.github.io/Fun/jarvis.html</a>.</li>
+        <li><span class="who"><span class="badge you">You</span></span> Try it on the live test copy, at <a href="https://twrconsultingllc.github.io/Fun/jarvis-test.html">twrconsultingllc.github.io/Fun/jarvis-test.html</a>. When you're happy, <a href="#test-first">promote it</a>.</li>
       </ol>
     </section>
   </main>

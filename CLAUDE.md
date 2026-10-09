@@ -403,6 +403,37 @@ blocking instead. Merging isn't the end: after it, follow the deployment
 rule above (watch the Pages deploy, and hand the live check to the user when
 the environment can't reach `*.github.io`).
 
+## J.A.R.V.I.S.: try in `jarvis-test.html` first
+
+Other people use `jarvis.html`, so new J.A.R.V.I.S. features never go
+straight into it. Build every session from `jarvis/build-plan.html` (and
+any other new feature) in `jarvis-test.html`. That's a full copy of the
+page, marked TEST, with its own suite (`tests/jarvis-test.dom.test.mjs`),
+linked just below J.A.R.V.I.S. on `index.html`. Merge and deploy it as
+usual, so the user can try it live, and mark the session **In test** in
+the build plan. The user may let several sessions stack up in the test
+copy before looking. The user set this on 2026-10-09.
+
+Only when the user says to promote does the test copy go into
+`jarvis.html`. Copy it over without the TEST tag, title and description,
+copy its suite over `tests/jarvis.dom.test.mjs` without the "Test copy"
+section, run both suites, write a review, and flip the promoted sessions
+to Done. A fix for something broken on the main page (like the mic,
+review 41) goes into both copies in the same change, so they don't drift.
+
+Never open the mic while speech recognition is running. On 2026-10-09 a
+second `getUserMedia` stream, opened so the orb could follow the user's
+loudness, took the mic from recognition on the user's phone. It showed
+LISTENING and transcribed nothing, with no error.
+
+## Long sessions: hand off with a prompt
+
+When a session's context is getting full, finish and merge the current
+piece of work rather than starting the next one. Then give the user a
+ready-to-paste prompt for a fresh session, in the shape of the "Starting a
+session" prompt in `jarvis/build-plan.html`. The user asked for this on
+2026-10-09.
+
 ## GitHub from claude.ai/code: what it can't do
 
 Claude Code on the web can work inside repos the user has given it, but two

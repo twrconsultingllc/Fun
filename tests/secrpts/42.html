@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #42 — jarvis-test.html and the neural network</title>
+<meta name="description" content="Security and code-quality review of jarvis-test.html, a new trial copy of the J.A.R.V.I.S. Demo carrying Session 2 of its build plan (a neural network scene), its index.html entry, its test suite and the build plan changes for the test-first workflow.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #42 — <code>jarvis-test.html</code> and the neural network</h1>
+    <p class="sub">A new page and a new way of working. Other people use <code>jarvis.html</code>, so the user asked for a trial copy where new J.A.R.V.I.S. features land first. <code>jarvis-test.html</code> is that copy, marked TEST and linked from <code>index.html</code> just below J.A.R.V.I.S. It carries Session 2 of <code>jarvis/build-plan.html</code>: a neural network scene that fires pulses while Jarvis thinks, lights its outputs on each answer, explains a layer when you tap it, rewires on a swipe and fires every node on a fist. <code>jarvis.html</code> itself is unchanged.</p>
+    <div class="meta">Review performed 2026-10-09 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code> (new), <code>tests/jarvis-test.dom.test.mjs</code> (new), <code>tests/run.mjs</code>, <code>index.html</code>, <code>jarvis/build-plan.html</code>, <code>CLAUDE.md</code> · suites run: <code>jarvis-test</code> (160 passed), <code>jarvis</code> (128 passed, unchanged page), <code>index</code> (7 passed) · follows: <a href="41.html">41.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 86%;"></div></div>
+    <div class="progress-label">7 items: 6 verified clean, 1 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The test copy is no more open than the page it copies</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>A diff of the two CSP meta tags is empty, so the test copy keeps <code>connect-src 'self'</code>, three.js from cdnjs under the same SRI hash, and the self-hosted hand tracker in <code>jarvis/hands/</code>, which it reaches by the same relative path. A grep of <code>jarvis-test.html</code> finds 0 <code>innerHTML</code>, <code>insertAdjacentHTML</code>, <code>eval(</code> or <code>new Function</code>, and 0 external scripts. The neural scene writes text only through <code>textContent</code> (the stat line and Jarvis's answers), and that text is built from numbers and fixed strings, never from what the user typed. The two pages share an origin, so they share <code>localStorage</code> (the remembered name and the mic note flag). Both values are the user's own and harmless to share.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The index entry and the plan's links</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>index.html</code> gains one same-origin link, <code>jarvis-test.html</code>, in a new <code>#section-26</code> that copies its neighbours' markup and class, and is added to the same centring rule. Chromium at 390×844 showed it as "J.A.R.V.I.S. TEST" below J.A.R.V.I.S. A script resolved every <code>href</code> in <code>index.html</code> and <code>jarvis/build-plan.html</code>: all point to files in the repo or to in-page ids, and the only absolute link is the live test page on the site's own origin. The plan still has 0 scripts, handlers and forms. Its new promotion prompt sits alone in a <code>&lt;pre&gt;&lt;code&gt;</code> block, as <code>CLAUDE.md</code> asks.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A held fist can't flood the frame</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Each pulse that arrives sends two more, so without a limit a squeeze, which fires every connection, would grow without bound. Pulses are capped (400 in the scene). The suite pins the cap by firing every node of an 8-8-8-8 network twenty times with a cap of 50, and finding at most 50.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The network logic is tested without WebGL</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The suite derives what it expects instead of reading it off the page. For example, 4-6-6-3 has 4·6 + 6·6 + 6·3 = 78 connections, layers are 9 apart (x = −13.5, −4.5, 4.5, 13.5), and the tallest layer's half-height is (6−1)/2 · 3.2 = 8. With a seeded random number generator, it checks that a burst reaches every hidden layer and the output within 3 s, and that no pulse ever arrives back at the input. Pulses and glow die out once bursts stop. An answer lights exactly the output layer, and a squeeze lights all 19 nodes and sends 78 pulses. It also checks six phrasings of the command, including "use your brain" and "brain teaser", which must not open it, and that the help answer mentions it.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Seen in Chromium at both sizes</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Under the page's real CSP, with three.js from <code>npm pack three@0.128.0</code> under its SRI hash, at 1280×800 and 390×844, I checked the following through the page's own <code>pick()</code> and gesture handler (<code>applyGesture</code>):</p><ul><li>"show me your brain" opens the scene ("4 LAYERS · 19 NEURONS · 78 CONNECTIONS").</li><li>Asking a question puts it in <code>think</code> mode, and screenshots show pulses crossing to a gold-lit output layer.</li><li>A tap on empty space returns nothing. A tap on a node, and a hand tap at the same place, give the layer's explanation.</li><li>Five swipes cycle through all five shapes and back to the first.</li><li>A squeeze lights every node.</li><li>"close" closes it (traced at 250 ms steps: the scene goes at about 1.3 s and the panel is hidden 0.75 s later, slow only because of software rendering).</li></ul><p>No page errors, no CSP violations. The TEST tag (<code>#ffc24a</code>) is 11.50:1 to 12.46:1 on the page background.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Two copies can drift apart</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>With the same placeholder swapped in for each page's name, the two files differ in 102 lines: the TEST marking and the neural network, and nothing else. <code>CLAUDE.md</code> now says new features go only into the test copy, fixes to the main page go into both copies in the same change, and promotion copies the test copy over the main page only when the user says so. The build plan has the promotion prompt and an <b>In test</b> status for finished but unpromoted sessions.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not yet tried on the user's devices</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Every render here was software WebGL. The neural scene is small (at most 30 nodes, 161 connections and 400 pulses), so it should be far lighter than the galaxy, but frame rate on a phone is unmeasured. That's what the test copy is for.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: the <code>jarvis-test</code>, <code>jarvis</code> and <code>index</code> suites, greps for unsafe sinks and external scripts, a CSP diff, link resolution, WCAG contrast from the formula, and headless Chromium at two sizes. See <a href="41.html">41.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
