@@ -23,6 +23,7 @@ export default async function run(t, page) {
             .filter((a) => a.id !== 'secret-link');
         t.ok('the gallery has links', links.length > 0);
         t.ok('links to Sentinel Web', links.some((a) => a.getAttribute('href') === 'sentinel-web.html'));
+        t.ok('links to J.A.R.V.I.S.', links.some((a) => a.getAttribute('href') === 'jarvis.html'));
 
         const local = links.map((a) => a.getAttribute('href')).filter((h) => !/^[a-z]+:/i.test(h));
         if (page.url.startsWith('file:')) {
