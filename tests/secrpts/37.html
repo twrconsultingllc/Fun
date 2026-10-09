@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #37 — jarvis.html holo-projector</title>
+<meta name="description" content="Security and code-quality review of the J.A.R.V.I.S. Demo update: a boot-up sequence and a three.js holo-projector with a galaxy, the solar system and particle sculptures.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #37 — <code>jarvis.html</code> holo-projector</h1>
+    <p class="sub">An update to the J.A.R.V.I.S. Demo with four new features. A <b>boot sequence</b>: tap INITIALIZE, the orb's rings lock into place while diagnostics scroll, then Jarvis greets you by time of day. And a <b>holo-projector</b>, a full-screen three.js view that opens on a voice or typed command, with three scenes. <b>Galaxy</b>: a spiral galaxy with globular clusters. <b>Solar system</b>: the planets orbit, and you can tap one or say "take me to Mars". <b>Particle sculptor</b>: thousands of particles swarm into a heart, rocket, star, DNA helix, arc reactor or any word you ask it to write.</p>
+    <div class="meta">Review performed 2026-10-09 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis.html</code>, <code>tests/jarvis.dom.test.mjs</code> · suites run: <code>jarvis</code> · follows: <a href="36.html">36.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 83%;"></div></div>
+    <div class="progress-label">12 items: 10 verified clean (3 of them fixed during review), 1 partial, 1 open. Open items from <a href="36.html">36.html</a> are unchanged.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security &amp; privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">One CSP change: three.js from cdnjs, pinned by SRI</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>script-src</code> gains <code>https://cdnjs.cloudflare.com</code>, the host <code>index.html</code> already uses for three.js. The page adds the script only when a scene is first asked for, with <code>integrity</code> set to the same <code>sha512-dLxUel…</code> hash <code>index.html</code> uses for r128, plus <code>crossorigin="anonymous"</code> and <code>referrerpolicy="no-referrer"</code>. The npm copy of three@0.128.0 (<code>build/three.min.js</code>) hashes to exactly that value, which is how it could be served to Chromium here. Serving Chromium a tampered file instead: the browser refused it, <code>window.THREE</code> stayed unset, and Jarvis said the projector was offline. <code>connect-src 'none'</code> is unchanged, so neither the page nor three.js can send anything. The suite asserts the exact <code>script-src</code> and the hash.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Words to write are cleaned, and drawn as pixels</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>"Write …" text is uppercased, cut to 14 characters, and limited to <code>A–Z 0–9 space ! ? ' &amp; -</code>. It is only ever drawn with <code>fillText</code> on an off-screen canvas, whose pixels become particle targets. It never reaches the DOM except as <code>textContent</code> in a caption. The suite checks <code>write &lt;b&gt;hi&lt;/b&gt;</code> becomes <code>BHIB</code>. A grep for <code>innerHTML</code>, <code>insertAdjacentHTML</code>, <code>document.write</code> and <code>eval</code> still finds nothing.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Sound and speech only start after a tap</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The boot screen waits for INITIALIZE (or Skip or Esc), and only then plays its quiet blips and speaks. That follows browser autoplay rules instead of fighting them, and nothing sounds unexpectedly on load. Every Web Audio call is in a <code>try</code>, so a browser without it just stays silent. Volumes are at most 0.03.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">All three scenes and the boot sequence, in Chromium</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>This container can't reach cdnjs, so headless Chromium (SwiftShader WebGL) was given the hash-identical npm file through a request route. Driven at 1280×800 and 390×844: boot (before, during and after), galaxy, solar system, "take me to Saturn", rocket, "write tony stark" and arc reactor, then "close". No page errors. Clicking the Sun picked it and read its fact. Dragging rotated the view, the wheel zoomed, and Esc closed the projector. Closing removes the WebGL canvas and disposes geometries, materials, textures and the renderer.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Words and HUD didn't fit an upright phone</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>In the first phone screenshots, "TONY STARK" ran off both sides, and the HUD's stats line wrapped into the hint. The camera distance now comes from <code>fitDist()</code>, which uses the 55° field of view and the screen's aspect ratio: 48 units away on desktop for both words and shapes, and on a 390×844 phone 112 for words and 65 for shapes. The HUD lines no longer wrap, and they get narrower margins under 600 px. Re-shot on the phone: the word, the galaxy and the solar system all fit.</p><div class="fix-note"><b>Fix:</b> aspect-aware camera distance; single-line HUD on phones.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">"Make a rocket for me" spelled ROCKET FOR ME</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The shape lookup needed an exact match, so any extra words fell through to spelling it out. Trailing "for me", "please" and "now" are now dropped, and the first one or two words are matched against the shape names. A word Jarvis doesn't know ("make a dog") is still spelled out on purpose, but only after make, build, create or construct plus "a", "an", "the" or "some". So "make me laugh" goes to the normal chat. The suite checks all three.</p><div class="fix-note"><b>Fix:</b> filler words dropped, shape matched by its leading words.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No WebGL, or no internet: says so, loads nothing</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Without WebGL (jsdom) the projector answers "needs WebGL", adds no script and stays hidden, and the boot diagnostics report it. With cdnjs unreachable (aborted in Chromium) it says "Holo-projector offline", removes the failed script tag and stays hidden. The load promise resets, so asking again retries. A 15 s timeout covers a load that hangs.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Commands don't steal ordinary questions</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The commands are checked before the chat brain, so the suite pins 21 phrasings. "Show me the sun" opens the solar system rather than the galaxy. "Make a star" is a shape, not the galaxy. "What time is it" and "I'm fine" are not commands. Close, zoom and reboot all work. "Close" and "zoom" with nothing open get a sensible answer. The six shape generators are pure functions, and each returns finite positions and 0–1 colours.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Reduced motion and new text contrast</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>With reduced motion: the boot takes 0.6 s instead of 3.2 s, the circular reveal and scan line are off, the INITIALIZE pulse stops, scenes move at 15% speed, and the rocket flame doesn't flicker. Chromium with <code>reducedMotion: 'reduce'</code> ran the solar system, tap, drag and Esc with no errors. Contrast: HUD title <code>#39ff88</code> on <code>#031a0e</code> is 13.67:1. Stats <code>#2fa862</code> 5.96:1. Captions 17.99:1 on their backed panel. Boot log 6.58:1.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The hint line sits on the live scene</div><span class="badge partial">Partial</span></div>
+      <div class="item-body"><p>The small hint line (85% opacity) is 4.66:1 on the projector's background and 5.02:1 on the scene's clear colour. But it has no backing panel, so a bright star or the galaxy core drifting behind it would lower that. It sits at the top, where scenes are mostly empty space, and the caption that matters has a solid panel. A translucent strip behind the top HUD would close this.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not yet seen on a real phone GPU</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Every render here was software WebGL. Particle counts already drop on screens under 700 px (galaxy 53,360 instead of 118,800, sculptures 7,000 instead of 14,000), and pixel ratio is capped at 2. But frame rate and battery use on the user's devices are unmeasured, and the live CDN path can only be confirmed on the deployed site. Left open until the user has tried it.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Suite run: <code>jarvis</code> (74 passed), per the repo's rule to run only the changed page's suites. See <a href="36.html">36.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
