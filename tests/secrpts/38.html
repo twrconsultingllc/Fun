@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #38 — jarvis.html hand control</title>
+<meta name="description" content="Security and code-quality review of hand-gesture control for the J.A.R.V.I.S. holo-projector: a self-hosted MediaPipe hand tracker reading the camera on the device.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #38 — <code>jarvis.html</code> hand control</h1>
+    <p class="sub">The holo-projector can now be steered with your hands through the camera. Say "hand control" or tap <b>✋ HANDS</b>. A small preview shows the camera with a tracked skeleton over each hand, and a reticle follows your fingertips. <b>Pinch and drag</b> turns the hologram. <b>Pinch with both hands and pull apart</b> zooms. <b>A quick pinch</b> selects (a planet, say). <b>Flicking an open hand</b> moves to the next shape or planet. <b>A fist</b> crushes the particle sculpture into a ball until you open your hand. Tracking uses Google's MediaPipe hand landmarker, served from this site.</p>
+    <div class="meta">Review performed 2026-10-09 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis.html</code>, <code>jarvis/hands/</code> (4 vendored files and a README), <code>tests/jarvis.dom.test.mjs</code> · suites run: <code>jarvis</code> · follows: <a href="37.html">37.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 83%;"></div></div>
+    <div class="progress-label">12 items: 10 verified clean (4 of them fixed during review), 2 open. Open items from <a href="37.html">37.html</a> are unchanged.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security &amp; privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The camera stays on the device, enforced by the CSP</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The tracker, its WebAssembly runtime and its model are files in this repo (<code>jarvis/hands/</code>), not a CDN. So <code>connect-src</code> went from <code>'none'</code> to <code>'self'</code>, not to any outside host, and the page can't send a frame, a landmark or anything else off the site. The only other change is <code>'wasm-unsafe-eval'</code> in <code>script-src</code>. That lets the page compile WebAssembly and nothing more: <code>eval</code> and <code>new Function</code> stay blocked, and a grep of the WebAssembly loader finds neither. Chromium ran the whole hand-control flow under the real CSP, served over HTTP, with zero CSP violations. The only outside hosts it touched were Google Fonts and cdnjs (three.js).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Vendored files are unmodified and pinned</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The files are from npm <code>@mediapipe/tasks-vision@0.10.14</code> (Apache-2.0) and Google's published <code>hand_landmarker.task</code> (float16, v1). They're byte-identical to the originals. The one change is that <code>vision_bundle.mjs</code> is renamed <code>.js</code>, so any static host serves it with a JavaScript MIME type. <code>jarvis/hands/README.md</code> lists where each came from and its SHA-256. The suite recomputes all four hashes and fails if any file changes or the README drifts. They load only when hand control is turned on, about 17 MB once, then cached.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The camera turns off when you're done</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Saying "stop hand control", tapping ✋ HANDS again, closing the projector or pressing Esc all stop every camera track and clear the video element. Switching scenes keeps hand control on, on purpose. Checked in Chromium: after each of these, no tracks were live and the page was out of hands mode. The camera is only asked for when the user turns hand control on, never at load.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Each camera failure gets the right message</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>At first every camera error said "couldn't find a camera", including a refused permission. Errors are now told apart by name. Permission refused: "I need permission… The video never leaves this device." No camera: "couldn't find a camera". Camera in use: "seems to be busy in another app". Anything else: "couldn't start the camera". Each was checked in Chromium by making <code>getUserMedia</code> reject with that error. In each case the projector stayed open, hand mode stayed off and the normal hint came back.</p><div class="fix-note"><b>Fix:</b> messages chosen by <code>DOMException</code> name.</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Real hand tracking, through a fake camera</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Chromium's fake camera was fed a video made from MediaPipe's sample photo of two raised hands. The real model, running from <code>jarvis/hands/</code>, found both hands and labelled them Left and Right. The preview drew both skeletons in the right places, and the reticle appeared. The classifier read both as open hands (4 fingers out, pinch ratio 0.37–0.48, well above the 0.26 pinch threshold).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Gestures, tested with synthetic hands</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The gesture logic is two pure functions (<code>classifyHand</code>, <code>createGestures</code>), tested with hand-built landmark sets. Open, fist and pinch are told apart. A curled fist's index finger isn't mistaken for a pinch, because a pinching index reaches past its knuckle. A quick pinch is a tap, but a pinch that moved isn't. Dragging rotates in the hand's direction. Two hands pulling apart zoom in and don't also rotate. A flick left is "next", but a slow drift isn't a swipe. A fist held 150 ms squeezes, and opening the hand releases it. The cursor sits midway between the thumb and index tips. Each action was then fed through the live page: swipes changed sphere → heart → rocket → heart and Sun → Mercury, a tap on the centre picked the Sun, a fist crushed the heart and opening rebuilt it, and rotate and zoom moved the camera.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">HUD buttons overlapped on phones</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The first phone screenshot had the hint running under the HANDS button and preview, and the title under CLOSE. Then the phone rules lost to the later <code>#holo-close</code> rule, and measuring the boxes found the two buttons still overlapping. On phones the buttons now sit side by side, the title and stats stop short of them, and the hint stops short of the preview. Measured in Chromium at 390×844, 360×640 and 1280×800: no HUD element overlaps another.</p><div class="fix-note"><b>Fix:</b> phone layout, with higher-specificity rules.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The hand loop crashed on unexpected input</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The loop read <code>.on</code> from the grab action without checking it existed. That threw every frame when a test replaced the gesture engine, and would do the same if the engine ever changed shape. It now checks first.</p><div class="fix-note"><b>Fix:</b> guarded the lookup.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Commands and contrast</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>"Hand control", "use my hands" and "turn on gesture control" turn it on. "Stop hand control" and "turn off the hand tracking" turn it off. "Give me a hand" isn't a command, and "stop" alone still closes the projector. New text: the pressed button <code>#020a06</code> on <code>#39ff88</code> is 15.10:1, and the preview label is <code>#39ff88</code> on a 55% dark overlay. The reticle is a pointer, not text. Boot diagnostics now report whether the browser can use a camera.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Thresholds and speed not yet tried on real hands</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Software-rendered Chromium managed about one detection a second, so a real flick, pinch-drag or two-hand zoom couldn't be run end to end here. Only the gesture logic (synthetic) and the page wiring (injected actions) were tested. The thresholds (pinch below 0.26 of palm size and released above 0.42, a swipe of 22% of the frame in 0.4 s, a 150 ms fist) are reasonable starting points that need tuning against the user's own hands, camera and lighting. Also unmeasured: detection speed on the user's phone or tablet. It uses the GPU and falls back to CPU, but runs on the main thread.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">17 MB of binaries in the repo</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Self-hosting is what lets the CSP guarantee the camera stays local, but it adds 17 MB to git history permanently, and any update adds more. Loading the same files from a CDN would avoid that. But it would mean opening <code>connect-src</code> to outside hosts, and importing an ES module without SRI. Left open as a deliberate trade-off.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Suite run: <code>jarvis</code> (104 passed), per the repo's rule to run only the changed page's suites. See <a href="37.html">37.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
