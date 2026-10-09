@@ -241,15 +241,29 @@ const synth=window.speechSynthesis||null;
 let voice=null;
 function pickVoice(){const v=synth.getVoices();voice=v.find(x=>/en-GB/i.test(x.lang)&&/male|daniel|arthur|george/i.test(x.name))||v.find(x=>/en-GB/i.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null}
 if(synth){pickVoice();synth.onvoiceschanged=pickVoice}
+// Chrome stops speaking a long utterance after about 15 seconds, so long answers go out a sentence or two
+// at a time: every sentence whole, each piece at most about 160 characters unless one sentence is longer.
+function speechChunks(text,max=160){
+  const out=[];
+  for(const sen of String(text).match(/[^.!?]+(?:[.!?]+|$)/g)||[]){const t=sen.trim();if(!t)continue;
+    const n=out.length;if(n&&out[n-1].length+1+t.length<=max)out[n-1]+=' '+t;else out.push(t)}
+  return out;
+}
+let sayGen=0; // which answer is being spoken, so a cancelled one can't switch the orb back to idle
 function say(text){
   add(text,'ai');
   if(H&&H.onAnswer)H.onAnswer(); // the neural network lights its output layer for each answer
   if(!synth){setMode('idle');return}
-  const u=new SpeechSynthesisUtterance(text);if(voice)u.voice=voice;u.rate=1.02;u.pitch=.9;
-  u.onstart=()=>{lastWord=null;setMode('speak')};u.onend=u.onerror=()=>{lastWord=null;setMode('idle')};
-  // There's no audio tap on speech synthesis, so pulse on each word where the voice reports them.
-  u.onboundary=e=>{if(!e.name||e.name==='word')lastWord=performance.now()};
-  synth.cancel();synth.speak(u);
+  const gen=++sayGen,parts=speechChunks(text);
+  synth.cancel();
+  parts.forEach((p,i)=>{
+    const u=new SpeechSynthesisUtterance(p);if(voice)u.voice=voice;u.rate=1.02;u.pitch=.9;
+    u.onstart=()=>{if(gen!==sayGen)return;lastWord=null;setMode('speak')};
+    u.onend=u.onerror=()=>{if(gen!==sayGen||i<parts.length-1)return;lastWord=null;setMode('idle')};
+    // There's no audio tap on speech synthesis, so pulse on each word where the voice reports them.
+    u.onboundary=e=>{if(!e.name||e.name==='word')lastWord=performance.now()};
+    synth.speak(u);
+  });
   // Some browsers never start speaking (no voices installed); don't stay stuck on PROCESSING.
   setTimeout(()=>{if(mode==='think')setMode('idle')},1500);
 }
@@ -280,6 +294,7 @@ function brain(raw){
   const s=raw.toLowerCase().trim(),name=userName?`, ${userName}`:'';
   let m;
   if((m=s.match(/\b(?:my name is|call me|i am|i'm) ([a-z]+)/))&&!notNames.has(m[1])){userName=m[1][0].toUpperCase()+m[1].slice(1);try{localStorage.setItem('jarvis-name',userName)}catch(e){}return `Nice to meet you, ${userName}. I'll remember that on this device.`}
+  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say show me your brain to watch me think, or suit up to build a suit of armour. Say show me Earth for the globe, or show me any country, US state or big city, like Florida or Tokyo. Say hand control to steer it with your hands through the camera. Say close to turn it off, or reboot to watch me power up again.";
   if(/\b(hello|hi|hey|good (morning|afternoon|evening))\b/.test(s))return pick([`Hello${name}. All systems are online.`,`Good to see you${name}. How can I help?`]);
   if(/what.*\btime\b/.test(s))return `It's ${new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}${name}.`;
   if(/what.*(date|day)/.test(s))return `Today is ${new Date().toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'})}.`;
@@ -292,7 +307,6 @@ function brain(raw){
   if(/suit up|iron man|armor/.test(s))return "Suit diagnostics complete. Repulsors charged, flight stabilizers online. Try not to hit any buildings.";
   if(/how are you/.test(s))return "Running at peak efficiency, thank you for asking.";
   if(/thank/.test(s))return pick(["Always a pleasure.","Anytime.","You're welcome."]);
-  if(/what can you do|help/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say show me your brain to watch me think, or suit up to build a suit of armour. Say show me Earth for the globe, or show me any country, US state or big city, like Florida or Tokyo. Say hand control to steer it with your hands through the camera. Say close to turn it off, or reboot to watch me power up again.";
   const math=mathAnswer(s);if(math)return math;
   return pick(["That's beyond my demo programming. Ask me what I can do.","I don't have that in my databanks yet. Try asking for a fun fact.","Interesting question. My full brain isn't installed in this demo."]);
 }
@@ -1305,7 +1319,7 @@ if(SR){
   mic.addEventListener('click',()=>{if(synth)synth.cancel();try{rec.start()}catch(e){rec.stop()}});
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,orbPulse,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing};
+window.__jarvis={speechChunks,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,orbPulse,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing};
 showBoot();
 </script>
 </body>

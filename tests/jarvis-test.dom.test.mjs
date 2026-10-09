@@ -503,6 +503,7 @@ export default async function run(t, page) {
     }
 
     await voiceWiring(t, page);
+    await speechWiring(t, page);
 }
 
 /* A second window with a fake SpeechRecognition, getUserMedia and AudioContext. */
@@ -576,6 +577,67 @@ async function voiceWiring(t, page) {
     env = await open({ reduce: true, noted: true });
     try {
         t.ok('once the mic has been used, the note stays hidden', env.document.getElementById('mic-note').hidden);
+    } finally {
+        env.close();
+    }
+}
+
+// A fake speech engine that behaves like the real one: speak() queues, onstart/onend come later
+// (the test calls them), and cancel() drops the queue and reports each dropped utterance as an
+// error, asynchronously, the way Chrome does.
+function fakeSpeech() {
+    const log = { queue: [], spoken: [] };
+    return {
+        log,
+        beforeParse(window) {
+            window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+            window.speechSynthesis = {
+                getVoices: () => [], onvoiceschanged: null,
+                speak(u) { log.queue.push(u); log.spoken.push(u.text); },
+                cancel() { const dropped = log.queue.splice(0); setTimeout(() => dropped.forEach((u) => u.onerror?.({ error: 'interrupted' })), 0); }
+            };
+        },
+        start: () => log.queue[0].onstart?.(),
+        finish: () => log.queue.shift().onend?.()
+    };
+}
+
+async function speechWiring(t, page) {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    t.section('Speaking long answers');
+
+    // Chrome stops speaking a single utterance after about 15 seconds, which cut the help answer off
+    // before its last features (2026-10-09). Long answers now go out a sentence or two at a time.
+    const { speechChunks, brain } = (await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ })).window.__jarvis;
+    const help = brain('what can you do');
+    const parts = speechChunks(help);
+    t.ok('the help answer is split into several pieces', parts.length >= 3);
+    t.ok('none is longer than 160 characters (about 10 s of speech)', parts.every((p) => p.length <= 160));
+    t.eq('together they are the whole answer, in order', parts.join(' '), help.replace(/\s+/g, ' ').trim());
+    t.ok('every piece ends at the end of a sentence', parts.every((p) => /[.!?]$/.test(p)));
+    t.eq('a short answer stays in one piece', JSON.stringify(speechChunks('Anytime. You\'re welcome.')), JSON.stringify(['Anytime. You\'re welcome.']));
+    t.eq('one sentence longer than the limit is kept whole', speechChunks('a'.repeat(200) + '.').length, 1);
+    for (const q of ['what can you do', 'Hey Jarvis, what can you do?', 'what else can you do', 'tell me what you can do', 'what are your features', 'list your commands', 'what can I say'])
+        t.eq(`"${q}" gets the help answer`, brain(q), help);
+    t.ok('"hello" is still a greeting', /online|help/.test(brain('hello')) && brain('hello') !== help);
+
+    const fake = fakeSpeech();
+    const env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse: fake.beforeParse });
+    try {
+        const { document } = env, state = () => document.getElementById('state').textContent;
+        const ask = (text) => { document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new env.window.Event('submit', { cancelable: true })); };
+        ask('what can you do'); await wait(600);
+        t.eq('the whole help answer is queued, piece by piece', fake.log.queue.map((u) => u.text).join(' '), help.replace(/\s+/g, ' ').trim());
+        t.ok('as more than one utterance', fake.log.queue.length >= 3);
+        t.eq('and the chat log shows it in full, as one message', [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent, help);
+        fake.start(); t.eq('the first piece starting shows SPEAKING', state(), 'SPEAKING');
+        fake.finish(); t.eq('the orb keeps SPEAKING between pieces', state(), 'SPEAKING');
+        fake.start();
+        ask('tell me a joke'); await wait(600);
+        t.eq('a new question cancels the rest of the old answer', fake.log.queue.length, 1);
+        t.eq('the cancelled pieces don\'t switch the orb to STANDBY', state(), 'PROCESSING');
+        fake.start(); t.eq('the new answer speaks', state(), 'SPEAKING');
+        fake.finish(); t.eq('and STANDBY once its last piece ends', state(), 'STANDBY');
     } finally {
         env.close();
     }

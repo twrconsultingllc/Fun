@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #45 — long answers and the help question in both J.A.R.V.I.S. pages</title>
+<meta name="description" content="Review of a fix to jarvis.html and jarvis-test.html: long spoken answers were cut off by Chrome after about 15 seconds, hiding the new features in the help answer, and only two phrasings of the help question were understood.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #45 — long answers and the help question in both J.A.R.V.I.S. pages</h1>
+    <p class="sub">A fix to <code>jarvis.html</code> and <code>jarvis-test.html</code>, after the user didn't hear the new features listed when asking Jarvis what it can do. Long answers are now spoken a sentence or two at a time, so Chrome's roughly 15-second limit on a single utterance no longer cuts them off. The help answer now responds to many more ways of asking.</p>
+    <div class="meta">Review performed 2026-10-09 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis.html</code>, <code>jarvis-test.html</code>, <code>tests/jarvis.dom.test.mjs</code>, <code>tests/jarvis-test.dom.test.mjs</code> · suites run: <code>jarvis-test</code> (287 passed), <code>jarvis</code> (151 passed) · follows: <a href="44.html">44.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 80%;"></div></div>
+    <div class="progress-label">5 items: 4 fixed or verified clean, 1 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No new way in</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The change is to <code>say()</code> and one line of <code>brain()</code> in each page. Speech still gets its text from <code>say()</code>'s argument, and the chat log still uses <code>textContent</code>. Splitting the text adds no HTML and no network use. A grep finds 0 <code>innerHTML</code> or <code>eval(</code> in either page, and both CSP meta tags are unchanged.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The help answer was cut off when spoken</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The user didn't hear the new features when asking Jarvis what it can do on the test page. The deployed <code>main</code> had the right text, so the push wasn't the problem. Each answer was spoken as one utterance, and Chrome stops a single utterance after about 15 seconds. The help answer is about 90 words, roughly 35 seconds, and the new features start about halfway through. <code>say()</code> now sends the answer as several utterances, using a new pure function, <code>speechChunks</code>: whole sentences only, at most 160 characters each, so about 10 seconds. The help answer becomes 5 pieces of 79 to 140 characters. The orb shows SPEAKING from the first piece to the last. A counter (<code>sayGen</code>) stops pieces cancelled by a newer question from switching it back to STANDBY. The chat log still shows the answer as one message. The bug was in both pages, so both are fixed in this change, as <code>CLAUDE.md</code> asks.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Only two ways of asking for help worked</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Only "what can you do" and "help" got the list. "What else can you do", "tell me what you can do", "what can you show me" and "list your commands" got a fallback. "What are your features" got the "who are you" answer, and "Hey Jarvis, what can you do?" got a greeting, because the greeting rule came first. The help rule now matches all of these and is checked before greetings and "who are you". Plain "hello" still gets a greeting.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Tested with a speech engine that behaves like the real one</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Both suites gain a "Speaking long answers" section, with 23 checks each: <code>jarvis-test</code> 287 (264 before), <code>jarvis</code> 151 (128 before). The fake engine queues on <code>speak()</code>. It calls <code>onstart</code>/<code>onend</code> only when the test says, and <code>cancel()</code> reports each dropped utterance as an error asynchronously, as Chrome does (the lesson in <code>CLAUDE.md</code> from the mic fake). The checks: the pieces join back into the exact answer, every piece ends a sentence and is under 160 characters, and the whole answer is queued as several utterances while the log shows it as one message. The orb stays SPEAKING between pieces, and a new question cancels the old pieces without the orb flashing to STANDBY. Seven phrasings get the help answer. The new section crashes against the previously deployed <code>jarvis-test.html</code>, so it does catch the old behaviour.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not reproduced in a real Chrome voice</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Headless Chromium has no speech voices, so the 15-second cutoff itself can't be heard here. The fix is the standard workaround for it, but the proof is the user hearing the full help answer on their own device. Answers in other parts of the page are all shorter than the help answer.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: both J.A.R.V.I.S. suites, the new section run against the previously deployed page, and greps for unsafe sinks. See <a href="44.html">44.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
