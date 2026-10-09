@@ -436,6 +436,18 @@ stops them overlapping, keeps them between the top HUD and the caption, and
 stops them flickering from side to side. The suit schematic (Session 3,
 review 43) added both, on 2026-10-09.
 
+Chrome stops speaking a single utterance after about 15 seconds, with no
+error, and the rest of the answer is silently dropped. So everything
+Jarvis says goes through `say()`, which uses `speechChunks()` to split an
+answer into whole sentences of at most 160 characters and queues them.
+Never call `speechSynthesis.speak()` directly for a new feature. This was
+found on 2026-10-09 (review 45): the help answer had grown to about 35
+seconds, and the user never heard the newest features at its end. The
+chat log still showed the full text, so it looked fine on screen.
+Headless Chromium has no voices, so this can't be heard in a test. The
+suites check it with a fake speech engine instead, so keep that fake
+behaving like the real one.
+
 ## Long sessions: hand off with a prompt
 
 When a session's context is getting full, finish and merge the current
