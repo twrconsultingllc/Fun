@@ -505,6 +505,7 @@ export default async function run(t, page) {
     await voiceWiring(t, page);
     await speechWiring(t, page);
     await skinsAndMemory(t, page);
+    await voicePicker(t, page);
 }
 
 /* A second window with a fake SpeechRecognition, getUserMedia and AudioContext. */
@@ -737,5 +738,59 @@ async function skinsAndMemory(t, page) {
         t.eq('and a corrupt store doesn\'t break the page', env.errors.length, 0);
     } finally {
         env.close();
+    }
+}
+
+// Test copy: the voice menu beside the skin button, and each skin's preferred voice.
+async function voicePicker(t, page) {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    t.section('Voices');
+    // An iPhone-like set of voices: Daniel for Jarvis, Ralph for Morpheus, Junior for Stanley, plus others.
+    const VOICES = [['Samantha', 'en-US'], ['Daniel (Enhanced)', 'en-GB'], ['Ralph', 'en-US'], ['Junior', 'en-US'], ['Thomas', 'fr-FR'], ['Karen', 'en-AU']].map(([name, lang]) => ({ name, lang }));
+    const spoken = [];
+    const beforeParse = (w) => {
+        w.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+        w.speechSynthesis = { getVoices: () => VOICES, onvoiceschanged: null, speak(u) { spoken.push(u); }, cancel() {} };
+    };
+    const env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse });
+    try {
+        const { document, window } = env, J = window.__jarvis, sel = document.getElementById('voice');
+        const opts = () => [...sel.options].map((o) => o.textContent);
+        const pick = async (value) => { sel.value = value; sel.dispatchEvent(new window.Event('change')); await wait(10); };
+        const last = () => spoken[spoken.length - 1];
+        t.ok('the voice menu is shown beside the skin button', !sel.hidden && sel.parentElement === document.getElementById('skin').parentElement);
+        t.eq('it offers Auto plus the device\'s five English voices', opts().length, 6);
+        t.ok('and leaves out a French voice', !opts().some((o) => /Thomas/.test(o)));
+        t.eq('Auto names Jarvis\'s pick, Daniel', opts()[0], 'VOICE: AUTO · Daniel');
+        document.getElementById('skin').click(); await wait(10);
+        t.eq('Morpheus gets Ralph', last().voice?.name, 'Ralph');
+        t.ok('with a gentler pitch than a generic voice gets', last().pitch > 0.55 && last().pitch < 0.9);
+        t.eq('and the menu follows the skin', opts()[0], 'VOICE: AUTO · Ralph');
+        document.getElementById('skin').click(); await wait(10);
+        t.eq('Stanley gets Junior', last().voice?.name, 'Junior');
+        document.getElementById('skin').click(); await wait(10);
+        t.eq('Jarvis gets Daniel', last().voice?.name, 'Daniel (Enhanced)');
+        await pick('Samantha');
+        t.eq('picking a voice speaks a sample in it straight away', last().voice?.name, 'Samantha');
+        t.ok('the sample is Jarvis\'s', /How do I sound\?/.test(last().text));
+        t.eq('the pick is saved for that skin on this device', JSON.parse(window.localStorage.getItem('jarvis-voices')).jarvis, 'Samantha');
+        t.eq('the menu shows it', sel.value, 'Samantha');
+        document.getElementById('skin').click(); await wait(10);
+        t.eq('other skins keep their own voice', last().voice?.name, 'Ralph');
+        t.eq('and the menu goes back to Auto for them', sel.value, '');
+        document.getElementById('skin').click(); await wait(10); document.getElementById('skin').click(); await wait(10);
+        t.eq('back on Jarvis, the picked voice comes back', last().voice?.name, 'Samantha');
+        await pick('');
+        t.eq('choosing Auto returns to Daniel', last().voice?.name, 'Daniel (Enhanced)');
+        t.ok('and clears the saved pick', !('jarvis' in JSON.parse(window.localStorage.getItem('jarvis-voices'))));
+    } finally {
+        env.close();
+    }
+    const env2 = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse(w) { beforeParse(w); w.localStorage.setItem('jarvis-voices', JSON.stringify({ jarvis: 'Karen', constructor: 'x', matrix: 5 })); } });
+    try {
+        t.eq('a saved voice pick comes back on the next visit', env2.document.getElementById('voice').value, 'Karen');
+        t.eq('and junk in the store doesn\'t break the page', env2.errors.length, 0);
+    } finally {
+        env2.close();
     }
 }
