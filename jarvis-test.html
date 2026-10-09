@@ -54,6 +54,16 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 #mic-note{max-width:640px;width:100%;margin:-8px auto 0;padding:0 18px 12px;font-size:.75rem;line-height:1.35;color:var(--label)}
 body.holo-on #mic-note{display:none}
 
+/* ---------- Skins ---------- */
+:root[data-skin="matrix"]{--void:#000300;--deep:#001a06;--phos:#00ff41;--phos-dim:#0b6e26;--label:#2ec95a;--glass:rgba(0,255,65,.06);--text:#d4ffdc}
+:root[data-skin="panther"]{--void:#020814;--deep:#0a2552;--phos:#ff7381;--phos-dim:#8f2a3a;--label:#d4b47a;--amber:#d4b47a;--glass:rgba(200,16,46,.08);--text:#f1f4fa}
+:root[data-skin="panther"] #state{opacity:1}
+:root[data-skin="panther"] .me{color:#fff3dc;background:rgba(185,151,91,.08)}
+:root[data-skin="panther"] body::after{background:repeating-linear-gradient(0deg,rgba(200,16,46,.04) 0 1px,transparent 1px 3px)}
+#rain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1;opacity:.35}
+#rain[hidden]{display:none}
+#skin{display:block;margin-top:6px;padding:3px 8px;font-size:.7rem;letter-spacing:.12em;font-weight:500}
+
 /* ---------- Boot screen ---------- */
 #boot{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;justify-content:flex-end;
   background:linear-gradient(to bottom,rgba(2,10,6,0) 0%,rgba(2,10,6,0) 52%,rgba(2,10,6,.94) 68%);transition:opacity .6s}
@@ -134,8 +144,10 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
 </style>
 </head>
 <body>
+<canvas id="rain" aria-hidden="true" hidden></canvas>
 <header>
-  <div><b>J.A.R.V.I.S.<span class="test-tag">TEST</span></b>Test build · new features first · <a href="index.html">← Fun</a></div>
+  <div><b><span id="who">J.A.R.V.I.S.</span><span class="test-tag">TEST</span></b>Test build · new features first · <a href="index.html">← Fun</a>
+    <button type="button" id="skin" aria-label="Change skin">SKIN: JARVIS</button></div>
   <div id="clock-box"><b id="clock">--:--</b><span id="date"></span></div>
 </header>
 
@@ -181,7 +193,8 @@ tick();setInterval(tick,1000);
 
 /* ---------- Orb ---------- */
 const cv=document.getElementById('orb'),cx=cv.getContext('2d'),stateEl=document.getElementById('state');
-let mode='idle',energy=0,bootP=0; // bootP: how much of the orb has assembled, 0..1
+let mode='idle',energy=0,bootP=0;
+let ringRGB='57,255,136',coreRGB='180,255,210'; // the orb's colours, set by the skin // bootP: how much of the orb has assembled, 0..1
 const reduce=!!window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 const amb=reduce?.15:1; // ambient motion: slow everything right down when reduced motion is asked for
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -208,19 +221,19 @@ function draw(t){
   const pulse=orbPulse({mode,energy,t,hearing:heard,still:reduce,sinceWord:mode==='speak'&&lastWord!==null?Math.max(0,(t-lastWord)/1000):null});
   // glow core
   const gr=W*.22*(.25+.75*bp),g=cx.createRadialGradient(c,c,0,c,c,gr);
-  g.addColorStop(0,`rgba(180,255,210,${(.55+pulse*.4)*(.3+.7*bp)})`);g.addColorStop(.35,`rgba(57,255,136,${(.25+pulse*.3)*bp})`);g.addColorStop(1,'rgba(57,255,136,0)');
+  g.addColorStop(0,`rgba(${coreRGB},${(.55+pulse*.4)*(.3+.7*bp)})`);g.addColorStop(.35,`rgba(${ringRGB},${(.25+pulse*.3)*bp})`);g.addColorStop(1,`rgba(${ringRGB},0)`);
   cx.fillStyle=g;cx.beginPath();cx.arc(c,c,gr,0,7);cx.fill();
   // rings, which lock into place one by one while booting
   const rings=[[.16,6,1.2,.9],[.24,3,-.7,.6],[.31,12,.4,.5],[.38,2,-.25,.35],[.45,40,.1,.25]];
   rings.forEach(([r,segs,spd,a],i)=>{
     const k=clamp(bp*1.8-i*.18,0,1),shown=Math.round(segs*k);if(!shown)return;
     const R=W*r*(reduce?1:1+pulse*.04*(i%2?1:-1)),rot=(reduce?0:t/1000*spd*(1+energy*2))+(1-k)*4*(i%2?-1:1);
-    cx.strokeStyle=`rgba(57,255,136,${(a+pulse*.3)*k})`;cx.lineWidth=i===4?2:i===0?10:4;
+    cx.strokeStyle=`rgba(${ringRGB},${(a+pulse*.3)*k})`;cx.lineWidth=i===4?2:i===0?10:4;
     const gap=segs>20?.06:.25;
     for(let s=0;s<shown;s++){const a0=rot+s*Math.PI*2/segs;cx.beginPath();cx.arc(c,c,R,a0,a0+Math.PI*2/segs-gap);cx.stroke()}
   });
   // tick marks
-  cx.strokeStyle=`rgba(57,255,136,${.08+.32*clamp(bp*1.3,0,1)})`;cx.lineWidth=2;
+  cx.strokeStyle=`rgba(${ringRGB},${.08+.32*clamp(bp*1.3,0,1)})`;cx.lineWidth=2;
   for(let i=0;i<72;i++){const a=i*Math.PI/36,r1=W*.48,r2=W*(i%6?.47:.455);cx.beginPath();cx.moveTo(c+Math.cos(a)*r1,c+Math.sin(a)*r1);cx.lineTo(c+Math.cos(a)*r2,c+Math.sin(a)*r2);cx.stroke()}
 }
 if(cx)requestAnimationFrame(draw); // no 2D canvas (e.g. jsdom): skip the orb, the chat still works
@@ -236,10 +249,31 @@ function blip(freq=880,dur=.05,vol=.03,type='square',delay=0){
   }catch(e){}
 }
 
+/* ---------- Skins: who answers, how they sound, how the page looks ---------- */
+// Morpheus has no real voice in the browser, so a slow, low pitch on a male voice stands in for one.
+// Stanley C. Panther is the Florida Panthers' mascot (named for the Stanley Cup), so he's quick and bright.
+const SKINS={
+  jarvis:{name:'J.A.R.V.I.S.',short:'Jarvis',label:'JARVIS',ring:'57,255,136',core:'180,255,210',lang:/en-GB/i,voice:/male|daniel|arthur|george/i,rate:1.02,pitch:.9,
+    hello:"Jarvis here. Back to my usual self.",open:[],close:[]},
+  matrix:{name:'MORPHEUS',short:'Morpheus',label:'MATRIX',ring:'0,255,65',core:'200,255,210',lang:/en-(US|GB)/i,voice:/male|david|guy|mark|fred|alex|daniel|george/i,rate:.86,pitch:.55,
+    hello:"Welcome to the real world. I am Morpheus. Ask, and I will show you how deep the rabbit hole goes.",
+    who:"I am Morpheus. I can only show you the door. You're the one who has to walk through it.",
+    miss:"I don't understand that, and I won't pretend to.",
+    open:["Listen carefully.","What I'm about to tell you is the truth. Nothing more.","Free your mind."],
+    close:["Welcome to the real world.","Remember, there is no spoon.","The choice is yours."]},
+  panther:{name:'STANLEY C. PANTHER',short:'Stanley C. Panther',label:'PANTHERS',ring:'200,16,46',core:'255,214,150',lang:/en-US/i,voice:/male|david|guy|mark|fred|alex/i,rate:1.12,pitch:1.2,
+    hello:"Let's go, Cats! Stanley C. Panther here, the Florida Panthers' number one fan. What do you need?",
+    who:"I'm Stanley C. Panther, mascot of the Florida Panthers. My name comes from the Stanley Cup. Go Cats!",
+    miss:"Whoa, that one went wide of the net.",
+    open:["Let's go, Cats!","Puck drop!","Hold onto your rat!"],
+    close:["Go Panthers!","Time to light the lamp!","That's a power play!"]}
+};
+let skin='jarvis';try{const k=localStorage.getItem('jarvis-skin');if(k&&Object.hasOwn(SKINS,k))skin=k}catch(e){}
+
 /* ---------- Voice out ---------- */
 const synth=window.speechSynthesis||null;
 let voice=null;
-function pickVoice(){const v=synth.getVoices();voice=v.find(x=>/en-GB/i.test(x.lang)&&/male|daniel|arthur|george/i.test(x.name))||v.find(x=>/en-GB/i.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null}
+function pickVoice(){const v=synth.getVoices(),k=SKINS[skin];voice=v.find(x=>k.lang.test(x.lang)&&k.voice.test(x.name))||v.find(x=>k.lang.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null}
 if(synth){pickVoice();synth.onvoiceschanged=pickVoice}
 // Chrome stops speaking a long utterance after about 15 seconds, so long answers go out a sentence or two
 // at a time: every sentence whole, each piece at most about 160 characters unless one sentence is longer.
@@ -257,7 +291,7 @@ function say(text){
   const gen=++sayGen,parts=speechChunks(text);
   synth.cancel();
   parts.forEach((p,i)=>{
-    const u=new SpeechSynthesisUtterance(p);if(voice)u.voice=voice;u.rate=1.02;u.pitch=.9;
+    const u=new SpeechSynthesisUtterance(p);if(voice)u.voice=voice;u.rate=SKINS[skin].rate;u.pitch=SKINS[skin].pitch;
     u.onstart=()=>{if(gen!==sayGen)return;lastWord=null;setMode('speak')};
     u.onend=u.onerror=()=>{if(gen!==sayGen||i<parts.length-1)return;lastWord=null;setMode('idle')};
     // There's no audio tap on speech synthesis, so pulse on each word where the voice reports them.
@@ -290,11 +324,11 @@ function mathAnswer(s){
   const a=+m[1],b=+m[3],r={'+':a+b,'-':a-b,'*':a*b,'/':b===0?null:a/b}[m[2]];
   return r===null?"Dividing by zero would tear a hole in the universe. Let's not.":`That would be ${+r.toFixed(4)}.`;
 }
-function brain(raw){
+function brainKnown(raw){
   const s=raw.toLowerCase().trim(),name=userName?`, ${userName}`:'';
   let m;
   if((m=s.match(/\b(?:my name is|call me|i am|i'm) ([a-z]+)/))&&!notNames.has(m[1])){userName=m[1][0].toUpperCase()+m[1].slice(1);try{localStorage.setItem('jarvis-name',userName)}catch(e){}return `Nice to meet you, ${userName}. I'll remember that on this device.`}
-  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say show me your brain to watch me think, or suit up to build a suit of armour. Say show me Earth for the globe, or show me any country, US state or big city, like Florida or Tokyo. Say hand control to steer it with your hands through the camera. Say close to turn it off, or reboot to watch me power up again.";
+  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say show me your brain to watch me think, or suit up to build a suit of armour. Say show me Earth for the globe, or show me any country, US state or big city, like Florida or Tokyo. Say hand control to steer it with your hands through the camera. Say close to turn it off, or reboot to watch me power up again. Say switch to Matrix to talk to Morpheus, switch to Panthers for Stanley C. Panther, or back to Jarvis. If I don't understand you, tell me what you meant and I'll remember it on this device.";
   if(/\b(hello|hi|hey|good (morning|afternoon|evening))\b/.test(s))return pick([`Hello${name}. All systems are online.`,`Good to see you${name}. How can I help?`]);
   if(/what.*\btime\b/.test(s))return `It's ${new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}${name}.`;
   if(/what.*(date|day)/.test(s))return `Today is ${new Date().toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'})}.`;
@@ -308,6 +342,10 @@ function brain(raw){
   if(/how are you/.test(s))return "Running at peak efficiency, thank you for asking.";
   if(/thank/.test(s))return pick(["Always a pleasure.","Anytime.","You're welcome."]);
   const math=mathAnswer(s);if(math)return math;
+  return null;
+}
+function brain(raw){
+  const b=brainKnown(raw);if(b!==null)return b;
   return pick(["That's beyond my demo programming. Ask me what I can do.","I don't have that in my databanks yet. Try asking for a fun fact.","Interesting question. My full brain isn't installed in this demo."]);
 }
 
@@ -1260,6 +1298,7 @@ const boot=document.getElementById('boot'),bootGo=document.getElementById('boot-
 let booting=false,bootTimers=[];
 function placeBootButton(){const r=cv.getBoundingClientRect();if(r.height)bootGo.style.top=(r.top+r.height/2)+'px'}
 function greeting(){
+  if(skin!=='jarvis')return SKINS[skin].hello;
   const h=new Date().getHours(),part=h<12?'morning':h<18?'afternoon':'evening';
   return `Good ${part}${userName?', '+userName:''}. All systems online. Tap the mic or type to talk to me.`;
 }
@@ -1294,10 +1333,108 @@ addEventListener('keydown',e=>{
   if(!boot.hidden)finishBoot();else if(closeHolo())say("Projector off.");
 });
 
+/* ---------- Skin switching ---------- */
+const whoEl=document.getElementById('who'),skinBtn=document.getElementById('skin');
+function skinIntent(raw){
+  const s=normPhrase(raw);
+  const to='(?:switch|change|go|turn|put|set|use|load|activate|become|be|give me|i want)';
+  const want=(words)=>new RegExp(`\\b${to}\\b(?: (?:back|it|over|me|you|us|the|to|into|on|in|now|skin|mode|theme|voice|a|my))* (?:${words})\\b|\\b(?:${words}) (?:skin|mode|theme|voice|persona)\\b|^(?:${words})(?: please)?$`).test(s);
+  if(want('matrix|morpheus|the matrix')||/\b(?:take|taking) the red pill\b|^red pill$/.test(s))return 'matrix';
+  if(want('panthers?|florida panthers|stanley|stanley c panther|hockey'))return 'panther';
+  if(want('jarvis|normal|default|standard|original|usual')||/\b(?:take|taking) the blue pill\b|^blue pill$/.test(s))return 'jarvis';
+  return null;
+}
+let rainTimer=0;
+function setSkin(k){
+  if(!Object.hasOwn(SKINS,k))k='jarvis';
+  const was=skin;skin=k;const S=SKINS[k];
+  document.documentElement.dataset.skin=k;whoEl.textContent=S.name;skinBtn.textContent='SKIN: '+S.label;
+  ringRGB=S.ring;coreRGB=S.core;
+  try{localStorage.setItem('jarvis-skin',k)}catch(e){}
+  if(synth)pickVoice();
+  rain(k==='matrix');
+  return was===k?`I'm already ${S.short}.`:S.hello;
+}
+skinBtn.addEventListener('click',()=>{const ks=Object.keys(SKINS);say(setSkin(ks[(ks.indexOf(skin)+1)%ks.length]))});
+// Matrix digital rain behind everything, only for the Matrix skin, and still when reduced motion is asked for.
+const rainCv=document.getElementById('rain'),rainCx=rainCv.getContext&&rainCv.getContext('2d');
+function rain(on){
+  clearInterval(rainTimer);rainTimer=0;rainCv.hidden=!on||!rainCx;if(rainCv.hidden)return;
+  const W=rainCv.width=innerWidth,Hh=rainCv.height=innerHeight,fs=16,cols=Math.ceil(W/fs),drops=Array.from({length:cols},()=>Math.random()*Hh/fs);
+  const glyphs='アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン0123456789';
+  rainCx.fillStyle='#000300';rainCx.fillRect(0,0,W,Hh);rainCx.font=fs+'px monospace';
+  const step=()=>{
+    if(document.hidden||document.body.classList.contains('holo-on'))return;
+    rainCx.fillStyle='rgba(0,3,0,.08)';rainCx.fillRect(0,0,W,Hh);rainCx.fillStyle='#00ff41';
+    drops.forEach((y,i)=>{rainCx.fillText(glyphs[Math.floor(Math.random()*glyphs.length)],i*fs,y*fs);drops[i]=y*fs>Hh&&Math.random()>.975?0:y+1});
+  };
+  if(reduce){for(let i=0;i<40;i++)step();return}
+  rainTimer=setInterval(step,55);
+}
+addEventListener('resize',()=>{if(skin==='matrix')rain(true)});
+let flairN=0; // which chat answer this is, so persona lines take turns instead of every answer getting one
+function flair(text){
+  const S=SKINS[skin];if(!S.open.length)return text;
+  const n=flairN++;
+  return n%3===0?`${S.open[(n/3|0)%S.open.length]} ${text}`:n%3===1?`${text} ${S.close[(n/3|0)%S.close.length]}`:text;
+}
+
+/* ---------- Learned phrases (this browser only) ---------- */
+// When Jarvis doesn't understand something, he asks what you meant. If that turns out to be something he
+// knows, the phrase is saved here, so saying it again just works. Stored in localStorage, nowhere else.
+function normPhrase(t){return String(t).toLowerCase().replace(/[^a-z0-9' ]+/g,' ').replace(/\s+/g,' ').trim()}
+const LEARN_MAX=200;
+let learned=Object.create(null);
+try{const o=JSON.parse(localStorage.getItem('jarvis-learned')||'{}');if(o&&typeof o==='object'&&!Array.isArray(o))
+  for(const [k,v] of Object.entries(o))if(typeof v==='string'&&k.length<=120&&v.length<=200)learned[k]=v}catch(e){}
+function saveLearned(){try{localStorage.setItem('jarvis-learned',JSON.stringify(learned))}catch(e){}}
+function learn(said,meant){
+  delete learned[said];learned[said]=meant; // newest last
+  const ks=Object.keys(learned);ks.slice(0,Math.max(0,ks.length-LEARN_MAX)).forEach(k=>delete learned[k]);
+  saveLearned();
+}
+let pendingTeach=null; // the phrase Jarvis just didn't understand, while he waits to hear what it meant
+const NOPE=Symbol('not understood');
+const CAN_DO="Here's what I can do: tell the time or date, a joke, a fun fact or some math, flip a coin or roll a die, show you things on the holo-projector like Mars, Earth or your name, suit up, show my brain, or switch to the Matrix or Panthers skin.";
+// One answer, or NOPE when nothing understood it. A learned phrase stands in for what it means.
+async function respond(text){
+  const p=normPhrase(text);if(learned[p])text=learned[p];
+  const sk=skinIntent(text);if(sk)return setSkin(sk);
+  const it=intent(text);if(it)return await project(it);
+  if(skin!=='jarvis'&&/who are you|your name|what are you/.test(normPhrase(text)))return SKINS[skin].who;
+  const b=brainKnown(text);return b===null?NOPE:flair(b);
+}
+const MEANT=/^(?:what\s+)?i\s+(?:was\s+(?:trying|going)\s+to\s+(?:say|ask)|tried\s+to\s+(?:say|ask)|wanted\s+to\s+(?:say|ask)|meant\s+to\s+(?:say|ask)|wanted\s+(?:you\s+)?to|want\s+(?:you\s+)?to|meant|mean)(?:\s+(?:was|is))?[\s,:]*/i;
+async function answer(text){
+  const p=normPhrase(text);
+  if(/^(?:forget|clear|erase|wipe|reset|delete)\b.*\b(?:learned|learnt|taught|memory|phrases)\b/.test(p)){
+    pendingTeach=null;const n=Object.keys(learned).length;learned=Object.create(null);saveLearned();
+    return n?`Done. I've forgotten the ${n===1?'phrase':n+' phrases'} you taught me.`:"You haven't taught me anything yet.";
+  }
+  if(/^what (?:have you|did you|has jarvis) (?:learned|learnt)|^what (?:have i|did i) (?:taught|teach) you/.test(p)){
+    const ks=Object.keys(learned);if(!ks.length)return "Nothing yet. When I don't understand you, tell me what you meant and I'll remember it.";
+    return `You've taught me ${ks.length===1?'one phrase':ks.length+' phrases'}. `+ks.slice(-5).map(k=>`"${k}" means "${learned[k]}".`).join(' ');
+  }
+  if(pendingTeach!==null){
+    const said=pendingTeach;pendingTeach=null;
+    if(/^(?:nothing|never ?mind|forget it|no|nope|nah|cancel|skip|move on|it doesn't matter|doesn't matter)\b/.test(p))
+      return "Then we'll have to move on. I'm not programmed for this.";
+    const meant=text.trim().replace(MEANT,'').replace(/[.!]+$/,'').trim();
+    const r=meant?await respond(meant):NOPE;
+    if(r===NOPE)return "I don't understand that either, so we'll have to move on. I'm not programmed for this.";
+    if(normPhrase(meant)!==said)learn(said,meant);
+    const got=`Got it. Next time you say "${said}", I'll know you mean "${meant}".`;
+    return r?`${got} ${r}`:got;
+  }
+  const r=await respond(text);
+  if(r!==NOPE)return r;
+  if(p&&p.length<=120)pendingTeach=p;
+  return `${skin==='jarvis'?"I didn't understand that.":SKINS[skin].miss} ${CAN_DO} What were you trying to say?`;
+}
+
 function handle(text){
   if(!text.trim())return;add(text,'me');setMode('think');
-  const it=intent(text);
-  setTimeout(async()=>{const r=it?await project(it):brain(text);if(r)say(r);else if(mode==='think'&&!booting)setMode('idle')},450);
+  setTimeout(async()=>{const r=await answer(text);if(r)say(r);else if(mode==='think'&&!booting)setMode('idle')},450);
 }
 
 /* ---------- Input ---------- */
@@ -1319,7 +1456,8 @@ if(SR){
   mic.addEventListener('click',()=>{if(synth)synth.cancel();try{rec.start()}catch(e){rec.stop()}});
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={speechChunks,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,orbPulse,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing};
+window.__jarvis={speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,orbPulse,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing};
+setSkin(skin);
 showBoot();
 </script>
 </body>

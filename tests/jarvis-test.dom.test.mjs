@@ -504,6 +504,7 @@ export default async function run(t, page) {
 
     await voiceWiring(t, page);
     await speechWiring(t, page);
+    await skinsAndMemory(t, page);
 }
 
 /* A second window with a fake SpeechRecognition, getUserMedia and AudioContext. */
@@ -638,6 +639,102 @@ async function speechWiring(t, page) {
         t.eq('the cancelled pieces don\'t switch the orb to STANDBY', state(), 'PROCESSING');
         fake.start(); t.eq('the new answer speaks', state(), 'SPEAKING');
         fake.finish(); t.eq('and STANDBY once its last piece ends', state(), 'STANDBY');
+    } finally {
+        env.close();
+    }
+}
+
+// Test copy: skins (Matrix / Morpheus and Florida Panthers / Stanley C. Panther) and learned phrases.
+async function skinsAndMemory(t, page) {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    t.section('Skins');
+    const fake = fakeSpeech();
+    const opts = { ignore: /getContext|HTMLCanvasElement/, beforeParse: fake.beforeParse };
+    let env = await openDom(page.html, 'https://jarvis.test/jarvis.html', opts);
+    try {
+        const { document, window } = env, J = window.__jarvis;
+        const ask = async (text) => { document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(520); return [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent; };
+        const lastUtt = () => fake.log.queue[fake.log.queue.length - 1];
+        t.eq('starts as Jarvis', J.skin(), 'jarvis');
+        t.eq('with a skin button in the header', document.getElementById('skin')?.textContent, 'SKIN: JARVIS');
+        for (const [q, k] of [['switch to matrix', 'matrix'], ['Matrix skin', 'matrix'], ['morpheus', 'matrix'], ['I take the red pill', 'matrix'], ['switch to the Panthers', 'panther'], ['change to panthers mode', 'panther'], ['stanley', 'panther'], ['switch back to Jarvis', 'jarvis'], ['go back to normal', 'jarvis'], ['take the blue pill', 'jarvis']])
+            t.eq(`"${q}" picks the ${k} skin`, J.skinIntent(q), k);
+        for (const q of ['what time is it', 'show me Florida', 'hey jarvis tell me a joke', 'what is the matrix', 'take me to mars', 'i want to go to jupiter jarvis'])
+            t.eq(`"${q}" doesn't change the skin`, J.skinIntent(q), null);
+
+        let r = await ask('switch to the matrix');
+        t.ok('asking for the Matrix brings Morpheus', /Morpheus/.test(r));
+        t.eq('the header names him', document.getElementById('who').textContent, 'MORPHEUS');
+        t.eq('the page takes the matrix skin', document.documentElement.dataset.skin, 'matrix');
+        t.ok('he speaks lower and slower than Jarvis', lastUtt().pitch < 0.9 && lastUtt().rate < 1);
+        t.eq('the skin is remembered on this device', window.localStorage.getItem('jarvis-skin'), 'matrix');
+        r = await ask('who are you');
+        t.ok('Morpheus answers as Morpheus', /I am Morpheus/.test(r));
+        r = await ask('flip a coin');
+        t.ok('and still does his job', /heads|tails/.test(r));
+        document.getElementById('skin').click(); await wait(10);
+        t.eq('the skin button moves on to the Panthers', J.skin(), 'panther');
+        t.eq('the header names Stanley C. Panther', document.getElementById('who').textContent, 'STANLEY C. PANTHER');
+        t.ok('who says hello as the Panthers mascot', /Stanley C\. Panther/.test([...document.querySelectorAll('#log .msg.ai')].pop().textContent));
+        t.ok('in a brighter, quicker voice', lastUtt().pitch > 1 && lastUtt().rate > 1.02);
+        r = await ask('what is your name');
+        t.ok('he knows he is named after the Stanley Cup', /Stanley Cup/.test(r));
+        document.getElementById('skin').click(); await wait(10);
+        t.eq('and the button comes back round to Jarvis', J.skin(), 'jarvis');
+        t.eq('with Jarvis\'s own voice', lastUtt().pitch, 0.9);
+        t.ok('help mentions the skins', /Matrix/.test(J.brain('help')) && /Panthers/.test(J.brain('help')));
+
+        t.section('Learned phrases');
+        r = await ask('beam me up scotty');
+        t.ok('something it doesn\'t know gets "I didn\'t understand that"', /^I didn't understand that\./.test(r));
+        t.ok('then what it can do', /Here's what I can do/.test(r));
+        t.ok('and asks what was meant', /What were you trying to say\?$/.test(r));
+        r = await ask('nothing');
+        t.ok('"nothing" moves on', /move on\. I'm not programmed for this\./.test(r));
+        t.eq('and learns nothing', Object.keys(J.learned()).length, 0);
+        await ask('beam me up scotty');
+        r = await ask('What I was trying to say was flip a coin');
+        t.ok('telling it what was meant is acknowledged', /Next time you say "beam me up scotty", I'll know you mean "flip a coin"/.test(r));
+        t.ok('and does it straight away', /heads|tails/.test(r));
+        t.eq('the phrase is saved in this browser', JSON.parse(window.localStorage.getItem('jarvis-learned'))['beam me up scotty'], 'flip a coin');
+        r = await ask('Beam me up, Scotty!');
+        t.ok('saying it again just works', /^It's (heads|tails)\.$/.test(r));
+        await ask('make it so number one');
+        r = await ask('I meant switch to panthers');
+        t.ok('a learned phrase can switch skins', J.skin() === 'panther' && /I'll know you mean "switch to panthers"/.test(r));
+        await ask('switch to jarvis');
+        await ask('blorp');
+        r = await ask('fizzbuzz wibble');
+        t.ok('a meaning it doesn\'t understand either moves on', /I'm not programmed for this/.test(r));
+        t.ok('without saving it', !('blorp' in J.learned()));
+        r = await ask('what have you learned');
+        t.ok('it can say what it has learned', /2 phrases/.test(r) && /beam me up scotty/.test(r));
+        await ask('__proto__');
+        await ask('I meant tell me a joke');
+        t.ok('even an odd phrase like __proto__ is stored as a plain phrase', J.learned()['proto'] === 'tell me a joke' || J.learned()['__proto__'] === 'tell me a joke');
+        t.eq('without touching Object.prototype', ({}).polluted, undefined);
+    } finally {
+        env.close();
+    }
+
+    // A reload keeps the skin and the learned phrases; a corrupt store is ignored.
+    t.section('Remembered across visits');
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ...opts, beforeParse(w) { opts.beforeParse(w); w.localStorage.setItem('jarvis-skin', 'matrix'); w.localStorage.setItem('jarvis-learned', JSON.stringify({ 'beam me up': 'roll a die', bad: 7 })); } });
+    try {
+        const { document, window } = env, J = window.__jarvis;
+        t.eq('the saved skin comes back', J.skin(), 'matrix');
+        t.eq('with its header', document.getElementById('who').textContent, 'MORPHEUS');
+        t.eq('learned phrases come back', J.learned()['beam me up'], 'roll a die');
+        t.ok('and anything that isn\'t a phrase is dropped', !('bad' in J.learned()));
+        document.getElementById('q').value = 'forget what you learned'; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(520);
+        t.eq('"forget what you learned" clears them', window.localStorage.getItem('jarvis-learned'), '{}');
+    } finally {
+        env.close();
+    }
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ...opts, beforeParse(w) { opts.beforeParse(w); w.localStorage.setItem('jarvis-skin', 'constructor'); w.localStorage.setItem('jarvis-learned', '{nope'); } });
+    try {
+        t.eq('a bad saved skin falls back to Jarvis', env.window.__jarvis.skin(), 'jarvis');
+        t.eq('and a corrupt store doesn\'t break the page', env.errors.length, 0);
     } finally {
         env.close();
     }
