@@ -25,6 +25,9 @@ import { fileURLToPath } from 'node:url';
 import { openDom } from './lib/page.mjs';
 
 // The self-hosted hand tracker, pinned (see jarvis/hands/README.md).
+// The globe's coastlines, pinned (see jarvis/earth/README.md).
+const LAND_SHA256 = 'ec085257c3276958638a03e82162e7ce0fb6c8cd13692ba91bd7941df425512c';
+
 const HAND_FILES = {
     'vision_bundle.js': 'e77f281f9619150d937023c355bae170e9120e3b9e43f1e23a2a7bee07197669',
     'vision_wasm_internal.js': '9440cf0cc0cea21800e31581ec32aeedcc5fbf9df4509796bbc7d3f99e52ab9c',
@@ -129,6 +132,40 @@ export default async function run(t, page) {
         t.eq('"reboot"', kind('reboot'), 'boot');
         t.eq('"what time is it" is not a projector command', intent('what time is it'), null);
         t.eq('"I\'m fine" is not a projector command', intent("I'm fine"), null);
+        t.eq('"show me your brain"', JSON.stringify(intent('Show me your brain!')), '{"kind":"neural"}');
+        t.eq('"neural network"', kind('neural network'), 'neural');
+        t.eq('"can I see your brain"', kind('can I see your brain'), 'neural');
+        t.eq('"make a neural net" is the network, not a sculpture', kind('make a neural net'), 'neural');
+        t.eq('"use your brain" is not a projector command', intent('use your brain'), null);
+        t.eq('"brain teaser" is not a projector command', intent('tell me a brain teaser'), null);
+        t.ok('help mentions the neural network', /show me your brain/.test(brain('help')));
+        t.eq('"suit up" assembles the suit', JSON.stringify(intent('Suit up!')), '{"kind":"suit","arg":"assemble"}');
+        t.eq('"suit me up" too', intent('suit me up')?.arg, 'assemble');
+        t.eq('"show me the suit" opens it ready-made', JSON.stringify(intent('show me the suit')), '{"kind":"suit","arg":null}');
+        t.eq('"can I see your armour"', kind('can I see your armour'), 'suit');
+        t.eq('"iron man suit"', kind('iron man suit'), 'suit');
+        t.eq('"make a suit" is the suit, not a word in lights', kind('make a suit'), 'suit');
+        t.eq('"show me the suitcase" is not the suit', intent('show me the suitcase')?.kind ?? null, null);
+        t.eq('"I need a new lawsuit" is not a projector command', intent('I need a new lawsuit'), null);
+        t.eq('"who is iron man" still gets the chat answer', intent('who is iron man'), null);
+        t.ok('help mentions suiting up', /suit up/.test(brain('help')));
+        t.eq('"show me Earth" opens the globe', JSON.stringify(intent('Show me Earth')), '{"kind":"globe","arg":null}');
+        t.eq('"show me the world"', kind('show me the world'), 'globe');
+        t.eq('"spin the globe"', kind('spin the globe'), 'globe');
+        t.eq('"show me Florida" flies there', JSON.stringify(intent('Show me Florida!')), '{"kind":"globe","arg":"florida"}');
+        t.eq('"take me to Tokyo"', intent('take me to Tokyo')?.arg, 'tokyo');
+        t.eq('"where is Paris?"', intent('where is Paris?')?.arg, 'paris');
+        t.eq('"fly to Washington D.C." (dots dropped)', window.__jarvis.PLACES[intent('fly to Washington D.C.')?.arg]?.name, 'Washington DC');
+        t.eq('"show me the USA" uses the alias', intent('show me the USA')?.arg, 'usa');
+        t.eq('"zoom in on New York"', intent('zoom in on new york')?.arg, 'new york');
+        t.eq('"show me Africa please"', intent('show me Africa please')?.arg, 'africa');
+        t.eq('"take me to Mars" is still the solar system', JSON.stringify(intent('take me to Mars')), '{"kind":"solar","arg":"mars"}');
+        t.eq('"take me to Earth" is still the planet in the solar system', JSON.stringify(intent('take me to Earth')), '{"kind":"solar","arg":"earth"}');
+        t.eq('"make a globe" is still a particle sphere', intent('make a globe')?.arg?.shape, 'sphere');
+        t.eq('"show me a heart" is still a sculpture', intent('show me a heart')?.arg?.shape, 'heart');
+        t.eq('"where is my phone" is not a place', intent('where is my phone'), null);
+        t.eq('"show me the world\'s tallest tower" is not the globe', intent("show me the world's tallest tower"), null);
+        t.ok('help mentions the globe', /show me Earth/.test(brain('help')) && /Florida/.test(brain('help')));
 
         t.section('Particle shapes');
 
@@ -142,11 +179,177 @@ export default async function run(t, page) {
         t.ok('the rocket marks its flame particles', rocket.flame?.[0] > 0 && rocket.flame[1] === 900);
         t.eq('text needs a 2D canvas, so jsdom gets null (the scene then falls back to a sphere)', shapePoints('text', 100, 'HI'), null);
 
+        t.section('Neural network (no three.js needed)');
+
+        const { neuralLayout, createNeuralSim, layerLine, NEURAL_SHAPES } = window.__jarvis;
+        const net = neuralLayout([4, 6, 6, 3]);
+        t.eq('4-6-6-3: 19 nodes', net.nodes.length, 19);
+        t.eq('4-6-6-3: 4·6 + 6·6 + 6·3 = 78 connections', net.edges.length, 78);
+        t.ok('every connection joins one layer to the next', net.edges.every(([a, b]) => net.nodes[b].l === net.nodes[a].l + 1));
+        t.ok('layers are 9 apart, centred on 0', JSON.stringify([...new Set(net.nodes.map((n) => n.x))]) === '[-13.5,-4.5,4.5,13.5]');
+        t.ok('each layer is centred vertically', [0, 1, 2, 3].every((l) => Math.abs(net.nodes.filter((n) => n.l === l).reduce((s, n) => s + n.y, 0)) < 1e-9));
+        t.eq('half-height fits the tallest layer: (6-1)/2 · 3.2 = 8', net.halfH, 8);
+        t.ok('every built-in shape has 3 to 5 layers of at most 8 nodes', NEURAL_SHAPES.length >= 4 && NEURAL_SHAPES.every((s) => s.length >= 3 && s.length <= 5 && Math.max(...s) <= 8));
+        t.ok('the shapes are all different, so "next" rebuilds something new', new Set(NEURAL_SHAPES.map(String)).size === NEURAL_SHAPES.length);
+
+        // A seeded random, so the run is the same every time.
+        const seeded = (seed) => () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+        let sim = createNeuralSim(net, seeded(7));
+        sim.burst();
+        t.ok('a burst lights input nodes and sends pulses from them', sim.pulses.length > 0 && sim.pulses.every((q) => net.nodes[net.edges[q.e][0]].l === 0));
+        let peak = 0;
+        for (let i = 0; i < 60; i++) { sim.step(0.05); peak = Math.max(peak, sim.pulses.length); }
+        t.ok('within 3 s the burst reaches the output layer', sim.arrivals[3] > 0);
+        t.ok('and passes through every hidden layer on the way', sim.arrivals[1] > 0 && sim.arrivals[2] > 0);
+        t.ok('a pulse never goes backwards', sim.arrivals[0] === 0);
+        for (let i = 0; i < 80; i++) sim.step(0.05);
+        t.eq('with no more bursts, the pulses die out', sim.pulses.length, 0);
+        t.ok('and the glow fades away', Math.max(...sim.glow) < 0.01);
+        sim.lightOutputs();
+        t.ok('an answer lights every output node and only those', net.nodes.every((n, i) => (sim.glow[i] === 1) === (n.l === 3)));
+        sim = createNeuralSim(net, seeded(3));
+        sim.fireAll();
+        t.ok('a squeeze lights every node at once', [...sim.glow].every((g) => g === 1));
+        t.eq('and sends a pulse down every connection', sim.pulses.length, 78);
+        sim = createNeuralSim(neuralLayout([8, 8, 8, 8]), seeded(5), 50);
+        sim.fireAll();
+        for (let i = 0; i < 20; i++) { sim.fireAll(); sim.step(0.05); }
+        t.ok('pulses are capped, so a fist held down can\'t flood the frame', sim.pulses.length <= 50);
+        t.ok('tapping the input layer explains it', /input layer/.test(layerLine(0, 4)));
+        t.ok('tapping a middle layer names it', /hidden layer 2/.test(layerLine(2, 4)));
+        t.ok('tapping the last layer explains the output', /output layer/.test(layerLine(3, 4)));
+
+        t.section('Suit schematic (no three.js needed)');
+
+        const { SUIT_PARTS, SUIT_CALLOUTS, SUIT_LINES, SUIT_HALF, suitOrder, suitBuildTime, suitAssembly, layoutCallouts } = window.__jarvis;
+        const names = SUIT_PARTS.map((p) => p.name);
+        t.eq('31 parts', SUIT_PARTS.length, 31);
+        t.eq('every part has its own name', new Set(names).size, names.length);
+        t.ok('every part is a box, a cylinder or a ball, with the right number of sizes', SUIT_PARTS.every((p) => ({ box: 3, cyl: 3, ball: 1 })[p.shape] === p.size.length && p.size.every((v) => v > 0)));
+        t.ok('every part belongs to a group that has spec lines', SUIT_PARTS.every((p) => SUIT_LINES[p.group]?.length >= 2));
+        t.ok('left and right come in mirrored pairs', SUIT_PARTS.filter((p) => p.name.startsWith('Left ')).every((l) => { const r = SUIT_PARTS.find((p) => p.name === 'Right ' + l.name.slice(5)); return r && r.pos[0] === -l.pos[0] && r.pos[1] === l.pos[1] && r.pos[2] === l.pos[2]; }));
+        const lo = Math.min(...SUIT_PARTS.map((p) => p.pos[1])), hi = Math.max(...SUIT_PARTS.map((p) => p.pos[1]));
+        t.ok('the suit stands on the turntable and fits its half-height', lo > 0 && hi < SUIT_HALF.y + SUIT_HALF.h);
+        t.ok('and fits its half-width, arms included', SUIT_PARTS.every((p) => Math.abs(p.pos[0]) < SUIT_HALF.w));
+        t.eq('the plan\'s four callouts', JSON.stringify(SUIT_CALLOUTS.map((c) => c.label)), '["Helmet HUD","Arc reactor","Repulsor","Flight stabilizer"]');
+        t.ok('each callout points at a part of its own group', SUIT_CALLOUTS.every((c) => SUIT_PARTS.some((p) => p.group === c.key)));
+        t.ok('each callout knows which way it faces (a unit vector)', SUIT_CALLOUTS.every((c) => Math.abs(Math.hypot(...c.n) - 1) < 0.01));
+        t.ok('the arc reactor and the repulsors are on the front, the stabilizers on the back', SUIT_CALLOUTS.find((c) => c.key === 'reactor').n[2] > 0 && SUIT_CALLOUTS.find((c) => c.key === 'stabilizer').n[2] < 0);
+        t.ok('the fist line tells you to make a fist', /make a fist/i.test(SUIT_LINES.repulsor[0]));
+
+        t.eq('assembly order covers every part once', JSON.stringify([...suitOrder].sort((a, b) => a - b)), JSON.stringify(SUIT_PARTS.map((_, i) => i)));
+        const firstOn = SUIT_PARTS[suitOrder.indexOf(0)], lastOn = SUIT_PARTS[suitOrder.indexOf(SUIT_PARTS.length - 1)];
+        t.ok('boots go on first', /boot/.test(firstOn.name));
+        t.ok('the helmet\'s eyes go on last', /eye/.test(lastOn.name));
+        t.ok('a part never goes on before one lower down', SUIT_PARTS.every((p, i) => SUIT_PARTS.every((q, j) => !(suitOrder[i] < suitOrder[j]) || p.pos[1] <= q.pos[1])));
+        t.eq('nothing is in place at the start', suitAssembly(0, 0), 0);
+        t.ok('the last part is still away halfway through', suitAssembly(SUIT_PARTS.length - 1, suitBuildTime() / 2) === 0);
+        t.ok('every part is in place when the build ends', SUIT_PARTS.every((_, i) => suitAssembly(suitOrder[i], suitBuildTime()) === 1));
+        t.ok('a part only ever moves towards its place', [0, 5, 30].every((k) => { let last = -1; for (let s = 0; s <= 40; s++) { const e = suitAssembly(k, s / 10); if (e < last) return false; last = e; } return true; }));
+        t.ok('the whole build takes 2 to 4 seconds', suitBuildTime() >= 2 && suitBuildTime() <= 4);
+
+        // A phone, 390 × 844: labels between the top HUD (about 104 px) and the text box (about 660 px).
+        const b = { left: 12, right: 378, top: 104, bottom: 660 };
+        const fits = (out) => out.every((o) => o.x >= b.left && o.x + o.w <= b.right && o.y >= b.top && o.y + o.h <= b.bottom);
+        const apart = (out) => out.every((o, i) => out.every((p, j) => i >= j || o.x + o.w <= p.x || p.x + p.w <= o.x || o.y + o.h <= p.y || p.y + p.h <= o.y));
+        const rand = seeded(11);
+        let allFit = true, allApart = true;
+        for (let k = 0; k < 300; k++) {
+            const pts = SUIT_CALLOUTS.map(() => ({ x: 60 + rand() * 270, y: rand() * 844, w: 84, h: 23 + Math.round(rand()) * 13 }));
+            const out = layoutCallouts(pts, b);
+            allFit &&= fits(out); allApart &&= apart(out);
+        }
+        t.ok('300 random poses: every label stays inside the free area', allFit);
+        t.ok('300 random poses: no two labels overlap', allApart);
+        const crowd = layoutCallouts([0, 1, 2, 3].map(() => ({ x: 300, y: 700, w: 84, h: 36 })), b);
+        t.ok('four labels piled on one spot below the area stack up inside it', fits(crowd) && apart(crowd) && crowd.every((o) => o.side === 'R'));
+        const sideOf = (x, prev) => layoutCallouts([{ x, y: 400, w: 84, h: 23 }], b, prev)[0].side;
+        t.eq('an anchor left of the middle gets a label on the left', sideOf(100), 'L');
+        t.eq('right of the middle, on the right', sideOf(290), 'R');
+        t.eq('near the middle a label keeps last frame\'s side, so it doesn\'t flicker', sideOf(205, ['L']), 'L');
+        t.eq('well past the middle it switches', sideOf(240, ['L']), 'R');
+        t.eq('a label sits level with its anchor when there\'s room', layoutCallouts([{ x: 300, y: 400, w: 84, h: 24 }], b)[0].y, 388);
+
+        t.section('Earth globe (no three.js needed)');
+
+        const { PLACES, CITIES, CONTINENTS, latLonVec, vecLatLon, faceAngles, arcDeg, subsolar, daylight, onLand, coastSegments, oceanName, placeLine } = window.__jarvis;
+        const close = (a, b, eps = 1e-9) => Math.abs(a - b) <= eps;
+        const places = Object.values(PLACES);
+        t.eq('seven continents to tour', CONTINENTS.length, 7);
+        t.eq('all 50 US states', places.filter((p, i, a) => p.kind === 'state' && a.indexOf(p) === i).length, 50);
+        t.ok('about 200 cities for the lights, at least 200', CITIES.length >= 200);
+        t.eq('no city is listed twice', new Set(CITIES.map((c) => c.name)).size, CITIES.length);
+        t.ok('every place has a real latitude and longitude', places.every((p) => p.lat >= -90 && p.lat <= 90 && p.lon >= -180 && p.lon <= 180));
+        t.ok('every alias points at a real place', ['usa', 'uk', 'nyc', 'la', 'bombay', 'kiev', 'oceania'].every((k) => PLACES[k]?.name));
+        t.ok('(0°, 0°) is straight out along z', latLonVec(0, 0).every((v, i) => close(v, [0, 0, 1][i])));
+        t.ok('the North Pole is straight up', latLonVec(90, 123).every((v, i) => close(v, [0, 1, 0][i])));
+        t.ok('(0°, 90°E) is along x', latLonVec(0, 90).every((v, i) => close(v, [1, 0, 0][i])));
+        let roundTrip = true;
+        for (const [la, lo] of [[28.1, -81.7], [-33.9, 151.2], [64.1, -21.9], [-77.8, 166.7], [0.5, 179.5]]) { const g = vecLatLon(latLonVec(la, lo, 3)); roundTrip &&= close(g.lat, la, 1e-9) && close(g.lon, lo, 1e-9); }
+        t.ok('a place turned into 3D and back comes back the same', roundTrip);
+        // makeRig puts the camera at dist·(cos el·sin az, sin el, cos el·cos az) from its target (pinned below).
+        t.ok('the rig\'s camera formula is the one this relies on', /camera\.position\.set\(r\.target\.x\+r\.dist\*ce\*Math\.sin\(r\.az\),r\.target\.y\+r\.dist\*Math\.sin\(r\.el\),r\.target\.z\+r\.dist\*ce\*Math\.cos\(r\.az\)\)/.test(page.html));
+        const fl = PLACES.florida, fa = faceAngles(fl.lat, fl.lon);
+        const camDir = [Math.cos(fa.el) * Math.sin(fa.az), Math.sin(fa.el), Math.cos(fa.el) * Math.cos(fa.az)], flv = latLonVec(fl.lat, fl.lon);
+        t.ok('after "show me Florida", the camera looks straight down at Florida', close(camDir.reduce((s, v, i) => s + v * flv[i], 0), 1, 1e-12));
+        t.ok('London to Paris is about 3° of arc (≈ 340 km)', Math.abs(arcDeg(PLACES.london, PLACES.paris) - 3.1) < 0.2);
+
+        // The Sun is overhead at 23.44°N at the June solstice, at 23.44°S in December, over the equator in March.
+        // At noon UTC it's near 0° longitude, off only by the equation of time (−1.6 min in June ≈ +0.4°, −7.5 min in March ≈ +1.9°).
+        const jun = subsolar(new Date('2026-06-21T12:00:00Z')), dec = subsolar(new Date('2026-12-21T12:00:00Z')), mar = subsolar(new Date('2026-03-20T12:00:00Z'));
+        t.ok('June solstice, noon UTC: the Sun is over 23.4°N, about 0.4°E', Math.abs(jun.lat - 23.44) < 0.05 && jun.lon > 0 && jun.lon < 1);
+        t.ok('December solstice: over 23.4°S, about 0.5°W', Math.abs(dec.lat + 23.44) < 0.05 && dec.lon < 0 && dec.lon > -1);
+        // The 2026 March equinox is at 14:46 UTC on the 20th; 2.8 h earlier the Sun is about 0.05° south of the equator.
+        t.ok('March equinox: within 0.2° of the equator, about 1.9°E', Math.abs(mar.lat) < 0.2 && mar.lon > 1.5 && mar.lon < 2.3);
+        t.ok('six hours later it has moved 90° west', Math.abs(subsolar(new Date('2026-06-21T18:00:00Z')).lon + 90) < 1);
+        // In Orlando on 21 June the sun rises about 6:28 a.m. EDT (10:28 UTC) and sets about 8:27 p.m. (00:27 UTC).
+        const at = (iso) => daylight(PLACES.orlando, subsolar(new Date(iso)));
+        t.eq('Orlando at 1 p.m. EDT: day', at('2026-06-21T17:00:00Z'), 'day');
+        t.eq('Orlando at 1 a.m. EDT: night', at('2026-06-21T05:00:00Z'), 'night');
+        t.eq('Orlando at 6:30 a.m. EDT: sunrise', at('2026-06-21T10:30:00Z'), 'sunrise');
+        t.eq('Orlando at 8:30 p.m. EDT: sunset', at('2026-06-22T00:30:00Z'), 'sunset');
+        t.ok('a place line names the place and the time of day', /^Florida\. 28\.1°N 81\.7°W\. It's daytime there right now\.$/.test(placeLine(PLACES.florida, subsolar(new Date('2026-06-21T17:00:00Z')))));
+        t.ok('a continent line includes its fact', /^Africa\. It has 54 countries/.test(placeLine(PLACES.africa, jun)));
+        t.eq('the middle of the North Atlantic', oceanName(35, -40), 'the Atlantic Ocean');
+        t.eq('off Peru', oceanName(-10, -90), 'the Pacific Ocean');
+        t.eq('south of India', oceanName(-10, 80), 'the Indian Ocean');
+        t.eq('between Greece and Libya', oceanName(35, 20), 'the Mediterranean Sea');
+
+        let landText = null;
+        try {
+            landText = page.url.startsWith('file:')
+                ? await readFile(fileURLToPath(new URL('jarvis/earth/land-110m.json', page.url)), 'utf8')
+                : await (await fetch(new URL('jarvis/earth/land-110m.json', page.url))).text();
+        } catch { /* missing */ }
+        t.ok('jarvis/earth/land-110m.json is there', !!landText);
+        if (landText) {
+            if (page.url.startsWith('file:')) {
+                t.eq('it is the pinned file', createHash('sha256').update(landText).digest('hex'), LAND_SHA256);
+                const readme = await readFile(fileURLToPath(new URL('jarvis/earth/README.md', page.url)), 'utf8');
+                t.ok('its README names the source, the licence and the same hash', readme.includes(LAND_SHA256) && /Natural Earth/.test(readme) && /public domain/.test(readme));
+            }
+            const { rings, source } = JSON.parse(landText);
+            t.ok('it says where it came from', /Natural Earth/.test(source));
+            t.ok('126 rings of whole tenths of a degree', rings.length === 126 && rings.every((r) => r.length % 2 === 0 && r.every(Number.isInteger)));
+            for (const [name, la, lo] of [['Florida', 28.1, -81.7], ['Paris', 48.9, 2.4], ['the Sahara', 23, 10], ['Tokyo', 35.7, 139.7], ['Antarctica', -80, 0]]) t.ok(`${name} is on land`, onLand(la, lo, rings));
+            for (const [name, la, lo] of [['the mid-Atlantic', 30, -40], ['the mid-Pacific', 0, -150], ['the Mediterranean', 35, 18], ['the Caspian Sea (a hole in the land)', 42, 50.5]]) t.ok(`${name} is water`, !onLand(la, lo, rings));
+            const onLandShare = CITIES.filter((c) => onLand(c.lat, c.lon, rings)).length / CITIES.length;
+            t.ok('at least 90% of cities are on land (coarse coasts put a few seaside ones just offshore)', onLandShare >= 0.9);
+            const segs = coastSegments(rings);
+            t.ok('coastline segments never jump across the ±180° seam', segs.every(([, a, , b]) => Math.abs(a - b) <= 180));
+            t.ok('and never run along it (that edge is where the map was cut, not coast)', segs.every(([, a, , b]) => !(Math.abs(a) === 180 && Math.abs(b) === 180)));
+            t.ok('every segment is short, under 10°', segs.every(([la, a, lb, b]) => arcDeg({ lat: la, lon: a }, { lat: lb, lon: b }) < 10));
+        }
+
         t.section('Projector without WebGL');
 
         const scriptsBefore = document.querySelectorAll('script').length;
         const answer = await window.__jarvis.project({ kind: 'galaxy' });
         t.ok('says it needs WebGL', /needs WebGL/.test(answer));
+        t.ok('the neural network says so too', /needs WebGL/.test(await window.__jarvis.project({ kind: 'neural' })));
+        t.ok('and the suit', /needs WebGL/.test(await window.__jarvis.project({ kind: 'suit', arg: 'assemble' })));
+        t.ok('and the globe', /needs WebGL/.test(await window.__jarvis.project({ kind: 'globe', arg: 'florida' })));
+        t.eq('no callout labels are left behind', document.getElementById('suit-labels'), null);
         t.eq('does not fetch three.js', document.querySelectorAll('script').length, scriptsBefore);
         t.ok('the projector stays hidden', document.getElementById('holo').hidden);
         t.eq('"close" with nothing open says so', await window.__jarvis.project({ kind: 'close' }), "The projector's already off.");
@@ -285,6 +488,9 @@ export default async function run(t, page) {
 
     await voiceWiring(t, page);
     await speechWiring(t, page);
+    await skinsAndMemory(t, page);
+    await voicePicker(t, page);
+    await androidVoices(t, page);
 }
 
 /* A second window with a fake SpeechRecognition, getUserMedia and AudioContext. */
@@ -419,6 +625,183 @@ async function speechWiring(t, page) {
         t.eq('the cancelled pieces don\'t switch the orb to STANDBY', state(), 'PROCESSING');
         fake.start(); t.eq('the new answer speaks', state(), 'SPEAKING');
         fake.finish(); t.eq('and STANDBY once its last piece ends', state(), 'STANDBY');
+    } finally {
+        env.close();
+    }
+}
+
+// Skins (Matrix / Morpheus and Florida Panthers / Stanley C. Panther) and learned phrases.
+async function skinsAndMemory(t, page) {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    t.section('Skins');
+    const fake = fakeSpeech();
+    const opts = { ignore: /getContext|HTMLCanvasElement/, beforeParse: fake.beforeParse };
+    let env = await openDom(page.html, 'https://jarvis.test/jarvis.html', opts);
+    try {
+        const { document, window } = env, J = window.__jarvis;
+        const ask = async (text) => { document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(520); return [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent; };
+        const lastUtt = () => fake.log.queue[fake.log.queue.length - 1];
+        t.eq('starts as Jarvis', J.skin(), 'jarvis');
+        t.eq('with a skin button in the header', document.getElementById('skin')?.textContent, 'SKIN: JARVIS');
+        for (const [q, k] of [['switch to matrix', 'matrix'], ['Matrix skin', 'matrix'], ['morpheus', 'matrix'], ['I take the red pill', 'matrix'], ['switch to the Panthers', 'panther'], ['change to panthers mode', 'panther'], ['stanley', 'panther'], ['switch back to Jarvis', 'jarvis'], ['go back to normal', 'jarvis'], ['take the blue pill', 'jarvis']])
+            t.eq(`"${q}" picks the ${k} skin`, J.skinIntent(q), k);
+        for (const q of ['what time is it', 'show me Florida', 'hey jarvis tell me a joke', 'what is the matrix', 'take me to mars', 'i want to go to jupiter jarvis'])
+            t.eq(`"${q}" doesn't change the skin`, J.skinIntent(q), null);
+
+        let r = await ask('switch to the matrix');
+        t.ok('asking for the Matrix brings Morpheus', /Morpheus/.test(r));
+        t.eq('the header names him', document.getElementById('who').textContent, 'MORPHEUS');
+        t.eq('the page takes the matrix skin', document.documentElement.dataset.skin, 'matrix');
+        t.ok('he speaks lower and slower than Jarvis', lastUtt().pitch < 0.9 && lastUtt().rate < 1);
+        t.eq('the skin is remembered on this device', window.localStorage.getItem('jarvis-skin'), 'matrix');
+        r = await ask('who are you');
+        t.ok('Morpheus answers as Morpheus', /I am Morpheus/.test(r));
+        r = await ask('flip a coin');
+        t.ok('and still does his job', /heads|tails/.test(r));
+        document.getElementById('skin').click(); await wait(10);
+        t.eq('the skin button moves on to the Panthers', J.skin(), 'panther');
+        t.eq('the header names Stanley C. Panther', document.getElementById('who').textContent, 'STANLEY C. PANTHER');
+        t.ok('who says hello as the Panthers mascot', /Stanley C\. Panther/.test([...document.querySelectorAll('#log .msg.ai')].pop().textContent));
+        t.ok('in a brighter, quicker voice', lastUtt().pitch > 1 && lastUtt().rate > 1.02);
+        r = await ask('what is your name');
+        t.ok('he knows he is named after the Stanley Cup', /Stanley Cup/.test(r));
+        document.getElementById('skin').click(); await wait(10);
+        t.eq('and the button comes back round to Jarvis', J.skin(), 'jarvis');
+        t.eq('with Jarvis\'s own voice', lastUtt().pitch, 0.9);
+        t.ok('help mentions the skins', /Matrix/.test(J.brain('help')) && /Panthers/.test(J.brain('help')));
+
+        t.section('Learned phrases');
+        r = await ask('beam me up scotty');
+        t.ok('something it doesn\'t know gets "I didn\'t understand that"', /^I didn't understand that\./.test(r));
+        t.ok('then what it can do', /Here's what I can do/.test(r));
+        t.ok('and asks what was meant', /What were you trying to say\?$/.test(r));
+        r = await ask('nothing');
+        t.ok('"nothing" moves on', /move on\. I'm not programmed for this\./.test(r));
+        t.eq('and learns nothing', Object.keys(J.learned()).length, 0);
+        await ask('beam me up scotty');
+        r = await ask('What I was trying to say was flip a coin');
+        t.ok('telling it what was meant is acknowledged', /Next time you say "beam me up scotty", I'll know you mean "flip a coin"/.test(r));
+        t.ok('and does it straight away', /heads|tails/.test(r));
+        t.eq('the phrase is saved in this browser', JSON.parse(window.localStorage.getItem('jarvis-learned'))['beam me up scotty'], 'flip a coin');
+        r = await ask('Beam me up, Scotty!');
+        t.ok('saying it again just works', /^It's (heads|tails)\.$/.test(r));
+        await ask('make it so number one');
+        r = await ask('I meant switch to panthers');
+        t.ok('a learned phrase can switch skins', J.skin() === 'panther' && /I'll know you mean "switch to panthers"/.test(r));
+        await ask('switch to jarvis');
+        await ask('blorp');
+        r = await ask('fizzbuzz wibble');
+        t.ok('a meaning it doesn\'t understand either moves on', /I'm not programmed for this/.test(r));
+        t.ok('without saving it', !('blorp' in J.learned()));
+        r = await ask('what have you learned');
+        t.ok('it can say what it has learned', /2 phrases/.test(r) && /beam me up scotty/.test(r));
+        await ask('__proto__');
+        await ask('I meant tell me a joke');
+        t.ok('even an odd phrase like __proto__ is stored as a plain phrase', J.learned()['proto'] === 'tell me a joke' || J.learned()['__proto__'] === 'tell me a joke');
+        t.eq('without touching Object.prototype', ({}).polluted, undefined);
+    } finally {
+        env.close();
+    }
+
+    // A reload keeps the skin and the learned phrases; a corrupt store is ignored.
+    t.section('Remembered across visits');
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ...opts, beforeParse(w) { opts.beforeParse(w); w.localStorage.setItem('jarvis-skin', 'matrix'); w.localStorage.setItem('jarvis-learned', JSON.stringify({ 'beam me up': 'roll a die', bad: 7 })); } });
+    try {
+        const { document, window } = env, J = window.__jarvis;
+        t.eq('the saved skin comes back', J.skin(), 'matrix');
+        t.eq('with its header', document.getElementById('who').textContent, 'MORPHEUS');
+        t.eq('learned phrases come back', J.learned()['beam me up'], 'roll a die');
+        t.ok('and anything that isn\'t a phrase is dropped', !('bad' in J.learned()));
+        document.getElementById('q').value = 'forget what you learned'; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(520);
+        t.eq('"forget what you learned" clears them', window.localStorage.getItem('jarvis-learned'), '{}');
+    } finally {
+        env.close();
+    }
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ...opts, beforeParse(w) { opts.beforeParse(w); w.localStorage.setItem('jarvis-skin', 'constructor'); w.localStorage.setItem('jarvis-learned', '{nope'); } });
+    try {
+        t.eq('a bad saved skin falls back to Jarvis', env.window.__jarvis.skin(), 'jarvis');
+        t.eq('and a corrupt store doesn\'t break the page', env.errors.length, 0);
+    } finally {
+        env.close();
+    }
+}
+
+// The voice menu beside the skin button, and each skin's preferred voice.
+async function voicePicker(t, page) {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    t.section('Voices');
+    // An iPhone-like set of voices: Daniel for Jarvis, Ralph for Morpheus, Junior for Stanley, plus others.
+    const VOICES = [['Samantha', 'en-US'], ['Daniel (Enhanced)', 'en-GB'], ['Ralph', 'en-US'], ['Junior', 'en-US'], ['Thomas', 'fr-FR'], ['Karen', 'en-AU']].map(([name, lang]) => ({ name, lang }));
+    const spoken = [];
+    const beforeParse = (w) => {
+        w.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+        w.speechSynthesis = { getVoices: () => VOICES, onvoiceschanged: null, speak(u) { spoken.push(u); }, cancel() {} };
+    };
+    const env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse });
+    try {
+        const { document, window } = env, J = window.__jarvis, sel = document.getElementById('voice');
+        const opts = () => [...sel.options].map((o) => o.textContent);
+        const pick = async (value) => { sel.value = value; sel.dispatchEvent(new window.Event('change')); await wait(10); };
+        const last = () => spoken[spoken.length - 1];
+        t.ok('the voice menu is shown beside the skin button', !sel.hidden && sel.parentElement === document.getElementById('skin').parentElement);
+        t.eq('it offers Auto plus the device\'s five English voices', opts().length, 6);
+        t.ok('and leaves out a French voice', !opts().some((o) => /Thomas/.test(o)));
+        t.eq('Auto names Jarvis\'s pick, Daniel', opts()[0], '🔊 Auto · Daniel');
+        document.getElementById('skin').click(); await wait(10);
+        t.eq('Morpheus gets Ralph', last().voice?.name, 'Ralph');
+        t.ok('with a gentler pitch than a generic voice gets', last().pitch > 0.55 && last().pitch < 0.9);
+        t.eq('and the menu follows the skin', opts()[0], '🔊 Auto · Ralph');
+        document.getElementById('skin').click(); await wait(10);
+        t.eq('Stanley gets Junior', last().voice?.name, 'Junior');
+        document.getElementById('skin').click(); await wait(10);
+        t.eq('Jarvis gets Daniel', last().voice?.name, 'Daniel (Enhanced)');
+        t.eq('in Daniel\'s British English', last().lang, 'en-GB');
+        await pick('Samantha');
+        t.eq('picking a voice speaks a sample in it straight away', last().voice?.name, 'Samantha');
+        t.ok('the sample is Jarvis\'s', /How do I sound\?/.test(last().text));
+        t.eq('the pick is saved for that skin on this device', JSON.parse(window.localStorage.getItem('jarvis-voices')).jarvis, 'Samantha');
+        t.eq('the menu shows it', sel.value, 'Samantha');
+        t.eq('the utterance\'s language matches the voice, which Android Chrome needs to use it', last().lang, 'en-US');
+        t.eq('a voice that isn\'t on Jarvis\'s own list keeps his full pitch', last().pitch, 0.9);
+        document.getElementById('skin').click(); await wait(10);
+        t.eq('other skins keep their own voice', last().voice?.name, 'Ralph');
+        t.eq('and the menu goes back to Auto for them', sel.value, '');
+        document.getElementById('skin').click(); await wait(10); document.getElementById('skin').click(); await wait(10);
+        t.eq('back on Jarvis, the picked voice comes back', last().voice?.name, 'Samantha');
+        await pick('');
+        t.eq('choosing Auto returns to Daniel', last().voice?.name, 'Daniel (Enhanced)');
+        t.ok('and clears the saved pick', !('jarvis' in JSON.parse(window.localStorage.getItem('jarvis-voices'))));
+    } finally {
+        env.close();
+    }
+    const env2 = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse(w) { beforeParse(w); w.localStorage.setItem('jarvis-voices', JSON.stringify({ jarvis: 'Karen', constructor: 'x', matrix: 5 })); } });
+    try {
+        t.eq('a saved voice pick comes back on the next visit', env2.document.getElementById('voice').value, 'Karen');
+        t.eq('and junk in the store doesn\'t break the page', env2.errors.length, 0);
+    } finally {
+        env2.close();
+    }
+}
+
+// Android Chrome names its voices after languages, one per accent, sometimes listed twice.
+async function androidVoices(t, page) {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    t.section('Voices on Android');
+    const VOICES = [['English United States', 'en-US'], ['English United Kingdom', 'en-GB'], ['English United Kingdom', 'en-GB'], ['English India', 'en-IN'], ['Deutsch Deutschland', 'de-DE']].map(([name, lang]) => ({ name, lang }));
+    const spoken = [];
+    const env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse(w) {
+        w.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+        w.speechSynthesis = { getVoices: () => VOICES, onvoiceschanged: null, speak(u) { spoken.push(u); }, cancel() {} };
+    } });
+    try {
+        const { document, window } = env, sel = document.getElementById('voice'), last = () => spoken[spoken.length - 1];
+        const opts = [...sel.options].map((o) => o.textContent);
+        t.eq('each accent is listed once', JSON.stringify(opts), JSON.stringify(['🔊 Auto · English (UK)', 'English (US)', 'English (UK)', 'English (India)']));
+        sel.value = 'English India'; sel.dispatchEvent(new window.Event('change')); await wait(10);
+        t.eq('picking one sets the utterance\'s language to it', last().lang, 'en-IN');
+        document.getElementById('skin').click(); await wait(10);
+        t.eq('Morpheus falls back to a US voice', last().lang, 'en-US');
+        t.eq('and keeps his full low pitch, since it isn\'t a character voice', last().pitch, 0.55);
     } finally {
         env.close();
     }

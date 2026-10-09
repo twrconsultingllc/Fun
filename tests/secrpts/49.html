@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #49 — promoting jarvis-test.html to jarvis.html</title>
+<meta name="description" content="Review of the promotion of jarvis-test.html into jarvis.html (Sessions 2 to 4 plus the interim session: skins, orb faces, voices, learned phrases), the promoted suite, and the new interim section of jarvis/build-plan.html.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #49 — promoting jarvis-test.html to jarvis.html</h1>
+    <p class="sub">The user asked to promote. <code>jarvis.html</code>, the page other people use, is now the test copy without its TEST tag, title and description. It gains Sessions 2 to 4 (neural network, suit schematic, Earth globe) and the interim session (skins, orb faces, voices, learned phrases). Its suite is the test copy's suite without the "Test copy" section. <code>jarvis/build-plan.html</code> marks those sessions Done and gains a written-up "Interim" section.</p>
+    <div class="meta">Review performed 2026-10-09 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis.html</code>, <code>jarvis-test.html</code> (description only), <code>tests/jarvis.dom.test.mjs</code>, <code>jarvis/build-plan.html</code> · suites run: <code>jarvis</code> (366 passed, 151 before), <code>jarvis-test</code> (369 passed) · follows: <a href="48.html">48.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 80%;"></div></div>
+    <div class="progress-label">5 items: 4 fixed or verified clean, 1 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The promoted page is the reviewed test copy, line for line</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>A diff of the two pages, after normalising the title, shows only three differences: the description, the <code>.test-tag</code> style, and the header line ("Demo build · no internet brain", without the TEST tag). Everything else was reviewed on the test copy in reviews 42 to 48. <code>jarvis.html</code>'s CSP meta tag is unchanged by the promotion (a diff shows no change to it). It still has <code>'wasm-unsafe-eval'</code> and only <code>connect-src 'self'</code>, for the self-hosted hand tracker reviewed in <a href="38.html">38</a>. A grep finds 0 <code>innerHTML</code> or <code>eval(</code>. Both pages share <code>localStorage</code> keys (<code>jarvis-name</code>, <code>jarvis-skin</code>, <code>jarvis-learned</code>, <code>jarvis-voices</code>), as before, since they are the same site.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Build plan: new section, no new risk</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The interim section reuses the page's existing classes (<code>session-meta</code>, <code>tasks</code>, <code>callout notes</code>, <code>badge</code>), so it adds no new colours or styles, and no script. Its CSP meta tag is unchanged. Every link to a review (40 to 49) points to a file that exists, checked with a loop over the page's <code>href</code>s. The contents list and the session index gained the new entry. Sessions 2 to 4 now show Done, in both their own status line and the index.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Promoted suite</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>tests/jarvis.dom.test.mjs</code> is now the test copy's suite with the "Test copy" section (3 checks about the TEST marking) removed, and its name and opening comment set back to <code>jarvis.html</code>. 366 checks pass on <code>jarvis.html</code> (151 before) and 369 on <code>jarvis-test.html</code>. The 3 checks between them are exactly that section.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Rendered in headless Chromium</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>jarvis.html</code> was loaded from <code>file://</code>, booted, and switched through all three skins. The header shows no TEST tag, the helmet, Morpheus and Stanley faces show in the orb, and the Matrix rain runs. There were no console errors, at 61 frames a second. The test copy's description had a doubled word ("A a talking") from the copy and was fixed before commit.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Carried over from the test copy</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>What reviews 42 to 48 left open is now open on the main page too. Voices have not been heard in a test. Gesture timing can't be judged under software rendering. Any reply after "What were you trying to say?" that Jarvis understands is learned. Each is described in its review and in the build plan's notes.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: both J.A.R.V.I.S. suites, a diff of the two pages, headless Chromium screenshots of <code>jarvis.html</code> in all three skins, a link check of the build plan, and greps for unsafe sinks and CSP changes. See <a href="48.html">48.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>

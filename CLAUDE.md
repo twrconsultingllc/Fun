@@ -448,8 +448,8 @@ Headless Chromium has no voices, so this can't be heard in a test. The
 suites check it with a fake speech engine instead, so keep that fake
 behaving like the real one.
 
-Each skin in `jarvis-test.html` (Jarvis, Morpheus, Stanley C. Panther) has
-a face in the orb's centre, drawn by `orbFace()`. Each face is a picture
+Each skin in `jarvis.html` and `jarvis-test.html` (Jarvis, Morpheus,
+Stanley C. Panther) has a face in the orb's centre, drawn by `orbFace()`. Each face is a picture
 drawn once on a hidden canvas: the helmet and Stanley in colour, Morpheus in
 grey. Every frame, it's redrawn as a grid of code characters that take their
 colour or brightness from that picture, with code raining through it. To
@@ -459,6 +459,24 @@ into characters, so those functions draw trim, eyes and features thicker
 for this (the `bold`/`code` options). jsdom has no canvas, so the suites
 never draw a face. Check a face change with headless Chromium screenshots of
 each skin. The faces were picked on 2026-10-09 (review 46).
+
+Voices: each skin has a ranked `prefer` list of voice names in `SKINS`
+(Daniel for Jarvis, Ralph for Morpheus, Junior for Stanley on iPhone, and
+Microsoft and Google names for Edge and Chrome), and the voice menu beside
+the SKIN button saves a pick per skin. Two traps on Android, found on
+2026-10-09 (review 48). Android lists one voice per accent, named after the
+language ("English United States"), so the menu shows languages there; that
+is all the phone offers a web page. And Android Chrome ignores
+`utterance.voice` unless `utterance.lang` matches it, so `say()` sets both.
+Keep the skin's full pitch and speed for any voice that isn't on its own
+list, or the skins sound alike on Android. Headless Chromium has no voices.
+A fake voice list added with `addInitScript` makes the menu render, but
+Chrome then logs "Failed to set the 'voice' property" for each utterance,
+because a plain object isn't a real voice. That's the fake, not a page bug.
+
+The interim session on 2026-10-09 (skins, faces, voices, learned phrases)
+is written up in `jarvis/build-plan.html` under "Interim", with what was
+picked and what was decided against. Read it before changing any of those.
 
 ## Long sessions: hand off with a prompt
 
