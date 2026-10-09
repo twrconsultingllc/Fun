@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #48 — the voice menu on Android, in jarvis-test.html</title>
+<meta name="description" content="Review of a fix to jarvis-test.html's voice menu: on Android it listed languages instead of voices and picking one changed nothing, because Android Chrome only uses a voice when the utterance's language matches it.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #48 — the voice menu on Android, in jarvis-test.html</h1>
+    <p class="sub">The user reported that the voice menu from review 47 listed languages rather than voices, and that picking one changed nothing. Both come from how Android Chrome exposes speech voices. Fixed in the test copy.</p>
+    <div class="meta">Review performed 2026-10-09 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>tests/jarvis-test.dom.test.mjs</code> · suite run: <code>jarvis-test</code> (369 passed, 362 before) · follows: <a href="47.html">47.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 80%;"></div></div>
+    <div class="progress-label">5 items: 4 fixed or verified clean, 1 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No new way in</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The change only sets <code>lang</code> on each utterance, removes repeated names from the menu, and shortens labels. The menu is still built with <code>new Option()</code>, so voice names stay text. A grep finds 0 <code>innerHTML</code> or <code>eval(</code>, and the CSP meta tag is unchanged.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Picking a voice changed nothing on Android</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Android Chrome uses an utterance's <code>lang</code> to choose its voice and largely ignores <code>voice</code> when the two don't match. <code>say()</code> set only <code>voice</code>, so every pick came out in the phone's default English. It now sets <code>lang</code> to the chosen voice's language as well. That's harmless on iPhone, Mac, Edge and desktop Chrome, where the voice already carries that language. The new checks fail against the previous page (6 failures) and pass now.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The menu listed languages, sometimes twice</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Android gives web pages one voice per language and accent, named after it ("English United States"), and sometimes lists it twice, on-device and online. Those names are the voices; the menu showed what the phone offers. It now lists each name once and shortens them to "English (US)", "English (UK)", "English (India)" so they fit at phone width. The first entry is "🔊 Auto · …", which saves the room the word "VOICE:" took up. Checked in headless Chromium at 390 px with an Android-style voice list: the label fits beside the skin button and the page doesn't scroll sideways.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Accent voices keep the skin's full pitch and speed</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Review 47 gave any voice picked from the menu the gentler pitch meant for character voices. On Android, where every choice is an accent voice, that made Morpheus and Stanley sound almost like Jarvis. The gentler pitch now applies only to a voice on that skin's own list (Ralph for Morpheus, for example). Any other voice keeps the skin's full pitch and speed: Morpheus 0.55 and 0.86, Stanley 1.2 and 1.12.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Android can't offer more voices than this</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>On Android, the web only gets one voice per accent. Which one it is (male, female, or a particular style) is set in the phone's own text-to-speech settings (Settings → Accessibility → Text-to-speech, or Google's "Speech Services" app), not by the page. So on Android the skins differ by accent, pitch and speed. Distinct character voices there would need an online voice service (option 3 in the earlier discussion). Not verified on a real Android phone: headless Chromium has no voices.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: the <code>jarvis-test</code> suite (the new checks also run against the previous page, where they fail), a headless Chromium screenshot at 390 px with Android-style voices, and greps for unsafe sinks and CSP changes. See <a href="47.html">47.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
