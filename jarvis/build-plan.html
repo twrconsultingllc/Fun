@@ -372,7 +372,7 @@
   </header>
 
   <div class="callout warning" style="grid-column: 1 / -1;">
-    <strong class="label">Status: Session 1 live in jarvis.html · Sessions 2 and 3 in test in jarvis-test.html</strong>
+    <strong class="label">Status: Session 1 live in jarvis.html · Sessions 2, 3 and 4 in test in jarvis-test.html</strong>
     Written 2026-10-09, after the boot sequence, holo-projector (galaxy,
     solar system, particle sculptor) and hand control were merged (PRs
     #61–#64). Sessions are numbered in the suggested order, but each one
@@ -414,7 +414,7 @@
         Open a new Claude Code session on <code>twrconsultingllc/Fun</code>
         and paste this, changing the session number:
       </p>
-<pre><code>Work Session 4 of jarvis/build-plan.html. Read that page and CLAUDE.md first. Build it in jarvis-test.html, not jarvis.html. Build everything the session lists, run the checks it names, write the next numbered review in tests/secrpts/, update the session's badge and notes in jarvis/build-plan.html, then merge and tell me what to test on the live site.</code></pre>
+<pre><code>Work Session 5 of jarvis/build-plan.html. Read that page and CLAUDE.md first. Build it in jarvis-test.html, not jarvis.html. Build everything the session lists, run the checks it names, write the next numbered review in tests/secrpts/, update the session's badge and notes in jarvis/build-plan.html, then merge and tell me what to test on the live site.</code></pre>
       <p>
         <span class="who"><span class="badge claude">Claude</span></span>
         The session reads this page for what to build and
@@ -462,7 +462,7 @@
           <tr><td>1</td><td><a href="#s1">Polish and voice-reactive orb</a></td><td>Option 8 and four open review items</td><td>Small</td><td><span class="badge done">Done</span></td></tr>
           <tr><td>2</td><td><a href="#s2">Neural network</a></td><td>Option 6</td><td>Small–medium</td><td><span class="badge in-progress">In test</span></td></tr>
           <tr><td>3</td><td><a href="#s3">Iron Man suit schematic</a></td><td>Option 3</td><td>Medium</td><td><span class="badge in-progress">In test</span></td></tr>
-          <tr><td>4</td><td><a href="#s4">Earth globe</a></td><td>Option 4</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>4</td><td><a href="#s4">Earth globe</a></td><td>Option 4</td><td>Medium</td><td><span class="badge in-progress">In test</span></td></tr>
           <tr><td>5</td><td><a href="#s5">Threat scan</a></td><td>Option 11</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
           <tr><td>6</td><td><a href="#s6">Wake word, briefing, gesture tuning</a></td><td>Options 7 and 12, and the hand-control review item</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
         </tbody>
@@ -471,19 +471,19 @@
 
     <section id="map">
       <h2><span class="kicker">Read this before changing anything</span>Where things live</h2>
-      <p>Everything is in one page, plus the self-hosted hand tracker and its test suite. There are two copies of that page: build in <code>jarvis-test.html</code> (about 1,140 lines with Sessions 2 and 3), and leave <code>jarvis.html</code> alone until the user says to <a href="#test-first">promote</a>. The names below are the same in both.</p>
+      <p>Everything is in one page, plus the self-hosted hand tracker and its test suite. There are two copies of that page: build in <code>jarvis-test.html</code> (about 1,310 lines with Sessions 2 to 4), and leave <code>jarvis.html</code> alone until the user says to <a href="#test-first">promote</a>. The names below are the same in both.</p>
       <div class="table-wrap"><table>
         <thead><tr><th>Piece</th><th>Where</th><th>How to extend it</th></tr></thead>
         <tbody>
           <tr><td>Chat answers</td><td><code>brain()</code></td><td>Add a regex rule. The help answer lists what Jarvis can do, so update it too.</td></tr>
           <tr><td>Projector commands</td><td><code>intent()</code>, checked before <code>brain()</code></td><td>Return <code>{kind, arg}</code>. Order matters: more specific patterns first. The suite pins about 30 phrasings, so add yours.</td></tr>
-          <tr><td>3D scenes</td><td><code>buildGalaxy</code>, <code>buildSolar</code>, <code>buildParticles</code>, <code>buildNeural</code>, <code>buildSuit</code>, registered in <code>BUILDERS</code></td><td>A builder returns <code>{scene, camera, rig, title, stat, hint, update(dt,t)}</code>, plus optional <code>setArg</code>, <code>pick(ndc)</code>, <code>next(dir)</code> and <code>squeeze(on)</code>. Hand control uses those last three automatically. A scene that adds HTML of its own (like the suit's labels) returns <code>dispose()</code>, which <code>closeHolo</code> calls. For labels that follow 3D points, reuse <code>layoutCallouts</code>.</td></tr>
+          <tr><td>3D scenes</td><td><code>buildGalaxy</code>, <code>buildSolar</code>, <code>buildParticles</code>, <code>buildNeural</code>, <code>buildSuit</code>, <code>buildGlobe</code>, registered in <code>BUILDERS</code></td><td>A builder returns <code>{scene, camera, rig, title, stat, hint, update(dt,t)}</code>, plus optional <code>setArg</code>, <code>pick(ndc)</code>, <code>next(dir)</code> and <code>squeeze(on)</code>. Hand control uses those last three automatically. A scene that adds HTML of its own (like the suit's labels) returns <code>dispose()</code>, which <code>closeHolo</code> calls. For labels that follow 3D points, reuse <code>layoutCallouts</code>.</td></tr>
           <tr><td>Camera framing</td><td><code>makeRig()</code>, <code>fitDist()</code></td><td>Use <code>fitDist(halfWidth, halfHeight)</code> so an upright phone sees the whole object.</td></tr>
           <tr><td>three.js</td><td><code>loadThree()</code></td><td>r128 from cdnjs with an SRI hash, loaded only when a scene opens. Use r128 APIs (e.g. <code>BufferGeometry.setAttribute</code>).</td></tr>
           <tr><td>Hand control</td><td><code>classifyHand</code>, <code>createGestures</code>, <code>startHands</code>; files in <code>jarvis/hands/</code></td><td>The vendored files are pinned by hash (see <a href="hands/README.md">hands/README.md</a>). <code>tasks-vision</code> 0.10.14 also has a face detector, which Session 5 can reuse.</td></tr>
           <tr><td>Orb</td><td><code>draw()</code>, <code>orbPulse()</code></td><td>Reads <code>mode</code>, <code>energy</code> and <code>bootP</code>. While listening, recognition's <code>speechstart</code>/<code>speechend</code> set <code>hearing</code>. Never open a mic stream here: it takes the mic from speech recognition. While speaking, <code>lastWord</code> (from <code>onboundary</code>) drives the pulse. Under reduced motion, <code>orbPulse</code> holds still.</td></tr>
           <tr><td>Privacy line</td><td>CSP meta tag</td><td><code>connect-src 'self'</code>. Anything that would widen it to an outside host is a decision for you, not the session.</td></tr>
-          <tr><td>Tests</td><td><code>tests/jarvis-test.dom.test.mjs</code> for the test copy (201 checks), <code>tests/jarvis.dom.test.mjs</code> for the main page (128)</td><td>jsdom has no WebGL, canvas or camera, so pure logic is exposed on <code>window.__jarvis</code> and tested directly.</td></tr>
+          <tr><td>Tests</td><td><code>tests/jarvis-test.dom.test.mjs</code> for the test copy (264 checks), <code>tests/jarvis.dom.test.mjs</code> for the main page (128)</td><td>jsdom has no WebGL, canvas or camera, so pure logic is exposed on <code>window.__jarvis</code> and tested directly.</td></tr>
         </tbody>
       </table></div>
 <pre><code>cd tests && node run.mjs --page=jarvis-test.html</code></pre>
@@ -545,14 +545,19 @@
 
     <section id="s4">
       <h2><span class="kicker">Session 4 · medium</span>Earth globe</h2>
-      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> nothing</span></div>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge in-progress">In test</span></span><span><strong>Needs:</strong> nothing</span></div>
       <ol class="substeps">
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Land outlines:</strong> from Natural Earth's public-domain 110 m data (the <code>world-atlas</code> npm package carries it; npm is reachable from claude.ai/code). Convert it once into a small embedded outline, or a file under <code>jarvis/</code>, so the page fetches nothing from outside. NASA's image servers are blocked from the container, so don't plan on Blue Marble textures.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>A <code>globe</code> scene:</strong> a dark ocean sphere with glowing coastlines, a day/night line from the real time, city lights from an embedded list of about 200 large cities, and a few satellites in orbit.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>"Show me Florida":</strong> an embedded table of places (countries, US states, big cities) with latitude and longitude. The camera flies there and a marker pulses. "Show me Earth" opens the globe, and <code>next</code> tours the continents.</li>
       </ol>
       <p><strong>Checks:</strong> a lat/lon-to-3D unit test (for example, Florida faces the camera after "show me Florida"), plus screenshots.</p>
-      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+      <div class="callout notes"><strong class="label">Session notes</strong>
+        <p>Built 2026-10-09 in commit <code>9351f5f</code>, in <code>jarvis-test.html</code> only, reviewed in <a href="../tests/secrpts/44.html">review 44</a>. Suite: 264 checks, up from 201. Waiting for you to try it before promotion.</p>
+        <p><strong>How it works.</strong> The coastlines are a file, <code>jarvis/earth/land-110m.json</code> (46 KB, 126 rings), not embedded in the page. It's converted by <code>jarvis/earth/build-land.mjs</code> from <code>world-atlas</code> 2.0.2, and pinned by hash in the suite and in <code>jarvis/earth/README.md</code>. That keeps both copies of the page small, and <code>connect-src 'self'</code> already allows it. A shell over the globe tints the sunlit side blue and darkens the night side, with an amber line along the edge. The Sun's position comes from the time on the device. 243 cities glow on the night side. The places table has 7 continents, 78 countries, 50 states and the cities, plus aliases like "USA", "NYC" and "Bombay". The camera's angles for a place are just its latitude and longitude (<code>faceAngles</code>), so it ends up looking straight down at it. A tap names the nearest city within 2.5°, or the sea, or the nearest state or country. A swipe tours the continents, and a fist spins the globe.</p>
+        <p><strong>Divergences from the plan.</strong> The simple sun formula I started with was a degree off at the equinox, which the suite caught, so it's now the Astronomical Almanac's low-precision formulas, good to about 0.01°. "Take me to Earth" still goes to Earth in the solar system. Only "show me Earth", "show me the world" and "spin the globe" open the globe. A place matches only if all the words after the verb are its name, so "show me the world's tallest tower" doesn't open it. Jarvis says whether it's day, night, sunrise or sunset at the place. Under reduced motion the camera jumps instead of flying. In Chromium, Florida landed at the exact centre of the screen at both sizes, with no errors and no requests to any new host.</p>
+        <p><strong>Still open.</strong> Trying it on your devices, and the frame rate on a phone. Ocean names come from rough boxes. 17 coastal cities sit just offshore of the coarse coastline, which only matters for the land-or-sea check, and a tap checks for a city first.</p>
+      </div>
     </section>
 
     <section id="s5">

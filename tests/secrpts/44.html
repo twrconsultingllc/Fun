@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #44 — the Earth globe in jarvis-test.html</title>
+<meta name="description" content="Security and code-quality review of Session 4 of the J.A.R.V.I.S. build plan in jarvis-test.html: an Earth globe with self-hosted Natural Earth coastlines, the live day and night sides, city lights, satellites and a table of places to fly to.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #44 — the Earth globe in <code>jarvis-test.html</code></h1>
+    <p class="sub">Session 4 of <code>jarvis/build-plan.html</code>, built in the test copy only. "Show me Earth" opens a dark globe with glowing coastlines, the real day and night sides with a line between them, lights for 243 cities on the night side, and four satellites (heights not to scale). "Show me Florida", or any of the 7 continents, 78 countries (England and Scotland among them), 50 US states or 243 cities, flies the camera there and drops a pulsing marker. Jarvis says whether it's day or night there. A swipe tours the continents, and a fist spins the globe. <code>jarvis.html</code> is unchanged.</p>
+    <div class="meta">Review performed 2026-10-09 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>jarvis/earth/</code> (new: <code>land-110m.json</code>, <code>build-land.mjs</code>, <code>README.md</code>), <code>tests/jarvis-test.dom.test.mjs</code>, <code>jarvis/build-plan.html</code> · suites run: <code>jarvis-test</code> (264 passed, up from 201) · follows: <a href="43.html">43.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 89%;"></div></div>
+    <div class="progress-label">9 items: 8 fixed or verified clean, 1 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Nothing comes from another host</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The plan asked for coastlines that the page doesn't fetch from outside. They are Natural Earth's 1:110m land, which is public domain. I took them from the <code>world-atlas</code> 2.0.2 npm package and converted them once, with the committed <code>jarvis/earth/build-land.mjs</code>, into <code>jarvis/earth/land-110m.json</code> (46 KB, 126 rings, 5,114 points). The page fetches that file from its own site, so <code>connect-src 'self'</code> covers it. A diff of the CSP meta tags of <code>jarvis.html</code> and <code>jarvis-test.html</code> is empty. In Chromium, at both sizes, every request was logged: none went anywhere except this site, cdnjs (three.js) and Google Fonts, as before. There were no <code>Refused</code> messages. NASA imagery wasn't used, as the plan said.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The data file is pinned and its source recorded</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>jarvis/earth/README.md</code> names the source, Natural Earth 4.1.0's terms (public domain) and <code>world-atlas</code>'s ISC licence, how to rebuild the file, and the sha256 hashes of the file and of the two npm tarballs it was built from. The suite checks the file's hash against a constant and against the README, the same way it does for the hand tracker. So a changed file fails until both are updated on purpose.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Text stays text; input only picks from a fixed table</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>A grep of <code>jarvis-test.html</code> still finds 0 <code>innerHTML</code>, <code>insertAdjacentHTML</code>, <code>eval(</code> or <code>new Function</code>. The land file is read with <code>r.json()</code> and used only as numbers for geometry. A spoken or typed place name is only ever used as a lookup key in <code>PLACES</code>, so what you say can't reach the screen except as one of the fixed names. Every answer goes through <code>say()</code>, which uses <code>textContent</code>. The night shading is a <code>ShaderMaterial</code> whose GLSL is two fixed strings in the page.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The new script under jarvis/earth/</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>GitHub Pages serves the whole repo, so <code>build-land.mjs</code> is public too. It is a local tool that is run by hand: it reads two paths from its own command line, makes no network calls, and writes only to <code>land-110m.json</code> in its own folder. That path is fixed and doesn't come from its input. It holds no secrets. The README holds only public facts. <code>jarvis/build-plan.html</code> gains one link, a relative path to this review, and still has 0 scripts, event handlers and forms.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Florida faces the camera after "show me Florida"</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>This is the plan's named check, done two ways. In the suite, <code>faceAngles</code> puts the camera direction along <code>latLonVec(Florida)</code> (dot product 1 to 12 places). The suite also pins <code>makeRig</code>'s camera formula, which that result depends on. In Chromium, after the flight, Florida's point projected to (640, 400) of a 1280×800 view and (195, 422) of a 390×844 one, the exact centres, with its surface normal facing the camera (dot product 1.0000). Under reduced motion the camera jumps straight there (Sydney: az 2.639, el −0.592, as asked) instead of swooping.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The Sun's position was off by a degree</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The first version used the simple textbook declination formula. Its expected values came from astronomy, not from the page: the 2026 March equinox is at 14:46 UTC on the 20th, so at noon the Sun should be about 0.05° south of the equator. The simple formula gave 1.01° south, and the test failed. It's now the Astronomical Almanac's low-precision solar position (mean longitude and anomaly, then the ecliptic), accurate to about 0.01°. It gives 23.435°N and 0.46°E at noon UTC on the June solstice (the equation of time is −1.6 min), 23.435°S and 0.48°W in December, 0.04°S and 1.87°E at the March noon, and 0.002° from the equator at the moment of the equinox. Sunrise and sunset are checked against Orlando's published times on 21 June (6:28 a.m. and 8:27 p.m. EDT). Chromium showed the line between day and night just reaching the US east coast at about 22:20 UTC on 9 October, which is right for the time of the run.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Land data checks</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Against the real file: Florida, Paris, the Sahara, Tokyo and Antarctica are land. The mid-Atlantic, the mid-Pacific, the Mediterranean and the Caspian Sea (a hole in the land rings) are water. No coastline segment jumps across or runs along the ±180° seam, where the data was cut to lie flat, and every segment is under 10° long. 226 of the 243 cities (93%) are inside a land ring. The other 17 are coastal cities the coarse coast puts just offshore, plus La Paz, inside the coarse outline of Lake Titicaca. A tap checks for a city within 2.5° first, so this doesn't show.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">New commands don't take over old ones</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>"show me Earth", "show me the world" and "spin the globe" open the globe. "show me Florida", "take me to Tokyo", "where is Paris?", "fly to Washington D.C.", "zoom in on New York" and "show me the USA" fly there. "take me to Mars" and "take me to Earth" still go to the solar system. "make a globe" is still a particle sphere, and "show me a heart" still a sculpture. "where is my phone" and "show me the world's tallest tower" are not places. A place only matches if all of the words after the verb are a known name, not just part of them. All of these are in the suite, now 264 checks (201 before).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Still open</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>All rendering here was software WebGL, so the frame rate on a phone is unmeasured. The globe draws 5,114 coastline segments, two 64×48 spheres and 243 lights, which is far lighter than the galaxy. Ocean names come from rough boxes, so a tap close to where two oceans meet may name the wrong one. A country or state is placed at an approximate centre, so a tap on land with no city near says "in or near" the closest one. It doesn't trace borders. These are fine for a toy, but they aren't exact.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: the <code>jarvis-test</code> suite, greps for unsafe sinks, a CSP diff against <code>jarvis.html</code>, a request log, the land file's hash, sun positions from astronomy, and headless Chromium at two sizes plus reduced motion. See <a href="43.html">43.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
