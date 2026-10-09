@@ -35,6 +35,9 @@ import { fileURLToPath } from 'node:url';
 import { openDom } from './lib/page.mjs';
 
 // The self-hosted hand tracker, pinned (see jarvis/hands/README.md).
+// The globe's coastlines, pinned (see jarvis/earth/README.md).
+const LAND_SHA256 = 'ec085257c3276958638a03e82162e7ce0fb6c8cd13692ba91bd7941df425512c';
+
 const HAND_FILES = {
     'vision_bundle.js': 'e77f281f9619150d937023c355bae170e9120e3b9e43f1e23a2a7bee07197669',
     'vision_wasm_internal.js': '9440cf0cc0cea21800e31581ec32aeedcc5fbf9df4509796bbc7d3f99e52ab9c',
@@ -162,6 +165,23 @@ export default async function run(t, page) {
         t.eq('"I need a new lawsuit" is not a projector command', intent('I need a new lawsuit'), null);
         t.eq('"who is iron man" still gets the chat answer', intent('who is iron man'), null);
         t.ok('help mentions suiting up', /suit up/.test(brain('help')));
+        t.eq('"show me Earth" opens the globe', JSON.stringify(intent('Show me Earth')), '{"kind":"globe","arg":null}');
+        t.eq('"show me the world"', kind('show me the world'), 'globe');
+        t.eq('"spin the globe"', kind('spin the globe'), 'globe');
+        t.eq('"show me Florida" flies there', JSON.stringify(intent('Show me Florida!')), '{"kind":"globe","arg":"florida"}');
+        t.eq('"take me to Tokyo"', intent('take me to Tokyo')?.arg, 'tokyo');
+        t.eq('"where is Paris?"', intent('where is Paris?')?.arg, 'paris');
+        t.eq('"fly to Washington D.C." (dots dropped)', window.__jarvis.PLACES[intent('fly to Washington D.C.')?.arg]?.name, 'Washington DC');
+        t.eq('"show me the USA" uses the alias', intent('show me the USA')?.arg, 'usa');
+        t.eq('"zoom in on New York"', intent('zoom in on new york')?.arg, 'new york');
+        t.eq('"show me Africa please"', intent('show me Africa please')?.arg, 'africa');
+        t.eq('"take me to Mars" is still the solar system', JSON.stringify(intent('take me to Mars')), '{"kind":"solar","arg":"mars"}');
+        t.eq('"take me to Earth" is still the planet in the solar system', JSON.stringify(intent('take me to Earth')), '{"kind":"solar","arg":"earth"}');
+        t.eq('"make a globe" is still a particle sphere', intent('make a globe')?.arg?.shape, 'sphere');
+        t.eq('"show me a heart" is still a sculpture', intent('show me a heart')?.arg?.shape, 'heart');
+        t.eq('"where is my phone" is not a place', intent('where is my phone'), null);
+        t.eq('"show me the world\'s tallest tower" is not the globe', intent("show me the world's tallest tower"), null);
+        t.ok('help mentions the globe', /show me Earth/.test(brain('help')) && /Florida/.test(brain('help')));
 
         t.section('Particle shapes');
 
@@ -266,6 +286,77 @@ export default async function run(t, page) {
         t.eq('well past the middle it switches', sideOf(240, ['L']), 'R');
         t.eq('a label sits level with its anchor when there\'s room', layoutCallouts([{ x: 300, y: 400, w: 84, h: 24 }], b)[0].y, 388);
 
+        t.section('Earth globe (no three.js needed)');
+
+        const { PLACES, CITIES, CONTINENTS, latLonVec, vecLatLon, faceAngles, arcDeg, subsolar, daylight, onLand, coastSegments, oceanName, placeLine } = window.__jarvis;
+        const close = (a, b, eps = 1e-9) => Math.abs(a - b) <= eps;
+        const places = Object.values(PLACES);
+        t.eq('seven continents to tour', CONTINENTS.length, 7);
+        t.eq('all 50 US states', places.filter((p, i, a) => p.kind === 'state' && a.indexOf(p) === i).length, 50);
+        t.ok('about 200 cities for the lights, at least 200', CITIES.length >= 200);
+        t.eq('no city is listed twice', new Set(CITIES.map((c) => c.name)).size, CITIES.length);
+        t.ok('every place has a real latitude and longitude', places.every((p) => p.lat >= -90 && p.lat <= 90 && p.lon >= -180 && p.lon <= 180));
+        t.ok('every alias points at a real place', ['usa', 'uk', 'nyc', 'la', 'bombay', 'kiev', 'oceania'].every((k) => PLACES[k]?.name));
+        t.ok('(0°, 0°) is straight out along z', latLonVec(0, 0).every((v, i) => close(v, [0, 0, 1][i])));
+        t.ok('the North Pole is straight up', latLonVec(90, 123).every((v, i) => close(v, [0, 1, 0][i])));
+        t.ok('(0°, 90°E) is along x', latLonVec(0, 90).every((v, i) => close(v, [1, 0, 0][i])));
+        let roundTrip = true;
+        for (const [la, lo] of [[28.1, -81.7], [-33.9, 151.2], [64.1, -21.9], [-77.8, 166.7], [0.5, 179.5]]) { const g = vecLatLon(latLonVec(la, lo, 3)); roundTrip &&= close(g.lat, la, 1e-9) && close(g.lon, lo, 1e-9); }
+        t.ok('a place turned into 3D and back comes back the same', roundTrip);
+        // makeRig puts the camera at dist·(cos el·sin az, sin el, cos el·cos az) from its target (pinned below).
+        t.ok('the rig\'s camera formula is the one this relies on', /camera\.position\.set\(r\.target\.x\+r\.dist\*ce\*Math\.sin\(r\.az\),r\.target\.y\+r\.dist\*Math\.sin\(r\.el\),r\.target\.z\+r\.dist\*ce\*Math\.cos\(r\.az\)\)/.test(page.html));
+        const fl = PLACES.florida, fa = faceAngles(fl.lat, fl.lon);
+        const camDir = [Math.cos(fa.el) * Math.sin(fa.az), Math.sin(fa.el), Math.cos(fa.el) * Math.cos(fa.az)], flv = latLonVec(fl.lat, fl.lon);
+        t.ok('after "show me Florida", the camera looks straight down at Florida', close(camDir.reduce((s, v, i) => s + v * flv[i], 0), 1, 1e-12));
+        t.ok('London to Paris is about 3° of arc (≈ 340 km)', Math.abs(arcDeg(PLACES.london, PLACES.paris) - 3.1) < 0.2);
+
+        // The Sun is overhead at 23.44°N at the June solstice, at 23.44°S in December, over the equator in March.
+        // At noon UTC it's near 0° longitude, off only by the equation of time (−1.6 min in June ≈ +0.4°, −7.5 min in March ≈ +1.9°).
+        const jun = subsolar(new Date('2026-06-21T12:00:00Z')), dec = subsolar(new Date('2026-12-21T12:00:00Z')), mar = subsolar(new Date('2026-03-20T12:00:00Z'));
+        t.ok('June solstice, noon UTC: the Sun is over 23.4°N, about 0.4°E', Math.abs(jun.lat - 23.44) < 0.05 && jun.lon > 0 && jun.lon < 1);
+        t.ok('December solstice: over 23.4°S, about 0.5°W', Math.abs(dec.lat + 23.44) < 0.05 && dec.lon < 0 && dec.lon > -1);
+        // The 2026 March equinox is at 14:46 UTC on the 20th; 2.8 h earlier the Sun is about 0.05° south of the equator.
+        t.ok('March equinox: within 0.2° of the equator, about 1.9°E', Math.abs(mar.lat) < 0.2 && mar.lon > 1.5 && mar.lon < 2.3);
+        t.ok('six hours later it has moved 90° west', Math.abs(subsolar(new Date('2026-06-21T18:00:00Z')).lon + 90) < 1);
+        // In Orlando on 21 June the sun rises about 6:28 a.m. EDT (10:28 UTC) and sets about 8:27 p.m. (00:27 UTC).
+        const at = (iso) => daylight(PLACES.orlando, subsolar(new Date(iso)));
+        t.eq('Orlando at 1 p.m. EDT: day', at('2026-06-21T17:00:00Z'), 'day');
+        t.eq('Orlando at 1 a.m. EDT: night', at('2026-06-21T05:00:00Z'), 'night');
+        t.eq('Orlando at 6:30 a.m. EDT: sunrise', at('2026-06-21T10:30:00Z'), 'sunrise');
+        t.eq('Orlando at 8:30 p.m. EDT: sunset', at('2026-06-22T00:30:00Z'), 'sunset');
+        t.ok('a place line names the place and the time of day', /^Florida\. 28\.1°N 81\.7°W\. It's daytime there right now\.$/.test(placeLine(PLACES.florida, subsolar(new Date('2026-06-21T17:00:00Z')))));
+        t.ok('a continent line includes its fact', /^Africa\. It has 54 countries/.test(placeLine(PLACES.africa, jun)));
+        t.eq('the middle of the North Atlantic', oceanName(35, -40), 'the Atlantic Ocean');
+        t.eq('off Peru', oceanName(-10, -90), 'the Pacific Ocean');
+        t.eq('south of India', oceanName(-10, 80), 'the Indian Ocean');
+        t.eq('between Greece and Libya', oceanName(35, 20), 'the Mediterranean Sea');
+
+        let landText = null;
+        try {
+            landText = page.url.startsWith('file:')
+                ? await readFile(fileURLToPath(new URL('jarvis/earth/land-110m.json', page.url)), 'utf8')
+                : await (await fetch(new URL('jarvis/earth/land-110m.json', page.url))).text();
+        } catch { /* missing */ }
+        t.ok('jarvis/earth/land-110m.json is there', !!landText);
+        if (landText) {
+            if (page.url.startsWith('file:')) {
+                t.eq('it is the pinned file', createHash('sha256').update(landText).digest('hex'), LAND_SHA256);
+                const readme = await readFile(fileURLToPath(new URL('jarvis/earth/README.md', page.url)), 'utf8');
+                t.ok('its README names the source, the licence and the same hash', readme.includes(LAND_SHA256) && /Natural Earth/.test(readme) && /public domain/.test(readme));
+            }
+            const { rings, source } = JSON.parse(landText);
+            t.ok('it says where it came from', /Natural Earth/.test(source));
+            t.ok('126 rings of whole tenths of a degree', rings.length === 126 && rings.every((r) => r.length % 2 === 0 && r.every(Number.isInteger)));
+            for (const [name, la, lo] of [['Florida', 28.1, -81.7], ['Paris', 48.9, 2.4], ['the Sahara', 23, 10], ['Tokyo', 35.7, 139.7], ['Antarctica', -80, 0]]) t.ok(`${name} is on land`, onLand(la, lo, rings));
+            for (const [name, la, lo] of [['the mid-Atlantic', 30, -40], ['the mid-Pacific', 0, -150], ['the Mediterranean', 35, 18], ['the Caspian Sea (a hole in the land)', 42, 50.5]]) t.ok(`${name} is water`, !onLand(la, lo, rings));
+            const onLandShare = CITIES.filter((c) => onLand(c.lat, c.lon, rings)).length / CITIES.length;
+            t.ok('at least 90% of cities are on land (coarse coasts put a few seaside ones just offshore)', onLandShare >= 0.9);
+            const segs = coastSegments(rings);
+            t.ok('coastline segments never jump across the ±180° seam', segs.every(([, a, , b]) => Math.abs(a - b) <= 180));
+            t.ok('and never run along it (that edge is where the map was cut, not coast)', segs.every(([, a, , b]) => !(Math.abs(a) === 180 && Math.abs(b) === 180)));
+            t.ok('every segment is short, under 10°', segs.every(([la, a, lb, b]) => arcDeg({ lat: la, lon: a }, { lat: lb, lon: b }) < 10));
+        }
+
         t.section('Projector without WebGL');
 
         const scriptsBefore = document.querySelectorAll('script').length;
@@ -273,6 +364,7 @@ export default async function run(t, page) {
         t.ok('says it needs WebGL', /needs WebGL/.test(answer));
         t.ok('the neural network says so too', /needs WebGL/.test(await window.__jarvis.project({ kind: 'neural' })));
         t.ok('and the suit', /needs WebGL/.test(await window.__jarvis.project({ kind: 'suit', arg: 'assemble' })));
+        t.ok('and the globe', /needs WebGL/.test(await window.__jarvis.project({ kind: 'globe', arg: 'florida' })));
         t.eq('no callout labels are left behind', document.getElementById('suit-labels'), null);
         t.eq('does not fetch three.js', document.querySelectorAll('script').length, scriptsBefore);
         t.ok('the projector stays hidden', document.getElementById('holo').hidden);
