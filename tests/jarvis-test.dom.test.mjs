@@ -506,6 +506,7 @@ export default async function run(t, page) {
     await speechWiring(t, page);
     await skinsAndMemory(t, page);
     await voicePicker(t, page);
+    await androidVoices(t, page);
 }
 
 /* A second window with a fake SpeechRecognition, getUserMedia and AudioContext. */
@@ -761,20 +762,23 @@ async function voicePicker(t, page) {
         t.ok('the voice menu is shown beside the skin button', !sel.hidden && sel.parentElement === document.getElementById('skin').parentElement);
         t.eq('it offers Auto plus the device\'s five English voices', opts().length, 6);
         t.ok('and leaves out a French voice', !opts().some((o) => /Thomas/.test(o)));
-        t.eq('Auto names Jarvis\'s pick, Daniel', opts()[0], 'VOICE: AUTO · Daniel');
+        t.eq('Auto names Jarvis\'s pick, Daniel', opts()[0], '🔊 Auto · Daniel');
         document.getElementById('skin').click(); await wait(10);
         t.eq('Morpheus gets Ralph', last().voice?.name, 'Ralph');
         t.ok('with a gentler pitch than a generic voice gets', last().pitch > 0.55 && last().pitch < 0.9);
-        t.eq('and the menu follows the skin', opts()[0], 'VOICE: AUTO · Ralph');
+        t.eq('and the menu follows the skin', opts()[0], '🔊 Auto · Ralph');
         document.getElementById('skin').click(); await wait(10);
         t.eq('Stanley gets Junior', last().voice?.name, 'Junior');
         document.getElementById('skin').click(); await wait(10);
         t.eq('Jarvis gets Daniel', last().voice?.name, 'Daniel (Enhanced)');
+        t.eq('in Daniel\'s British English', last().lang, 'en-GB');
         await pick('Samantha');
         t.eq('picking a voice speaks a sample in it straight away', last().voice?.name, 'Samantha');
         t.ok('the sample is Jarvis\'s', /How do I sound\?/.test(last().text));
         t.eq('the pick is saved for that skin on this device', JSON.parse(window.localStorage.getItem('jarvis-voices')).jarvis, 'Samantha');
         t.eq('the menu shows it', sel.value, 'Samantha');
+        t.eq('the utterance\'s language matches the voice, which Android Chrome needs to use it', last().lang, 'en-US');
+        t.eq('a voice that isn\'t on Jarvis\'s own list keeps his full pitch', last().pitch, 0.9);
         document.getElementById('skin').click(); await wait(10);
         t.eq('other skins keep their own voice', last().voice?.name, 'Ralph');
         t.eq('and the menu goes back to Auto for them', sel.value, '');
@@ -792,5 +796,29 @@ async function voicePicker(t, page) {
         t.eq('and junk in the store doesn\'t break the page', env2.errors.length, 0);
     } finally {
         env2.close();
+    }
+}
+
+// Android Chrome names its voices after languages, one per accent, sometimes listed twice.
+async function androidVoices(t, page) {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    t.section('Voices on Android');
+    const VOICES = [['English United States', 'en-US'], ['English United Kingdom', 'en-GB'], ['English United Kingdom', 'en-GB'], ['English India', 'en-IN'], ['Deutsch Deutschland', 'de-DE']].map(([name, lang]) => ({ name, lang }));
+    const spoken = [];
+    const env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse(w) {
+        w.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+        w.speechSynthesis = { getVoices: () => VOICES, onvoiceschanged: null, speak(u) { spoken.push(u); }, cancel() {} };
+    } });
+    try {
+        const { document, window } = env, sel = document.getElementById('voice'), last = () => spoken[spoken.length - 1];
+        const opts = [...sel.options].map((o) => o.textContent);
+        t.eq('each accent is listed once', JSON.stringify(opts), JSON.stringify(['🔊 Auto · English (UK)', 'English (US)', 'English (UK)', 'English (India)']));
+        sel.value = 'English India'; sel.dispatchEvent(new window.Event('change')); await wait(10);
+        t.eq('picking one sets the utterance\'s language to it', last().lang, 'en-IN');
+        document.getElementById('skin').click(); await wait(10);
+        t.eq('Morpheus falls back to a US voice', last().lang, 'en-US');
+        t.eq('and keeps his full low pitch, since it isn\'t a character voice', last().pitch, 0.55);
+    } finally {
+        env.close();
     }
 }

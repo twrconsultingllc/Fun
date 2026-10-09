@@ -511,7 +511,13 @@ const synth=window.speechSynthesis||null;
 let voice=null,tuned=false,voicePicks={};
 try{const o=JSON.parse(localStorage.getItem('jarvis-voices')||'{}');if(o&&typeof o==='object')for(const k of Object.keys(SKINS))if(typeof o[k]==='string'&&o[k].length<=200)voicePicks[k]=o[k]}catch(e){}
 const voiceSel=document.getElementById('voice');
-function englishVoices(){const v=synth.getVoices(),en=v.filter(x=>/^en/i.test(x.lang));return en.length?en:v}
+// Android lists one voice per accent, named after the language ("English United States"), sometimes
+// twice (on-device and online), so the menu drops repeated names.
+function englishVoices(){const v=synth.getVoices(),en=v.filter(x=>/^en/i.test(x.lang)),seen=new Set();
+  return (en.length?en:v).filter(x=>!seen.has(x.name)&&seen.add(x.name))}
+// A real character voice (one on the skin's own list) already sounds the part; anything else, including
+// Android's per-accent voices, needs the skin's full pitch and speed to sound like the character.
+const suits=(k,x)=>SKINS[k].prefer.some(n=>x.name.toLowerCase().startsWith(n));
 function autoVoice(k){
   const v=synth.getVoices(),S=SKINS[k];
   for(const n of S.prefer){const f=v.find(x=>x.name.toLowerCase().startsWith(n));if(f)return [f,true]}
@@ -519,15 +525,16 @@ function autoVoice(k){
 }
 function pickVoice(){
   const want=voicePicks[skin],mine=want&&synth.getVoices().find(x=>x.name===want);
-  if(mine){voice=mine;tuned=true}else[voice,tuned]=autoVoice(skin);
+  if(mine){voice=mine;tuned=suits(skin,mine)}else[voice,tuned]=autoVoice(skin);
   fillVoices();
 }
-const shortName=n=>n.replace(/\s*-\s*English.*$/,'').replace(/\s*\((?:Natural|Enhanced|Premium)\)/,'');
+const shortName=n=>n.replace(/\s*-\s*English.*$/,'').replace(/\s*\((?:Natural|Enhanced|Premium)\)/,'')
+  .replace(/^English\s+(.+)$/,(m,c)=>`English (${{'United States':'US','United Kingdom':'UK'}[c]||c})`);
 // The voice menu beside the skin button: Auto (the skin's own pick) and every English voice on this device.
 function fillVoices(){
   const list=englishVoices();voiceSel.hidden=!list.length;if(!list.length)return;
   const [auto]=autoVoice(skin);
-  voiceSel.replaceChildren(new Option('VOICE: AUTO'+(auto?' · '+shortName(auto.name):''),''),...list.map(x=>new Option(shortName(x.name)+(x.lang?' · '+x.lang:''),x.name)));
+  voiceSel.replaceChildren(new Option('🔊 Auto'+(auto?' · '+shortName(auto.name):''),''),...list.map(x=>new Option(shortName(x.name)+(x.lang&&!/^english/i.test(x.name)?' · '+x.lang:''),x.name)));
   voiceSel.value=voicePicks[skin]&&list.some(x=>x.name===voicePicks[skin])?voicePicks[skin]:'';
 }
 if(synth){pickVoice();synth.onvoiceschanged=pickVoice;
@@ -553,7 +560,8 @@ function say(text){
   const gen=++sayGen,parts=speechChunks(text);
   synth.cancel();
   parts.forEach((p,i)=>{
-    const u=new SpeechSynthesisUtterance(p);if(voice)u.voice=voice;u.rate=tuned?SKINS[skin].tunedRate:SKINS[skin].rate;u.pitch=tuned?SKINS[skin].tunedPitch:SKINS[skin].pitch;
+    const u=new SpeechSynthesisUtterance(p);if(voice){u.voice=voice;u.lang=voice.lang} // Android Chrome ignores the voice unless the language matches it
+    u.rate=tuned?SKINS[skin].tunedRate:SKINS[skin].rate;u.pitch=tuned?SKINS[skin].tunedPitch:SKINS[skin].pitch;
     u.onstart=()=>{if(gen!==sayGen)return;lastWord=null;setMode('speak')};
     u.onend=u.onerror=()=>{if(gen!==sayGen||i<parts.length-1)return;lastWord=null;setMode('idle')};
     // There's no audio tap on speech synthesis, so pulse on each word where the voice reports them.
