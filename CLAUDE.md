@@ -340,6 +340,21 @@ happened. A screenshot from headless Chromium counts as a visual check; a
 reading of the code doesn't. Ask the user to look at the deployed result when
 nothing could be rendered.
 
+## Merge validated feature work without asking
+
+When the user asks for a feature (or a fix) and the work has been validated,
+open the pull request and merge it into `main` straight away, without asking
+first. The user wants to test on the live site as soon as possible. The user
+set this on 2026-10-09.
+
+"Validated" means the usual checks for this repo have passed: the changed
+pages' suites are green, any visual change was rendered (headless Chromium
+where the environment has it), and the numbered review in `tests/secrpts/`
+is written. If something fails, or can't be checked, don't merge. Say what's
+blocking instead. Merging isn't the end: after it, follow the deployment
+rule above (watch the Pages deploy, and hand the live check to the user when
+the environment can't reach `*.github.io`).
+
 ## GitHub from claude.ai/code: what it can't do
 
 Claude Code on the web can work inside repos the user has given it, but two
