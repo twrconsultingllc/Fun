@@ -372,7 +372,7 @@
   </header>
 
   <div class="callout warning" style="grid-column: 1 / -1;">
-    <strong class="label">Status: not started</strong>
+    <strong class="label">Status: Session 1 done · 1 of 6</strong>
     Written 2026-10-09, after the boot sequence, holo-projector (galaxy,
     solar system, particle sculptor) and hand control were merged (PRs
     #61–#64). Sessions are numbered in the suggested order, but each one
@@ -433,7 +433,7 @@
         <caption>Six sessions, smallest first. Original option numbers from the first features chat in brackets.</caption>
         <thead><tr><th>#</th><th>Session</th><th>Covers</th><th>Size</th><th>Status</th></tr></thead>
         <tbody>
-          <tr><td>1</td><td><a href="#s1">Polish and voice-reactive orb</a></td><td>Option 8 and four open review items</td><td>Small</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>1</td><td><a href="#s1">Polish and voice-reactive orb</a></td><td>Option 8 and four open review items</td><td>Small</td><td><span class="badge done">Done</span></td></tr>
           <tr><td>2</td><td><a href="#s2">Neural network</a></td><td>Option 6</td><td>Small–medium</td><td><span class="badge">Not started</span></td></tr>
           <tr><td>3</td><td><a href="#s3">Iron Man suit schematic</a></td><td>Option 3</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
           <tr><td>4</td><td><a href="#s4">Earth globe</a></td><td>Option 4</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
@@ -445,7 +445,7 @@
 
     <section id="map">
       <h2><span class="kicker">Read this before changing anything</span>Where things live</h2>
-      <p>Everything is in one page, <code>jarvis.html</code> (about 840 lines), plus the self-hosted hand tracker and one test suite.</p>
+      <p>Everything is in one page, <code>jarvis.html</code> (about 885 lines), plus the self-hosted hand tracker and one test suite.</p>
       <div class="table-wrap"><table>
         <thead><tr><th>Piece</th><th>Where</th><th>How to extend it</th></tr></thead>
         <tbody>
@@ -455,9 +455,9 @@
           <tr><td>Camera framing</td><td><code>makeRig()</code>, <code>fitDist()</code></td><td>Use <code>fitDist(halfWidth, halfHeight)</code> so an upright phone sees the whole object.</td></tr>
           <tr><td>three.js</td><td><code>loadThree()</code></td><td>r128 from cdnjs with an SRI hash, loaded only when a scene opens. Use r128 APIs (e.g. <code>BufferGeometry.setAttribute</code>).</td></tr>
           <tr><td>Hand control</td><td><code>classifyHand</code>, <code>createGestures</code>, <code>startHands</code>; files in <code>jarvis/hands/</code></td><td>The vendored files are pinned by hash (see <a href="hands/README.md">hands/README.md</a>). <code>tasks-vision</code> 0.10.14 also has a face detector, which Session 5 can reuse.</td></tr>
-          <tr><td>Orb</td><td><code>draw()</code></td><td>Reads <code>mode</code>, <code>energy</code> and <code>bootP</code>.</td></tr>
+          <tr><td>Orb</td><td><code>draw()</code>, <code>orbPulse()</code></td><td>Reads <code>mode</code>, <code>energy</code> and <code>bootP</code>. While listening, <code>startMeter()</code>/<code>stopMeter()</code> feed it the mic level through <code>levelToEnergy()</code>. While speaking, <code>lastWord</code> (from <code>onboundary</code>) drives the pulse. Under reduced motion, <code>orbPulse</code> holds still.</td></tr>
           <tr><td>Privacy line</td><td>CSP meta tag</td><td><code>connect-src 'self'</code>. Anything that would widen it to an outside host is a decision for you, not the session.</td></tr>
-          <tr><td>Tests</td><td><code>tests/jarvis.dom.test.mjs</code> (104 checks)</td><td>jsdom has no WebGL, canvas or camera, so pure logic is exposed on <code>window.__jarvis</code> and tested directly.</td></tr>
+          <tr><td>Tests</td><td><code>tests/jarvis.dom.test.mjs</code> (145 checks)</td><td>jsdom has no WebGL, canvas or camera, so pure logic is exposed on <code>window.__jarvis</code> and tested directly.</td></tr>
         </tbody>
       </table></div>
 <pre><code>cd tests && node run.mjs --page=jarvis.html</code></pre>
@@ -465,7 +465,7 @@
 
     <section id="s1">
       <h2><span class="kicker">Session 1 · small</span>Polish and voice-reactive orb</h2>
-      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> nothing</span><span><strong>Review:</strong> next number in <code>tests/secrpts/</code></span></div>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge done">Done</span></span><span><strong>Needs:</strong> nothing</span><span><strong>Review:</strong> next number in <code>tests/secrpts/</code></span></div>
       <ol class="substeps">
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Orb reacts to your voice.</strong> While the mic is listening, open an audio stream (<code>getUserMedia({audio:true})</code>) into a Web Audio <code>AnalyserNode</code> and drive <code>energy</code> from its volume, so the rings jump as you talk. Close the stream when listening ends. Speech synthesis has no audio tap, so while Jarvis speaks, pulse on each word with the utterance's <code>onboundary</code> event, and fall back to the current sine pulse where that event doesn't fire.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Mic note.</strong> One line by the mic, shown once: voice input uses the browser's online speech service, and typing stays on the device (from <a href="../tests/secrpts/36.html">review 36</a>).</li>
@@ -474,7 +474,12 @@
         <li><span class="who"><span class="badge you">You</span></span> Talk to it on your phone and say whether the orb's reaction feels right.</li>
       </ol>
       <p><strong>Checks:</strong> the suite covers the volume-to-energy mapping as a pure function. In Chromium, feed <code>--use-file-for-fake-audio-capture</code> a WAV and confirm the energy rises. Screenshot the HUD over the galaxy core.</p>
-      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+      <div class="callout notes"><strong class="label">Session notes</strong>
+        <p>Done 2026-10-09 in commit <code>09b0ced</code>, reviewed in <a href="../tests/secrpts/40.html">review 40</a>. Suite: 145 checks, up from 104.</p>
+        <p><strong>Orb.</strong> Loudness maps on a decibel scale, −50 dB to 0 and −12 dB to 1 (<code>levelToEnergy</code>), with a floor of 0.2 while listening so the rings never go dead. It rises fast and settles slowly. In Chromium a generated WAV (quiet, then a loud tone) held the energy at 0.20, then 0.92–1.00, at both screen sizes. The level stream is opened from recognition's <code>onstart</code>, not the tap, and closed in <code>onend</code>/<code>onerror</code>. A stream that arrives after listening ended is stopped at once. Word pulses could not be seen headless, because there are no voices there, and Chrome's online voices don't fire <code>onboundary</code>, so the sine fallback is what most people will see.</p>
+        <p><strong>Divergences from the plan.</strong> Under reduced motion the level stream isn't opened at all, since the orb holds still anyway. If recognition reports <code>audio-capture</code> while the level stream is open, the page stops the stream and doesn't open it again that visit. That guards against phones where the two can't share the mic. The mic note shows from page load (wherever speech recognition exists) rather than on the first tap, so it's read before any audio goes out. It stops showing once the mic has been used on that device. The HUD strip is one <code>#holo-top</code> wrapper around title, stat and hint, at 90% opacity: that is the lowest opacity that keeps the hint above 4.5:1 even over pure white (5.30:1).</p>
+        <p><strong>Still open.</strong> Whether a phone lets speech recognition and the level stream share the mic. That's the <span class="badge you">You</span> step above: if the mic stops understanding you on the phone, say so, and the level stream can be turned off on phones. The test README's assertion total is stale (see review 40).</p>
+      </div>
     </section>
 
     <section id="s2">

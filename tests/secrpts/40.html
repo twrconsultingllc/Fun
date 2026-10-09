@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #40 — jarvis.html: voice-reactive orb and polish</title>
+<meta name="description" content="Security and code-quality review of the jarvis.html update from Session 1 of its build plan: a voice-reactive orb, a mic privacy note, a backing strip behind the holo-projector HUD, and a steady orb under reduced motion.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #40 — <code>jarvis.html</code>: voice-reactive orb and polish</h1>
+    <p class="sub">An update from Session 1 of <code>jarvis/build-plan.html</code>. While the mic listens, a second, local audio stream feeds a Web Audio <code>AnalyserNode</code>, and its loudness drives the orb. While Jarvis speaks, the orb pulses on each word where the voice reports word boundaries. The update also adds a one-line note by the mic, a dark strip behind the projector's top HUD, and an orb that holds still under reduced motion. Three items left open in <a href="36.html">36.html</a> and <a href="37.html">37.html</a> are closed here.</p>
+    <div class="meta">Review performed 2026-10-09 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis.html</code>, <code>tests/jarvis.dom.test.mjs</code>, <code>jarvis/build-plan.html</code> (session badge and notes) · suites run: <code>jarvis</code> only (<code>node run.mjs --page=jarvis.html</code>, 145 passed, 0 failed, up from 104) · follows: <a href="39.html">39.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 67%;"></div></div>
+    <div class="progress-label">9 items: 6 fixed or verified clean (3 of them carried over from reviews 36 and 37), 1 partial, 2 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security &amp; privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The mic level stream stays on the device and closes with listening</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The level stream is <code>getUserMedia({audio:true, video:false})</code> into a <code>MediaStreamSource</code> and an <code>AnalyserNode</code>. Nothing connects it to the speakers, records it or stores it. The page reads 1,024 samples a frame to get one loudness number. The CSP is unchanged (<code>connect-src 'self'</code>), so the page still can't send anything off the site. The stream opens only from recognition's <code>onstart</code>, after a tap on the mic, and is stopped in <code>onend</code> and <code>onerror</code>. If listening ends while the stream is still opening, the stream is stopped as soon as it arrives. A second jsdom window with a fake recognizer, <code>getUserMedia</code> and <code>AudioContext</code> pins each of these: one audio-only request per listen, the track stopped on end, a late stream stopped at once and never used. In Chromium, with the real fake-device flags, the state went from <code>open</code> to <code>closed</code> when the mic was tapped again.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The mic isn't offline in Chrome (from review 36)</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>A line under the input bar now says: "The mic uses your browser's online speech service. Typing stays on this device." It shows only where speech recognition exists, and from page load, so it is read before the first tap. It stops showing on later visits once the mic has been used on that device. The flag is <code>jarvis-mic-note</code> in <code>localStorage</code> and holds only <code>1</code>. It is hidden while the projector is open, where the input bar is pinned over the scene. Contrast: <code>#2fa862</code> on the page background is 6.58:1 (<code>#020a06</code>) to 6.07:1 (<code>#06170e</code>).</p><div class="fix-note"><b>Fix:</b> <code>#mic-note</code>, shown from the <code>if(SR)</code> branch.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The level stream is a second claim on the mic</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Desktop Chrome lets speech recognition and a page stream share the mic. Some phones may not. If recognition reports <code>audio-capture</code> while the level stream is open, the page stops the stream and doesn't open it again that visit, so the next tap works with the old sine pulse. The test suite covers that path. But a phone that quietly hands the mic to one of them, with no error, would need a real device to see. That is the <b>You</b> step of Session 1: talk to it on your phone. If the mic stops understanding you there, this is the cause.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The build plan's session notes</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>jarvis/build-plan.html</code> gained Session 1's notes, its Done badges and an updated map row. A count of the file still finds 0 <code>&lt;script&gt;</code> tags, 0 inline event handlers and 0 forms. A script resolved every <code>href</code>: every in-page anchor matches an <code>id</code>, every relative link, including the new <code>../tests/secrpts/40.html</code>, points to a file in the repo, and the one absolute link is the live site's own page. The notes reuse the page's existing <code>.badge</code> and <code>.callout</code> styles, so no new colours were added.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Loudness to energy, checked against first principles</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>levelToEnergy</code> maps RMS on a decibel scale: −50 dB is 0 and −12 dB is 1. The suite derives its expected values: 10<sup>−50/20</sup> = 0.00316 gives 0, 10<sup>−31/20</sup> = 0.0282 gives 0.5, 10<sup>−12/20</sup> = 0.251 gives 1. It also checks that the result never goes below 0 or above 1, that louder never means less energy, and that NaN gives 0. In Chromium, a generated WAV (3 s at about −73 dB, then 3 s of a 220 Hz tone peaking at −9 dB) fed through <code>--use-file-for-fake-audio-capture</code> held the orb's energy at 0.20 in the quiet part and 0.92–1.00 in the loud part, at both 1280×800 and 390×844. The listening floor of 0.2 is deliberate, so the rings never go dead while it's listening. No page errors and no CSP violations.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Word pulses while speaking, with a fallback</div><span class="badge partial">Partial</span></div>
+      <div class="item-body"><p>The utterance's <code>onboundary</code> handler records the start of each word, and the pulse is 0.45 + 0.55·e<sup>−7s</sup> of the energy, where s is the time since that word started. Before any word arrives, or where a voice never reports words, the old sine pulse runs. The maths is pinned in the suite. Headless Chromium has no speech voices, so a real word-by-word pulse wasn't seen. Chrome's online voices are known not to fire <code>onboundary</code>, so on those the fallback is what you'll see.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Reduced motion still pulses (from review 36)</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>With <code>reduce</code> set, the pulse is a fixed share of the energy, ring sizes ignore it, and the level stream is never opened. Brightness still eases between states over about a second, which shows what Jarvis is doing without moving anything. Chromium with <code>reducedMotion: 'reduce'</code>: two orb frames 0.7 s apart were byte-identical while idle and while listening, and the meter stayed <code>closed</code>. The same check without reduced motion gave different frames, which shows the check can tell the two apart.</p><div class="fix-note"><b>Fix:</b> <code>orbPulse({still})</code> and <code>R=W*r</code> when <code>reduce</code> is set.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The hint line sits on the live scene (from review 37)</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The title, stat and hint now sit in one <code>#holo-top</code> strip at 90% of the page's darkest green, which fades out over its last 14 px. Worst case, with pure white behind it, the strip is <code>rgb(27,34,31)</code>. Against that, the hint (<code>#2fa862</code>, now at full opacity rather than 85%) is 5.30:1 and the title is 12.16:1. At 85% the hint would have been 4.51:1, and at 80%, 3.77:1. Over the scene's usual near-black, the hint is 6.61:1. Measured in Chromium with the galaxy flown into its core, plus the long hand-control hint and camera box: the hint ends inside the strip's solid part at both sizes. Title and stat end at x = 194 on the phone, where the HANDS button starts at 194.5. Nothing overlaps the buttons or the camera box. The strip comes before the corner brackets in the page, so it draws under them, and it ignores pointer input like the rest of the HUD.</p><div class="fix-note"><b>Fix:</b> <code>#holo-top</code> wraps the three lines. The old absolute <code>top</code>s became margins in normal flow.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The test README's assertion total is stale</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p><code>tests/README.md</code> says 1494 assertions across twenty-eight suites. It doesn't list the jarvis suite, and its total wasn't recounted, because the repo's rule is to run only the changed page's suite. The next Full Monty review, which runs everything, is the natural point to correct the total.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: the <code>jarvis</code> suite (145 passed), headless Chromium at 1280×800 and 390×844 with three.js served from <code>npm pack three@0.128.0</code> under the page's SRI hash, a fake audio device and a fake recognizer, plus contrast computed from the WCAG formula. See <a href="39.html">39.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
