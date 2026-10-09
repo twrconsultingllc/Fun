@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
+<title>J.A.R.V.I.S. — Build Plan</title>
+<meta name="description" content="Build plan for the rest of the J.A.R.V.I.S. Demo features: voice-reactive orb, neural network, Iron Man suit schematic, Earth globe, threat scan, wake word, briefing and gesture tuning, split into self-contained sessions." />
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --panel-border: #262c38;
+    --text: #e4e7ee;
+    --text-dim: #a2a9b8;
+    --accent: #f2a65a;
+    --accent-2: #7fb9e0;
+    --good: #7bc696;
+    --bad: #e08585;
+    --code-bg: #0b0d12;
+    --table-stripe: #1b202a;
+    --link: #f2a65a;
+    --max-width: 960px;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f7f7f5;
+      --panel: #ffffff;
+      --panel-border: #e3e1da;
+      --text: #24262b;
+      --text-dim: #5b5f6b;
+      --accent: #9b531a;
+      --accent-2: #1b6a94;
+      --good: #1f7445;
+      --bad: #a5322a;
+      --code-bg: #f1efe8;
+      --table-stripe: #f1f0eb;
+      --link: #9b531a;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    line-height: 1.65;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 220px minmax(0, var(--max-width));
+    gap: 2.5rem;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 6rem;
+  }
+
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: 1fr; }
+    nav.toc { position: static !important; order: 2; }
+  }
+
+  header.masthead {
+    grid-column: 1 / -1;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--panel-border);
+    margin-bottom: 0.5rem;
+  }
+
+  header.masthead .eyebrow {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  header.masthead h1 {
+    font-size: 2.1rem;
+    margin: 0.35rem 0 0.5rem;
+    line-height: 1.2;
+  }
+
+  header.masthead p.tagline {
+    color: var(--text-dim);
+    font-size: 1.05rem;
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  nav.toc {
+    position: sticky;
+    top: 2rem;
+    align-self: start;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.86rem;
+  }
+
+  nav.toc h2 {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin: 0 0 0.6rem;
+  }
+
+  nav.toc ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: toc;
+  }
+
+  nav.toc li {
+    counter-increment: toc;
+    margin-bottom: 0.5rem;
+  }
+
+  nav.toc a {
+    color: var(--text-dim);
+    text-decoration: none;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  nav.toc a::before {
+    content: counter(toc);
+    color: var(--accent);
+    font-weight: 700;
+    min-width: 1.2em;
+  }
+
+  nav.toc a:hover { color: var(--text); }
+
+  main { min-width: 0; }
+
+  section {
+    margin-bottom: 3rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  section:last-of-type { border-bottom: none; }
+
+  h2 {
+    font-size: 1.5rem;
+    margin: 0 0 0.3rem;
+    scroll-margin-top: 1.5rem;
+  }
+
+  h2 .kicker {
+    display: block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent-2);
+    margin-bottom: 0.4rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    margin: 1.6rem 0 0.6rem;
+    color: var(--text);
+  }
+
+  p { margin: 0.8rem 0; }
+
+  a { color: var(--link); }
+
+  code {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    background: var(--code-bg);
+    padding: 0.12em 0.4em;
+    border-radius: 4px;
+    font-size: 0.88em;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    margin: 0.7rem 0;
+    overflow-x: auto;
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+
+  pre code { background: none; padding: 0; font-size: 1em; }
+
+  .table-wrap { overflow-x: auto; margin: 1.2rem 0; }
+  .table-wrap table { margin: 0; }
+  td code { overflow-wrap: anywhere; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.2rem 0;
+    font-size: 0.92rem;
+  }
+
+  caption {
+    text-align: left;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-bottom: 0.4rem;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid var(--panel-border);
+    vertical-align: top;
+  }
+
+  th {
+    background: var(--panel);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+  }
+
+  tbody tr:nth-child(even) { background: var(--table-stripe); }
+
+  ul, ol { padding-left: 1.4rem; }
+  li { margin: 0.35rem 0; }
+
+  ol.substeps {
+    margin: 0.6rem 0 0.2rem;
+    padding-left: 1.3rem;
+  }
+  ol.substeps > li {
+    margin: 0.7rem 0;
+  }
+  ol.substeps ul {
+    margin: 0.4rem 0;
+  }
+  ol.substeps ul li {
+    margin: 0.5rem 0;
+  }
+
+  .callout {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-left: 4px solid var(--accent-2);
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    margin: 1.2rem 0;
+    font-size: 0.94rem;
+  }
+
+  .callout.decision { border-left-color: var(--good); }
+  .callout.warning {
+    border-left-color: var(--accent);
+    background: rgba(242, 166, 90, 0.08);
+    font-size: 0.98rem;
+  }
+  .callout.blocked {
+    border-left-color: var(--bad);
+    background: rgba(224, 133, 133, 0.08);
+  }
+  .callout strong.label {
+    display: block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 0.35rem;
+  }
+
+  .session-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1.2rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    margin: 0.4rem 0 1.2rem;
+  }
+
+  .session-meta strong { color: var(--text); }
+
+  .badge {
+    display: inline-block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.15em 0.55em;
+    border-radius: 999px;
+    background: var(--panel-border);
+    color: var(--text-dim);
+  }
+
+  .badge.done {
+    background: rgba(123, 198, 150, 0.15);
+    color: var(--good);
+  }
+
+  .badge.in-progress {
+    background: rgba(242, 166, 90, 0.15);
+    color: var(--accent);
+  }
+
+  .badge.claude {
+    background: rgba(127, 185, 224, 0.1);
+    color: var(--accent-2);
+  }
+
+  .badge.you {
+    background: rgba(224, 133, 133, 0.1);
+    color: var(--bad);
+  }
+
+  .who {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: inline-flex;
+    gap: 0.3rem;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+  }
+
+  .callout.notes {
+    border-left-color: var(--text-dim);
+  }
+
+  .callout.notes p:first-child { margin-top: 0; }
+  .callout.notes p:last-child { margin-bottom: 0; }
+
+  footer.page-footer {
+    grid-column: 1 / -1;
+    color: var(--text-dim);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.8rem;
+    text-align: center;
+    padding-top: 1rem;
+  }
+
+  @media print {
+    nav.toc { display: none; }
+    .layout { grid-template-columns: 1fr; }
+    section { break-inside: avoid; border-bottom: none; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Build plan · J.A.R.V.I.S. Demo · not linked from index.html</span>
+    <h1>J.A.R.V.I.S. — Build Plan</h1>
+    <p class="tagline">
+      Every feature still to add to <a href="../jarvis.html">jarvis.html</a>,
+      split into six self-contained sessions. Each session is sized to fit
+      one fresh Claude Code session and ends merged and live, the same way
+      <a href="../droid/build-plan.html">the Sentinel build plan</a> and
+      <a href="../study/build-plan.html">the Claude Architect Lab build plan</a>
+      are worked a session at a time.
+    </p>
+  </header>
+
+  <div class="callout warning" style="grid-column: 1 / -1;">
+    <strong class="label">Status: not started</strong>
+    Written 2026-10-09, after the boot sequence, holo-projector (galaxy,
+    solar system, particle sculptor) and hand control were merged (PRs
+    #61–#64). Sessions are numbered in the suggested order, but each one
+    stands alone except Session 6, which needs you to have tried hand
+    control first.
+  </div>
+
+  <div class="callout" style="grid-column: 1 / -1;">
+    <strong class="label">Key: who does each step</strong>
+    <span class="who"><span class="badge claude">Claude</span></span> marks
+    what a Claude Code session does itself: code, tests, headless Chromium
+    checks, the numbered review, the PR and the merge.
+    <span class="who"><span class="badge you">You</span></span> marks what
+    only you can do: start the session, try the result on your own devices
+    with a real microphone, camera and hands, and say what felt wrong.
+  </div>
+
+  <nav class="toc" aria-label="Contents">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#start">Starting a session</a></li>
+      <li><a href="#index">Session index</a></li>
+      <li><a href="#map">Where things live</a></li>
+      <li><a href="#s1">Polish and voice-reactive orb</a></li>
+      <li><a href="#s2">Neural network</a></li>
+      <li><a href="#s3">Iron Man suit schematic</a></li>
+      <li><a href="#s4">Earth globe</a></li>
+      <li><a href="#s5">Threat scan</a></li>
+      <li><a href="#s6">Wake word, briefing, gesture tuning</a></li>
+      <li><a href="#done">Every session ends the same way</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <section id="start">
+      <h2><span class="kicker">How to use this page</span>Starting a session</h2>
+      <p>
+        <span class="who"><span class="badge you">You</span></span>
+        Open a new Claude Code session on <code>twrconsultingllc/Fun</code>
+        and paste this, changing the session number:
+      </p>
+<pre><code>Work Session 1 of jarvis/build-plan.html. Read that page and CLAUDE.md first. Build everything the session lists, run the checks it names, write the next numbered review in tests/secrpts/, update the session's badge and notes in jarvis/build-plan.html, then merge and tell me what to test on the live site.</code></pre>
+      <p>
+        <span class="who"><span class="badge claude">Claude</span></span>
+        The session reads this page for what to build and
+        <a href="#map">where things live</a>, and <code>CLAUDE.md</code> for
+        how this repo works. That includes the headless Chromium recipes
+        for three.js, the fake camera and WebAssembly, and the rule to merge
+        validated work. When it finishes, it flips this page's badge to
+        <span class="badge done">Done</span> and writes what happened in
+        the session's notes, so the next session starts from what's real.
+      </p>
+    </section>
+
+    <section id="index">
+      <h2><span class="kicker">At a glance</span>Session index</h2>
+      <div class="table-wrap"><table>
+        <caption>Six sessions, smallest first. Original option numbers from the first features chat in brackets.</caption>
+        <thead><tr><th>#</th><th>Session</th><th>Covers</th><th>Size</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><a href="#s1">Polish and voice-reactive orb</a></td><td>Option 8 and four open review items</td><td>Small</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>2</td><td><a href="#s2">Neural network</a></td><td>Option 6</td><td>Small–medium</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>3</td><td><a href="#s3">Iron Man suit schematic</a></td><td>Option 3</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>4</td><td><a href="#s4">Earth globe</a></td><td>Option 4</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>5</td><td><a href="#s5">Threat scan</a></td><td>Option 11</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>6</td><td><a href="#s6">Wake word, briefing, gesture tuning</a></td><td>Options 7 and 12, and the hand-control review item</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="map">
+      <h2><span class="kicker">Read this before changing anything</span>Where things live</h2>
+      <p>Everything is in one page, <code>jarvis.html</code> (about 840 lines), plus the self-hosted hand tracker and one test suite.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Piece</th><th>Where</th><th>How to extend it</th></tr></thead>
+        <tbody>
+          <tr><td>Chat answers</td><td><code>brain()</code></td><td>Add a regex rule. The help answer lists what Jarvis can do, so update it too.</td></tr>
+          <tr><td>Projector commands</td><td><code>intent()</code>, checked before <code>brain()</code></td><td>Return <code>{kind, arg}</code>. Order matters: more specific patterns first. The suite pins about 30 phrasings, so add yours.</td></tr>
+          <tr><td>3D scenes</td><td><code>buildGalaxy</code>, <code>buildSolar</code>, <code>buildParticles</code>, registered in <code>BUILDERS</code></td><td>A builder returns <code>{scene, camera, rig, title, stat, hint, update(dt,t)}</code>, plus optional <code>setArg</code>, <code>pick(ndc)</code>, <code>next(dir)</code> and <code>squeeze(on)</code>. Hand control uses those last three automatically.</td></tr>
+          <tr><td>Camera framing</td><td><code>makeRig()</code>, <code>fitDist()</code></td><td>Use <code>fitDist(halfWidth, halfHeight)</code> so an upright phone sees the whole object.</td></tr>
+          <tr><td>three.js</td><td><code>loadThree()</code></td><td>r128 from cdnjs with an SRI hash, loaded only when a scene opens. Use r128 APIs (e.g. <code>BufferGeometry.setAttribute</code>).</td></tr>
+          <tr><td>Hand control</td><td><code>classifyHand</code>, <code>createGestures</code>, <code>startHands</code>; files in <code>jarvis/hands/</code></td><td>The vendored files are pinned by hash (see <a href="hands/README.md">hands/README.md</a>). <code>tasks-vision</code> 0.10.14 also has a face detector, which Session 5 can reuse.</td></tr>
+          <tr><td>Orb</td><td><code>draw()</code></td><td>Reads <code>mode</code>, <code>energy</code> and <code>bootP</code>.</td></tr>
+          <tr><td>Privacy line</td><td>CSP meta tag</td><td><code>connect-src 'self'</code>. Anything that would widen it to an outside host is a decision for you, not the session.</td></tr>
+          <tr><td>Tests</td><td><code>tests/jarvis.dom.test.mjs</code> (104 checks)</td><td>jsdom has no WebGL, canvas or camera, so pure logic is exposed on <code>window.__jarvis</code> and tested directly.</td></tr>
+        </tbody>
+      </table></div>
+<pre><code>cd tests && node run.mjs --page=jarvis.html</code></pre>
+    </section>
+
+    <section id="s1">
+      <h2><span class="kicker">Session 1 · small</span>Polish and voice-reactive orb</h2>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> nothing</span><span><strong>Review:</strong> next number in <code>tests/secrpts/</code></span></div>
+      <ol class="substeps">
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Orb reacts to your voice.</strong> While the mic is listening, open an audio stream (<code>getUserMedia({audio:true})</code>) into a Web Audio <code>AnalyserNode</code> and drive <code>energy</code> from its volume, so the rings jump as you talk. Close the stream when listening ends. Speech synthesis has no audio tap, so while Jarvis speaks, pulse on each word with the utterance's <code>onboundary</code> event, and fall back to the current sine pulse where that event doesn't fire.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Mic note.</strong> One line by the mic, shown once: voice input uses the browser's online speech service, and typing stays on the device (from <a href="../tests/secrpts/36.html">review 36</a>).</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Hint backing strip.</strong> A translucent strip behind the projector's top HUD text, so a bright star can't wash it out (from <a href="../tests/secrpts/37.html">review 37</a>).</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Reduced motion.</strong> Hold the orb's glow and ring sizes steady when <code>reduce</code> is set (from <a href="../tests/secrpts/36.html">review 36</a>).</li>
+        <li><span class="who"><span class="badge you">You</span></span> Talk to it on your phone and say whether the orb's reaction feels right.</li>
+      </ol>
+      <p><strong>Checks:</strong> the suite covers the volume-to-energy mapping as a pure function. In Chromium, feed <code>--use-file-for-fake-audio-capture</code> a WAV and confirm the energy rises. Screenshot the HUD over the galaxy core.</p>
+      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+    </section>
+
+    <section id="s2">
+      <h2><span class="kicker">Session 2 · small–medium</span>Neural network</h2>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> nothing</span></div>
+      <ol class="substeps">
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>A <code>neural</code> scene.</strong> Layers of glowing nodes joined by faint lines, with pulses travelling along the connections. "Show me your brain" or "neural network" opens it.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>It thinks when Jarvis thinks.</strong> While <code>mode</code> is <code>think</code>, a burst of pulses fires from the input layer to the output layer. Each answer lights the output nodes. With the scene closed, this does nothing.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Hand control:</strong> <code>pick</code> a node to have Jarvis explain what a layer does (kid-friendly), <code>next</code> to rebuild with a different shape, <code>squeeze</code> to fire every node at once.</li>
+      </ol>
+      <p><strong>Checks:</strong> commands in the suite, and Chromium screenshots at desktop and phone width while it's thinking.</p>
+      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+    </section>
+
+    <section id="s3">
+      <h2><span class="kicker">Session 3 · medium</span>Iron Man suit schematic</h2>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> nothing</span></div>
+      <ol class="substeps">
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>A <code>suit</code> scene:</strong> a generic armoured figure built from three.js primitives in glowing wireframe, on a turntable with a scanning line. It should be a look-alike, not a copy of Marvel's design, and use no downloaded 3D model. That avoids licensing questions and keeps the page self-contained.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Callouts:</strong> HTML labels projected from 3D points ("Repulsor", "Arc reactor", "Flight stabilizer", "Helmet HUD"), with leader lines that follow the model as it turns. Tapping or pinching a part gives a fun spec line.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Voice:</strong> "Suit up" and "show me the suit" open it, and "suit up" plays a short assembly animation with pieces flying into place. A fist <code>squeeze</code> fires the repulsors.</li>
+      </ol>
+      <p><strong>Checks:</strong> callout positions stay on screen at 390×844 (measure the boxes in Chromium, as review 38 did for the HUD). Suite checks for the commands and the part list.</p>
+      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+    </section>
+
+    <section id="s4">
+      <h2><span class="kicker">Session 4 · medium</span>Earth globe</h2>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> nothing</span></div>
+      <ol class="substeps">
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Land outlines:</strong> from Natural Earth's public-domain 110 m data (the <code>world-atlas</code> npm package carries it; npm is reachable from claude.ai/code). Convert it once into a small embedded outline, or a file under <code>jarvis/</code>, so the page fetches nothing from outside. NASA's image servers are blocked from the container, so don't plan on Blue Marble textures.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>A <code>globe</code> scene:</strong> a dark ocean sphere with glowing coastlines, a day/night line from the real time, city lights from an embedded list of about 200 large cities, and a few satellites in orbit.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>"Show me Florida":</strong> an embedded table of places (countries, US states, big cities) with latitude and longitude. The camera flies there and a marker pulses. "Show me Earth" opens the globe, and <code>next</code> tours the continents.</li>
+      </ol>
+      <p><strong>Checks:</strong> a lat/lon-to-3D unit test (for example, Florida faces the camera after "show me Florida"), plus screenshots.</p>
+      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+    </section>
+
+    <section id="s5">
+      <h2><span class="kicker">Session 5 · medium</span>Threat scan</h2>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> nothing</span></div>
+      <ol class="substeps">
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Face lock:</strong> add MediaPipe's short-range face detector next to the hand tracker in <code>jarvis/hands/</code> (or rename the folder to <code>jarvis/vision/</code> and update the hashes, the README and the test). Pin its hash the same way.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>A <code>scan</code> view:</strong> the mirrored camera with targeting brackets that lock onto each face, a sweeping scan line, and made-up readouts ("threat level: minimal · snack level: critical · coolness: off the charts"). "Scan the room" or "threat scan" opens it. It is camera-only, with no 3D scene, but uses the same HUD and close rules.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Privacy, same as hand control:</strong> camera on only when asked, off on close, nothing saved, and no screenshot or recording feature.</li>
+      </ol>
+      <p><strong>Checks:</strong> Chromium's fake camera fed a photo with a face (the hands sample image has one). The brackets land on it with no CSP violations.</p>
+      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+    </section>
+
+    <section id="s6">
+      <h2><span class="kicker">Session 6 · medium</span>Wake word, briefing, gesture tuning</h2>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> you to have tried hand control on your own devices</span></div>
+      <ol class="substeps">
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>"Hey Jarvis":</strong> an "always listening" switch that keeps speech recognition running and acts only on phrases that start with "Jarvis". It's off by default and resets each visit. The switch says plainly that the audio goes to the browser's speech service, and that it works in Chrome and Edge only. Where it isn't supported, the switch is hidden.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>"Brief me":</strong> reads the time, then the top headline from each of a few categories in <code>daily-wire/feeds.json</code>. That file is on this site, so <code>connect-src 'self'</code> already allows it. It's spoken and shown in the log.</li>
+        <li><span class="who"><span class="badge you">You</span></span> <strong>Weather is your call.</strong> It needs an outside service (for example Open-Meteo, which needs no key), which means adding that host to <code>connect-src</code> and asking for your location. Say yes or no before this session. Without a yes, the briefing skips weather.</li>
+        <li><span class="who"><span class="badge you">You</span></span> <strong>Gesture feedback.</strong> Before this session, try hand control and note what misfired: pinches not registering, accidental swipes, a fist read as a pinch, lag on which device.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Gesture tuning</strong> from that feedback. The thresholds are in <code>createGestures</code> and <code>classifyHand</code> (pinch below 0.26 and released above 0.42 of palm size, a swipe of 22% of the frame in 0.4 s, a 150 ms fist). Add a synthetic-landmark test for each reported misfire before changing a number.</li>
+      </ol>
+      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+    </section>
+
+    <section id="done">
+      <h2><span class="kicker">Definition of done</span>Every session ends the same way</h2>
+      <ol class="substeps">
+        <li><span class="who"><span class="badge claude">Claude</span></span> The suite passes, with new checks for the session's logic:
+<pre><code>cd tests && node run.mjs --page=jarvis.html</code></pre></li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> Headless Chromium screenshots at 1280×800 and 390×844, with no page errors and no CSP violations, using the recipes in <code>CLAUDE.md</code>.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> The next numbered review in <code>tests/secrpts/</code>, and the help answer in <code>brain()</code> updated for new commands.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> This page updated: the badge in the session and in the <a href="#index">index</a>, and real notes (what changed from the plan, commit hashes, what's still open).</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> PR opened and merged, and the Pages deploy watched.</li>
+        <li><span class="who"><span class="badge you">You</span></span> Try it on the live site, at <a href="https://twrconsultingllc.github.io/Fun/jarvis.html">twrconsultingllc.github.io/Fun/jarvis.html</a>.</li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="page-footer">J.A.R.V.I.S. Demo build plan · part of <a href="../index.html">Fun</a></footer>
+</div>
+</body>
+</html>
