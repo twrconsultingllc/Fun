@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #46 — skins, orb faces and learned phrases in jarvis-test.html</title>
+<meta name="description" content="Review of three additions to jarvis-test.html: Matrix (Morpheus) and Florida Panthers (Stanley C. Panther) skins, a face in the orb for each skin drawn in code characters, and phrases Jarvis learns when he doesn't understand, saved in localStorage.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #46 — skins, orb faces and learned phrases in jarvis-test.html</h1>
+    <p class="sub">Three features on the test copy only, as <code>CLAUDE.md</code> asks for new J.A.R.V.I.S. work. Jarvis can switch to a Matrix skin, where he becomes Morpheus, or a Panthers skin, where he becomes Stanley C. Panther (the Florida Panthers' mascot, named after the Stanley Cup). Each skin has its own face in the orb's centre, drawn in code characters: an Iron Man style helmet, Morpheus, and Stanley. When Jarvis doesn't understand something, he says so, lists what he can do and asks what was meant. If the answer is something he knows, he saves the phrase in this browser.</p>
+    <div class="meta">Review performed 2026-10-09 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>tests/jarvis-test.dom.test.mjs</code> · suite run: <code>jarvis-test</code> (342 passed, 287 before) · follows: <a href="45.html">45.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 75%;"></div></div>
+    <div class="progress-label">8 items: 6 fixed or verified clean, 2 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Learned phrases can't inject markup or pollute objects</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The phrase store is <code>localStorage['jarvis-learned']</code>, a JSON object of phrase to meaning. Anything typed or spoken comes back to the screen only through <code>say()</code> and <code>add()</code>, which use <code>textContent</code>. A grep finds 0 <code>innerHTML</code> or <code>eval(</code> in the page. The store is loaded into <code>Object.create(null)</code>, keeping only string values, with phrases up to 120 characters and meanings up to 200. So a stored <code>__proto__</code> key is a plain entry, not a prototype change. Phrases are normalised to <code>[a-z0-9' ]</code> before they're used as keys. The suite checks that a corrupt store and a non-string value are ignored, and that teaching <code>__proto__</code> leaves <code>Object.prototype</code> alone. The store holds at most 200 phrases and drops the oldest first. "Forget what you learned" clears it.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The saved skin is checked before use</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>localStorage['jarvis-skin']</code> is used only if <code>Object.hasOwn(SKINS, k)</code>, so a value like <code>constructor</code> falls back to Jarvis. The suite checks that case. The skin id ends up only in <code>data-skin</code> on the root element and as a lookup key.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No new network use, CSP unchanged</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The Matrix rain and the three faces are drawn on canvases in the page's own script, with no images, fonts or libraries added. A diff of the CSP meta tag shows no change, and there are still 0 <code>script[src]</code>. Nothing new leaves the device: learned phrases stay in <code>localStorage</code>. Speech recognition is still the only online part, and the existing mic note already says so.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Skin colours checked for contrast</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Computed WCAG ratios. Matrix: label <code>#2ec95a</code> is 9.49:1 on <code>#000300</code> and 8.36:1 on <code>#001a06</code>, and text <code>#d4ffdc</code> is 16.64:1. Panthers: the first red, <code>#ff4458</code>, was only 4.44:1 on the navy <code>#0a2552</code> in the middle of the page. The STANDBY label is shown at 80% opacity, which brought it down to 3.88:1. Fixed by changing the red to <code>#ff7381</code> (5.73:1 on navy, 7.66:1 on <code>#020814</code>) and showing the state label at full opacity on that skin. The gold label <code>#d4b47a</code> is 7.58:1 on navy, and text <code>#f1f4fa</code> is 13.62:1.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Faces and skins rendered in headless Chromium</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The page was loaded from <code>file://</code>, booted, and switched through all three skins with the real skin button. Screenshots show the helmet in green, orange and blue, Morpheus in Matrix green, and Stanley in red, navy and gold, each inside the innermost ring. There were no console errors, and the page held 61 frames a second while drawing a face. The orb's glow now dims as the face fades in, after the first screenshot showed it washing the faces out. The skin button cycles Jarvis to Morpheus to Stanley and back. Learning a phrase was also checked in the real browser.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Suite extended for skins and learned phrases</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>55 new checks in three sections ("Skins", "Learned phrases", "Remembered across visits"), using the existing fake speech engine. They cover: which phrases switch skins and which must not (for example "i want to go to jupiter jarvis", which the first pattern wrongly read as a skin switch until it was tightened), each persona's voice pitch and rate, the not-understood answer, "nothing" moving on, teaching and recalling a phrase, a learned phrase that switches skin, a meaning Jarvis doesn't understand either, and the store surviving a reload. jsdom has no canvas, so the faces are checked by the Chromium screenshots above, not by the suite.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Voices not heard, mouth movement not seen</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Headless Chromium has no speech voices. So Morpheus's lower, slower voice and Stanley's brighter one are checked only as the pitch and rate passed to each utterance. And because nothing ever speaks, the orb never enters SPEAKING, so the faces' moving mouths and flaring eyes weren't seen in the real page. They were seen on the preview page, which uses the same drawing code. Which voice a phone picks depends on what it has installed. The proof is the user trying it on the live test page.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Any reply after "What were you trying to say?" is learned</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>On purpose, to keep it simple for voice: the reply doesn't need a "what I meant was" prefix. So if the user asks something unrelated instead, and Jarvis understands it, the earlier phrase gets linked to it. Jarvis always says what he learned ("Next time you say X, I'll know you mean Y"), and "forget what you learned" clears it. Left open until the user has tried it.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: the <code>jarvis-test</code> suite, headless Chromium screenshots of all three skins and faces, computed contrast ratios, and greps for unsafe sinks and CSP changes. See <a href="45.html">45.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>

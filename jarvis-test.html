@@ -211,6 +211,222 @@ let lastWord=null; // when the current utterance last started a word (rAF time),
 // Set by recognition's own speechstart/speechend events. The orb never opens a mic stream of its own:
 // a second stream took the mic away from speech recognition on a phone (2026-10-09).
 let hearing=false;
+/* ---------- Orb faces: each skin's face in the orb's centre, drawn in code characters ---------- */
+// Jarvis gets an Iron Man style helmet, Morpheus his portrait, Stanley C. Panther the mascot. Each is drawn
+// once in full colour (or grey for Morpheus) on a hidden canvas, then redrawn every frame as a grid of
+// characters that takes its colour from that picture, with code raining down through it.
+const orbFace=(()=>{
+const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+const grey=(v,a=1)=>`rgba(${v*255|0},${v*255|0},${v*255|0},${a})`;
+function blob(g,x,y,rx,ry,v,a){const r=g.createRadialGradient(x,y,0,x,y,1);r.addColorStop(0,grey(v,a));r.addColorStop(1,grey(v,0));g.save();g.translate(x,y);g.scale(rx,ry);g.translate(-x,-y);g.fillStyle=r;g.beginPath();g.arc(x,y,1,0,7);g.fill();g.restore()}
+let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const GREEN='#39ff88',ORANGE='#ffa64a',CYAN='#7fe8ff';
+
+/* ---------- Morpheus (round 2's portrait, unchanged) ---------- */
+function morphHead(g){
+  g.beginPath();g.moveTo(0,-.86);
+  g.bezierCurveTo(.36,-.86,.6,-.62,.6,-.26);g.bezierCurveTo(.62,.05,.6,.3,.5,.5);g.bezierCurveTo(.42,.68,.24,.8,0,.82);
+  g.bezierCurveTo(-.24,.8,-.42,.68,-.5,.5);g.bezierCurveTo(-.6,.3,-.62,.05,-.6,-.26);g.bezierCurveTo(-.6,-.62,-.36,-.86,0,-.86);g.closePath();
+}
+function drawMorpheus(g){
+  let lg=g.createLinearGradient(0,.4,0,1.2);lg.addColorStop(0,grey(.18));lg.addColorStop(1,grey(.42));
+  g.fillStyle=lg;g.beginPath();g.moveTo(-.34,.45);g.lineTo(.34,.45);g.lineTo(.42,1.2);g.lineTo(-.42,1.2);g.fill();
+  g.fillStyle=grey(.07);
+  for(const s of[-1,1]){g.beginPath();g.moveTo(s*.32,.72);g.lineTo(s*.62,.62);g.lineTo(s*1.1,.9);g.lineTo(s*1.1,1.2);g.lineTo(s*.12,1.2);g.closePath();g.fill()}
+  g.strokeStyle=grey(.35);g.lineWidth=.012;for(const s of[-1,1]){g.beginPath();g.moveTo(s*.32,.72);g.lineTo(s*.62,.62);g.lineTo(s*1.0,.84);g.stroke()}
+  for(const s of[-1,1]){g.fillStyle=grey(s<0?.5:.32);g.beginPath();g.ellipse(s*.6,.03,.085,.17,s*.12,0,7);g.fill();g.fillStyle=grey(.15);g.beginPath();g.ellipse(s*.61,.04,.035,.09,s*.12,0,7);g.fill()}
+  morphHead(g);let rg=g.createRadialGradient(-.22,-.42,.02,-.05,-.1,1.05);
+  rg.addColorStop(0,grey(.95));rg.addColorStop(.3,grey(.72));rg.addColorStop(.7,grey(.46));rg.addColorStop(1,grey(.24));g.fillStyle=rg;g.fill();
+  g.save();morphHead(g);g.clip();
+  lg=g.createLinearGradient(-.62,0,.62,0);lg.addColorStop(0,grey(0,.35));lg.addColorStop(.22,grey(0,0));lg.addColorStop(.7,grey(0,0));lg.addColorStop(1,grey(0,.55));g.fillStyle=lg;g.fillRect(-1,-1,2,2);
+  blob(g,-.2,-.6,.2,.1,1,.75);blob(g,-.34,.06,.16,.12,1,.22);blob(g,.36,.08,.14,.12,0,.18);
+  g.strokeStyle=grey(0,.16);g.lineWidth=.014;for(const y of[-.47,-.4]){g.beginPath();g.moveTo(-.22,y);g.quadraticCurveTo(0,y-.03,.22,y);g.stroke()}
+  for(const s of[-1,1])blob(g,s*.23,-.11,.22,.13,0,.5);
+  g.fillStyle=grey(.12);
+  for(const s of[-1,1]){g.beginPath();g.moveTo(s*.45,-.21);g.quadraticCurveTo(s*.32,-.3,s*.1,-.255);g.lineTo(s*.07,-.215);g.quadraticCurveTo(s*.28,-.245,s*.45,-.18);g.closePath();g.fill()}
+  blob(g,0,-.27,.07,.05,0,.35);
+  g.strokeStyle=grey(1,.22);g.lineWidth=.03;g.beginPath();g.moveTo(-.02,-.06);g.quadraticCurveTo(-.03,.06,-.02,.17);g.stroke();
+  g.fillStyle=grey(0,.22);g.beginPath();g.moveTo(.05,-.06);g.quadraticCurveTo(.11,.06,.14,.2);g.lineTo(.07,.18);g.quadraticCurveTo(.06,.05,.03,-.04);g.fill();
+  for(const s of[-1,1]){blob(g,s*.12,.2,.07,.06,s<0?.9:0,s<0?.18:.3);g.fillStyle=grey(.06);g.beginPath();g.ellipse(s*.085,.245,.045,.022,s*-.25,0,7);g.fill()}
+  blob(g,0,.19,.06,.05,1,.3);blob(g,0,.29,.16,.035,0,.4);
+  g.strokeStyle=grey(0,.3);g.lineWidth=.022;for(const s of[-1,1]){g.beginPath();g.moveTo(s*.16,.18);g.quadraticCurveTo(s*.27,.3,s*.25,.44);g.stroke()}
+  g.fillStyle=grey(.08);g.beginPath();g.moveTo(-.21,.385);g.quadraticCurveTo(0,.31,.21,.385);g.quadraticCurveTo(0,.355,-.21,.385);g.fill();
+  g.fillStyle=grey(.3);g.beginPath();g.moveTo(-.18,.395);g.quadraticCurveTo(-.06,.36,0,.38);g.quadraticCurveTo(.06,.36,.18,.395);g.quadraticCurveTo(0,.425,-.18,.395);g.fill();
+  g.fillStyle=grey(.4);g.beginPath();g.moveTo(-.17,.405);g.quadraticCurveTo(0,.42,.17,.405);g.quadraticCurveTo(.12,.51,0,.505);g.quadraticCurveTo(-.12,.51,-.17,.405);g.fill();
+  blob(g,-.03,.455,.06,.02,1,.35);
+  g.fillStyle=grey(.07);g.beginPath();g.moveTo(-.2,.4);g.quadraticCurveTo(-.23,.55,-.15,.68);g.quadraticCurveTo(0,.84,.15,.68);g.quadraticCurveTo(.23,.55,.2,.4);
+  g.lineTo(.17,.42);g.quadraticCurveTo(.15,.55,0,.54);g.quadraticCurveTo(-.15,.55,-.17,.42);g.closePath();g.fill();
+  g.strokeStyle=grey(.32,.5);g.lineWidth=.008;seed=7;
+  for(let i=0;i<70;i++){const x=(rnd()-.5)*.32,y=.56+rnd()*.22;if(Math.abs(x)>.17-(y-.56)*.6)continue;g.beginPath();g.moveTo(x,y);g.lineTo(x+(rnd()-.5)*.02,y+.035);g.stroke()}
+  g.restore();
+  for(const s of[-1,1]){
+    const x=s*.215,y=-.1;const r=g.createRadialGradient(x-.05,y-.05,.01,x,y,.15);r.addColorStop(0,grey(.28));r.addColorStop(.5,grey(.05));r.addColorStop(1,grey(.02));
+    g.fillStyle=r;g.beginPath();g.ellipse(x,y,.15,.135,0,0,7);g.fill();
+    g.strokeStyle=grey(.75);g.lineWidth=.016;g.stroke();
+    g.strokeStyle=grey(1,.75);g.lineWidth=.02;g.beginPath();g.ellipse(x,y,.105,.09,0,Math.PI*1.08,Math.PI*1.42);g.stroke();
+  }
+  g.strokeStyle=grey(.75);g.lineWidth=.018;g.beginPath();g.moveTo(-.07,-.13);g.quadraticCurveTo(0,-.19,.07,-.13);g.stroke();
+  for(const s of[-1,1]){g.beginPath();g.moveTo(s*.07,-.13);g.lineTo(s*.045,-.07);g.stroke()}
+}
+
+
+/* ---------- The helmet (front view, x right, y down, about 1.8 units tall) ---------- */
+function shell(g){
+  g.beginPath();g.moveTo(0,-.94);
+  g.bezierCurveTo(.38,-.94,.62,-.72,.62,-.32);g.bezierCurveTo(.62,-.05,.64,.2,.56,.42);g.bezierCurveTo(.48,.62,.3,.8,0,.88);
+  g.bezierCurveTo(-.3,.8,-.48,.62,-.56,.42);g.bezierCurveTo(-.64,.2,-.62,-.05,-.62,-.32);g.bezierCurveTo(-.62,-.72,-.38,-.94,0,-.94);g.closePath();
+}
+function plate(g){
+  g.beginPath();g.moveTo(0,-.7);
+  g.bezierCurveTo(.22,-.7,.4,-.62,.44,-.42);g.lineTo(.46,-.12);g.lineTo(.4,0);g.lineTo(.43,.16);
+  g.bezierCurveTo(.42,.4,.3,.62,.13,.74);g.lineTo(0,.78);g.lineTo(-.13,.74);
+  g.bezierCurveTo(-.3,.62,-.42,.4,-.43,.16);g.lineTo(-.4,0);g.lineTo(-.46,-.12);g.lineTo(-.44,-.42);g.bezierCurveTo(-.4,-.62,-.22,-.7,0,-.7);g.closePath();
+}
+function eyes(g){for(const s of[-1,1]){g.moveTo(s*.38,-.21);g.lineTo(s*.09,-.125);g.lineTo(s*.1,-.06);g.lineTo(s*.34,-.105);g.closePath()}}
+function panelLines(g){
+  g.moveTo(-.18,.44);g.quadraticCurveTo(0,.475,.18,.44); // mouth slit
+  for(const s of[-1,1]){
+    g.moveTo(s*.36,-.06);g.quadraticCurveTo(s*.31,.24,s*.19,.44); // cheek plates
+    g.moveTo(s*.19,.44);g.lineTo(s*.11,.7);                        // chin
+    g.moveTo(s*.44,-.3);g.quadraticCurveTo(s*.22,-.33,s*.06,-.26); // brow
+  }
+  g.moveTo(0,-.26);g.lineTo(0,-.08);
+}
+function trim(g){ // the orange bits: forehead stripe and the cheek vents
+  g.moveTo(0,-.7);g.lineTo(0,-.44);
+  for(const s of[-1,1]){g.moveTo(s*.41,.06);g.lineTo(s*.36,.2);g.moveTo(s*.39,.24);g.lineTo(s*.33,.36)}
+}
+function ears(g,fill){for(const s of[-1,1]){g.beginPath();g.arc(s*.6,-.05,.1,0,7);g.fillStyle=fill;g.fill()}}
+// H1 base: solid armour, built once (also the colour map for H3)
+function drawHelmet(g,eyeGlow=1,bold=1){
+  let rg=g.createRadialGradient(-.22,-.55,.02,0,-.1,1.05);
+  rg.addColorStop(0,'#b9ffd6');rg.addColorStop(.25,'#4fe08f');rg.addColorStop(.65,'#178a4c');rg.addColorStop(1,'#063a1e');
+  shell(g);g.fillStyle=rg;g.fill();g.strokeStyle='#021a0c';g.lineWidth=.02;g.stroke();
+  ears(g,'#0a4a27');for(const s of[-1,1]){g.strokeStyle=ORANGE;g.lineWidth=.025;g.beginPath();g.arc(s*.6,-.05,.075,0,7);g.stroke()}
+  g.save();shell(g);g.clip();
+  g.strokeStyle='rgba(0,0,0,.55)';g.lineWidth=.07;plate(g);g.stroke();g.restore();
+  rg=g.createLinearGradient(-.45,-.7,.45,.75);rg.addColorStop(0,'#d9ffe9');rg.addColorStop(.3,'#6ff2a8');rg.addColorStop(.7,'#22a85f');rg.addColorStop(1,'#0b5530');
+  plate(g);g.fillStyle=rg;g.fill();
+  g.save();plate(g);g.clip();
+  const lg=g.createLinearGradient(-.46,0,.46,0);lg.addColorStop(0,'rgba(0,0,0,.25)');lg.addColorStop(.3,'rgba(0,0,0,0)');lg.addColorStop(.75,'rgba(0,0,0,0)');lg.addColorStop(1,'rgba(0,0,0,.4)');g.fillStyle=lg;g.fillRect(-1,-1,2,2);
+  g.restore();
+  g.strokeStyle=ORANGE;g.lineWidth=.022*bold;plate(g);g.stroke();
+  g.beginPath();panelLines(g);g.strokeStyle='#03200f';g.lineWidth=.022*bold;g.stroke();
+  g.beginPath();panelLines(g);g.strokeStyle='rgba(200,255,220,.35)';g.lineWidth=.008;g.save();g.translate(-.008,-.008);g.stroke();g.restore();
+  g.beginPath();trim(g);g.strokeStyle=ORANGE;g.lineWidth=.035*bold;g.lineCap='round';g.stroke();g.lineCap='butt';
+  g.beginPath();eyes(g);g.fillStyle='#03140a';g.fill();if(bold>1){g.beginPath();eyes(g);g.strokeStyle=CYAN;g.lineWidth=.05;g.lineJoin='round';g.stroke()}
+  g.save();g.shadowColor=CYAN;g.shadowBlur=.08*eyeGlow*40;g.beginPath();eyes(g);g.fillStyle='#effdff';g.globalAlpha=Math.min(1,.6+.4*eyeGlow);g.fill();g.restore();
+}
+
+
+/* ---------- Stanley C. Panther (front view, x right, y down) ---------- */
+const P_RED='#c8102e',P_GOLD='#ffd25a',P_TAN='#e8d2a6';
+function pHead(g){
+  g.beginPath();g.moveTo(0,-.66);
+  g.bezierCurveTo(.3,-.68,.5,-.58,.56,-.36);g.bezierCurveTo(.64,-.14,.68,.12,.6,.3);
+  g.lineTo(.68,.37);g.lineTo(.55,.42);g.lineTo(.6,.51);g.lineTo(.45,.54);g.bezierCurveTo(.34,.72,.18,.8,0,.8);
+  g.bezierCurveTo(-.18,.8,-.34,.72,-.45,.54);g.lineTo(-.6,.51);g.lineTo(-.55,.42);g.lineTo(-.68,.37);g.lineTo(-.6,.3);
+  g.bezierCurveTo(-.68,.12,-.64,-.14,-.56,-.36);g.bezierCurveTo(-.5,-.58,-.3,-.68,0,-.66);g.closePath();
+}
+function pEar(g,s,k=1){const c=[s*.42,-.6];g.beginPath();
+  g.moveTo(c[0]+(s*.22-c[0])*k,c[1]+(-.62-c[1])*k);g.quadraticCurveTo(c[0]+(s*.5-c[0])*k,c[1]+(-1.02-c[1])*k,c[0]+(s*.62-c[0])*k,c[1]+(-.92-c[1])*k);
+  g.quadraticCurveTo(c[0]+(s*.66-c[0])*k,c[1]+(-.62-c[1])*k,c[0]+(s*.58-c[0])*k,c[1]+(-.36-c[1])*k);g.closePath()}
+function pMuzzle(g){g.beginPath();g.moveTo(-.07,-.05);g.quadraticCurveTo(0,-.09,.07,-.05);g.lineTo(.1,.08);
+  g.arc(.14,.2,.16,-2.2,1.25);g.quadraticCurveTo(0,.42,-.05,.355);g.arc(-.14,.2,.16,1.9,5.35);g.closePath()}
+function pChin(g,open){g.beginPath();g.ellipse(0,.44+open*.12,.13,.09,0,0,7)}
+function pEye(g,s,open,pupil,glow,big=false){
+  g.save();g.translate(s*.24,-.17);g.rotate(s*.28);if(big)g.scale(1.35,1.5);g.scale(1,Math.max(.06,open));
+  g.beginPath();g.moveTo(-.13,0);g.quadraticCurveTo(0,-.11,.13,0);g.quadraticCurveTo(0,.09,-.13,0);g.closePath();
+  g.shadowColor=P_GOLD;g.shadowBlur=glow;const r=g.createRadialGradient(0,0,0,0,0,.13);r.addColorStop(0,'#fff3b0');r.addColorStop(.6,P_GOLD);r.addColorStop(1,'#d18a12');g.fillStyle=r;g.fill();g.shadowBlur=0;
+  g.fillStyle='#0a0606';g.beginPath();g.ellipse(0,0,.025+pupil*.04,.075,0,0,7);g.fill();
+  g.fillStyle='rgba(255,255,255,.85)';g.beginPath();g.arc(-.04,-.03,.016,0,7);g.fill();
+  g.strokeStyle='#05070f';g.lineWidth=.022;g.beginPath();g.moveTo(-.14,.005);g.quadraticCurveTo(0,-.12,.14,0);g.stroke();g.restore();
+}
+// The whole mascot. open: mouth 0..1, blink: eye openness 0..1, code: brighter fur and bolder features for sampling
+function drawPanther(g,{open=0,blink=1,code=false,glow=8}={}){
+  const fur=code?['#7d9be0','#3d5ca8','#22386e']:['#3a4d7d','#16234a','#060b1d'];
+  // jersey collar
+  g.fillStyle=P_RED;g.beginPath();g.moveTo(-1.1,.86);g.quadraticCurveTo(-.5,.66,-.28,.7);g.lineTo(0,.98);g.lineTo(.28,.7);g.quadraticCurveTo(.5,.66,1.1,.86);g.lineTo(1.1,1.2);g.lineTo(-1.1,1.2);g.fill();
+  g.strokeStyle=code?'#4d6fc4':'#0b1a3d';g.lineWidth=code?.08:.05;g.beginPath();g.moveTo(-.9,.86);g.quadraticCurveTo(-.5,.73,-.3,.76);g.lineTo(0,1.04);g.lineTo(.3,.76);g.quadraticCurveTo(.5,.73,.9,.86);g.stroke();
+  g.strokeStyle=P_GOLD;g.lineWidth=code?.04:.02;g.stroke();
+  // ears
+  for(const s of[-1,1]){pEar(g,s);g.fillStyle=fur[1];g.fill();pEar(g,s,.62);g.fillStyle=P_RED;g.fill()}
+  // head with a red rim light from the orb on the right
+  pHead(g);let rg=g.createRadialGradient(-.2,-.35,.02,0,0,1.05);rg.addColorStop(0,fur[0]);rg.addColorStop(.5,fur[1]);rg.addColorStop(1,fur[2]);g.fillStyle=rg;g.fill();
+  g.save();pHead(g);g.clip();
+  g.strokeStyle='rgba(255,60,80,.55)';g.lineWidth=.06;g.save();g.translate(-.03,0);pHead(g);g.stroke();g.restore();
+  g.strokeStyle=code?'rgba(10,20,50,.6)':'rgba(0,0,0,.35)';g.lineWidth=code?.035:.02;  // forehead markings
+  for(const [x0,x1] of[[-.06,-.1],[0,0],[.06,.1]]){g.beginPath();g.moveTo(x0,-.6);g.lineTo(x1,-.4);g.stroke()}
+  // brow ridge
+  g.fillStyle=code?'rgba(10,20,50,.7)':'rgba(0,0,0,.4)';for(const s of[-1,1]){g.beginPath();g.moveTo(s*.06,-.27);g.quadraticCurveTo(s*.24,-.36,s*.42,-.26);g.quadraticCurveTo(s*.24,-.3,s*.06,-.23);g.fill()}
+  g.restore();
+  // mouth, behind the muzzle
+  if(open>.02){g.fillStyle='#2a0207';g.beginPath();g.moveTo(-.2,.32);g.quadraticCurveTo(0,.36+open*.36,.2,.32);g.fill();
+    g.fillStyle='#e2435a';g.beginPath();g.ellipse(0,.36+open*.2,.1,.05+open*.03,0,0,7);g.fill()}
+  pChin(g,open);g.fillStyle='#cdb27e';g.fill();
+  // muzzle
+  pMuzzle(g);rg=g.createRadialGradient(-.05,.12,.02,0,.2,.35);rg.addColorStop(0,'#fff6e4');rg.addColorStop(.6,P_TAN);rg.addColorStop(1,'#b9975b');g.fillStyle=rg;g.fill();
+  g.fillStyle='rgba(90,60,30,.5)';for(const s of[-1,1])for(const [dx,dy] of[[.1,.17],[.16,.2],[.12,.24],[.19,.15],[.2,.25]]){g.beginPath();g.arc(s*dx,dy,.012,0,7);g.fill()}
+  // fangs
+  g.fillStyle='#fffaf0';for(const s of[-1,1]){g.beginPath();g.moveTo(s*.13,.33);g.lineTo(s*.07,.335);g.lineTo(s*.1,.39+open*.06);g.closePath();g.fill()}
+  // nose and the line down from it
+  g.fillStyle='#e2435a';g.beginPath();g.moveTo(-.09,.02);g.quadraticCurveTo(0,-.02,.09,.02);g.quadraticCurveTo(.06,.08,0,.11);g.quadraticCurveTo(-.06,.08,-.09,.02);g.fill();
+  g.fillStyle='rgba(255,255,255,.5)';g.beginPath();g.ellipse(-.03,.025,.025,.012,0,0,7);g.fill();
+  g.strokeStyle='#3a2414';g.lineWidth=.015;g.beginPath();g.moveTo(0,.11);g.lineTo(0,.2);g.stroke();
+  // eyes
+  for(const s of[-1,1])pEye(g,s,blink,.15+open*.4,glow,code);
+  // whiskers
+  g.strokeStyle=code?'#ffffff':'rgba(255,255,255,.8)';g.lineWidth=code?.016:.008;
+  for(const s of[-1,1])for(const k of[-1,0,1]){g.beginPath();g.moveTo(s*.24,.2+k*.04);g.quadraticCurveTo(s*.5,.16+k*.08,s*.78,.1+k*.15);g.stroke()}
+}
+
+const PS=360,cache={};
+const STYLE={
+  jarvis:{draw:g=>drawHelmet(g,1,3),colour:true,hi:'#e6fff0',glyphs:'0123456789ABCDEF01',n:40},
+  matrix:{draw:drawMorpheus,colour:false,ring:'0,255,65',hi:'#d4ffdc',glyphs:'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン0123456789',n:34},
+  panther:{draw:g=>drawPanther(g,{code:true,glow:0}),colour:true,dimFur:true,hi:'#fff4dc',glyphs:'0123456789ABCDEF01',n:40}
+};
+function picture(k){
+  if(cache[k])return cache[k];
+  const c=document.createElement('canvas');c.width=c.height=PS;const g=c.getContext('2d');if(!g)return null;
+  g.translate(PS/2,PS/2);g.scale(PS/2.3,PS/2.3);g.save();g.beginPath();g.arc(0,0,1.12,0,7);g.clip();STYLE[k].draw(g);g.restore();
+  const px=g.getImageData(0,0,PS,PS).data;
+  return cache[k]=(x,y)=>{x=x|0;y=y|0;const i=(y*PS+x)*4;return px[i+3]<80?null:[px[i],px[i+1],px[i+2]]};
+}
+const drift=Array.from({length:60},(_,i)=>((i*37)%23)/23);
+// x: the orb's 2D context, centred on the orb; R: face scale in pixels; m: 0..1, how open the mouth is
+return function(x,R,t,k,m,fade){
+  const S=STYLE[k],at=picture(k);if(!S||!at)return;
+  const n=S.n,step=PS/n,sz=R*2.3/n,G=S.glyphs;
+  x.save();x.globalAlpha=fade;x.font=`bold ${sz*1.1}px monospace`;x.textAlign='center';x.textBaseline='middle';
+  for(let i=0;i<n;i++){const head=reduce?drift[i]:(t/(2200+i*70)+drift[i])%1;
+    for(let j=0;j<n;j++){const p=at((i+.5)*step,(j+.5)*step);if(!p)continue;
+      const d=(head*1.3-j/n+1)%1,trail=d<.25?1-d/.25:0;let g,col;
+      if(S.colour){
+        g=((i*73856093^j*19349663^((t/180+i*3)|0)*83492791)>>>0)%G.length;
+        const [r,gg,b]=p,fur=S.dimFur&&b>r&&b>gg,f=Math.min(1.7,(fur?.55:1.05)+.7*trail);
+        col=trail>.92?S.hi:`rgb(${Math.min(255,r*f)|0},${Math.min(255,gg*f)|0},${Math.min(255,b*f)|0})`;
+      }else{
+        const L=p[0]/255;if(L<.05)continue;const bb=Math.min(1,.12+Math.pow(L,.8)*(1.15+.6*trail));
+        g=(i*7+j*13+((t/180+i)|0))%G.length;col=trail>.92?S.hi:`rgba(${S.ring},${bb})`;
+      }
+      x.fillStyle=col;x.fillText(G[g],-R*1.15+(i+.5)*sz,-R*1.15+(j+.5)*sz)}}
+  // what moves: Morpheus's mouth and the glint on his glasses, the helmet's and Stanley's eyes flaring as they talk
+  if(k==='matrix'){
+    if(m>.05){x.fillStyle='#000';x.beginPath();x.ellipse(0,R*.41,R*.15,R*(.01+.05*m),0,0,7);x.fill()}
+    const p=reduce?-1:(t%5200)/5200;
+    if(p>=0&&p<.18){const u=p/.18;
+      for(const s of[-1,1]){x.save();x.beginPath();x.ellipse(s*R*.215,-R*.1,R*.15,R*.135,0,0,7);x.clip();
+        const gx=s*R*.215+(u*2-1)*R*.3,gr=x.createLinearGradient(gx-R*.05,0,gx+R*.05,0);gr.addColorStop(0,'rgba(220,255,230,0)');gr.addColorStop(.5,'rgba(220,255,230,.8)');gr.addColorStop(1,'rgba(220,255,230,0)');
+        x.fillStyle=gr;x.translate(gx,-R*.1);x.rotate(.5);x.fillRect(-R*.05,-R*.3,R*.1,R*.6);x.restore()}}
+  }else if(m>.05){
+    x.scale(R,R);
+    if(k==='jarvis'){x.shadowColor=CYAN;x.shadowBlur=20*m;x.beginPath();eyes(x);x.fillStyle=`rgba(127,232,255,${.35*m})`;x.fill()}
+    else for(const s of[-1,1]){x.save();x.translate(s*.24,-.17);x.rotate(s*.28);x.shadowColor=P_GOLD;x.shadowBlur=20*m;x.beginPath();x.ellipse(0,0,.13,.06,0,0,7);x.fillStyle=`rgba(255,210,90,${.3*m})`;x.fill();x.restore()}
+  }
+  x.restore();
+};
+})();
 function draw(t){
   requestAnimationFrame(draw);
   if(document.body.classList.contains('holo-on'))return; // hidden behind the hologram
@@ -220,8 +436,9 @@ function draw(t){
   energy+=(target-energy)*(heard?.25:.06); // jump up as soon as it hears you
   const pulse=orbPulse({mode,energy,t,hearing:heard,still:reduce,sinceWord:mode==='speak'&&lastWord!==null?Math.max(0,(t-lastWord)/1000):null});
   // glow core
-  const gr=W*.22*(.25+.75*bp),g=cx.createRadialGradient(c,c,0,c,c,gr);
-  g.addColorStop(0,`rgba(${coreRGB},${(.55+pulse*.4)*(.3+.7*bp)})`);g.addColorStop(.35,`rgba(${ringRGB},${(.25+pulse*.3)*bp})`);g.addColorStop(1,`rgba(${ringRGB},0)`);
+  // the glow dims as the face fades in, so the face isn't washed out
+  const gr=W*.22*(.25+.75*bp),g=cx.createRadialGradient(c,c,0,c,c,gr),dim=1-.8*clamp(bp*2-1,0,1);
+  g.addColorStop(0,`rgba(${coreRGB},${(.55+pulse*.4)*(.3+.7*bp)*dim})`);g.addColorStop(.35,`rgba(${ringRGB},${(.25+pulse*.3)*bp*(.4+.6*dim)})`);g.addColorStop(1,`rgba(${ringRGB},0)`);
   cx.fillStyle=g;cx.beginPath();cx.arc(c,c,gr,0,7);cx.fill();
   // rings, which lock into place one by one while booting
   const rings=[[.16,6,1.2,.9],[.24,3,-.7,.6],[.31,12,.4,.5],[.38,2,-.25,.35],[.45,40,.1,.25]];
@@ -235,6 +452,10 @@ function draw(t){
   // tick marks
   cx.strokeStyle=`rgba(${ringRGB},${.08+.32*clamp(bp*1.3,0,1)})`;cx.lineWidth=2;
   for(let i=0;i<72;i++){const a=i*Math.PI/36,r1=W*.48,r2=W*(i%6?.47:.455);cx.beginPath();cx.moveTo(c+Math.cos(a)*r1,c+Math.sin(a)*r1);cx.lineTo(c+Math.cos(a)*r2,c+Math.sin(a)*r2);cx.stroke()}
+  // the skin's face fades in once the orb has assembled; its mouth follows the voice's word pulses
+  const fade=clamp(bp*2-1,0,1);
+  if(fade>0){cx.save();cx.translate(c,c);cx.scale(1+pulse*.02,1+pulse*.02);cx.beginPath();cx.arc(0,0,W*.148,0,7);cx.clip();
+    orbFace(cx,W*.13,t,skin,mode==='speak'?clamp(pulse*1.3,0,1):0,fade);cx.restore()}
 }
 if(cx)requestAnimationFrame(draw); // no 2D canvas (e.g. jsdom): skip the orb, the chat still works
 
