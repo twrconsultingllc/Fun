@@ -426,6 +426,16 @@ second `getUserMedia` stream, opened so the orb could follow the user's
 loudness, took the mic from recognition on the user's phone. It showed
 LISTENING and transcribed nothing, with no error.
 
+A holo-projector scene that puts HTML of its own over the 3D view (labels,
+buttons, an SVG overlay) must return `dispose()` from its builder and remove
+that HTML there. `closeHolo()` calls it, but it can't see anything outside
+the WebGL scene, so without `dispose()` the HTML stays on the page after the
+scene closes. For labels that follow 3D points, reuse `layoutCallouts()`
+rather than writing a new layout. It keeps labels in a column down each side,
+stops them overlapping, keeps them between the top HUD and the caption, and
+stops them flickering from side to side. The suit schematic (Session 3,
+review 43) added both, on 2026-10-09.
+
 ## Long sessions: hand off with a prompt
 
 When a session's context is getting full, finish and merge the current
