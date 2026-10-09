@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #36 — jarvis.html</title>
+<meta name="description" content="Security and code-quality review of jarvis.html, the J.A.R.V.I.S. Demo voice assistant, and its new link on the landing page.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #36 — <code>jarvis.html</code></h1>
+    <p class="sub">A new page, <b>J.A.R.V.I.S. Demo</b>: an animated orb, a clock, and a chat with a small built-in "brain" that answers the time and date, jokes, fun facts, simple math, coin flips, dice and a launch countdown. It speaks its answers and can listen through the browser's speech recognition. The page was supplied by the user and is linked from <code>index.html</code> as <code>section-25</code>.</p>
+    <div class="meta">Review performed 2026-10-09 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis.html</code>, <code>index.html</code> (new link), <code>tests/jarvis.dom.test.mjs</code>, <code>tests/index.dom.test.mjs</code>, <code>tests/run.mjs</code> · suites run: <code>jarvis</code>, <code>index</code> · follows: <a href="35.html">35.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 77%;"></div></div>
+    <div class="progress-label">13 items: 10 verified clean (7 of them fixed during review), 1 partial, 2 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security &amp; privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No CSP, referrer policy or description</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The page as supplied had none of the meta tags the rest of the site carries. It now has <code>referrer</code> <code>strict-origin-when-cross-origin</code>, a description, and a CSP that allows only its own inline script, styles from itself and <code>fonts.googleapis.com</code>, fonts from <code>fonts.gstatic.com</code>, and images from itself or <code>data:</code> (the favicon). <code>connect-src 'none'</code> means the page can't send anything anywhere, which backs up its "no internet brain" claim. <code>form-action 'none'</code>, <code>object-src 'none'</code> and <code>base-uri 'none'</code> are set. No external scripts. The Chromium render loaded Chakra Petch under this policy with no CSP errors.</p><div class="fix-note"><b>Fix:</b> added the head block, plus a favicon so the browser doesn't ask for <code>/favicon.ico</code>.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Typed and spoken text is shown as text</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Every chat bubble is built with <code>createElement</code> and <code>textContent</code>. A grep for <code>innerHTML</code>, <code>insertAdjacentHTML</code>, <code>document.write</code> and <code>eval</code> finds nothing. The suite sends <code>&lt;img src=x onerror=alert(1)&gt;</code> and checks it appears as text and no element is created. The stored name can only be letters (<code>[a-z]+</code>, capitalised).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Only a first name is stored, on this device</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The one thing saved is <code>jarvis-name</code> in <code>localStorage</code>, and the page says "I'll remember that on this device". Reads and writes are wrapped in <code>try</code>, so private browsing doesn't break the page.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The mic isn't offline in Chrome</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>The answers are worked out in the page, but Chrome's and Edge's speech recognition send the recorded audio to the browser maker's speech service. So "no internet brain" is true of Jarvis, not of the mic. The CSP can't block this, because the browser makes that request, not the page. Typing stays fully on the device. Left open because it's the user's own wording and a question of how to describe it, not a code bug. A one-line note by the mic would close it.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">"What is seven times eight" answered with the time</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The help text suggests asking "seven times eight", but the time rule <code>/what.*time/</code> matched "times" and ran first, so Jarvis said "It's 7:00 PM." Seen in the first Chromium run. The rule is now <code>/what.*\btime\b/</code>. The suite checks both that question and "what time is it".</p><div class="fix-note"><b>Fix:</b> word boundary on "time".</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Math words matched inside other words</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p><code>x</code>, <code>over</code> and <code>add</code> were replaced anywhere, so "next", "however" and "address" turned into operators. They now need word boundaries. Tested: "12 x 3" is 36, "next 4 boxes 5" and "however 4 5" aren't math.</p><div class="fix-note"><b>Fix:</b> <code>\b…\b</code> around each operator word.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">"I'm fine" became the user's name</div><span class="badge partial">Partial</span></div>
+      <div class="item-body"><p>"I am …" and "I'm …" set the name, so "I'm fine" made Jarvis call the user Fine from then on, saved. Common words after "I'm" (fine, good, hungry, tired, sorry, and about 60 more) are now ignored, and "my name is" and "call me" always work. Partial because it's a word list: "I'm starving" would still be taken as a name. Dropping "I'm" as a name trigger would close it fully, at the cost of "I'm Tony" no longer working.</p><div class="fix-note"><b>Fix:</b> a list of words that aren't names.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Could get stuck on PROCESSING</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The orb went back to STANDBY only when speech ended. If speech failed or never started (no voices installed, which is the case in headless Chromium), it stayed on PROCESSING. An <code>onerror</code> handler and a 1.5 s fallback now return it to STANDBY. Checked in Chromium and in the suite.</p><div class="fix-note"><b>Fix:</b> <code>onerror</code> plus a timeout.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Header text contrast</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The small header text used <code>#1b7a45</code>: 3.73:1 on <code>#020a06</code> and 3.45:1 on <code>#06170e</code>, below 4.5:1. It now uses a new <code>--label</code> colour, <code>#2fa862</code>: 6.58:1 and 6.07:1. The input placeholder uses the same colour. <code>#1b7a45</code> stays for borders, where 3:1 is the bar. Main text is 17.99:1 and the bright green 15.10:1.</p><div class="fix-note"><b>Fix:</b> <code>--label</code> for header and placeholder text.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Crashed without a canvas</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>With no 2D canvas (jsdom) the orb loop threw, and a missing <code>matchMedia</code> stopped the whole script, so the chat never started. The orb is now skipped when there's no canvas, and <code>matchMedia</code> is checked first. Real browsers are unaffected.</p><div class="fix-note"><b>Fix:</b> two guards.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Linked both ways, renders at desktop and phone width</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>index.html</code> gets <code>section-25</code>, added to the centring rule, and the page has a "← Fun" link back. The <code>index</code> suite checks the link, that the file exists and that the section is centred. Headless Chromium at 1280×800 and 390×844: no page errors, no sideways scroll, and the orb, chat and input all fit.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Reduced motion still pulses</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>With "reduce motion" on, the rings stop turning but the glow and ring sizes still pulse. The pulse is slow and small in STANDBY and faster while speaking. Left open as minor. Holding the pulse steady when <code>reduce</code> is set would close it.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Suites run: <code>jarvis</code> (30 passed) and <code>index</code> (7 passed), per the repo's rule to run only the changed pages' suites. See <a href="35.html">35.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
