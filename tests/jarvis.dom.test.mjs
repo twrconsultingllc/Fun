@@ -14,10 +14,10 @@
  * scenes themselves were checked in headless Chromium (tests/secrpts/37.html).
  *
  * The voice-reactive orb (Session 1 of jarvis/build-plan.html) is checked two
- * ways: its maths (loudness to energy, the pulse) directly, and its wiring in a
- * second window with a fake SpeechRecognition, getUserMedia and AudioContext,
- * so the test can see the level stream open when listening starts and close
- * when it ends. */
+ * ways: its pulse maths directly, and its wiring in a second window with a fake
+ * SpeechRecognition and a getUserMedia that records every call. Listening must
+ * never call it: a second mic stream stopped recognition hearing anything on a
+ * phone, so the orb follows recognition's own speechstart/speechend events. */
 
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -250,29 +250,16 @@ export default async function run(t, page) {
         t.ok('the mic note says voice goes to an online speech service and typing stays here', /online speech service/.test(micNote?.textContent) && /Typing stays on this device/.test(micNote?.textContent));
         t.ok('without speech recognition the mic note stays hidden', micNote.hidden);
 
-        t.section('Voice-reactive orb: the maths');
+        t.section('Voice-reactive orb: the pulse');
 
-        const { rmsLevel, levelToEnergy, orbPulse } = window.__jarvis;
+        const { orbPulse } = window.__jarvis;
         const near = (a, b) => Math.abs(a - b) < 1e-9;
-        t.eq('silence has no level', rmsLevel(new Float32Array(512)), 0);
-        t.ok('a steady 0.5 signal has a level of 0.5', near(rmsLevel(new Float32Array(512).fill(0.5)), 0.5));
-        t.ok('a full-scale square wave (+1/-1) has a level of 1', near(rmsLevel(Float32Array.from({ length: 512 }, (_, i) => (i % 2 ? 1 : -1))), 1));
-        t.eq('an empty buffer is 0, not NaN', rmsLevel(new Float32Array(0)), 0);
-        // -50 dB is 10^(-50/20) = 0.003162; -12 dB is 10^(-12/20) = 0.2512; midway, -31 dB, is 0.02818.
-        t.eq('silence is no energy', levelToEnergy(0), 0);
-        t.ok('-50 dB (a quiet room) is no energy', near(levelToEnergy(10 ** (-50 / 20)), 0));
-        t.ok('-31 dB is half energy', near(levelToEnergy(10 ** (-31 / 20)), 0.5));
-        t.ok('-12 dB (talking close to the mic) is full energy', near(levelToEnergy(10 ** (-12 / 20)), 1));
-        t.eq('louder than that is still capped at 1', levelToEnergy(1), 1);
-        t.eq('quieter than -50 dB is 0, never negative', levelToEnergy(0.0001), 0);
-        t.eq('a bad reading is 0', levelToEnergy(NaN), 0);
-        const ramp = [0.002, 0.005, 0.01, 0.03, 0.08, 0.2].map(levelToEnergy);
-        t.ok('louder is never less energy', ramp.every((v, i) => i === 0 || v >= ramp[i - 1]));
-
         const pulseAt = (o) => orbPulse({ mode: 'speak', energy: 0.8, t: 0, ...o });
         t.ok('reduced motion holds the pulse steady over time', near(pulseAt({ still: true, t: 0 }), pulseAt({ still: true, t: 1234 })));
         t.ok('reduced motion ignores words too', near(pulseAt({ still: true, sinceWord: 0 }), pulseAt({ still: true, sinceWord: 0.5 })));
-        t.ok('while the mic drives it, the pulse is the energy itself', near(orbPulse({ mode: 'listen', energy: 0.7, t: 99, live: true }), 0.7));
+        const heard = [0, 30, 60, 90, 110].map((tt) => orbPulse({ mode: 'listen', energy: 1, t: tt, hearing: true }));
+        t.ok('hearing you talk: a fast flutter between 40% and 100%', new Set(heard.map((v) => v.toFixed(3))).size > 1 && heard.every((v) => v >= 0.4 - 1e-9 && v <= 1 + 1e-9));
+        t.ok('reduced motion holds still even while it hears you', near(orbPulse({ mode: 'listen', energy: 0.9, t: 0, hearing: true, still: true }), orbPulse({ mode: 'listen', energy: 0.9, t: 70, hearing: true, still: true })));
         t.ok('a word just started: full pulse', near(pulseAt({ sinceWord: 0 }), 0.8));
         t.ok('0.1 s into a word: about half way down (0.45 + 0.55 e^-0.7)', near(pulseAt({ sinceWord: 0.1 }), 0.8 * (0.45 + 0.55 * Math.exp(-0.7))));
         t.ok('a long pause between words settles to 45%', Math.abs(pulseAt({ sinceWord: 2 }) - 0.36) < 0.001);
@@ -333,60 +320,43 @@ async function voiceWiring(t, page) {
         return { ...env, log: fake.log };
     };
 
-    t.section('Voice-reactive orb: opening and closing the mic stream');
+    t.section('Voice-reactive orb: the mic belongs to speech recognition');
 
+    // On 2026-10-09 a second mic stream (opened for a level meter while listening) stopped
+    // speech recognition hearing anything on a phone. The orb now reacts through recognition's
+    // own speechstart/speechend events, and listening must never ask for a mic of its own.
     let env = await open();
     try {
         const { window, document, log } = env;
-        const rec = log.recs[0], state = () => window.__jarvis.meterState();
+        const rec = log.recs[0];
         t.eq('the page has no console errors with a mic', env.errors.length, 0);
         t.ok('with speech recognition, the mic note shows', !document.getElementById('mic-note').hidden);
         document.getElementById('mic').click();
         t.ok('tapping the mic starts recognition', rec?.started === true);
-        t.eq('no level stream before listening actually starts', log.asked.length, 0);
         rec.onstart();
-        t.eq('listening opens one audio-only stream', JSON.stringify(log.asked), '[{"audio":true,"video":false}]');
         await tick();
-        t.eq('the stream feeds the orb', state(), 'open');
         t.eq('listening shows LISTENING', document.getElementById('state').textContent, 'LISTENING');
         t.eq('the mic note is remembered as seen', window.localStorage.getItem('jarvis-mic-note'), '1');
+        rec.onspeechstart();
+        t.eq('recognition hearing speech makes the orb react', window.__jarvis.hearing(), true);
+        rec.onspeechend();
+        t.eq('and settle when the speech stops', window.__jarvis.hearing(), false);
+        rec.onspeechstart();
+        rec.onresult({ results: [[{ transcript: 'what is two plus two' }]] });
         rec.onend();
-        t.eq('listening ending stops the stream\'s track', log.stopped, 1);
-        t.eq('and lets go of the stream', state(), 'closed');
-
-        log.hold = true;
-        rec.onstart();
-        t.eq('while the stream is still opening', state(), 'opening');
-        rec.onend();
-        log.release();
+        t.eq('listening ending resets it', window.__jarvis.hearing(), false);
+        t.ok('the transcript is handled as a message', [...document.querySelectorAll('#log .msg.me')].some((m) => m.textContent === 'what is two plus two'));
+        rec.onstart(); rec.onspeechstart(); rec.onerror({ error: 'no-speech' });
+        t.eq('an error resets it too', window.__jarvis.hearing(), false);
         await tick();
-        t.eq('a stream that arrives after listening ended is stopped at once', log.stopped, 2);
-        t.eq('and never used', state(), 'closed');
-
-        log.hold = false;
-        rec.onstart();
-        await tick();
-        rec.onerror({ error: 'audio-capture' });
-        rec.onend();
-        t.eq('if recognition loses the mic while the stream is open, the stream is stopped', log.stopped, 3);
-        t.eq('and not opened again on this visit', state(), 'off');
-        const asked = log.asked.length;
-        rec.onstart();
-        await tick();
-        t.eq('so the next listen asks for no level stream', log.asked.length, asked);
-        rec.onend();
+        t.eq('listening never opens a mic stream of its own', log.asked.length, 0);
     } finally {
         env.close();
     }
 
     env = await open({ reduce: true, noted: true });
     try {
-        const rec = env.log.recs[0];
         t.ok('once the mic has been used, the note stays hidden', env.document.getElementById('mic-note').hidden);
-        rec.onstart();
-        await tick();
-        t.eq('with reduced motion the orb holds still, so no level stream is opened', env.log.asked.length, 0);
-        rec.onend();
     } finally {
         env.close();
     }

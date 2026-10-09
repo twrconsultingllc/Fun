@@ -172,28 +172,26 @@ const reduce=!!window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)')
 const amb=reduce?.15:1; // ambient motion: slow everything right down when reduced motion is asked for
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function setMode(m){mode=m;stateEl.textContent={idle:'STANDBY',listen:'LISTENING',think:'PROCESSING',speak:'SPEAKING'}[m]}
-// Root-mean-square of a block of samples (-1..1): how loud it is.
-function rmsLevel(buf){let s=0;for(let i=0;i<buf.length;i++)s+=buf[i]*buf[i];return buf.length?Math.sqrt(s/buf.length):0}
-// Loudness to orb energy on a decibel scale: -50 dB (a quiet room) is 0, -12 dB (talking close to the mic) is 1.
-function levelToEnergy(rms){return rms>0?clamp((20*Math.log10(rms)+50)/38,0,1):0}
-// How hard the orb pulses this frame. live: the mic level is driving energy. sinceWord: seconds since
-// Jarvis started the last spoken word, or null when the voice doesn't report words.
-function orbPulse({mode,energy,t,live=false,sinceWord=null,still=false}){
+// How hard the orb pulses this frame. hearing: speech recognition says it can hear someone talking.
+// sinceWord: seconds since Jarvis started the last spoken word, or null when the voice doesn't report words.
+function orbPulse({mode,energy,t,hearing=false,sinceWord=null,still=false}){
   if(still)return energy*.6; // reduced motion: hold steady
-  if(live)return energy;
+  if(mode==='listen'&&hearing)return energy*(.7+.3*Math.sin(t/70));
   if(mode==='speak'&&sinceWord!==null)return energy*(.45+.55*Math.exp(-sinceWord*7));
   return energy*(.6+.4*Math.sin(t/(mode==='speak'?90:400)));
 }
 let lastWord=null; // when the current utterance last started a word (rAF time), or null
+// Set by recognition's own speechstart/speechend events. The orb never opens a mic stream of its own:
+// a second stream took the mic away from speech recognition on a phone (2026-10-09).
+let hearing=false;
 function draw(t){
   requestAnimationFrame(draw);
   if(document.body.classList.contains('holo-on'))return; // hidden behind the hologram
   const W=cv.width,c=W/2,bp=bootP;cx.clearRect(0,0,W,W);
-  let target={idle:.15,listen:.6,think:.45,speak:.9}[mode];
-  const live=mode==='listen'&&!!(meter&&meter.an);
-  if(live){try{meter.an.getFloatTimeDomainData(meter.buf);target=.2+.8*levelToEnergy(rmsLevel(meter.buf))}catch(e){}}
-  energy+=(target-energy)*(live?(target>energy?.4:.12):.06); // the voice jumps the rings up fast and lets them settle
-  const pulse=orbPulse({mode,energy,t,live,still:reduce,sinceWord:mode==='speak'&&lastWord!==null?Math.max(0,(t-lastWord)/1000):null});
+  const heard=mode==='listen'&&hearing;
+  const target=heard?.95:{idle:.15,listen:.45,think:.45,speak:.9}[mode];
+  energy+=(target-energy)*(heard?.25:.06); // jump up as soon as it hears you
+  const pulse=orbPulse({mode,energy,t,hearing:heard,still:reduce,sinceWord:mode==='speak'&&lastWord!==null?Math.max(0,(t-lastWord)/1000):null});
   // glow core
   const gr=W*.22*(.25+.75*bp),g=cx.createRadialGradient(c,c,0,c,c,gr);
   g.addColorStop(0,`rgba(180,255,210,${(.55+pulse*.4)*(.3+.7*bp)})`);g.addColorStop(.35,`rgba(57,255,136,${(.25+pulse*.3)*bp})`);g.addColorStop(1,'rgba(57,255,136,0)');
@@ -223,23 +221,6 @@ function blip(freq=880,dur=.05,vol=.03,type='square',delay=0){
     o.connect(g).connect(ac.destination);o.start(t0);o.stop(t0+dur+.02);
   }catch(e){}
 }
-
-/* ---------- Mic level: while listening, the orb follows your voice ----------
-   A second, local audio stream into an AnalyserNode. Nothing is recorded or sent; it is
-   closed as soon as listening ends. Skipped with reduced motion, since the orb holds still then. */
-let meter=null,meterOff=false;
-async function startMeter(){
-  if(meter||meterOff||reduce||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return;
-  const me=meter={pending:true};let stream;
-  try{stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false})}catch(e){if(meter===me)meter=null;return}
-  if(meter!==me){stream.getTracks().forEach(t=>t.stop());return} // listening ended while the stream was opening
-  try{
-    ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();
-    const src=ac.createMediaStreamSource(stream),an=ac.createAnalyser();an.fftSize=1024;src.connect(an);
-    meter={stream,src,an,buf:new Float32Array(an.fftSize)};
-  }catch(e){stream.getTracks().forEach(t=>t.stop());meter=null}
-}
-function stopMeter(){const m=meter;meter=null;if(!m||m.pending)return false;try{m.src.disconnect()}catch(e){}m.stream.getTracks().forEach(t=>t.stop());return true}
 
 /* ---------- Voice out ---------- */
 const synth=window.speechSynthesis||null;
@@ -869,16 +850,16 @@ if(SR){
   let noted=false;try{noted=!!localStorage.getItem('jarvis-mic-note')}catch(e){}
   if(!noted)micNote.hidden=false;
   const rec=new SR();rec.lang='en-US';rec.interimResults=false;
-  rec.onstart=()=>{mic.classList.add('on');setMode('listen');startMeter();try{localStorage.setItem('jarvis-mic-note','1')}catch(e){}};
-  rec.onend=()=>{stopMeter();mic.classList.remove('on');if(mode==='listen')setMode('idle')};
-  // If recognition loses the mic while the level stream is open, the two don't share it on this
-  // device, so stop opening the level stream and let the orb pulse on its own.
-  rec.onerror=e=>{if(stopMeter()&&e&&e.error==='audio-capture')meterOff=true;mic.classList.remove('on');setMode('idle')};
+  rec.onstart=()=>{hearing=false;mic.classList.add('on');setMode('listen');try{localStorage.setItem('jarvis-mic-note','1')}catch(e){}};
+  // The orb reacts to your voice through recognition's own events, so it never competes for the mic.
+  rec.onspeechstart=()=>{hearing=true};rec.onspeechend=()=>{hearing=false};
+  rec.onend=()=>{hearing=false;mic.classList.remove('on');if(mode==='listen')setMode('idle')};
+  rec.onerror=()=>{hearing=false;mic.classList.remove('on');setMode('idle')};
   rec.onresult=e=>handle(e.results[0][0].transcript);
   mic.addEventListener('click',()=>{if(synth)synth.cancel();try{rec.start()}catch(e){rec.stop()}});
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,rmsLevel,levelToEnergy,orbPulse,energy:()=>energy,meterState:()=>meter?(meter.pending?'opening':'open'):meterOff?'off':'closed'};
+window.__jarvis={brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,orbPulse,energy:()=>energy,hearing:()=>hearing};
 showBoot();
 </script>
 </body>
