@@ -1,0 +1,16 @@
+{
+  "id": "sample-org/Gpl",
+  "sha": "4444444444444444444444444444444444444444",
+  "tags": [
+    "mlc-llm",
+    "license:gpl-3.0"
+  ],
+  "cardData": {
+    "license": "gpl-3.0"
+  },
+  "siblings": [
+    {
+      "rfilename": "LICENSE"
+    }
+  ]
+}

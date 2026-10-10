@@ -1,0 +1,19 @@
+{
+  "id": "sample-org/Sample",
+  "sha": "2222222222222222222222222222222222222222",
+  "tags": [
+    "mlc-llm",
+    "license:apache-2.0"
+  ],
+  "cardData": {
+    "license": "apache-2.0"
+  },
+  "siblings": [
+    {
+      "rfilename": "LICENSE"
+    },
+    {
+      "rfilename": "README.md"
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+# J.A.R.V.I.S. language model: bring a small open model's weights into jarvis/llm/resolve/.
+#
+# Run it by hand from the Actions tab ("J.A.R.V.I.S. language model" → Run workflow). The
+# claude.ai/code containers get 403 from Hugging Face, so this is how the weights get in.
+#
+#   pin   — download the model at its pinned commit (or the latest, if models.json has none yet),
+#           check the licences and sizes, and print the SHA-256 of every file for models.json.
+#           Commits nothing.
+#   fetch — download at the pinned commit and refuse anything whose hash, licence, file list or size
+#           isn't what models.json says; then commit the files and the base model's LICENSE.
+#
+# Both start with a dry run against the committed samples in tests/fixtures/jarvis-llm/, which must
+# refuse a changed chunk, a GPL licence, a file over 100 MB and a site over 1 GB. See
+# jarvis/llm/README.md.
+
+name: J.A.R.V.I.S. language model
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'pin (print hashes, commit nothing) or fetch (check against models.json, then commit)'
+        required: true
+        default: pin
+        type: choice
+        options: [pin, fetch]
+      model:
+        description: 'Which entry in jarvis/llm/models.json'
+        required: true
+        default: qwen3-0.6b
+        type: choice
+        options: [qwen3-0.6b, qwen2.5-0.5b]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: jarvis-llm
+  cancel-in-progress: false
+
+jobs:
+  weights:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # No token left in git config while anything is downloaded; only the last step gets it, to push.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      # The same code against the committed samples first, so a broken check fails here, before
+      # anything is downloaded.
+      - name: Dry run against the samples
+        working-directory: jarvis/llm
+        run: node fetch-model.mjs --dry-run
+
+      - name: Pin (prints the hashes for models.json)
+        if: inputs.mode == 'pin'
+        working-directory: jarvis/llm
+        env:
+          MODEL: ${{ inputs.model }}
+        run: node fetch-model.mjs "--pin=$MODEL"
+
+      - name: Fetch and check against models.json
+        if: inputs.mode == 'fetch'
+        working-directory: jarvis/llm
+        env:
+          MODEL: ${{ inputs.model }}
+        run: |
+          node fetch-model.mjs "--model=$MODEL"
+          node fetch-model.mjs "--check=$MODEL"
+          du -sh resolve/*
+
+      - name: Commit the weights
+        if: inputs.mode == 'fetch'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MODEL: ${{ inputs.model }}
+        run: |
+          if [ -z "$(git status --porcelain -- jarvis/llm/resolve)" ]; then
+            echo "The weights are already here, unchanged; nothing to commit."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add jarvis/llm/resolve
+          git commit -m "J.A.R.V.I.S.: bring in the language model ($MODEL)"
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          # Someone may have pushed while this ran; replay this one commit on top.
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"

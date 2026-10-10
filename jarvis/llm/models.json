@@ -1,0 +1,15 @@
+{
+  "$comment": "The models fetch-model.mjs may bring in, pinned to one Hugging Face commit each with the SHA-256 of every file. Filled in from a 'pin' run of the J.A.R.V.I.S. language model workflow; a 'fetch' run refuses anything that differs. See README.md.",
+  "qwen3-0.6b": {
+    "repo": "mlc-ai/Qwen3-0.6B-q4f16_1-MLC",
+    "base": "Qwen/Qwen3-0.6B",
+    "licence": "apache-2.0",
+    "dir": "jarvis/llm/resolve/Qwen3-0.6B-q4f16_1-MLC"
+  },
+  "qwen2.5-0.5b": {
+    "repo": "mlc-ai/Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
+    "base": "Qwen/Qwen2.5-0.5B-Instruct",
+    "licence": "apache-2.0",
+    "dir": "jarvis/llm/resolve/Qwen2.5-0.5B-Instruct-q4f16_1-MLC"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "model_type": "sample",
+  "context_window_size": 512,
+  "tokenizer_files": [
+    "tokenizer.json"
+  ]
+}
