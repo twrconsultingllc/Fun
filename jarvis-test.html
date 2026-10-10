@@ -2406,6 +2406,16 @@ const f=document.getElementById('f'),q=document.getElementById('q'),mic=document
 f.addEventListener('submit',e=>{e.preventDefault();handle(q.value);q.value=''});
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const micNote=document.getElementById('mic-note');
+// What to say when speech recognition fails, so a tap on the mic never just does nothing. null: say nothing
+// ("aborted" is a second tap stopping it on purpose).
+function micTrouble(err){
+  return {'not-allowed':"I'm not allowed to use the microphone. Tap the icon at the left of the address bar, allow the microphone for this site, then try again. Typing works too.",
+    'service-not-allowed':"This browser won't let me use its speech service here. Try Chrome or Edge, or just type.",
+    'audio-capture':"I couldn't get any sound from a microphone. Check one is connected and not being used by another app.",
+    'network':"I couldn't reach the browser's speech service, so I didn't hear you. Check your internet connection, or type instead.",
+    'no-speech':"I didn't hear anything. Tap the mic and try again.",
+    'language-not-supported':"Speech recognition doesn't support English on this device. You can type instead."}[err]||null;
+}
 // "Hey Jarvis": with always listening on, recognition keeps running and only acts on what starts with the
 // wake word (Jarvis, or the current skin's name). Off by default, never saved, and off when the tab is hidden.
 const wakeBtn=document.getElementById('wake'),wakeNote=document.getElementById('wake-note');
@@ -2446,6 +2456,7 @@ if(SR){
   rec.onerror=e=>{
     hearing=false;mic.classList.remove('on');if(mode==='listen')setMode('idle');
     if(wakeOn&&/not-allowed|service-not-allowed|audio-capture/.test(e&&e.error))add(setWake(false,"Always listening is off: the browser wouldn't let me use the microphone."),'ai');
+    else if(!wakeOn){const why=micTrouble(e&&e.error);if(why)add(why,'ai')}
   };
   function heard(text){
     if(synth&&synth.speaking)return; // don't act on Jarvis's own voice
@@ -2462,7 +2473,7 @@ if(SR){
     if(synth)synth.cancel();
     // With always listening on, recognition is already running: a tap means "the next thing I say is for you".
     if(wakeOn){armedUntil=performance.now()+8000;mic.classList.add('on');setMode('listen');return}
-    try{rec.start()}catch(e){rec.stop()}
+    try{rec.start()}catch(e){if(e&&e.name==='InvalidStateError')rec.stop();else add("I couldn't start listening. Try again, or type instead.",'ai')}
   });
   if(wakeOK){
     wakeBtn.hidden=false;
@@ -2480,7 +2491,7 @@ if(SR){
   }
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
+window.__jarvis={micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
   SETTING_CHOICES,cleanSettings,cleanStreak,streakNext,streakLine,settingsIntent,applySetting,settings:()=>({...settings}),inUnits,ORB_COLOURS,ring:()=>ringRGB,SPEEDS,
   memoryTell,memoryAsk,memoryForget,memory:()=>memory.map(x=>({...x})),memoryStars,forgetStar,constellation,constellationLinks,firstTime,streak:()=>({...streak}),persisted:()=>persisted,
   applyGesture,dreamDue,dreamCheck,setDream,dreaming:()=>dreaming,DREAM_AFTER,idleFor:ms=>{lastActive=performance.now()-ms;return dreamCheck()},mode:()=>mode};

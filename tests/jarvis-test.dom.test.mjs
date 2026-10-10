@@ -605,6 +605,7 @@ export default async function run(t, page) {
     }
 
     await voiceWiring(t, page);
+    await micErrors(t, page);
     await wakeWiring(t, page);
     await briefingChecks(t, page);
     await speechWiring(t, page);
@@ -1541,5 +1542,41 @@ async function commandLinks(t, page) {
         for (const c of cmds) { const r = await J.answer(c); if (typeof r === 'string' && /didn't understand|What were you trying to say/.test(r)) missed.push(c); }
         t.eq(`all ${cmds.length + 1} link commands are understood`, missed.join(', '), '');
         t.ok('reboot is one of them, and powers him up again', J.chipCmds().includes('reboot') && (await J.answer('reboot'), !env.document.getElementById('boot').hidden));
+    } finally { env.close(); }
+}
+
+// A mic tap that fails used to do nothing at all: no LISTENING and no message, which looks like a broken button
+// (reported 2026-10-10). Each recognition error now says why, except a deliberate stop ("aborted").
+async function micErrors(t, page) {
+    t.section('The mic says why when it can\'t listen');
+    for (const [err, re] of [['not-allowed', /not allowed to use the microphone/], ['audio-capture', /couldn't get any sound from a microphone/], ['network', /couldn't reach the browser's speech service/],
+        ['no-speech', /didn't hear anything/], ['service-not-allowed', /won't let me use its speech service/]]) {
+        const fake = fakeVoice({ noted: true });
+        const env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse: fake.beforeParse });
+        try {
+            const { document } = env, rec = fake.log.recs[0];
+            env.window.__jarvis.finishBoot();
+            document.getElementById('mic').click(); rec.onstart?.(); rec.onerror?.({ error: err }); rec.onend?.();
+            const last = [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? '';
+            t.ok(`"${err}" is explained in the chat`, re.test(last));
+            t.eq(`and the orb goes back to STANDBY`, document.getElementById('state').textContent, 'STANDBY');
+        } finally { env.close(); }
+    }
+    const fake = fakeVoice({ noted: true });
+    const env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse: fake.beforeParse });
+    try {
+        const { document } = env, rec = fake.log.recs[0], n = () => document.querySelectorAll('#log .msg.ai').length;
+        env.window.__jarvis.finishBoot();
+        const before = n();
+        rec.onerror?.({ error: 'aborted' }); rec.onend?.();
+        t.eq('a deliberate stop ("aborted") says nothing', n(), before);
+        rec.start = () => { throw new env.window.DOMException('no', 'NotAllowedError'); };
+        document.getElementById('mic').click();
+        t.ok('a start that fails for another reason says so', /couldn't start listening/.test([...document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? ''));
+        let stopped = 0;
+        rec.start = () => { throw new env.window.DOMException('running', 'InvalidStateError'); }; rec.stop = () => { stopped++; };
+        document.getElementById('mic').click();
+        t.eq('a second tap while listening still stops it', stopped, 1);
+        t.eq('no console errors', env.errors.length, 0);
     } finally { env.close(); }
 }
