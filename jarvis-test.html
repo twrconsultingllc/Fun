@@ -350,7 +350,7 @@ function readAll(db){
 // a listed key holding text that passes personal(), and usage counts must be a listed ID, a day number and a count.
 function fits(table,key,rec){
   switch(table){
-    case 'kept':return STORE_KEYS.includes(key)&&typeof rec==='string'&&rec.length<=KEPT_MAX&&!personal(rec);
+    case 'kept':return STORE_KEYS.includes(key)&&typeof rec==='string'&&rec.length<=KEPT_MAX&&!personal(rec)&&(key!=='jarvis-settings'||settingsOnly(rec));
     case 'events':return exactly(rec,['day','id','n'])&&EVENT_IDS.includes(rec.id)&&isDay(rec.day)&&isCount(rec.n)&&Array.isArray(key)&&key[0]===rec.id&&key[1]===rec.day;
     case 'totals':return exactly(rec,['id','n'])&&EVENT_IDS.includes(rec.id)&&isCount(rec.n,1e9)&&key===rec.id;
     case 'meta':return key==='copied'?rec===1:key==='rolled'?isDay(rec):key==='carry'?Number.isInteger(rec)&&rec>=0&&rec<=9999:false;
@@ -359,6 +359,8 @@ function fits(table,key,rec){
   }
   return false;
 }
+// Settings hold only the fixed choices: anything else riding along (a level, say) is refused, not just dropped on the next load (Session 11).
+function settingsOnly(text){let o;try{o=JSON.parse(text)}catch(e){return false}return !!o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).length===Object.keys(cleanSettings(o)).length}
 // The one place anything is written. rec undefined removes the record. Saves made in the same moment go to the
 // database together, in one transaction, after the page has carried on.
 function save(table,key,rec){

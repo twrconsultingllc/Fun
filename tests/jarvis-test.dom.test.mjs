@@ -1107,16 +1107,18 @@ async function heRemembersYou(t, page) {
 
     t.section('He remembers you: nothing new is saved (Session 11)');
     {
-        const idb = await profile({ events: daysBack(12, (k) => (k < 5 ? [{ id: SCENES5[k], day: today - 1 - k, n: 1 }] : [])) });
+        const idb = await profile({ events: daysBack(12, (k) => (k < 4 ? [{ id: SCENES5[k], day: today - 1 - k, n: 1 }] : [])) });
         env = await openDom(page.html, URL_, { ...quiet, idb }); J = env.window.__jarvis;
         try {
             await greet(env);
+            t.ok('(a level-up happens in this visit)', /Access level three/.test(await typeIn(env, 'show me the suit')));
             for (const q of ['how well do you know me', 'whats my favourite', 'what havent i tried', 'gold and red hud', 'show me the tesseract', 'yes', 'stop putting my favourites first']) await typeIn(env, q);
             const db = await dbDump(env.idb);
             t.eq('the database has only its five tables', Object.keys(db).sort().join(), 'events,kept,meta,protocols,totals');
             t.ok('kept: only the listed settings keys', Object.keys(db.kept).every((k) => J.STORE_KEYS.includes(k)));
             t.eq('meta: only the three bookkeeping numbers', Object.keys(db.meta).filter((k) => !['copied', 'rolled', 'carry'].includes(k)).join(), '');
-            t.ok('no level, favourite, hint or HUD anywhere in it', !/clearance|Engineer|Associate|favourite|hint|hotrod|hud"|announced/i.test(JSON.stringify(db.kept) + JSON.stringify(db.meta)));
+            t.ok('no level, favourite, hint or HUD anywhere in it', !/clearance|Engineer|Associate|favourite|hint|hotrod|hud|level|announced/i.test(JSON.stringify(db.kept) + JSON.stringify(db.meta)));
+            t.eq('fits() refuses settings with anything but the fixed choices in them', JSON.stringify([J.fits('kept', 'jarvis-settings', '{"color":"blue","level":3}'), J.fits('kept', 'jarvis-settings', '{"color":"teal"}'), J.fits('kept', 'jarvis-settings', '[1]'), J.fits('kept', 'jarvis-settings', '{"speed":"slow","color":"blue","chips":"off"}')]), '[false,false,false,true]');
             t.ok('every count is a listed ID', Object.values(db.events).every((e) => J.EVENT_IDS.includes(e.id)));
             t.eq('the one new setting is "favourites first"', JSON.parse(db.kept['jarvis-settings']).chips, 'off');
         } finally { env.close(); }
