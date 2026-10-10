@@ -175,8 +175,8 @@
       <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
       <span><span class="dot open"></span> Open</span>
     </div>
-    <div class="progress-bar"><div class="progress-fill" style="width: 86%;"></div></div>
-    <div class="progress-label">21 items: 18 verified clean or fixed, 3 open.</div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 90%;"></div></div>
+    <div class="progress-label">21 items: 19 verified clean or fixed, 2 open.</div>
   </header>
   <section>
     <h2><span class="num">01</span>Security and privacy</h2>
@@ -214,8 +214,9 @@
       <div class="item-body"><p><code>.github/workflows/jarvis-knowledge.yml</code> runs only by hand (<code>workflow_dispatch</code>), uses the same SHA-pinned <code>actions/checkout</code> and <code>actions/setup-node</code> as the Daily Wire workflow, keeps no token in git config while the build runs (<code>persist-credentials: false</code>), and hands <code>GITHUB_TOKEN</code> only to the final commit step. No event data is interpolated into a shell line. It builds from the samples first, then from the real sources, checks the result, and commits only <code>jarvis/knowledge/pack.json</code>.</p></div>
     </div>
     <div class="item">
-      <div class="item-head"><div class="item-title">A new kind of bot commit</div><span class="badge open">Open</span></div>
-      <div class="item-body"><p>The workflow commits as <code>github-actions[bot] &lt;41898282+github-actions[bot]@users.noreply.github.com&gt;</code>, the identity <code>CLAUDE.md</code> already allows, but only for the Daily Wire's "refresh feeds" commits. A Full Monty review should treat "J.A.R.V.I.S.: build the knowledge pack" commits by the same identity as expected. Open until <code>CLAUDE.md</code> says so. That's for the user to approve, so it wasn't added unasked.</p></div>
+      <div class="item-head"><div class="item-title">A new kind of bot commit</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The workflow commits as <code>github-actions[bot] &lt;41898282+github-actions[bot]@users.noreply.github.com&gt;</code>, the identity <code>CLAUDE.md</code> already allows, but only for the Daily Wire's "refresh feeds" commits. A Full Monty review should treat "J.A.R.V.I.S.: build the knowledge pack" commits by the same identity as expected. That was for the user to approve, so it wasn't added unasked.</p></div>
+      <div class="fix-note"><b>Fix:</b> The user approved it on 2026-10-10, and <code>CLAUDE.md</code>'s Full Monty section now lists the knowledge-pack commits as expected for that identity.</div>
     </div>
     <div class="item">
       <div class="item-head"><div class="item-title">The fixtures are public, like everything under tests/</div><span class="badge fixed">Confirmed clean</span></div>

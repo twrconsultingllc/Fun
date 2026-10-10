@@ -269,7 +269,11 @@ easy to skip because they don't look like "a page":
   as author and committer of the "Daily Wire: refresh feeds" commits that
   `.github/workflows/daily-wire.yml` makes every 6 hours (the user agreed
   to these on 2026-09-26 when choosing the commit-based refresh for
-  `daily-wire.html`). Any other address in `%ae`/`%ce` is a finding.
+  `daily-wire.html`). The same bot identity is also expected as author and
+  committer of the "J.A.R.V.I.S.: build the knowledge pack" commits that
+  `.github/workflows/jarvis-knowledge.yml` makes when it's run by hand from
+  the Actions tab (the user agreed to these on 2026-10-10, Session 13 of
+  `jarvis/build-plan.html`). Any other address in `%ae`/`%ce` is a finding.
 
 Beyond those two, treat it as a real from-scratch sweep, not a rubber
 stamp: re-verify that prior fixes (CSP/referrer meta tags, the battle-bots
