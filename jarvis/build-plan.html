@@ -412,6 +412,7 @@
       <li><a href="#s13">Knowledge pack</a></li>
       <li><a href="#s14">Tiny language model</a></li>
       <li><a href="#s15">Offline and install</a></li>
+      <li><a href="#s16">Chess, one board per skin</a></li>
       <li><a href="#later">Parked and ruled out</a></li>
       <li><a href="#done">Every session ends the same way</a></li>
     </ol>
@@ -487,6 +488,7 @@
           <tr><td>13</td><td><a href="#s13">Knowledge pack</a></td><td>A6</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
           <tr><td>14</td><td><a href="#s14">Tiny language model</a></td><td>A7, the self-hosted part</td><td>Medium–large</td><td><span class="badge">Not started</span></td></tr>
           <tr><td>15</td><td><a href="#s15">Offline and install</a></td><td>A3, and self-hosting the font and three.js</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>16</td><td><a href="#s16">Chess, one board per skin</a></td><td>Asked for in chat on 2026-10-10. The very last session.</td><td>Medium–large</td><td><span class="badge">Not started</span></td></tr>
         </tbody>
       </table></div>
     </section>
@@ -807,6 +809,22 @@
         <li><span class="who"><span class="badge you">You</span></span> Install it on your phone, turn on airplane mode, and use it. Weather and, on most phones, speech recognition still need a connection.</li>
       </ol>
       <p><strong>Checks:</strong> no request leaves the site (watched in Chromium over the local HTTP server), fonts render in the screenshots, the page loads offline after one visit, a new deploy is picked up on the next online load, and requests for other pages pass straight through the worker.</p>
+      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+    </section>
+
+    <section id="s16">
+      <h2><span class="kicker">Session 16 · medium–large · the very last session</span>Chess, one board per skin</h2>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> every other session first. You asked on 2026-10-10 for this to be the last feature built.</span></div>
+      <p>A chessboard on the holo-projector that you play against Jarvis, called up from any skin ("let's play chess"), with a board themed for whichever skin is on. The engine plays the moves; the skin does the talking.</p>
+      <ol class="substeps">
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Jarvis: an Avengers board.</strong> Iron Man's side against the other side, in the Avengers' style, on the green holo grid. Avengers-flavoured lines when he takes a piece, gives check or loses.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Morpheus: a Matrix board.</strong> Pieces in falling green code, the board in the Matrix's green on black. Lines in Morpheus's cryptic style.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Stanley C. Panther: a hockey board.</strong> Panthers-style players as the pieces, the board as a rink, in red, navy and gold. Lines in Stanley's play-by-play voice.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>The engine: Stockfish.</strong> Run in the browser as WebAssembly, self-hosted next to the hand tracker and pinned by hash, so the CSP stays as it is (it already allows <code>'wasm-unsafe-eval'</code>). Decide in the session: Stockfish is GPL-3.0, which puts conditions on sharing it; a smaller engine under a permissive licence is the alternative. Difficulty levels, an undo, a resign, and moves by voice ("knight to f3", unpunctuated) as well as by tap. All three boards share one set of chess rules and one engine; only the look and the lines change.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Fits what's already here.</strong> A capability in <code>CAPABILITIES</code> with its own usage ID, so it counts towards discovery and clearance (whether it's a clearance extra is a call for the session; it can't lock anything that already exists). Nothing about a game is saved unless you decide otherwise, and anything said goes through <code>say()</code>.</li>
+        <li><span class="who"><span class="badge you">You</span></span> Play a game in each skin and say which board you'd keep.</li>
+      </ol>
+      <p><strong>Checks:</strong> the rules in the suite (legal moves, check, checkmate, stalemate, castling, en passant, promotion) without WebGL; spoken moves parsed without punctuation; the engine's files pinned by hash; Chromium screenshots of each skin's board at 1280×800 and 390×844, with no page errors or CSP violations.</p>
       <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
     </section>
 
