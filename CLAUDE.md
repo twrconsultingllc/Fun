@@ -366,6 +366,14 @@ hand control. Each one cost a failed run to discover:
   registers. Test gesture logic with synthetic landmarks (see
   `tests/jarvis.dom.test.mjs`), and test the page wiring by calling its
   action handler from `page.evaluate`.
+- **Run the jsdom suite and the Chromium check one after the other, never
+  at the same time.** `tests/jarvis-test.chromium.mjs` has timing waits
+  (a protocol reaching a step with a scene open, within 30 s under
+  SwiftShader). With `node run.mjs` competing for the CPU, one of those
+  waits timed out and failed the run on 2026-10-10 (Session 8, review 62).
+  That looks like a page bug, but it isn't: run alone, the same check
+  passed. Chain them with `;` in one background command rather than
+  starting both with `&`.
 - **A fake speech recognizer must behave like the real one.** Headless
   Chromium can't run real speech recognition, so `jarvis.html`'s mic is
   tested with a fake `SpeechRecognition` in `addInitScript`. The real
