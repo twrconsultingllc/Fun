@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #56 — J.A.R.V.I.S. Test: command links in the help answer</title>
+<meta name="description" content="Review of the command links added to jarvis-test.html: commands in the help answer shown as clickable links in six Infinity Stone colours, checked for markup safety, contrast and that every link works.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #56 — J.A.R.V.I.S. Test: command links in the help answer</h1>
+    <p class="sub">When you ask what Jarvis can do, or he doesn't understand you, the commands in his answer are now links in the chat bubble, in six Infinity Stone colours. You can still say a command, or click it to send it. Built in <code>jarvis-test.html</code> only.</p>
+    <div class="meta">Review performed 2026-10-10 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>jarvis/build-plan.html</code> · suites run: <code>jarvis-test</code> (751 passed) · follows: <a href="55.html">55.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 88%;"></div></div>
+    <div class="progress-label">8 items: 7 fixed or verified clean, 1 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Links are built as elements, never as HTML</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>An answer marks a command as <code>⟦label|command⟧</code>. <code>add()</code> splits the text on that pattern and builds text nodes and <code>&lt;button&gt;</code> elements with <code>textContent</code>. The page still has no <code>innerHTML</code> (grep: 0). Your own messages are always plain text.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A link could have said one thing and done another</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Found while testing. The first version allowed any marker whose <em>command</em> was one of Jarvis's, so typing "remember that <code>⟦make a heart|reboot⟧</code> is fun" gave a link reading "make a heart" that rebooted him. Links are now allowed only for the exact label-and-command pairs in Jarvis's own help lists. Any other marker, typed or echoed, shows as plain words. Two checks pin this.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No new host or permission</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The CSP is unchanged. A click calls the same <code>handle()</code> as typing, so it can do nothing that typing the command couldn't.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; behaviour</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Every link works</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The suite runs each of the 35 link commands through <code>answer()</code> and none gets "I didn't understand". <code>reboot</code> is checked on its own, since it shows the boot screen. Clicking a link puts the command in the log as your message, and Jarvis answers it. <code>jarvis-test</code> suite: 751 passed (was 730). Ran <code>node run.mjs --page=jarvis-test.html</code> only.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Speech and the caption stay plain</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>say()</code> speaks <code>plainText()</code>, so no marker is read aloud, and Chrome's 160-character pieces are measured on what is actually spoken. The projector caption gets plain text too.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Chromium: all three skins, both sizes</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Headless Chromium at 1280×800 (Jarvis, Matrix) and 390×844 (Jarvis, Panthers) showed 35 links in 6 distinct colours, no sideways scroll, and no page errors or CSP violations. A mouse click on "flip a coin" and Enter on the first link (keyboard) both sent their commands. A comma after a link used to wrap onto a line of its own on the phone. It now stays with the link.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Contrast</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Computed against each skin's bubble background. The first colours dropped to 4.07:1 (blue on the Panthers bubble) under the hover tint. With a lighter blue, red and purple and a 10% hover tint, the lowest of all six colours, in three skins, with and without hover, is 5.16:1.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Only in the test copy</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>By design: <code>jarvis.html</code> gets the links when you promote the test copy.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: the jarvis-test suite in jsdom; headless Chromium at 1280×800 and 390×844 in three skins; a source grep for <code>innerHTML</code>; and WCAG contrast computed from the CSS values. The build plan edit adds one note and one map line, with existing classes only. See <a href="55.html">55.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>

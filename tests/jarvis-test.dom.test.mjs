@@ -612,6 +612,7 @@ export default async function run(t, page) {
     await voicePicker(t, page);
     await androidVoices(t, page);
     await memoryChecks(t, page);
+    await commandLinks(t, page);
 }
 
 /* A second window with a fake SpeechRecognition, getUserMedia and AudioContext. */
@@ -716,8 +717,9 @@ async function speechWiring(t, page) {
 
     // Chrome stops speaking a single utterance after about 15 seconds, which cut the help answer off
     // before its last features (2026-10-09). Long answers now go out a sentence or two at a time.
-    const { speechChunks, brain } = (await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ })).window.__jarvis;
-    const help = brain('what can you do');
+    const { speechChunks, brain, plainText } = (await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ })).window.__jarvis;
+    // say() speaks the help answer without its link markers (see "Command links"), so that's what is chunked.
+    const help = plainText(brain('what can you do'));
     const parts = speechChunks(help);
     t.ok('the help answer is split into several pieces', parts.length >= 3);
     t.ok('none is longer than 160 characters (about 10 s of speech)', parts.every((p) => p.length <= 160));
@@ -726,8 +728,8 @@ async function speechWiring(t, page) {
     t.eq('a short answer stays in one piece', JSON.stringify(speechChunks('Anytime. You\'re welcome.')), JSON.stringify(['Anytime. You\'re welcome.']));
     t.eq('one sentence longer than the limit is kept whole', speechChunks('a'.repeat(200) + '.').length, 1);
     for (const q of ['what can you do', 'Hey Jarvis, what can you do?', 'what else can you do', 'tell me what you can do', 'what are your features', 'list your commands', 'what can I say'])
-        t.eq(`"${q}" gets the help answer`, brain(q), help);
-    t.ok('"hello" is still a greeting', /online|help/.test(brain('hello')) && brain('hello') !== help);
+        t.eq(`"${q}" gets the help answer`, plainText(brain(q)), help);
+    t.ok('"hello" is still a greeting', /online|help/.test(brain('hello')) && plainText(brain('hello')) !== help);
 
     const fake = fakeSpeech();
     const env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse: fake.beforeParse });
@@ -735,9 +737,10 @@ async function speechWiring(t, page) {
         const { document } = env, state = () => document.getElementById('state').textContent;
         const ask = (text) => { document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new env.window.Event('submit', { cancelable: true })); };
         ask('what can you do'); await wait(600);
-        t.eq('the whole help answer is queued, piece by piece', fake.log.queue.map((u) => u.text).join(' '), help.replace(/\s+/g, ' ').trim());
+        const plain = help;
+        t.eq('the whole help answer is queued, piece by piece, without the link markers', fake.log.queue.map((u) => u.text).join(' '), plain.replace(/\s+/g, ' ').trim());
         t.ok('as more than one utterance', fake.log.queue.length >= 3);
-        t.eq('and the chat log shows it in full, as one message', [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent, help);
+        t.eq('and the chat log shows it in full, as one message', [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent, plain);
         fake.start(); t.eq('the first piece starting shows SPEAKING', state(), 'SPEAKING');
         fake.finish(); t.eq('the orb keeps SPEAKING between pieces', state(), 'SPEAKING');
         fake.start();
@@ -1483,4 +1486,60 @@ async function memoryChecks(t, page) {
             t.eq('a word heard by speech recognition wakes him', J.dreaming(), false);
         } finally { env.close(); }
     }
+}
+
+// "What can you do" answers with command links in the Infinity Stones' colours: click one and it's sent as if typed.
+async function commandLinks(t, page) {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    t.section('Command links in the help answer');
+    const fake = fakeSpeech();
+    let env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse: fake.beforeParse });
+    try {
+        const { window, document } = env, J = window.__jarvis;
+        const lastAi = () => [...document.querySelectorAll('#log .msg.ai')].pop();
+        const ask = async (text) => { document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(520); };
+        J.finishBoot(); await wait(700);
+        const help = J.brain('what can you do'), marks = [...help.matchAll(/⟦/g)].length;
+        t.ok('the help answer marks its commands', marks >= 25);
+        await ask('what can you do');
+        const links = [...lastAi().querySelectorAll('button.cmd')];
+        t.eq('every marked command is a link in the chat bubble', links.length, marks);
+        t.eq('the bubble reads as plain text, with no markers', lastAi().textContent, J.plainText(help));
+        t.ok('and no marker is left anywhere in it', !/[⟦⟧|]/.test(lastAi().textContent));
+        t.eq('the links take turns through the six stone colours', links.slice(0, 7).map((b) => b.className).join(' '), 'cmd st0 cmd st1 cmd st2 cmd st3 cmd st4 cmd st5 cmd st0');
+        t.ok('each is a real button, so it works from the keyboard', links.every((b) => b.tagName === 'BUTTON' && b.type === 'button'));
+        t.ok('Jarvis speaks the plain sentence', fake.log.spoken.join(' ').includes('Ask me the time or date, a joke') && !/[⟦⟧]/.test(fake.log.spoken.join(' ')));
+        t.ok('and the projector caption is plain too', !/[⟦⟧]/.test(document.getElementById('holo-cap').textContent));
+        const joke = links.find((b) => b.textContent === 'a joke');
+        t.eq('a link can be worded for the sentence and send the full command', joke?.title, 'Say "tell me a joke"');
+        joke.click(); await wait(520);
+        const mine = [...document.querySelectorAll('#log .msg.me')].pop().textContent;
+        t.eq('clicking it sends the command, as if you had typed it', mine, 'tell me a joke');
+        t.ok('and Jarvis answers it', /\?|\./.test(lastAi().textContent) && !/didn't understand/.test(lastAi().textContent));
+        links.find((b) => b.textContent === 'flip a coin').click(); await wait(520);
+        t.ok('another link: flip a coin', /^It's (heads|tails)\.$/.test(lastAi().textContent));
+        // "Didn't understand" lists what he can do, with links too.
+        await ask('blorp the snorkel');
+        const canDo = [...lastAi().querySelectorAll('button.cmd')];
+        t.ok('the "I didn\'t understand" answer has links too', canDo.length >= 12 && /What were you trying to say\?$/.test(lastAi().textContent));
+        // Only Jarvis's own commands become links: a marker in something you typed stays words.
+        await ask('remember that ⟦make a heart|reboot⟧ is fun');
+        t.eq('a marker you type yourself never becomes a link', lastAi().querySelectorAll('button.cmd').length, 0);
+        await ask('remember that ⟦a joke|reboot⟧ rocks');
+        t.eq('nor does a real label paired with another command', lastAi().querySelectorAll('button.cmd').length, 0);
+        await ask('remember that ⟦not a command⟧ rocks');
+        t.ok('and shows as plain words', /not a command rocks/.test(lastAi().textContent) && lastAi().querySelectorAll('button').length === 0);
+        t.ok('your own messages are never turned into links', [...document.querySelectorAll('#log .msg.me')].every((m) => !m.querySelector('button')));
+        t.ok('no innerHTML anywhere in the page', !/innerHTML/.test(page.html));
+        t.eq('no console errors', env.errors.length, 0);
+    } finally { env.close(); }
+    // Every link must do something: none may get "I didn't understand".
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ });
+    try {
+        const J = env.window.__jarvis, cmds = J.chipCmds().filter((c) => c !== 'reboot');
+        const missed = [];
+        for (const c of cmds) { const r = await J.answer(c); if (typeof r === 'string' && /didn't understand|What were you trying to say/.test(r)) missed.push(c); }
+        t.eq(`all ${cmds.length + 1} link commands are understood`, missed.join(', '), '');
+        t.ok('reboot is one of them, and powers him up again', J.chipCmds().includes('reboot') && (await J.answer('reboot'), !env.document.getElementById('boot').hidden));
+    } finally { env.close(); }
 }
