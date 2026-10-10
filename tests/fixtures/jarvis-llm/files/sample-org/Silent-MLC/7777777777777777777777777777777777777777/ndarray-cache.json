@@ -1,0 +1,15 @@
+{
+  "metadata": {
+    "ParamSize": 2
+  },
+  "records": [
+    {
+      "dataPath": "params_shard_0.bin",
+      "nbytes": 2000
+    },
+    {
+      "dataPath": "params_shard_1.bin",
+      "nbytes": 1500
+    }
+  ]
+}

@@ -35,8 +35,8 @@
     "licenceFile": "756602e49ab729629a048a4e75a885d118d138b39b75caa914e86543ae01a741"
   },
   "gplBase": {
-    "repo": "sample-org/Sample-MLC",
-    "commit": "1111111111111111111111111111111111111111",
+    "repo": "sample-org/GplChild-MLC",
+    "commit": "9999999999999999999999999999999999999999",
     "base": "sample-org/Gpl",
     "baseCommit": "4444444444444444444444444444444444444444",
     "licence": "apache-2.0",
@@ -71,6 +71,40 @@
   "mixed": {
     "repo": "sample-org/Mixed-MLC",
     "commit": "6666666666666666666666666666666666666666",
+    "base": "sample-org/Sample",
+    "baseCommit": "2222222222222222222222222222222222222222",
+    "licence": "apache-2.0",
+    "dir": "resolve/Sample-MLC",
+    "files": {
+      "README.md": "d8640f4bb0b21e4af0c0ff46839738d1e9fab54ccb6cd6affe02b072dcecead2",
+      "mlc-chat-config.json": "32899356d9acbbbf48a7bef414b1adf8df29e40aa66408298abfec2ed58d483d",
+      "ndarray-cache.json": "fe2f58543248285fddbebdfd0bd7faf2f2fa9d1156d505c261dfe358d99c0a37",
+      "params_shard_0.bin": "6647c5986e72246a33962f2e12aacfee06373ca3caa73d06cf25198da83b7f5e",
+      "params_shard_1.bin": "3383576d116e597b94cb97d885458ffaed4b81351dae34d95dec61b73d03cc43",
+      "tokenizer.json": "c9be3a79d97e86a49ebd7c1fdb229ec7923e8d454a38c709168de5ecbf1a8403"
+    },
+    "licenceFile": "756602e49ab729629a048a4e75a885d118d138b39b75caa914e86543ae01a741"
+  },
+  "silent": {
+    "repo": "sample-org/Silent-MLC",
+    "commit": "7777777777777777777777777777777777777777",
+    "base": "sample-org/Sample",
+    "baseCommit": "2222222222222222222222222222222222222222",
+    "licence": "apache-2.0",
+    "dir": "resolve/Sample-MLC",
+    "files": {
+      "README.md": "e34ba9bb1b7e56a19871ba539b6ca2da903f66f53c8953271dc45594a31f25ba",
+      "mlc-chat-config.json": "32899356d9acbbbf48a7bef414b1adf8df29e40aa66408298abfec2ed58d483d",
+      "ndarray-cache.json": "fe2f58543248285fddbebdfd0bd7faf2f2fa9d1156d505c261dfe358d99c0a37",
+      "params_shard_0.bin": "6647c5986e72246a33962f2e12aacfee06373ca3caa73d06cf25198da83b7f5e",
+      "params_shard_1.bin": "3383576d116e597b94cb97d885458ffaed4b81351dae34d95dec61b73d03cc43",
+      "tokenizer.json": "c9be3a79d97e86a49ebd7c1fdb229ec7923e8d454a38c709168de5ecbf1a8403"
+    },
+    "licenceFile": "756602e49ab729629a048a4e75a885d118d138b39b75caa914e86543ae01a741"
+  },
+  "orphan": {
+    "repo": "sample-org/Orphan-MLC",
+    "commit": "8888888888888888888888888888888888888888",
     "base": "sample-org/Sample",
     "baseCommit": "2222222222222222222222222222222222222222",
     "licence": "apache-2.0",
