@@ -43,6 +43,13 @@ body.dreaming #state{color:var(--label);opacity:1}
 .msg{max-width:85%;padding:8px 12px;border:1px solid var(--phos-dim);background:var(--glass);font-size:1rem;line-height:1.4;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
 .me{align-self:flex-end;border-color:var(--amber);color:#ffe6b0;background:rgba(255,194,74,.06)}
 .ai{align-self:flex-start}
+/* Command links in Jarvis's bubbles, in the Infinity Stones' colours: space, mind, reality, power, time, soul */
+.cmd{display:inline;font:inherit;font-weight:700;padding:0 2px;margin:0;border:0;border-radius:3px;background:none;cursor:pointer;
+  color:var(--stone);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;text-shadow:0 0 9px var(--stone)}
+.cmd-wrap{white-space:nowrap}
+.cmd::before{content:"◆";font-size:.6em;vertical-align:.25em;margin-right:3px;opacity:.85}
+.cmd:hover{background:color-mix(in srgb,var(--stone) 10%,transparent);text-decoration-thickness:2px}
+.cmd.st0{--stone:#70abff}.cmd.st1{--stone:#ffd84a}.cmd.st2{--stone:#ff7a7a}.cmd.st3{--stone:#c98fff}.cmd.st4{--stone:#3dff8a}.cmd.st5{--stone:#ff9f45}
 form{display:flex;gap:10px;padding:14px 18px 18px;max-width:640px;width:100%;margin:0 auto}
 input{flex:1;min-width:0;background:var(--glass);border:1px solid var(--phos-dim);color:var(--text);font:inherit;font-size:1rem;padding:12px 14px;outline:none}
 input::placeholder{color:var(--label);opacity:1}
@@ -740,7 +747,7 @@ function say(text){
   add(text,'ai');
   if(H&&H.onAnswer)H.onAnswer(); // the neural network lights its output layer for each answer
   if(!synth){setMode('idle');return}
-  const gen=++sayGen,parts=speechChunks(text);
+  const gen=++sayGen,parts=speechChunks(plainText(text));
   synth.cancel();
   parts.forEach((p,i)=>{
     const u=new SpeechSynthesisUtterance(p);if(voice){u.voice=voice;u.lang=voice.lang} // Android Chrome ignores the voice unless the language matches it
@@ -805,9 +812,33 @@ function applySetting({key,value}){
 
 /* ---------- Chat log ---------- */
 const log=document.getElementById('log'),holoCap=document.getElementById('holo-cap');
+/* Command links: an answer marks a command as ⟦label⟧ or ⟦label|what to say⟧. In Jarvis's bubbles each one becomes a
+   link in one of the six Infinity Stone colours, and a click sends that command as if you'd typed it. Only commands
+   from his own help lists (CHIP_CMDS, as exact label-and-command pairs) become links: anything else marked, such as
+   text you typed, shows as plain words, so a link can't say one thing and do another. Everything is built with textContent, never as HTML, and speech and the projector caption get plain text. */
+const CHIP_RE=/⟦([^⟦⟧|]{1,60})(?:\|([^⟦⟧|]{1,80}))?⟧/g;
+const plainText=t=>String(t).replace(CHIP_RE,'$1');
+let CHIP_CMDS=new Set(); // filled once the help lists exist, further down
+const chipKey=m=>m[1]+'|'+(m[2]||m[1]);
+function chipCommands(...texts){const set=new Set();for(const t of texts)for(const m of t.matchAll(CHIP_RE))set.add(chipKey(m));return set}
 function add(text,who){
-  const d=document.createElement('div');d.className='msg '+who;d.textContent=text;log.appendChild(d);log.scrollTop=log.scrollHeight;
-  if(who==='ai')holoCap.textContent=text;
+  const d=document.createElement('div');d.className='msg '+who;
+  if(who==='ai'){
+    let at=0,n=0;
+    for(const m of String(text).matchAll(CHIP_RE)){
+      d.append(text.slice(at,m.index));at=m.index+m[0].length;
+      const cmd=m[2]||m[1];
+      if(!CHIP_CMDS.has(chipKey(m))){d.append(m[1]);continue}
+      const b=document.createElement('button');b.type='button';b.className='cmd st'+(n++%6);b.textContent=m[1];
+      b.title=`Say "${cmd}"`;b.addEventListener('click',()=>{blip(1200,.05,.03);handle(cmd)});
+      // a comma or full stop straight after a link stays on its line
+      const p=String(text).slice(at).match(/^[,.;:!?]+/);
+      if(p){const w=document.createElement('span');w.className='cmd-wrap';w.append(b,p[0]);at+=p[0].length;d.append(w)}else d.append(b);
+    }
+    d.append(String(text).slice(at));
+    holoCap.textContent=plainText(text);
+  }else d.textContent=text;
+  log.appendChild(d);log.scrollTop=log.scrollHeight;
 }
 
 /* ---------- Built-in brain (no internet, kid-safe) ---------- */
@@ -829,7 +860,7 @@ function brainKnown(raw){
   const s=raw.toLowerCase().trim(),name=userName?`, ${userName}`:'';
   let m;
   if((m=s.match(/\b(?:my name is|call me|i am|i'm) ([a-z]+)/))&&!notNames.has(m[1])){userName=m[1][0].toUpperCase()+m[1].slice(1);return `Nice to meet you, ${userName}. I'll remember that until you close this page. I never save names.`}
-  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say show me your brain to watch me think, or suit up to build a suit of armour. Say show me Earth for the globe, or show me any country, US state or big city, like Florida or Tokyo. Say hand control to steer it with your hands through the camera, or scan the room for a threat scan. Say brief me for the time and the top headlines. In Chrome or Edge, turn on always listening with the HEY JARVIS switch, then start what you say with my name. Say close to turn it off, or reboot to watch me power up again. Say switch to Matrix to talk to Morpheus, switch to Panthers for Stanley C. Panther, or back to Jarvis. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit, whichever skin I'm in. Ask what do you know about me to hear them back. I can also remember settings on this device: say make the orb blue, speak faster, use imperial units, or open with the galaxy. Say show me your memory to see everything I keep as stars, and tap one to hear it or say forget that. Leave me alone for a few minutes and I'll dream. Ask what do you save to see what I keep, and I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, and a settings backup file is coming. If I don't understand you, tell me what you meant and I'll remember it on this device.";
+  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧, or some math like ⟦seven times eight|what is seven times eight⟧. I can ⟦flip a coin⟧, ⟦roll a die⟧ or start a ⟦launch countdown⟧. For the holo-projector, say ⟦show me the galaxy⟧, ⟦show me the planets⟧, ⟦take me to Mars⟧, ⟦make a heart⟧, ⟦make a rocket⟧, or ⟦write your name|write my name⟧. Say ⟦show me your brain⟧ to watch me think, or ⟦suit up⟧ to build a suit of armour. Say ⟦show me Earth⟧ for the globe, or show me any country, US state or big city, like ⟦Florida|show me Florida⟧ or ⟦Tokyo|show me Tokyo⟧. Say ⟦hand control⟧ to steer it with your hands through the camera, or ⟦scan the room⟧ for a threat scan. Say ⟦brief me⟧ for the time and the top headlines. In Chrome or Edge, turn on ⟦always listening|always listen⟧ with the HEY JARVIS switch, then start what you say with my name. Say ⟦close⟧ to turn it off, or ⟦reboot⟧ to watch me power up again. Say ⟦switch to Matrix⟧ to talk to Morpheus, ⟦switch to Panthers⟧ for Stanley C. Panther, or ⟦back to Jarvis⟧. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit, whichever skin I'm in. Ask ⟦what do you know about me⟧ to hear them back. I can also remember settings on this device: say ⟦make the orb blue⟧, ⟦speak faster⟧, ⟦use imperial units⟧, or ⟦open with the galaxy⟧. Say ⟦show me your memory⟧ to see everything I keep as stars, and tap one to hear it or say forget that. Leave me alone for a few minutes and I'll dream. Ask ⟦what do you save⟧ to see what I keep, and I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, and a settings backup file is coming. If I don't understand you, tell me what you meant and I'll remember it on this device.";
   if(/^(?:please )?(?:forget|clear|delete|erase) my name\b/.test(s)){const had=userName;userName=null;return had?"Done. I've forgotten your name.":"I don't know your name yet, so there's nothing to forget."}
   if(/\bwhat(?:'s| is) my name\b|\bwho am i\b|\bdo you (?:know|remember) (?:my name|me|who i am)\b|\bsay my name\b/.test(s))return userName?`Your name is ${userName}. I'll remember it whichever skin I'm wearing, until you close this page. I never save it.`:"You haven't told me your name yet. Say my name is, then your name, and I'll remember it until you close this page.";
   if(/\b(hello|hi|hey|good (morning|afternoon|evening))\b/.test(s))return pick([`Hello${name}. All systems are online.`,`Good to see you${name}. How can I help?`]);
@@ -2310,7 +2341,8 @@ function learn(said,meant){
 }
 let pendingTeach=null; // the phrase Jarvis just didn't understand, while he waits to hear what it meant
 const NOPE=Symbol('not understood');
-const CAN_DO="Here's what I can do: tell the time or date, a joke, a fun fact or some math, flip a coin or roll a die, show you things on the holo-projector like Mars, Earth or your name, suit up, show my brain or my memory, run a threat scan, give you a briefing, remember what you tell me this visit, change my settings, or switch to the Matrix or Panthers skin.";
+const CAN_DO="Here's what I can do: tell ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧ or some math, ⟦flip a coin⟧ or ⟦roll a die⟧, show you things on the holo-projector like ⟦Mars|take me to Mars⟧, ⟦Earth|show me Earth⟧ or ⟦your name|write my name⟧, ⟦suit up⟧, show ⟦my brain|show me your brain⟧ or ⟦my memory|show me your memory⟧, run a ⟦threat scan|scan the room⟧, give you a ⟦briefing|brief me⟧, remember what you tell me this visit, change my settings, or switch to the ⟦Matrix|switch to Matrix⟧ or ⟦Panthers|switch to Panthers⟧ skin.";
+CHIP_CMDS=chipCommands(brainKnown('help'),CAN_DO);
 // One answer, or NOPE when nothing understood it. A learned phrase stands in for what it means.
 async function respond(text){
   const p=normPhrase(text);if(learned[p])text=learned[p];
@@ -2448,7 +2480,7 @@ if(SR){
   }
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
+window.__jarvis={plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
   SETTING_CHOICES,cleanSettings,cleanStreak,streakNext,streakLine,settingsIntent,applySetting,settings:()=>({...settings}),inUnits,ORB_COLOURS,ring:()=>ringRGB,SPEEDS,
   memoryTell,memoryAsk,memoryForget,memory:()=>memory.map(x=>({...x})),memoryStars,forgetStar,constellation,constellationLinks,firstTime,streak:()=>({...streak}),persisted:()=>persisted,
   applyGesture,dreamDue,dreamCheck,setDream,dreaming:()=>dreaming,DREAM_AFTER,idleFor:ms=>{lastActive=performance.now()-ms;return dreamCheck()},mode:()=>mode};
