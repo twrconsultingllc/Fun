@@ -96,7 +96,8 @@ goes in the committed `tests/` directory with a README, never in a scratchpad or
 `/tmp` where it disappears when the session ends. Offer this proactively rather
 than waiting to be asked.
 
-`tests/` is framework-free — plain Node plus `jsdom` — and takes a
+`tests/` is framework-free — plain Node plus `jsdom` (and `fake-indexeddb`
+for the one suite that needs IndexedDB, `jarvis-test`) — and takes a
 `--target=<path|url>` argument so the same assertions run against either the
 working copy or the deployed URL:
 
@@ -486,23 +487,26 @@ since other pages on the site share the storage. The user's name lives in
 memory for one visit only. A new feature that wants to remember something
 must go through `store()`, add its key to `STORE_KEYS` only if it can never
 hold personal data, and pass the suites' "exactly one `localStorage.setItem`"
-check. Facts about the user (birthdays, family, a diary) aren't stored at
+check. In the test copy, since Session 9, saves go to IndexedDB instead,
+through one function, `save()`, which checks every record itself; its suite's
+check is "no localStorage write at all, and exactly one readwrite
+transaction". Facts about the user (birthdays, family, a diary) aren't stored at
 all. "What do you save" makes Jarvis read back what's actually stored.
 
 `jarvis.html` and `jarvis-test.html` share their browser storage. Both are
-on `twrconsultingllc.github.io` and use the same `jarvis-*` localStorage
-keys, so in one browser, whatever the test copy saves, changes or deletes
-also changes the main page. Each page's `scrubStore()` deletes any
-`jarvis-*` key missing from its own `STORE_KEYS`, so a key added to one copy
-is deleted whenever the other copy loads. That happened: from Session 7
+on `twrconsultingllc.github.io`, and until Session 9 both used the same
+`jarvis-*` localStorage keys, so in one browser, whatever the test copy
+saved, changed or deleted also changed the main page. Each page's
+`scrubStore()` deleted any `jarvis-*` key missing from its own `STORE_KEYS`,
+so a key added to one copy was deleted whenever the other copy loaded. That happened: from Session 7
 until the promotion on 2026-10-10, opening `jarvis.html` deleted the test
-copy's `jarvis-settings` and `jarvis-streak`, with no error. Found while
-planning Session 9 of `jarvis/build-plan.html`, which gives the test copy
-its own IndexedDB database that copies the localStorage values once and
-never writes them back. Until then, don't test a wipe or a storage
-migration in the test copy in a browser whose main-page settings matter.
-Expect a new storage key in the test copy to vanish whenever the main page
-is opened.
+copy's `jarvis-settings` and `jarvis-streak`, with no error. Session 9 of
+`jarvis/build-plan.html` fixed it on 2026-10-10 (review 60): the test copy
+keeps its own IndexedDB database, `jarvis-test`, copies the localStorage
+values in once, and never writes localStorage. `jarvis.html` needed no
+change, because it never opens IndexedDB and its scrub only touches
+localStorage. When Session 9 is promoted, the main page gets a database of
+its own name (for example `jarvis`), so the two copies stay apart.
 
 The interim session on 2026-10-09 (skins, faces, voices, learned phrases)
 is written up in `jarvis/build-plan.html` under "Interim", with what was

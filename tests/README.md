@@ -7,7 +7,7 @@ just Node plus `jsdom`, so these keep running years from now.
 
 ```bash
 cd tests
-npm install                        # once, installs jsdom
+npm install                        # once, installs jsdom and fake-indexeddb
 node run.mjs --page=snake.html     # the suites for one page you changed
 ```
 
@@ -38,6 +38,13 @@ node run.mjs --target=../tricalc.html --only=core  # force an exact file
 Each suite names the page it drives, and `--base` decides where that page is
 read from. That is what lets the identical assertions run against the working
 copy and against the deploy.
+
+`fake-indexeddb` is there for `jarvis-test.dom.test.mjs` only. jsdom has no
+IndexedDB, and since Session 9 of `jarvis/build-plan.html` the J.A.R.V.I.S.
+test copy saves into it. The package implements the IndexedDB spec, so its
+requests and transactions finish asynchronously, like a browser's. That
+suite gives each window a fresh database, and reuses one to stand for a
+reload in the same browser.
 
 Exit code is 0 when everything passes, 1 on any failure, 2 if the page could
 not be loaded — so this drops straight into CI or a pre-push hook.

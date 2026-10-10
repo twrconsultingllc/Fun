@@ -32,7 +32,62 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { openDom } from './lib/page.mjs';
+import { openDom as openPage } from './lib/page.mjs';
+
+/* Session 9 moved the test copy's saving from localStorage to IndexedDB. jsdom has none, so every window here
+ * gets fake-indexeddb, a full implementation of the IndexedDB spec: asynchronous, with transactions that
+ * finish later, like the real one. Each window gets a fresh "browser profile" (an empty database) unless
+ * opts.idb hands it an existing one, and opts.idb === null opens it with no IndexedDB at all. localStorage
+ * seeded in beforeParse is what jarvis.html left there: the test copy copies it in on its first run. The
+ * window is returned once the page has finished reading its database (window.__jarvis.ready). */
+let IDB = null;
+async function openDom(html, url, opts = {}) {
+    IDB ??= await import('fake-indexeddb');
+    const idb = opts.idb === undefined ? new IDB.IDBFactory() : opts.idb;
+    const env = await openPage(html, url, { ...opts, beforeParse(w) { if (idb) { w.indexedDB = idb; w.IDBKeyRange = IDB.IDBKeyRange; } opts.beforeParse?.(w); } });
+    env.idb = idb;
+    if (!opts.noWait) await env.window.__jarvis?.ready;
+    return env;
+}
+// Everything in a profile's database for this page, read straight from IndexedDB rather than from the page.
+// Saves reach the database a moment after the page makes them, so this waits a little first.
+async function dbDump(idb, name = 'jarvis-test') {
+    await new Promise((r) => setTimeout(r, 40));
+    return new Promise((resolve, reject) => {
+        const rq = idb.open(name);
+        rq.onerror = () => reject(rq.error);
+        rq.onsuccess = () => {
+            const db = rq.result, out = {}, names = [...db.objectStoreNames];
+            if (!names.length) { db.close(); resolve(out); return; }
+            const tx = db.transaction(names, 'readonly');
+            for (const t of names) {
+                out[t] = {};
+                const c = tx.objectStore(t).openCursor();
+                c.onsuccess = () => { const k = c.result; if (!k) return; out[t][typeof k.key === 'string' ? k.key : JSON.stringify(k.key)] = k.value; k.continue(); };
+            }
+            tx.oncomplete = () => { db.close(); resolve(out); };
+        };
+    });
+}
+// Puts records straight into a profile's database, the way an earlier visit would have left them.
+async function dbSeed(idb, { kept = {}, events = [], totals = [], meta = {} }, name = 'jarvis-test') {
+    return new Promise((resolve, reject) => {
+        const rq = idb.open(name);
+        rq.onsuccess = () => {
+            const db = rq.result, tx = db.transaction(['kept', 'events', 'totals', 'meta'], 'readwrite');
+            for (const [k, v] of Object.entries(kept)) tx.objectStore('kept').put(v, k);
+            for (const r of events) tx.objectStore('events').put(r);
+            for (const r of totals) tx.objectStore('totals').put(r);
+            for (const [k, v] of Object.entries(meta)) tx.objectStore('meta').put(v, k);
+            tx.oncomplete = () => { db.close(); resolve(); };
+            tx.onerror = () => reject(tx.error);
+        };
+        rq.onerror = () => reject(rq.error);
+    });
+}
+// The day number the page uses: whole days since 1 January 2026, by the local calendar. Worked out
+// independently here rather than taken from the page.
+const dayOf = (d = new Date()) => Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(2026, 0, 1)) / 864e5);
 
 // The self-hosted hand tracker, pinned (see jarvis/hands/README.md).
 // The globe's coastlines, pinned (see jarvis/earth/README.md).
@@ -140,9 +195,37 @@ export default async function run(t, page) {
             t.eq(`"${q}" is not personal`, personal(q), null);
         t.eq('store() refuses a key that isn\'t on the list', store('jarvis-name', 'Tony'), false);
         t.eq('and personal text even under a listed key', store('jarvis-learned', JSON.stringify({ 'my phone': '239 555 0142' })), false);
-        t.eq('nothing was written', window.localStorage.getItem('jarvis-name'), null);
-        t.eq('only six keys can ever be saved (settings and the streak added in Session 7)', JSON.stringify(STORE_KEYS), '["jarvis-skin","jarvis-voices","jarvis-learned","jarvis-mic-note","jarvis-settings","jarvis-streak"]');
-        t.eq('the page calls localStorage.setItem in exactly one place (store)', (page.html.match(/localStorage\.setItem\(/g) || []).length, 1);
+        const savedNow = await dbDump(env.idb);
+        t.ok('nothing was written', window.localStorage.getItem('jarvis-name') === null && !('jarvis-name' in savedNow.kept) && !('jarvis-learned' in savedNow.kept));
+        t.eq('only five keys can ever be saved (the streak moved onto usage counts in Session 9)', JSON.stringify(STORE_KEYS), '["jarvis-skin","jarvis-voices","jarvis-learned","jarvis-mic-note","jarvis-settings"]');
+
+        // The one place that saves, widened for IndexedDB (Session 9): the test copy never writes localStorage at
+        // all, every IndexedDB write happens in one readwrite transaction in flush(), which only save() queues for,
+        // and save() checks every record itself. Settings reach save() only through store().
+        t.eq('the page never writes localStorage (setItem, removeItem or clear)', (page.html.match(/localStorage\.(?:setItem|removeItem|clear)\(|\bls\.(?:setItem|removeItem|clear)\(/g) || []).length, 0);
+        t.eq('there is exactly one readwrite transaction', (page.html.match(/'readwrite'/g) || []).length, 1);
+        t.ok('and it is in flush()', /function flush\(db\)\{[^}]*db\.transaction\(TABLES,'readwrite'\)/.test(page.html));
+        t.eq('flush() runs only from save(), after the database opens', (page.html.match(/\bflush\b/g) || []).length, 2);
+        t.eq('only save() queues a write', (page.html.match(/pending\.push\(/g) || []).length, 1);
+        t.ok('save() checks every record with fits() before queueing it', /function save\(table,key,rec\)\{\s*if\(rec!==undefined&&!fits\(table,key,rec\)\)return false;/.test(page.html));
+        const keptSaves = page.html.match(/save\('kept',[^)]*\)/g) || [];
+        t.eq('a setting is only ever written by store(); every other kept-table save is a removal', keptSaves.filter((x) => !/,undefined\)$/.test(x)), ["save('kept',key,value)"]);
+        t.ok('no other IndexedDB write method is called anywhere', !/\.(?:add|clear)\(\s*\)|objectStore\([^)]*\)\.(?:put|add|delete|clear)\(|\bindexedDB\.deleteDatabase\(/.test(page.html));
+        const { fits: saveable } = window.__jarvis;
+        const today = dayOf();
+        t.eq('fits(): a listed setting', saveable('kept', 'jarvis-skin', 'matrix'), true);
+        t.eq('fits(): a key not on the list', saveable('kept', 'jarvis-name', 'Tony'), false);
+        t.eq('fits(): personal text under a listed key', saveable('kept', 'jarvis-learned', JSON.stringify({ 'ring pat': 'call 239 555 0142' })), false);
+        t.eq('fits(): a usage count', saveable('events', ['scene:globe', today], { id: 'scene:globe', day: today, n: 3 }), true);
+        t.eq('fits(): an event ID not on the list', saveable('events', ['said:hello pat', today], { id: 'said:hello pat', day: today, n: 1 }), false);
+        t.eq('fits(): an extra field riding along', saveable('events', ['scene:globe', today], { id: 'scene:globe', day: today, n: 1, note: 'my phone' }), false);
+        t.eq('fits(): a date instead of a day number', saveable('events', ['scene:globe', '2026-10-10'], { id: 'scene:globe', day: '2026-10-10', n: 1 }), false);
+        t.eq('fits(): a key that doesn\'t match the record', saveable('events', ['scene:suit', today], { id: 'scene:globe', day: today, n: 1 }), false);
+        t.eq('fits(): a count that isn\'t a whole number', saveable('events', ['scene:globe', today], { id: 'scene:globe', day: today, n: 1.5 }), false);
+        t.eq('fits(): an all-time total', saveable('totals', 'cmd:joke', { id: 'cmd:joke', n: 40 }), true);
+        t.eq('fits(): a total for an unlisted ID', saveable('totals', 'cmd:secret', { id: 'cmd:secret', n: 1 }), false);
+        t.eq('fits(): only the three bookkeeping numbers in meta', [saveable('meta', 'copied', 1), saveable('meta', 'rolled', 200), saveable('meta', 'carry', 4), saveable('meta', 'name', 'Tony'), saveable('meta', 'rolled', '2026-07-12')].join(), 'true,true,true,false,false');
+        t.eq('fits(): no other table', saveable('notes', 'x', 'y'), false);
         t.ok('and never reads or writes a saved name', !/jarvis-name/.test(page.html));
         t.ok('"what do you save" lists what is kept and says nothing personal is', /No names, no personal details/.test(await window.__jarvis.answer('what do you save')));
 
@@ -613,7 +696,225 @@ export default async function run(t, page) {
     await voicePicker(t, page);
     await androidVoices(t, page);
     await memoryChecks(t, page);
+    await memoryFoundation(t, page);
+    await keptApart(t, page);
     await commandLinks(t, page);
+}
+
+// A factory whose databases open only when the test says so, to see what the page does while it waits.
+// Everything else is the real fake-indexeddb underneath.
+function gatedFactory(real, gate) {
+    return {
+        open(name, version) {
+            const rq = real.open(name, version), out = {};
+            Object.defineProperty(out, 'result', { get: () => rq.result });
+            Object.defineProperty(out, 'transaction', { get: () => rq.transaction });
+            rq.onupgradeneeded = (e) => out.onupgradeneeded?.(e);
+            rq.onsuccess = () => gate.then(() => out.onsuccess?.());
+            rq.onerror = () => out.onerror?.();
+            return out;
+        }
+    };
+}
+
+// Session 9 of jarvis/build-plan.html: the memory foundation. Saved data lives in IndexedDB, with usage
+// counts beside the settings: fixed IDs, a day number and a count, never words or dates (review 60).
+async function memoryFoundation(t, page) {
+    const URL_ = 'https://jarvis.test/jarvis.html', quiet = { ignore: /getContext|HTMLCanvasElement/ };
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const today = dayOf();
+    const visits = (...ago) => ago.map((a) => ({ id: 'app:visit', day: today - a, n: 1 }));
+    const typeIn = async (env, text) => { const { document, window } = env; document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(520); return [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? ''; };
+    // A profile that already has the database, as an earlier visit would leave it, holding exactly `records`.
+    const profile = async (records) => {
+        const first = await openDom(page.html, URL_, quiet), idb = first.idb;
+        first.close(); await wait(40);
+        // clear what that first visit counted, then put in the records under test
+        await new Promise((res) => { const rq = idb.open('jarvis-test'); rq.onsuccess = () => { const db = rq.result, tx = db.transaction(['kept', 'events', 'totals', 'meta'], 'readwrite'); for (const n of ['kept', 'events', 'totals', 'meta']) tx.objectStore(n).clear(); tx.oncomplete = () => { db.close(); res(); }; }; });
+        await dbSeed(idb, { ...records, meta: { copied: 1, ...(records.meta || {}) } });
+        return idb;
+    };
+
+    t.section('Memory foundation: the database (Session 9)');
+    let env = await openDom(page.html, URL_, quiet);
+    try {
+        const J = env.window.__jarvis;
+        t.eq('the test copy has its own database', J.DB_NAME, 'jarvis-test');
+        t.ok('and the page knows it was saved there', J.dbOK() && J.loaded());
+        const dbs = await env.idb.databases();
+        t.eq('it is the only database this page opens', JSON.stringify(dbs.map((d) => [d.name, d.version])), '[["jarvis-test",1]]');
+        const d = await dbDump(env.idb);
+        t.eq('version 1 has four tables', Object.keys(d).sort().join(), 'events,kept,meta,totals');
+        t.ok('the database version is the number of upgrade steps, so later sessions add a step instead of starting again', /indexedDB\.open\(DB_NAME,DB_UPGRADES\.length\)/.test(page.html) && /for\(let v=e\.oldVersion;v<DB_UPGRADES\.length;v\+\+\)DB_UPGRADES\[v\]/.test(page.html));
+        t.eq('a first visit saves only the copy-done mark, the visit count and the roll-up bookkeeping', JSON.stringify({ kept: d.kept, events: Object.values(d.events), totals: d.totals, meta: d.meta }),
+            JSON.stringify({ kept: {}, events: [{ id: 'app:visit', day: today, n: 1 }], totals: {}, meta: { carry: 0, copied: 1, rolled: today - 89 } }));
+        t.eq('a day number is whole days since 1 January 2026, the same as the page works it out', J.dayNumber(), today);
+        t.eq('for example 10 October 2026 is day 282', J.dayNumber(new Date(2026, 9, 10)), 282);
+
+        t.section('Memory foundation: usage counts (Session 9)');
+        t.eq('the event list has no repeats', new Set(J.EVENT_IDS).size, J.EVENT_IDS.length);
+        t.ok('every ID is a fixed kind:name word, nothing personal', J.EVENT_IDS.every((id) => /^(?:app|scene|cmd|skin|feature):[a-z-]+$/.test(id) && !J.personal(id)));
+        t.ok('every skin has an ID', Object.keys(J.SKINS).every((k) => J.EVENT_IDS.includes('skin:' + k)));
+        t.ok('every scene a setting can open has an ID', J.SETTING_CHOICES.scene.every((k) => J.EVENT_IDS.includes('scene:' + k)));
+        t.eq('an ID that isn\'t on the list is refused', J.track('said:hello pat'), false);
+        t.eq('and so is a day that isn\'t a day number', J.track('cmd:joke', '2026-10-10'), false);
+        for (const [q, id] of [['show me the galaxy', 'scene:galaxy'], ['tell me a joke', 'cmd:joke'], ['tell me a joke', 'cmd:joke'], ['switch to the matrix', 'skin:matrix'], ['flip a coin', 'cmd:coin'],
+            ['my dog is Rex', 'cmd:remember'], ['scan the room', 'cmd:scan'], ['what is 6 times 7', 'cmd:math'], ['make the orb blue', 'cmd:setting'], ['take me to mars', 'scene:solar'], ['what time is it', 'cmd:time']])
+            await typeIn(env, q);
+        const ev = Object.values((await dbDump(env.idb)).events).filter((e) => e.day === today);
+        const n = (id) => ev.find((e) => e.id === id)?.n ?? 0;
+        t.eq('commands are counted by kind, today', ['scene:galaxy', 'cmd:joke', 'skin:matrix', 'cmd:coin', 'cmd:remember', 'cmd:scan', 'cmd:math', 'cmd:setting', 'scene:solar', 'cmd:time'].map(n).join(), '1,2,1,1,1,1,1,1,1,1');
+        t.ok('each record is exactly {id, day, n}, with a listed ID', ev.every((e) => Object.keys(e).sort().join() === 'day,id,n' && J.EVENT_IDS.includes(e.id)));
+        t.ok('no word you said is anywhere in the database', !/rex|joke me|room|mars|blue orb|6 times/i.test(JSON.stringify(await dbDump(env.idb))));
+        t.ok('"what do you save" says what the counts are', /Counts of which scenes and commands you use, by day\. Nothing you say\./.test(await J.answer('what do you save')));
+        t.ok('the memory core shows them as one star', J.memoryStars().filter((x) => x.type === 'history').length === 1);
+        t.eq('no console errors', env.errors.length, 0);
+    } finally { env.close(); }
+
+    t.section('Memory foundation: the 90-day roll-up (Session 9)');
+    {
+        const idb = await profile({ events: [{ id: 'cmd:joke', day: today - 90, n: 3 }, { id: 'cmd:joke', day: today - 89, n: 2 }, { id: 'scene:globe', day: today - 95, n: 1 }], totals: [{ id: 'cmd:joke', n: 10 }] });
+        env = await openDom(page.html, URL_, { ...quiet, idb });
+        try {
+            const d = await dbDump(idb), days = Object.values(d.events).map((e) => today - e.day).sort((a, b) => a - b);
+            t.eq('day 90 (89 days ago) is still kept by day; day 91 and older are not', days.join(), '0,89');
+            t.eq('their counts are added into the all-time totals', JSON.stringify(Object.values(d.totals).sort((a, b) => a.id.localeCompare(b.id))), JSON.stringify([{ id: 'cmd:joke', n: 13 }, { id: 'scene:globe', n: 1 }]));
+            t.eq('a total is just {id, n}', Object.keys(d.totals['cmd:joke']).sort().join(), 'id,n');
+            t.eq('the oldest day kept is recorded as a day number', d.meta.rolled, today - 89);
+            t.eq('rolling up again the same day does nothing', env.window.__jarvis.rollUp(), 0);
+            t.ok('the history star still shows', env.window.__jarvis.memoryStars().some((x) => x.type === 'history'));
+        } finally { env.close(); }
+    }
+
+    t.section('Memory foundation: the streak from usage counts alone (Session 9)');
+    for (const [label, ago, want] of [['yesterday and the day before: 3 days', [1, 2], 3], ['a missed day (yesterday, then 3 days ago): 2 days', [1, 3], 2],
+        ['nothing yesterday: 1 day', [2, 3, 4], 1], ['any count makes a day, not just a visit', [], 2]]) {
+        const extra = ago.length ? [] : [{ id: 'cmd:joke', day: today - 1, n: 4 }];
+        const idb = await profile({ events: [...visits(...ago), ...extra] });
+        env = await openDom(page.html, URL_, { ...quiet, idb });
+        try {
+            t.eq(label, env.window.__jarvis.streak().days, want);
+        } finally { env.close(); }
+    }
+    {
+        // 95 days in a row before today: 89 kept by day, 6 rolled into the carry, so 96 with today.
+        const idb = await profile({ events: visits(...Array.from({ length: 95 }, (_, i) => i + 1)) });
+        env = await openDom(page.html, URL_, { ...quiet, idb });
+        try {
+            const J = env.window.__jarvis, d = await dbDump(idb);
+            t.eq('a streak longer than 90 days isn\'t cut short by the roll-up', J.streak().days, 96);
+            t.eq('the days rolled up are carried as one number', d.meta.carry, 6);
+            t.eq('only 90 days are kept by day', new Set(Object.values(d.events).map((e) => e.day)).size, 90);
+            J.track('app:visit', today + 1); J.rollUp(today + 1);
+            t.eq('and tomorrow it carries on: 97', J.streakDays(today + 1), 97);
+        } finally { env.close(); }
+    }
+    {
+        const y = new Date(); y.setDate(y.getDate() - 1);
+        env = await openDom(page.html, URL_, { ...quiet, beforeParse(w) { w.localStorage.setItem('jarvis-streak', JSON.stringify({ days: 120, y: y.getFullYear(), m: y.getMonth() + 1, d: y.getDate() })); } });
+        try {
+            const d = await dbDump(env.idb);
+            t.eq('an old 120-day streak carries over whole: 121 today', env.window.__jarvis.streak().days, 121);
+            t.eq('with 90 days kept by day', Object.values(d.events).length, 90);
+            t.eq('and the other 31 in the carry and the visit total', [d.meta.carry, d.totals['app:visit'].n].join(), '31,31');
+        } finally { env.close(); }
+    }
+
+    t.section('Memory foundation: start-up waits for the database (Session 9)');
+    {
+        IDB ??= await import('fake-indexeddb');
+        let release; const gate = new Promise((r) => { release = r; });
+        env = await openDom(page.html, URL_, { ...quiet, noWait: true, idb: gatedFactory(new IDB.IDBFactory(), gate),
+            beforeParse(w) { w.localStorage.setItem('jarvis-skin', 'matrix'); w.localStorage.setItem('jarvis-settings', '{"color":"gold"}'); } });
+        try {
+            const { document, window } = env, J = window.__jarvis;
+            await wait(30);
+            t.eq('before the database answers, nothing has loaded', J.loaded(), false);
+            document.getElementById('boot-skip').click(); document.getElementById('boot-skip').click();
+            t.eq('skipping the boot doesn\'t greet yet', document.querySelectorAll('#log .msg.ai').length, 0);
+            release(); await J.ready; await wait(10);
+            const said = [...document.querySelectorAll('#log .msg.ai')].map((m) => m.textContent);
+            t.eq('once it answers, the greeting comes once', said.length, 1);
+            t.ok('in the saved skin', /real world/.test(said[0]) && J.skin() === 'matrix');
+            t.eq('with the saved orb colour', J.ring(), J.ORB_COLOURS.gold[0]);
+            t.eq('no console errors', env.errors.length, 0);
+        } finally { env.close(); }
+    }
+    {
+        const never = { open() { return {}; } };
+        env = await openDom(page.html, URL_, { ...quiet, noWait: true, idb: never });
+        try {
+            const { document, window } = env, J = window.__jarvis;
+            document.getElementById('boot-skip').click();
+            await wait(4300);
+            t.ok('a database that never answers stops waiting after 4 s, and he greets you', J.loaded() && document.querySelectorAll('#log .msg.ai').length === 1);
+            t.ok('and says nothing can be saved', /won't let me save anything/.test(await J.answer('what do you save')));
+        } finally { env.close(); }
+    }
+
+    t.section('Memory foundation: without IndexedDB (Session 9)');
+    env = await openDom(page.html, URL_, { ...quiet, idb: null, beforeParse(w) { w.localStorage.setItem('jarvis-skin', 'panther'); } });
+    try {
+        const { window, document } = env, J = window.__jarvis;
+        t.eq('the page still runs', env.errors.length, 0);
+        t.eq('using what jarvis.html saved, for this visit', J.skin(), 'panther');
+        await J.answer('make the orb red');
+        t.eq('changes work for the visit', J.settings().color, 'red');
+        t.eq('but localStorage is still never written', JSON.stringify({ ...window.localStorage }), '{"jarvis-skin":"panther"}');
+        t.ok('and he says so', /won't let me save anything/.test(await J.answer('what do you save')));
+        J.finishBoot();
+        t.ok('the greeting still comes', document.querySelectorAll('#log .msg.ai').length >= 1);
+    } finally { env.close(); }
+}
+
+// The test copy and jarvis.html share an origin, so they share localStorage. Since Session 9 the test copy keeps
+// its own database and only ever reads localStorage, so neither page can change the other's saves. This section
+// is about the two copies, so it goes when the page is promoted (the promoted page renames its database).
+async function keptApart(t, page) {
+    const URL_ = 'https://jarvis.test/jarvis.html', quiet = { ignore: /getContext|HTMLCanvasElement/ };
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    t.section('Test copy: kept apart from jarvis.html (Session 9)');
+    const mainUrl = new URL('jarvis.html', page.url);
+    const mainHtml = mainUrl.protocol === 'file:' ? await readFile(fileURLToPath(mainUrl), 'utf8') : await (await fetch(mainUrl)).text();
+    t.ok('jarvis.html never opens IndexedDB, so it can\'t touch the test copy\'s database', !/indexedDB|IDBFactory/.test(mainHtml));
+    t.ok('its scrub only removes jarvis-* localStorage keys, which the test copy never writes', /if\(k&&k\.startsWith\('jarvis-'\)&&!STORE_KEYS\.includes\(k\)\)ls\.removeItem\(k\)/.test(mainHtml));
+    t.ok('and has no localStorage write call anywhere', !/localStorage\.(?:setItem|removeItem|clear)|\bls\.(?:setItem|removeItem|clear)/.test(page.html));
+
+    // One profile, as in one browser: jarvis.html's saves in localStorage, then the test copy, then the main page again.
+    const mainSaved = { 'jarvis-skin': 'panther', 'jarvis-settings': '{"color":"pink"}', 'jarvis-learned': '{"lights":"make a star"}', 'jarvis-streak': '{"days":2,"y":2026,"m":1,"d":1}' };
+    const fill = (w, o) => { for (const [k, v] of Object.entries(o)) w.localStorage.setItem(k, v); };
+    let env = await openDom(page.html, URL_, { ...quiet, beforeParse(w) { fill(w, mainSaved); } });
+    const idb = env.idb;
+    let lsAfterTest, dbAfterTest;
+    try {
+        const J = env.window.__jarvis;
+        t.eq('the first run copies the main page\'s settings in', [J.skin(), J.settings().color, J.learned().lights].join(), 'panther,pink,make a star');
+        t.eq('and marks the copy as done', (await dbDump(idb)).meta.copied, 1);
+        await J.answer('switch to the matrix'); await J.answer('make the orb blue'); await J.answer('reset my settings');
+        await J.answer('forget what you learned');
+        lsAfterTest = { ...env.window.localStorage };
+        dbAfterTest = await dbDump(idb);
+        t.eq('changing and forgetting things in the test copy leaves localStorage exactly as the main page left it', JSON.stringify(lsAfterTest), JSON.stringify(mainSaved));
+    } finally { env.close(); }
+    // The main page changes its own settings later; the test copy copied once and doesn't copy again.
+    env = await openDom(page.html, URL_, { ...quiet, idb, beforeParse(w) { fill(w, { ...mainSaved, 'jarvis-skin': 'jarvis', 'jarvis-settings': '{"color":"red"}' }); } });
+    try {
+        const J = env.window.__jarvis;
+        t.eq('the copy happens once: the test copy keeps its own skin and settings', [J.skin(), J.settings().color ?? 'none'].join(), 'matrix,none');
+    } finally { env.close(); }
+    // Now jarvis.html itself, in the same profile.
+    const before = await dbDump(idb);
+    env = await openPage(mainHtml, URL_, { ...quiet, beforeParse(w) { w.indexedDB = idb; fill(w, mainSaved); } });
+    try {
+        const { window } = env, J = window.__jarvis;
+        await wait(40);
+        t.eq('jarvis.html still has its own skin', J.skin(), 'panther');
+        t.eq('its own settings', J.settings().color, 'pink');
+        t.eq('and its own taught phrases', J.learned().lights, 'make a star');
+        t.eq('opening it leaves the test copy\'s database untouched, usage counts and all', JSON.stringify(await dbDump(idb)), JSON.stringify(before));
+        t.eq('and the test copy\'s own settings are still the ones it saved', JSON.stringify(before.kept), JSON.stringify(dbAfterTest.kept));
+        t.eq('the profile still has just the test copy\'s database', JSON.stringify((await idb.databases()).map((x) => x.name)), '["jarvis-test"]');
+    } finally { env.close(); }
 }
 
 /* A second window with a fake SpeechRecognition, getUserMedia and AudioContext. */
@@ -666,7 +967,7 @@ async function voiceWiring(t, page) {
         rec.onstart();
         await tick();
         t.eq('listening shows LISTENING', document.getElementById('state').textContent, 'LISTENING');
-        t.eq('the mic note is remembered as seen', window.localStorage.getItem('jarvis-mic-note'), '1');
+        t.eq('the mic note is remembered as seen', (await dbDump(env.idb)).kept['jarvis-mic-note'], '1');
         rec.onspeechstart();
         t.eq('recognition hearing speech makes the orb react', window.__jarvis.hearing(), true);
         rec.onspeechend();
@@ -778,7 +1079,7 @@ async function skinsAndMemory(t, page) {
         t.eq('the header names him', document.getElementById('who').textContent, 'MORPHEUS');
         t.eq('the page takes the matrix skin', document.documentElement.dataset.skin, 'matrix');
         t.ok('he speaks lower and slower than Jarvis', lastUtt().pitch < 0.9 && lastUtt().rate < 1);
-        t.eq('the skin is remembered on this device', window.localStorage.getItem('jarvis-skin'), 'matrix');
+        t.eq('the skin is remembered on this device', (await dbDump(env.idb)).kept['jarvis-skin'], 'matrix');
         r = await ask('who are you');
         t.ok('Morpheus answers as Morpheus', /I am Morpheus/.test(r));
         r = await ask('flip a coin');
@@ -807,7 +1108,7 @@ async function skinsAndMemory(t, page) {
         r = await ask('What I was trying to say was flip a coin');
         t.ok('telling it what was meant is acknowledged', /Next time you say "beam me up scotty", I'll know you mean "flip a coin"/.test(r));
         t.ok('and does it straight away', /heads|tails/.test(r));
-        t.eq('the phrase is saved in this browser', JSON.parse(window.localStorage.getItem('jarvis-learned'))['beam me up scotty'], 'flip a coin');
+        t.eq('the phrase is saved in this browser', JSON.parse((await dbDump(env.idb)).kept['jarvis-learned'])['beam me up scotty'], 'flip a coin');
         r = await ask('Beam me up, Scotty!');
         t.ok('saying it again just works', /^It's (heads|tails)\.$/.test(r));
         await ask('make it so number one');
@@ -838,7 +1139,7 @@ async function skinsAndMemory(t, page) {
         t.eq('learned phrases come back', J.learned()['beam me up'], 'roll a die');
         t.ok('and anything that isn\'t a phrase is dropped', !('bad' in J.learned()));
         document.getElementById('q').value = 'forget what you learned'; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(520);
-        t.eq('"forget what you learned" clears them', window.localStorage.getItem('jarvis-learned'), '{}');
+        t.eq('"forget what you learned" clears them', (await dbDump(env.idb)).kept['jarvis-learned'], '{}');
     } finally {
         env.close();
     }
@@ -863,38 +1164,62 @@ async function skinsAndMemory(t, page) {
         J.setSkin('panther');
         t.ok('"who am I" and "do you remember me" work too', /Tony/.test(await J.answer('who am I')) && /Tony/.test(await J.answer('do you remember me')));
         t.ok('"what is your name" is still about him, not you', !/Your name is/.test(await J.answer('what is your name')));
-        t.ok('"forget my name" forgets it', /forgotten your name/.test(await J.answer('forget my name')) && window.localStorage.getItem('jarvis-name') === null);
+        t.ok('"forget my name" forgets it', /forgotten your name/.test(await J.answer('forget my name')) && window.localStorage.getItem('jarvis-name') === null && !('jarvis-name' in (await dbDump(env.idb)).kept));
         t.ok('then no skin knows it', /haven't told me your name/.test(await J.answer('what is my name')) && !/Tony/.test(J.setSkin('matrix')));
         t.ok('a name told to one skin is known to the next', /Nice to meet you, Pepper/.test(await J.answer('my name is pepper')) && /Pepper/.test(J.setSkin('jarvis')) && /Your name is Pepper/.test(await J.answer('what is my name')));
         t.eq('no console errors', env.errors.length, 0);
     } finally {
         env.close();
     }
-    // An older version saved the name, and a taught phrase may hold personal details: both go on the next visit.
+    // An older version saved the name, and a taught phrase may hold personal details. In the test copy that
+    // storage is jarvis.html's localStorage, which it only reads (Session 9): the bad values aren't copied in,
+    // and localStorage is left exactly as it was, because the main page owns it.
     t.section('Privacy scrub: cleaning up what older versions saved');
-    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ...opts, beforeParse(w) { opts.beforeParse(w);
-        w.localStorage.setItem('jarvis-name', 'Tony'); w.localStorage.setItem('jarvis-secret', 'x'); w.localStorage.setItem('other-page', 'keep me');
-        w.localStorage.setItem('jarvis-skin', 'matrix');
-        w.localStorage.setItem('jarvis-learned', JSON.stringify({ 'beam me up': 'roll a die', 'my number': 'call 239 555 0142', 'ring pat': 'email pat@example.com' })); } });
+    const mainLeft = { 'jarvis-name': 'Tony', 'jarvis-secret': 'x', 'other-page': 'keep me', 'jarvis-skin': 'matrix',
+        'jarvis-learned': JSON.stringify({ 'beam me up': 'roll a die', 'my number': 'call 239 555 0142', 'ring pat': 'email pat@example.com' }) };
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ...opts, beforeParse(w) { opts.beforeParse(w); for (const [k, v] of Object.entries(mainLeft)) w.localStorage.setItem(k, v); } });
     try {
         const { window } = env, J = window.__jarvis, ls = window.localStorage;
-        t.eq('a saved name is deleted on load', ls.getItem('jarvis-name'), null);
-        t.eq('so is any other jarvis-* key that isn\'t a setting', ls.getItem('jarvis-secret'), null);
-        t.eq('other pages\' storage on this site is left alone', ls.getItem('other-page'), 'keep me');
-        t.eq('taught phrases with personal details are dropped, the rest kept', ls.getItem('jarvis-learned'), '{"beam me up":"roll a die"}');
-        t.eq('settings stay', ls.getItem('jarvis-skin'), 'matrix');
-        t.ok('the deleted name is not used to greet you', (J.finishBoot(), !/Tony/.test([...env.document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? '')));
-        t.ok('"what do you save" reads back exactly what is there', /your skin \(Morpheus\), one phrase you taught me and your visit streak \(one day, and the date of your last visit\)\./.test(await J.answer('what do you save')));
+        const kept = (await dbDump(env.idb)).kept;
+        t.ok('a saved name is not copied in', !('jarvis-name' in kept));
+        t.ok('nor any other jarvis-* key that isn\'t a setting', !('jarvis-secret' in kept) && Object.keys(kept).every((k) => J.STORE_KEYS.includes(k)));
+        t.eq('taught phrases with personal details are dropped, the rest copied', kept['jarvis-learned'], '{"beam me up":"roll a die"}');
+        t.eq('settings are copied', kept['jarvis-skin'], 'matrix');
+        const lsNow = {}; for (let i = 0; i < ls.length; i++) lsNow[ls.key(i)] = ls.getItem(ls.key(i));
+        t.eq('localStorage, which belongs to jarvis.html, is left exactly as it was', JSON.stringify(lsNow, Object.keys(lsNow).sort()), JSON.stringify(mainLeft, Object.keys(mainLeft).sort()));
+        t.ok('the old name is not used to greet you', (J.finishBoot(), !/Tony/.test([...env.document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? '')));
+        t.ok('"what do you save" reads back exactly what is there', /your skin \(Morpheus\) and one phrase you taught me\. Counts of which scenes and commands you use, by day\. Nothing you say\./.test(await J.answer('what do you save')));
         J.brain('my name is pat');
         t.ok('a name told this visit is mentioned as memory-only', /Your name, Pat, is only in memory for this visit\./.test(await J.answer('what do you know about me')));
-        t.eq('and still not stored', ls.getItem('jarvis-name'), null);
+        t.ok('and still not stored', !JSON.stringify(await dbDump(env.idb)).includes('Pat') && ls.getItem('jarvis-name') === 'Tony');
         t.ok('an unknown phrase gets the "what were you trying to say" question', /What were you trying to say\?$/.test(await J.answer('ring my dentist')));
         const taught = await J.answer('I meant what is 239 times 5550142');
         t.ok('it says why it won\'t save it', /won't save that phrase, because it has a phone or ID number in it/.test(taught));
-        t.ok('and the phrase is not in storage', !/dentist|5550142/.test(ls.getItem('jarvis-learned')));
+        t.ok('and the phrase is not in storage', !/dentist|5550142/.test(JSON.stringify(await dbDump(env.idb))));
         t.eq('no console errors', env.errors.length, 0);
     } finally {
         env.close();
+    }
+    // Something bad that reached the database itself (an older test build, a hand edit): the scrub removes it.
+    {
+        const idb = (await openDom(page.html, 'https://jarvis.test/jarvis.html', opts)).idb;
+        const today = dayOf();
+        await dbSeed(idb, {
+            kept: { 'jarvis-name': 'Tony', 'jarvis-skin': 'matrix', 'jarvis-learned': JSON.stringify({ 'beam me up': 'roll a die', 'ring pat': 'call 239 555 0142' }), 'jarvis-settings': '{"color":"blue","name":"Tony"}', 'jarvis-voices': 'my phone is 239 555 0142' },
+            events: [{ id: 'scene:globe', day: today - 1, n: 2 }, { id: 'said:hello tony', day: today - 1, n: 1 }, { id: 'cmd:joke', day: today - 1, n: 1, note: 'my phone' }, { id: 'cmd:fact', day: 'yesterday', n: 1 }],
+            totals: [{ id: 'cmd:joke', n: 5 }, { id: 'tony', n: 1 }],
+            meta: { copied: 1, name: 'Tony' }
+        });
+        env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ...opts, idb });
+        try {
+            const d = await dbDump(idb);
+            t.eq('in the database: only listed settings survive, cleaned', JSON.stringify(d.kept, Object.keys(d.kept).sort()), JSON.stringify({ 'jarvis-learned': '{"beam me up":"roll a die"}', 'jarvis-settings': '{"color":"blue"}', 'jarvis-skin': 'matrix' }));
+            t.eq('usage counts with an unlisted ID, an extra field or a date are removed', Object.values(d.events).filter((e) => e.day !== today).map((e) => e.id).join(), 'scene:globe');
+            t.eq('and so is an unlisted total', Object.keys(d.totals).join(), 'cmd:joke');
+            t.ok('and anything else in the bookkeeping', !('name' in d.meta));
+            t.eq('the clean values load', env.window.__jarvis.skin(), 'matrix');
+            t.eq('no console errors', env.errors.length, 0);
+        } finally { env.close(); }
     }
     env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ...opts, beforeParse(w) { opts.beforeParse(w); w.localStorage.setItem('jarvis-skin', 'constructor'); w.localStorage.setItem('jarvis-learned', '{nope'); } });
     try {
@@ -938,7 +1263,7 @@ async function voicePicker(t, page) {
         await pick('Samantha');
         t.eq('picking a voice speaks a sample in it straight away', last().voice?.name, 'Samantha');
         t.ok('the sample is Jarvis\'s', /How do I sound\?/.test(last().text));
-        t.eq('the pick is saved for that skin on this device', JSON.parse(window.localStorage.getItem('jarvis-voices')).jarvis, 'Samantha');
+        t.eq('the pick is saved for that skin on this device', JSON.parse((await dbDump(env.idb)).kept['jarvis-voices']).jarvis, 'Samantha');
         t.eq('the menu shows it', sel.value, 'Samantha');
         t.eq('the utterance\'s language matches the voice, which Android Chrome needs to use it', last().lang, 'en-US');
         t.eq('a voice that isn\'t on Jarvis\'s own list keeps his full pitch', last().pitch, 0.9);
@@ -949,7 +1274,7 @@ async function voicePicker(t, page) {
         t.eq('back on Jarvis, the picked voice comes back', last().voice?.name, 'Samantha');
         await pick('');
         t.eq('choosing Auto returns to Daniel', last().voice?.name, 'Daniel (Enhanced)');
-        t.ok('and clears the saved pick', !('jarvis' in JSON.parse(window.localStorage.getItem('jarvis-voices'))));
+        t.ok('and clears the saved pick', !('jarvis' in JSON.parse((await dbDump(env.idb)).kept['jarvis-voices'])));
     } finally {
         env.close();
     }
@@ -1059,7 +1384,7 @@ async function wakeWiring(t, page) {
         t.ok('Jarvis says it too', /online speech service/.test(last()));
         t.ok('the mic is ringed, so it shows over the projector too', document.getElementById('mic').classList.contains('wake'));
         t.eq('waiting for the name is not LISTENING', document.getElementById('state').textContent !== 'LISTENING', true);
-        t.ok('nothing about it is saved', !Object.keys(window.localStorage).some((k) => /wake|listen/.test(k)));
+        t.ok('nothing about it is saved', !Object.keys(window.localStorage).some((k) => /wake|listen/.test(k)) && !Object.keys((await dbDump(env.idb)).kept).some((k) => /wake|listen/.test(k)));
 
         rec.hear('what is two plus two');
         t.ok('talk without the name is ignored', !said().includes('what is two plus two'));
@@ -1179,8 +1504,12 @@ async function memoryChecks(t, page) {
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const ymd = (d) => ({ y: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate() });
     const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return ymd(d); };
-    const allStored = (w) => { const o = {}; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); o[k] = w.localStorage.getItem(k); } return o; };
+    // What jarvis.html left in localStorage, which the test copy copies in on its first run.
     const seed = (entries, extra) => ({ ignore: /getContext|HTMLCanvasElement/, beforeParse(w) { extra?.(w); for (const [k, v] of Object.entries(entries)) w.localStorage.setItem(k, v); } });
+    // A reload: the same browser profile, so the same database.
+    const again = (idb, extra = {}) => openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, ...extra, idb });
+    const keptIn = async (env) => (await dbDump(env.idb)).kept;
+    const everything = async (env) => JSON.stringify(await dbDump(env.idb)) + JSON.stringify({ ...env.window.localStorage });
     const typeIn = async (env, text) => { const { document, window } = env; document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(520); return [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? ''; };
 
     t.section('Settings memory (Session 7)');
@@ -1209,7 +1538,7 @@ async function memoryChecks(t, page) {
         t.eq('every combination of settings passes personal()', combos.filter((c) => J.personal(JSON.stringify(c))).length, 0);
         t.ok('"make the orb blue" is understood', /My orb is blue now\. I'll remember that on this device\./.test(await typeIn(env, 'make the orb blue')));
         t.eq('the orb takes the colour', J.ring(), J.ORB_COLOURS.blue[0]);
-        t.eq('and it is saved as one jarvis-settings key', ls.getItem('jarvis-settings'), '{"color":"blue"}');
+        t.eq('and it is saved as one jarvis-settings key', (await keptIn(env))['jarvis-settings'], '{"color":"blue"}');
         J.setSkin('panther');
         t.eq('a skin change keeps the chosen orb colour', J.ring(), J.ORB_COLOURS.blue[0]);
         J.setSkin('jarvis');
@@ -1230,7 +1559,7 @@ async function memoryChecks(t, page) {
         t.eq('metric leaves the text alone', J.inUnits('600 kilometres', 'metric'), '600 kilometres');
         t.eq('"5 metric tons" is not a distance', J.inUnits('5 metric tons'), '5 metric tons');
         t.ok('"open with the galaxy"', /I'll open with the galaxy next time/.test(await typeIn(env, 'open with the galaxy')));
-        t.eq('all four settings are in the one key', ls.getItem('jarvis-settings'), '{"color":"blue","speed":"slow","units":"imperial","scene":"galaxy"}');
+        t.eq('all four settings are in the one key', (await keptIn(env))['jarvis-settings'], '{"color":"blue","speed":"slow","units":"imperial","scene":"galaxy"}');
         t.ok('"what do you save" lists the settings', /your settings \(a blue orb, speaking slowly, imperial units, opening with the galaxy\)/.test(await typeIn(env, 'what do you save')));
         t.ok('and mentions Safari\'s 7-day rule', /after 7 days without a visit/.test(await typeIn(env, 'what do you save')));
         t.eq('the browser was asked to keep storage, once', persistCalls, 1);
@@ -1238,11 +1567,11 @@ async function memoryChecks(t, page) {
         t.eq('and its answer is remembered', J.persisted(), true);
         const help = J.brain('help');
         t.ok('help mentions settings, short-term memory, the memory core, dreaming and the 7-day rule', /make the orb blue/.test(help) && /my dog is Rex/.test(help) && /show me your memory/.test(help) && /dream/.test(help) && /7 days/.test(help));
-        saved = allStored(window);
+        saved = env.idb;
         t.eq('no console errors', env.errors.length, 0);
     } finally { env.close(); }
 
-    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed(saved));
+    env = await again(saved);
     try {
         const { window, document } = env, J = window.__jarvis;
         t.eq('after a reload the settings are back', JSON.stringify(J.settings()), '{"color":"blue","speed":"slow","units":"imperial","scene":"galaxy"}');
@@ -1250,77 +1579,67 @@ async function memoryChecks(t, page) {
         J.finishBoot();
         await wait(1400);
         t.ok('the favourite scene is opened after the greeting (no WebGL here, so it says so)', /needs WebGL/.test(document.getElementById('log').textContent));
-        t.ok('"reset my settings" clears them', /back to normal/.test(await typeIn(env, 'reset my settings')) && window.localStorage.getItem('jarvis-settings') === null);
+        t.ok('"reset my settings" clears them', /back to normal/.test(await typeIn(env, 'reset my settings')) && !('jarvis-settings' in await keptIn(env)));
     } finally { env.close(); }
 
-    t.section('Settings and streak: the scrub (Session 7)');
+    t.section('Settings: the scrub (Session 7)');
     env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({
         'jarvis-settings': JSON.stringify({ color: 'blue', name: 'Tony', scene: '<img src=x onerror=alert(1)>', speed: 'ludicrous', __proto__: 'x' }),
         'jarvis-skin': 'matrix'
     }));
     try {
-        const ls = env.window.localStorage;
-        t.eq('a setting outside the fixed choices is dropped, and so is any extra field', ls.getItem('jarvis-settings'), '{"color":"blue"}');
+        t.eq('a setting outside the fixed choices is dropped, and so is any extra field', (await keptIn(env))['jarvis-settings'], '{"color":"blue"}');
     } finally { env.close(); }
-    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-settings': '{"units":"furlongs"}', 'jarvis-streak': '{"days":"3","y":2026,"m":10,"d":10}' }));
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-settings': '{"units":"furlongs"}' }));
     try {
-        const ls = env.window.localStorage;
-        t.eq('settings with nothing valid are deleted', ls.getItem('jarvis-settings'), null);
-        t.eq('a malformed streak is replaced by a fresh one', JSON.parse(ls.getItem('jarvis-streak')).days, 1);
+        t.ok('settings with nothing valid are not saved', !('jarvis-settings' in await keptIn(env)));
     } finally { env.close(); }
-    {
-        const y = daysAgo(1), clean = JSON.stringify({ days: 4, ...y });
-        env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-settings': '{"color":"gold","units":"imperial"}', 'jarvis-streak': JSON.stringify({ days: 4, ...y, extra: 'my phone 239 555 0142' }) }));
-        try {
-            const { window } = env, J = window.__jarvis, ls = window.localStorage;
-            t.eq('clean settings are left exactly as they were', ls.getItem('jarvis-settings'), '{"color":"gold","units":"imperial"}');
-            t.eq('an extra field in the streak is dropped, the count kept and today added', ls.getItem('jarvis-streak'), JSON.stringify({ days: 5, ...ymd(new Date()) }));
-            ls.setItem('jarvis-streak', clean); J.scrubStore();
-            t.eq('the scrub leaves a clean streak alone', ls.getItem('jarvis-streak'), clean);
-            J.scrubStore();
-            t.eq('and clean settings, run again', ls.getItem('jarvis-settings'), '{"color":"gold","units":"imperial"}');
-        } finally { env.close(); }
-    }
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-settings': '{"color":"gold","units":"imperial"}' }));
+    try {
+        const J = env.window.__jarvis;
+        t.eq('clean settings are copied exactly as they were', (await keptIn(env))['jarvis-settings'], '{"color":"gold","units":"imperial"}');
+        J.scrubStore(); J.scrubStore();
+        t.eq('and the scrub, run again, leaves them alone', (await keptIn(env))['jarvis-settings'], '{"color":"gold","units":"imperial"}');
+    } finally { env.close(); }
 
-    t.section('Streaks (Session 7)');
+    t.section('Streaks (Session 7, on usage counts since Session 9)');
     {
         const J = (env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ })).window.__jarvis;
-        const s = (days, y, m, d) => ({ days, y, m, d });
-        t.eq('a first visit starts at 1', J.streakNext(null, { y: 2026, m: 10, d: 10 }).days, 1);
-        t.eq('the same day keeps the count', J.streakNext(s(3, 2026, 10, 10), { y: 2026, m: 10, d: 10 }).days, 3);
-        t.eq('the next day adds one', J.streakNext(s(3, 2026, 10, 9), { y: 2026, m: 10, d: 10 }).days, 4);
-        t.eq('a missed day starts again at 1', J.streakNext(s(3, 2026, 10, 8), { y: 2026, m: 10, d: 10 }).days, 1);
-        t.eq('across a month end', J.streakNext(s(6, 2026, 10, 31), { y: 2026, m: 11, d: 1 }).days, 7);
-        t.eq('across a year end', J.streakNext(s(6, 2026, 12, 31), { y: 2027, m: 1, d: 1 }).days, 7);
-        t.eq('across Feb 29', J.streakNext(s(2, 2028, 2, 29), { y: 2028, m: 3, d: 1 }).days, 3);
-        t.eq('a clock set backwards starts again', J.streakNext(s(5, 2026, 10, 11), { y: 2026, m: 10, d: 10 }).days, 1);
-        t.eq('the count stops at 9999 (five digits would read as personal)', J.streakNext(s(9999, 2026, 10, 9), { y: 2026, m: 10, d: 10 }).days, 9999);
         t.eq('day 1 says nothing', J.streakLine(1), '');
         t.eq('day 3', J.streakLine(3), 'Third day in a row!');
         t.eq('day 14', J.streakLine(14), 'Day 14 in a row!');
-        // The decision (2026-10-10): personal() stays strict and the date is stored as separate numbers.
-        t.ok('an ISO date would be refused by personal()', J.personal('{"days":3,"last":"2026-10-10"}') !== null);
-        let bad = 0;
-        for (let i = 0; i < 800; i++) { const d = new Date(2026, 0, 1 + i); if (J.personal(JSON.stringify({ days: 1 + (i * 37) % 9999, ...ymd(d) }))) bad++; }
-        for (const days of [1, 99, 999, 9999]) if (J.personal(JSON.stringify({ days, y: 2026, m: 12, d: 31 }))) bad++;
-        t.eq('the stored form passes personal() for every day of 2026–2028', bad, 0);
+        t.eq('a first visit starts at 1', J.streak().days, 1);
         env.close();
     }
+    // The old jarvis-streak in localStorage is read once and carried over as visit counts.
     env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-streak': JSON.stringify({ days: 2, ...daysAgo(1) }) }));
     try {
         const { window, document } = env, J = window.__jarvis;
-        t.eq('visiting the day after day 2 makes it 3', JSON.parse(window.localStorage.getItem('jarvis-streak')).days, 3);
+        t.eq('visiting the day after day 2 makes it 3', J.streak().days, 3);
+        const ev = Object.values((await dbDump(env.idb)).events);
+        t.eq('carried over as one visit count for each of the 3 days, today included', ev.filter((e) => e.id === 'app:visit').map((e) => dayOf() - e.day).sort().join(), '0,1,2');
+        t.eq('the old key is left where it was, for jarvis.html', JSON.parse(window.localStorage.getItem('jarvis-streak')).days, 2);
         J.finishBoot();
         t.ok('and the greeting says so', /Third day in a row!$/.test([...document.querySelectorAll('#log .msg.ai')].pop().textContent));
-        t.ok('"what do you save" mentions the streak', /your visit streak \(3 days, and the date of your last visit\)/.test(await J.answer('what do you save')));
-        J.showBoot ? J.showBoot() : null;
+        t.ok('"what do you save" says where the streak comes from', /Your visit streak, 3 days, is worked out from those counts\./.test(await J.answer('what do you save')));
     } finally { env.close(); }
     env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-streak': JSON.stringify({ days: 9, ...daysAgo(2) }) }));
     try {
-        const { window, document } = env, J = window.__jarvis;
-        t.eq('after a missed day it starts again at 1', JSON.parse(window.localStorage.getItem('jarvis-streak')).days, 1);
+        const { document } = env, J = env.window.__jarvis;
+        t.eq('after a missed day it starts again at 1', J.streak().days, 1);
+        t.eq('and the broken streak isn\'t carried over', Object.values((await dbDump(env.idb)).events).filter((e) => e.day !== dayOf()).length, 0);
+        t.eq('but it still means this isn\'t a first visit', J.firstTime, false);
         J.finishBoot();
         t.ok('with no streak line', !/in a row/.test(document.getElementById('log').textContent));
+    } finally { env.close(); }
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-streak': '{"days":"3","y":2026,"m":10,"d":10}' }));
+    try {
+        t.eq('a malformed old streak is ignored', env.window.__jarvis.streak().days, 1);
+    } finally { env.close(); }
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-streak': JSON.stringify({ days: 4, ...daysAgo(1), extra: 'my phone 239 555 0142' }) }));
+    try {
+        t.eq('an extra field in the old streak is dropped, the count kept and today added', env.window.__jarvis.streak().days, 5);
+        t.ok('and the extra field is nowhere in the database', !/phone|555/.test(JSON.stringify(await dbDump(env.idb))));
     } finally { env.close(); }
 
     t.section('First time on this device (Session 7)');
@@ -1334,7 +1653,7 @@ async function memoryChecks(t, page) {
         t.eq('nothing stored: a first visit', J.firstTime, true);
         J.finishBoot();
         t.ok('he says it looks like his first time on this device', /This looks like my first time on this device\.$/.test(document.getElementById('log').textContent));
-        t.eq('the default skin is not saved just by loading', window.localStorage.getItem('jarvis-skin'), null);
+        t.ok('the default skin is not saved just by loading', !('jarvis-skin' in await keptIn(env)));
         t.eq('persist() isn\'t asked again when storage is already persisted', persistCalls, 0);
         await wait(10);
         t.eq('and that is remembered', J.persisted(), true);
@@ -1387,18 +1706,17 @@ async function memoryChecks(t, page) {
         t.ok('then says what is stored, and the name', /Your name, Tony, is only in memory for this visit\./.test(about) && /4 things you told me are only in memory for this visit too/.test(about));
         t.ok('teaching him a memory statement: he remembers it', /What were you trying to say\?$/.test(await typeIn(env, 'blorp')) && /Got it: your cat is Tom/.test(await typeIn(env, 'I meant my cat is Tom')));
         t.ok('but never learns the phrase, which would save it', !('blorp' in J.learned()));
-        const stored = Object.values(allStored(window)).join(' ');
-        t.ok('nothing told this visit is anywhere in storage', !/Rex|beach|green|hockey|Tom|Tony|blorp/i.test(stored));
+        t.ok('nothing told this visit is anywhere in storage', !/Rex|beach|green|hockey|Tom|Tony|blorp/i.test(await everything(env)));
         t.ok('the memory code never calls store()', !/\b(?:store|unstore|saveLearned|saveSettings)\([^)]/.test(page.html.slice(page.html.indexOf('/* ---------- Short-term memory'), page.html.indexOf('/* ---------- Learned phrases'))));
-        afterTelling = allStored(window);
+        afterTelling = env.idb;
         t.ok('"forget that" forgets the last thing', /forgotten that your cat is Tom/.test(await typeIn(env, 'forget that')));
         t.ok('"forget my dog"', /forgotten your dog/.test(await typeIn(env, 'forget my dog')) && /haven't told me about your dog/.test(await typeIn(env, "what's my dog's name")));
         t.ok('"forget everything I told you"', /forgotten everything you told me/.test(await typeIn(env, 'forget everything I told you')) && J.memory().length === 0);
         t.ok('which includes the name', /haven't told me your name/.test(await typeIn(env, 'what is my name')));
         t.eq('no console errors', env.errors.length, 0);
     } finally { env.close(); }
-    // A reload is a new page given exactly what the old one left in storage.
-    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed(afterTelling));
+    // A reload is a new page given exactly what the old one left in storage: the same database.
+    env = await again(afterTelling);
     try {
         const J = env.window.__jarvis;
         t.eq('after a reload, short-term memory is empty', J.memory().length, 0);
@@ -1409,15 +1727,16 @@ async function memoryChecks(t, page) {
     t.section('Memory core (Session 7, no three.js needed)');
     env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-skin': 'matrix', 'jarvis-settings': '{"color":"blue","units":"imperial"}', 'jarvis-learned': '{"beam me up":"roll a die","lights":"make a star"}', 'jarvis-voices': '{"matrix":"Ralph"}' }));
     try {
-        const { window } = env, J = window.__jarvis, ls = window.localStorage;
+        const { window } = env, J = window.__jarvis;
+        const ls = { getItem: (k) => (k in J.saved().kept ? J.saved().kept[k] : null) }; // what the page holds; the database is checked after
         for (const q of ['show me your memory', 'memory core', 'open your memories', 'show me the jarvis memory', 'memory'])
             t.eq(`"${q}" opens the memory core`, J.intent(q)?.kind, 'memory');
         for (const q of ['what do you remember', 'forget your memory', 'show me the galaxy'])
             t.ok(`"${q}" does not`, J.intent(q)?.kind !== 'memory');
         await J.answer('my dog is Rex'); J.brain('my name is pepper');
         const stars = J.memoryStars();
-        t.eq('one star per setting, the skin, this visit\'s name and memories, each taught phrase, the voice pick, the streak',
-            stars.map((s) => s.type).join(','), 'setting,setting,skin,name,visit,phrase,phrase,voice,streak');
+        t.eq('one star per setting, the skin, this visit\'s name and memories, each taught phrase, the voice pick, the usage history',
+            stars.map((s) => s.type).join(','), 'setting,setting,skin,name,visit,phrase,phrase,voice,history');
         t.eq('this visit\'s stars are marked, the rest are saved', stars.filter((s) => s.visit).length, 2);
         t.ok('labels say what each is', stars[0].label === 'Orb colour: blue' && stars[2].label === 'Skin: Morpheus' && stars[5].label === '"lights"');
         t.ok('a phrase star reads out what it means', stars[5].text === 'A phrase you taught me: "lights" means "make a star".');
@@ -1428,8 +1747,11 @@ async function memoryChecks(t, page) {
         t.ok('the name star', /don't know your name/.test(J.forgetStar(stars[3])) && /haven't told me your name/.test(await J.answer('what is my name')));
         t.ok('the voice star', /automatic voice/.test(J.forgetStar(stars[7])) && ls.getItem('jarvis-voices') === null);
         t.ok('the skin star', /I'm Jarvis again/.test(J.forgetStar(stars[2])) && ls.getItem('jarvis-skin') === null && J.skin() === 'jarvis');
-        t.ok('the streak star', /starts again/.test(J.forgetStar(stars[8])) && ls.getItem('jarvis-streak') === null);
-        t.eq('what is left', J.memoryStars().map((s) => s.label).join(' | '), 'Units: imperial | "beam me up"');
+        const before = JSON.stringify(J.saved().events);
+        t.ok('the usage history star says how to clear it, and forgets nothing (no wipe commands, by decision)', /Only clearing this site's data in your browser removes them/.test(J.forgetStar(stars[8])) && JSON.stringify(J.saved().events) === before && J.saved().events.length > 0);
+        t.ok('its text says nothing you say is in it', /Counts of which scenes and commands you use, by day.*Nothing you say\./.test(stars[8].text));
+        t.eq('what is left', J.memoryStars().map((s) => s.label).join(' | '), 'Units: imperial | "beam me up" | Usage history');
+        t.eq('and the database agrees', JSON.stringify(await keptIn(env)), JSON.stringify({ 'jarvis-learned': '{"beam me up":"roll a die"}', 'jarvis-settings': '{"units":"imperial"}' }));
         for (const n of [0, 1, 2, 7, 40, 200]) {
             const pts = J.constellation(n, 8), links = J.constellationLinks(pts);
             const r = pts.map((p) => Math.hypot(...p));
