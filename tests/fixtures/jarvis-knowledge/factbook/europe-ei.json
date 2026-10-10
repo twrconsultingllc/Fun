@@ -1,0 +1,39 @@
+{
+ "Geography": {
+  "Map references": {
+   "text": "Europe"
+  },
+  "Area": {
+   "total ": {
+    "text": "70,273 sq km"
+   },
+   "land": {
+    "text": "68,883 sq km"
+   },
+   "water": {
+    "text": "1,390 sq km"
+   }
+  },
+  "Elevation": {
+   "highest point": {
+    "text": "Carrauntoohil 1,041 m"
+   }
+  }
+ },
+ "Government": {
+  "Country name": {
+   "conventional short form": {
+    "text": "Ireland"
+   }
+  },
+  "Capital": {
+   "name": {
+    "text": "Dublin"
+   }
+  },
+  "Flag": {
+   "text": "<strong>description:</strong> three equal vertical bands of green (left side), white, and orange<br><br><strong>meaning:</strong> the flag colors have no official meaning, but a common interpretation is that the green stands for the Irish nationalist tradition, orange for the Orange tradition (minority supporters of William of Orange), and white for peace or a lasting truce between the green and the orange",
+   "note": "<strong>note:</strong> similar to the flag of Cote d'Ivoire, which is shorter and has the colors reversed; also similar to the flag of Italy, which is shorter and has red instead of orange"
+  }
+ }
+}

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<meta name="description" content="J.A.R.V.I.S. Test: the trial copy of the J.A.R.V.I.S. Demo, where new features are tried before they go to the main page. A talking assistant that runs in your browser, with a boot-up sequence, an animated orb with a face, voice in and out, three skins (Jarvis, Morpheus from The Matrix and Stanley C. Panther of the Florida Panthers), phrases it learns from you, settings it remembers on your device and can move to another one with a backup file or a QR code, things you tell it remembered for one visit only, protocols that run several commands with one phrase, follow-ups like again, go back and why, a clearance level that grows as it gets to know you and opens a few hidden extras, favourites and a discovery log worked out from what you use, a language module you can download from this site so it understands rewordings, and a holo-projector that shows a 3D galaxy, the solar system, the Earth, a suit schematic, its own neural network and its memory core, which you can steer with hand gestures.">
+<meta name="description" content="J.A.R.V.I.S. Test: the trial copy of the J.A.R.V.I.S. Demo, where new features are tried before they go to the main page. A talking assistant that runs in your browser, with a boot-up sequence, an animated orb with a face, voice in and out, three skins (Jarvis, Morpheus from The Matrix and Stanley C. Panther of the Florida Panthers), phrases it learns from you, settings it remembers on your device and can move to another one with a backup file or a QR code, things you tell it remembered for one visit only, protocols that run several commands with one phrase, follow-ups like again, go back and why, a clearance level that grows as it gets to know you and opens a few hidden extras, favourites and a discovery log worked out from what you use, a language module you can download from this site so it understands rewordings, a pack of stable public facts about countries, space, the elements and the Iron Man suits, and a holo-projector that shows a 3D galaxy, the solar system, the Earth, a suit schematic, its own neural network and its memory core, which you can steer with hand gestures.">
 <title>J.A.R.V.I.S. Test</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%23020a06'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%2339ff88' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%2339ff88'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -300,14 +300,18 @@ const DB_NAME='jarvis-test'; // the test copy's own database. Promotion changes 
 const DB_UPGRADES=[
   db=>{db.createObjectStore('kept');db.createObjectStore('events',{keyPath:['id','day']});db.createObjectStore('totals',{keyPath:'id'});db.createObjectStore('meta')},
   // Version 2 (Session 10): protocols, keyed by name, each {steps:[command IDs]}. Version 1's tables are kept as they are.
-  db=>{db.createObjectStore('protocols')}
+  db=>{db.createObjectStore('protocols')},
+  // Version 3 (Session 13): the knowledge pack, public facts keyed "kind:name". Versions 1 and 2's tables are kept as they are.
+  db=>{db.createObjectStore('pack')}
 ];
-const TABLES=['kept','events','totals','meta','protocols'];
+const TABLES=['kept','events','totals','meta','protocols','pack'];
 // The only things ever counted. Later sessions add IDs here; nothing outside this list can be saved as an event.
 const EVENT_IDS=['app:visit',
   ...['galaxy','solar','globe','neural','suit','particles','memory','tesseract'].map(k=>'scene:'+k),
   ...['scan','briefing','setting','remember','teach','help','time','date','joke','fact','coin','die','math','chat','protocol','house-party','wake-up','backup','restore','qr','qr-scan',
-    'level','favourite','discover','hud','avengers','iron-man','upgrade'].map(k=>'cmd:'+k),
+    'level','favourite','discover','hud','avengers','iron-man','upgrade',
+    // Session 13: which kind of thing a fact question was about. Never the name asked about.
+    'know-country','know-planet','know-moon','know-star','know-mission','know-element','know-suit'].map(k=>'cmd:'+k),
   ...['jarvis','matrix','panther'].map(k=>'skin:'+k),
   ...['mic','wake-word','hands','voice'].map(k=>'feature:'+k)];
 // Days are counted from a fixed start, so a day is stored as a small number such as 282, never as a date.
@@ -317,7 +321,7 @@ const isDay=v=>Number.isInteger(v)&&v>=0&&v<=99999;
 const isCount=(v,max=MAX_COUNT)=>Number.isInteger(v)&&v>=1&&v<=max;
 const exactly=(o,ks)=>!!o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).sort().join()===ks.join();
 // What's saved, also held in memory so reading never waits. Filled from the database once, at start-up.
-const kept=new Map(),events=new Map(),totals=new Map(),meta=new Map(),protocols=new Map(),TABLE_MAPS={kept,events,totals,meta,protocols};
+const kept=new Map(),events=new Map(),totals=new Map(),meta=new Map(),protocols=new Map(),pack=new Map(),TABLE_MAPS={kept,events,totals,meta,protocols,pack};
 const evKey=(id,day)=>id+'|'+day;
 let readDone=false,loaded=false,dbOK=false,visitedBefore=false,early=[],pending=[],flushing=false,firstTime=true,streak={days:1};
 function openDb(){
@@ -353,9 +357,12 @@ function fits(table,key,rec){
     case 'kept':return STORE_KEYS.includes(key)&&typeof rec==='string'&&rec.length<=KEPT_MAX&&!personal(rec)&&(key!=='jarvis-settings'||settingsOnly(rec));
     case 'events':return exactly(rec,['day','id','n'])&&EVENT_IDS.includes(rec.id)&&isDay(rec.day)&&isCount(rec.n)&&Array.isArray(key)&&key[0]===rec.id&&key[1]===rec.day;
     case 'totals':return exactly(rec,['id','n'])&&EVENT_IDS.includes(rec.id)&&isCount(rec.n,1e9)&&key===rec.id;
-    case 'meta':return key==='copied'?rec===1:key==='rolled'?isDay(rec):key==='carry'?Number.isInteger(rec)&&rec>=0&&rec<=9999:false;
+    case 'meta':return key==='copied'?rec===1:key==='rolled'?isDay(rec):key==='carry'?Number.isInteger(rec)&&rec>=0&&rec<=9999:
+      key==='pack'?Number.isInteger(rec)&&rec>=1&&rec<=0xffffffff:false; // the knowledge pack's version (Session 13)
     // A protocol: a name that passes personal(), and steps that are fixed command IDs only (see protoProblem), at most PROTO_MAX of them.
     case 'protocols':return exactly(rec,['steps'])&&protoFits(key,rec.steps)&&(protocols.has(key)||protocols.size<PROTO_MAX);
+    // A knowledge pack record (Session 13): exactly the fields its kind has, each the right type, public text only.
+    case 'pack':return packFits(key,rec)&&(pack.has(key)||pack.size<PACK_MAX);
   }
   return false;
 }
@@ -458,6 +465,8 @@ function scrubStore(){
   for(const r of [...totals.values()])if(!fits('totals',r.id,r))save('totals',r.id,undefined);
   for(const [k,v] of [...meta])if(!fits('meta',k,v))save('meta',k,undefined);
   let np=0;for(const [k,v] of [...protocols])if(!fits('protocols',k,v)||++np>PROTO_MAX)save('protocols',k,undefined);
+  for(const [k,v] of [...pack])if(!fits('pack',k,v))save('pack',k,undefined);
+  if(!pack.size&&meta.has('pack'))save('meta','pack',undefined);
 }
 // Once something is saved, ask the browser not to clear it when space runs low. Only in Chrome and Edge, which
 // decide quietly: Firefox would pop up a permission prompt for it. Safari on iPhone still deletes a site's
@@ -513,7 +522,9 @@ function storedSummary(){
   const now=typeof userName==='string'&&userName?` Your name, ${userName}, is only in memory for this visit.`:'';
   const told=typeof memory==='object'&&memory.length?` ${memory.length===1?'One thing':memory.length+' things'} you told me ${memory.length===1?'is':'are'} only in memory for this visit too.`:'';
   const mod=mind.state==='on'?' My language module is only in memory too: it comes from this site, and I work out its fingerprints again each visit.':'';
-  return `${list}${counts}${now}${told}${mod} No names, no personal details, nothing from the camera and no chat history. Anything that looks personal is never saved. On an iPhone, Safari clears what I keep after 7 days without a visit, so say back up my settings to keep a copy.`;
+  const facts=!dbOK?(pack.size?' My knowledge pack of public facts is only in memory for this visit.':''):pack.size?` I also keep my knowledge pack here: ${pack.size.toLocaleString('en-US')} public facts about countries, planets, moons, stars, missions, elements and Mr Stark's suits, copied from this site the first time you asked me about one. None of it is about you.`
+    :" When you first ask me about a country, a planet, an element or a suit, I copy my knowledge pack of public facts from this site and keep it here. None of it is about you.";
+  return `${list}${counts}${now}${told}${mod}${facts} No names, no personal details, nothing from the camera and no chat history. Anything that looks personal is never saved. On an iPhone, Safari clears what I keep after 7 days without a visit, so say back up my settings to keep a copy.`;
 }
 // Settings in words, for "what do you save" and the memory core.
 const SCENE_NAMES={galaxy:'the galaxy',solar:'the solar system',globe:'the Earth',neural:'my neural network',suit:'the suit',particles:'the particles'};
@@ -929,8 +940,11 @@ if(synth){pickVoice();synth.onvoiceschanged=pickVoice;
 // at a time: every sentence whole, each piece at most about 160 characters unless one sentence is longer.
 function speechChunks(text,max=160){
   const out=[];
-  for(const sen of String(text).match(/[^.!?]+(?:[.!?]+|$)/g)||[]){const t=sen.trim();if(!t)continue;
-    const n=out.length;if(n&&out[n-1].length+1+t.length<=max)out[n-1]+=' '+t;else out.push(t)}
+  // A sentence longer than max (a flag description, say: Session 13) is broken at semicolons, then commas, then spaces.
+  const fit=t=>{if(t.length<=max)return [t];for(const re of [/(?<=;)\s+/,/(?<=,)\s+/,/\s+/]){const bits=t.split(re);if(bits.length<2)continue;const o=[];
+    for(const b of bits){const n=o.length;if(n&&o[n-1].length+1+b.length<=max)o[n-1]+=' '+b;else o.push(b)}if(o.every(x=>x.length<=max))return o;if(re.source==='\\s+')return o}return [t]};
+  for(const sen of String(text).match(/[^.!?]+(?:[.!?]+|$)/g)||[])for(const t of fit(sen.trim())){if(!t)continue;
+    const n=out.length;if(n&&out[n-1].length+1+t.length<=max&&!(out[n-1].length>0&&/[;,]$/.test(out[n-1])))out[n-1]+=' '+t;else out.push(t)}
   return out;
 }
 let sayGen=0; // which answer is being spoken, so a cancelled one can't switch the orb back to idle
@@ -1058,7 +1072,7 @@ function brainKnown(raw){
   const s=raw.toLowerCase().trim(),name=userName?`, ${userName}`:'';
   let m;
   if((m=s.match(/\b(?:my name is|call me|i am|i'm) ([a-z]+)/))&&!notNames.has(m[1])){userName=m[1][0].toUpperCase()+m[1].slice(1);return because(`Nice to meet you, ${userName}. I'll remember that until you close this page. I never save names.`,"Because nothing personal is ever saved in this browser. Your name stays in memory for this visit and is gone when you close the page.")}
-  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return favLead+"Ask me ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧, or some math like ⟦seven times eight|what is seven times eight⟧. I can ⟦flip a coin⟧, ⟦roll a die⟧ or start a ⟦launch countdown⟧. For the holo-projector, say ⟦show me the galaxy⟧, ⟦show me the planets⟧, ⟦take me to Mars⟧, ⟦make a heart⟧, ⟦make a rocket⟧, or ⟦write your name|write my name⟧. Say ⟦show me your brain⟧ to watch me think, or ⟦suit up⟧ to build a suit of armour. Say ⟦show me Earth⟧ for the globe, or show me any country, US state or big city, like ⟦Florida|show me Florida⟧ or ⟦Tokyo|show me Tokyo⟧. Say ⟦hand control⟧ to steer it with your hands through the camera, or ⟦scan the room⟧ for a threat scan. Say ⟦brief me⟧ for the time and the top headlines. In Chrome or Edge, turn on ⟦always listening|always listen⟧ with the HEY JARVIS switch, then start what you say with my name. Say ⟦close⟧ to turn it off, or ⟦reboot⟧ to watch me power up again. Say ⟦switch to Matrix⟧ to talk to Morpheus, ⟦switch to Panthers⟧ for Stanley C. Panther, or ⟦back to Jarvis⟧. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit, whichever skin I'm in. Ask ⟦what do you know about me⟧ to hear them back. I can also remember settings on this device: say ⟦make the orb blue⟧, ⟦speak faster⟧, ⟦use imperial units⟧, or ⟦open with the galaxy⟧. Say ⟦show me your memory⟧ to see everything I keep as stars, and tap one to hear it or say forget that. Make a protocol to run several commands with one phrase, like ⟦a movie night protocol|create movie night protocol: make the orb purple, then open the galaxy⟧, then say ⟦movie night⟧ to run it. Say ⟦list my protocols⟧, or try ⟦house party⟧ or ⟦wake up, daddy's home|wake up daddy's home⟧. You can talk in fragments too: after ⟦take me to Mars⟧, say ⟦now Jupiter⟧, ⟦bigger⟧, ⟦slower⟧, ⟦again⟧ or ⟦go back⟧, and ask ⟦why⟧ after an answer. Leave me alone for a few minutes and I'll dream. Ask ⟦what do you save⟧ to see what I keep, and I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, so say ⟦back up my settings⟧ to keep a copy as a file, and ⟦restore my settings⟧ to load it. To move them to another device, say ⟦send my settings to my phone⟧ here and ⟦scan settings⟧ there. Say ⟦upgrade your brain⟧ and I'll understand you in your own words too, and ask when I'm not sure. If I don't understand you, tell me what you meant and I'll remember it on this device. The more we talk, the better I know you: ask ⟦how well do you know me⟧, ⟦what's my favourite⟧ or ⟦what haven't I tried⟧. I put your favourites first in these links, and you can say ⟦stop putting my favourites first⟧."+unlockLine(shownLevel);
+  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return favLead+"Ask me ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧, or some math like ⟦seven times eight|what is seven times eight⟧. I can ⟦flip a coin⟧, ⟦roll a die⟧ or start a ⟦launch countdown⟧. For the holo-projector, say ⟦show me the galaxy⟧, ⟦show me the planets⟧, ⟦take me to Mars⟧, ⟦make a heart⟧, ⟦make a rocket⟧, or ⟦write your name|write my name⟧. Say ⟦show me your brain⟧ to watch me think, or ⟦suit up⟧ to build a suit of armour. Say ⟦show me Earth⟧ for the globe, or show me any country, US state or big city, like ⟦Florida|show me Florida⟧ or ⟦Tokyo|show me Tokyo⟧. Ask me about the world and beyond, like ⟦tell me about Peru⟧, ⟦how far is Mars⟧, ⟦tell me about gold⟧ or ⟦tell me about the Mark 42⟧. Say ⟦hand control⟧ to steer it with your hands through the camera, or ⟦scan the room⟧ for a threat scan. Say ⟦brief me⟧ for the time and the top headlines. In Chrome or Edge, turn on ⟦always listening|always listen⟧ with the HEY JARVIS switch, then start what you say with my name. Say ⟦close⟧ to turn it off, or ⟦reboot⟧ to watch me power up again. Say ⟦switch to Matrix⟧ to talk to Morpheus, ⟦switch to Panthers⟧ for Stanley C. Panther, or ⟦back to Jarvis⟧. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit, whichever skin I'm in. Ask ⟦what do you know about me⟧ to hear them back. I can also remember settings on this device: say ⟦make the orb blue⟧, ⟦speak faster⟧, ⟦use imperial units⟧, or ⟦open with the galaxy⟧. Say ⟦show me your memory⟧ to see everything I keep as stars, and tap one to hear it or say forget that. Make a protocol to run several commands with one phrase, like ⟦a movie night protocol|create movie night protocol: make the orb purple, then open the galaxy⟧, then say ⟦movie night⟧ to run it. Say ⟦list my protocols⟧, or try ⟦house party⟧ or ⟦wake up, daddy's home|wake up daddy's home⟧. You can talk in fragments too: after ⟦take me to Mars⟧, say ⟦now Jupiter⟧, ⟦bigger⟧, ⟦slower⟧, ⟦again⟧ or ⟦go back⟧, and ask ⟦why⟧ after an answer. Leave me alone for a few minutes and I'll dream. Ask ⟦what do you save⟧ to see what I keep, and I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, so say ⟦back up my settings⟧ to keep a copy as a file, and ⟦restore my settings⟧ to load it. To move them to another device, say ⟦send my settings to my phone⟧ here and ⟦scan settings⟧ there. Say ⟦upgrade your brain⟧ and I'll understand you in your own words too, and ask when I'm not sure. If I don't understand you, tell me what you meant and I'll remember it on this device. The more we talk, the better I know you: ask ⟦how well do you know me⟧, ⟦what's my favourite⟧ or ⟦what haven't I tried⟧. I put your favourites first in these links, and you can say ⟦stop putting my favourites first⟧."+unlockLine(shownLevel);
   if(/^(?:please )?(?:forget|clear|delete|erase) my name\b/.test(s)){const had=userName;userName=null;return had?"Done. I've forgotten your name.":"I don't know your name yet, so there's nothing to forget."}
   if(/\bwhat(?:'s| is) my name\b|\bwho am i\b|\bdo you (?:know|remember) (?:my name|me|who i am)\b|\bsay my name\b/.test(s))return userName?`Your name is ${userName}. I'll remember it whichever skin I'm wearing, until you close this page. I never save it.`:"You haven't told me your name yet. Say my name is, then your name, and I'll remember it until you close this page.";
   if(/\b(hello|hi|hey|good (morning|afternoon|evening))\b/.test(s))return pick([`Hello${name}. All systems are online.`,`Good to see you${name}. How can I help?`]);
@@ -2998,6 +3012,11 @@ const CAPABILITIES=[
   {key:'favourite',name:'your favourites',ids:['cmd:favourite'],cmds:["what's my favourite"],hint:"I notice what you use most. Ask ⟦what's my favourite⟧."},
   {key:'meaning',name:'my language module',ids:['cmd:upgrade'],can:'wasm',cmds:['upgrade your brain'],hint:"I can learn to understand you in your own words. Say ⟦upgrade your brain⟧."},
   {key:'discover',name:'the discovery log',ids:['cmd:discover'],cmds:["what haven't I tried"],hint:"I keep count of what you've found. Ask ⟦what haven't I tried⟧."},
+  // The knowledge pack (Session 13), counted by the kind of thing asked about, never its name.
+  {key:'know-country',name:'country facts',ids:['cmd:know-country'],cmds:['tell me about Peru'],hint:"I know every country on my globe. Ask ⟦tell me about Peru⟧."},
+  {key:'know-space',name:'space facts',ids:['cmd:know-planet','cmd:know-moon','cmd:know-star','cmd:know-mission'],cmds:['how far is Mars'],hint:"I know the planets, their big moons, the bright stars and the famous missions. Ask ⟦how far is Mars⟧."},
+  {key:'know-element',name:'the periodic table',ids:['cmd:know-element'],cmds:['tell me about gold'],hint:"I know all 118 elements. Ask ⟦tell me about gold⟧."},
+  {key:'know-suit',name:'the suit files',ids:['cmd:know-suit'],cmds:['tell me about the Mark 42'],hint:"I have notes on Mr Stark's suits. Ask ⟦tell me about the Mark 42⟧."},
   // The clearance extras: new in Session 11, and the only things a level locks.
   {key:'hud',name:'the gold-and-red HUD',ids:['cmd:hud'],lock:2,cmds:['gold and red HUD'],hint:"Your clearance has opened my gold-and-red HUD. Say ⟦gold and red HUD⟧."},
   {key:'tesseract',name:'the Tesseract',ids:['scene:tesseract'],lock:3,can:'webgl',cmds:['show me the Tesseract'],hint:"Your clearance has opened a hidden scene. Say ⟦show me the Tesseract⟧."},
@@ -3517,6 +3536,197 @@ function runBuiltin(name){
   return runSteps(name,B.steps,B.event,{each:B.each,end:B.end,first:B.first});
 }
 
+/* ---------- Knowledge pack (Session 13): stable public facts, copied in on first use ----------
+   jarvis/knowledge/pack.json is built by jarvis/knowledge/build.mjs from public-domain sources (NASA, JPL, the Yale
+   Bright Star Catalogue, PubChem, the CIA World Factbook) plus hand-written suit lines marked as fan knowledge. The
+   first fact question fetches it from this site (connect-src 'self' stands) and puts every record in the pack table
+   through save(), where fits() checks it like everything else. Later visits read it from there. Once a visit, after
+   answering, he checks the file again and replaces the table only if the facts have changed. Stable facts only:
+   nothing that goes stale silently, like population or GDP, and fits() refuses a record that tries. */
+const PACK_URL='jarvis/knowledge/pack.json',PACK_FORMAT=1,PACK_MAX=2000;
+// What each kind of record holds, the same rules as build.mjs: s short text, t a sentence or two, n a number, n? a
+// number or null, i a whole number, b true or false, T exactly true, a a list of short text, d [year, month, day].
+const PACK_FIELDS={
+  country:{name:'s',capital:'a',region:'s',area:'n',high:'s',high_m:'n',flag:'t',colours:'a'},
+  planet:{name:'s',sun:'n',peri:'n',aph:'n',size:'n',day:'n',year:'n',gravity:'n',temp:'n',rings:'b',dwarf:'b'},
+  moon:{name:'s',planet:'s',radius:'n',density:'n'},
+  star:{name:'s',constellation:'s',spectral:'s',mag:'n',ly:'n?'},
+  mission:{name:'s',launch:'d',target:'s',agency:'s'},
+  element:{name:'s',symbol:'s',n:'i',mass:'n',state:'s',family:'s',melt:'n?',boil:'n?',found:'i'},
+  suit:{name:'s',aka:'a',film:'s',line:'t',fan:'T'}};
+// Things that go stale without anyone noticing: never a field, never a sentence (the same lists as build.mjs).
+const STALE_KEY=/popul|gdp|moons|leader|president|currency|econom|budget|debt|export|import|users|literacy|expectancy|census|inflation|unemploy/i;
+const STALE_TEXT=/\best\.|\b(?:population|populous|inhabitants|people live|residents|gdp|gross domestic|per capita|economy|unemployment|inflation|exchange rate|currency|budget|national debt|exports?|imports?|president|prime minister|chancellor|head of state|life expectancy|literacy|internet users|estimated?|estimates|as of|currently|number of moons|known moons)\b/i;
+const packSlug=t=>String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+const packKey=r=>r&&typeof r==='object'&&typeof r.name==='string'?`${r.kind}:${packSlug(r.name)}`:'';
+const packText=(v,max)=>typeof v==='string'&&v.length>=1&&v.length<=max&&!/[<>⟦⟧]/.test(v)&&!personal(v)&&!STALE_TEXT.test(v);
+const isInt=(v,a,b)=>Number.isInteger(v)&&v>=a&&v<=b;
+const PACK_TYPES={s:v=>packText(v,80),t:v=>packText(v,400),n:v=>Number.isFinite(v),'n?':v=>v===null||Number.isFinite(v),i:v=>isInt(v,0,3000),b:v=>typeof v==='boolean',T:v=>v===true,
+  a:v=>Array.isArray(v)&&v.length<=12&&v.every(x=>packText(x,80)),d:v=>Array.isArray(v)&&v.length===3&&isInt(v[0],1900,2100)&&isInt(v[1],1,12)&&isInt(v[2],1,31)};
+function packFits(key,r){
+  if(!r||typeof r!=='object'||Array.isArray(r)||typeof r.kind!=='string'||!Object.hasOwn(PACK_FIELDS,r.kind))return false;
+  const spec=PACK_FIELDS[r.kind],ks=Object.keys(spec);
+  if(!exactly(r,['kind',...ks].sort())||ks.some(k=>STALE_KEY.test(k))||key!==packKey(r))return false;
+  return ks.every(k=>PACK_TYPES[spec[k]](r[k]));
+}
+// Where the pack comes from: this site. The tests swap it for the pack built from their fixtures (setPackSource).
+let packSource=async()=>{const r=await fetch(new URL(PACK_URL,location.href).href,{cache:'no-cache'});if(!r.ok)throw new Error(r.status);return r.json()};
+let packP=null,packChecked=false,packIdx=null,packGone=false;
+// A pack file's records, through save(), replacing what's there. True when the pack is ready to answer from.
+function installPack(j){
+  if(!j||typeof j!=='object'||j.format!==PACK_FORMAT||!isInt(j.version,1,0xffffffff)||!Array.isArray(j.records)||!j.records.length||j.records.length>PACK_MAX)return !!pack.size;
+  if(meta.get('pack')===j.version&&pack.size)return true;
+  const keep=new Map();for(const r of j.records){const k=packKey(r);if(packFits(k,r)&&!keep.has(k))keep.set(k,r)}
+  if(!keep.size)return !!pack.size;
+  for(const k of [...pack.keys()])if(!keep.has(k))save('pack',k,undefined);
+  for(const [k,r] of keep)save('pack',k,r);
+  save('meta','pack',j.version);packIdx=null;
+  return true;
+}
+// Ready to answer? The first time ever, this fetches the pack; after that it's already here, and once a visit he
+// looks for a newer one in the background.
+async function packReady(){
+  if(pack.size){
+    if(!packChecked){packChecked=true;Promise.resolve().then(()=>packSource()).then(installPack).catch(()=>{})}
+    return true;
+  }
+  if(!packP)packP=Promise.resolve().then(()=>packSource()).then(j=>{packChecked=true;return installPack(j)}).catch(()=>false).then(ok=>{packP=null;packGone=!ok;return ok});
+  return packP;
+}
+const knowNorm=t=>normPhrase(String(t).normalize('NFD').replace(/[̀-ͯ]/g,'')).replace(/^the /,'');
+// Every name he answers to: names, a suit's other names, a country's other names on the globe ("usa", "uk"),
+// "element 79", and "the element mercury" (plain "mercury" is the planet).
+function packIndex(){
+  if(packIdx)return packIdx;
+  const m=new Map(),add=(k,r)=>{k=knowNorm(k);if(k&&!m.has(k))m.set(k,r)};
+  for(const kind of ['planet','moon','country','star','mission','suit','element'])for(const r of pack.values()){
+    if(r.kind!==kind)continue;
+    add(r.name,r);
+    if(kind==='planet')add('planet '+r.name,r);
+    if(kind==='suit')for(const a of r.aka)add(a,r);
+    if(kind==='element'){add('element '+r.name,r);add('element '+r.n,r);add('element number '+r.n,r)}
+    if(kind==='star')add('star '+r.name,r);
+  }
+  for(const [k,p] of Object.entries(PLACES))if(p.kind==='country'||p.kind==='continent'){const r=m.get(knowNorm(p.name));if(r&&r.kind==='country')add(k,r)}
+  return packIdx=m;
+}
+const packFind=x=>{if(!pack.size)return null;const k=knowNorm(x).replace(/ (?:please|jarvis|for me|now)$/,'');return packIndex().get(k)||packIndex().get(k.replace(/ (?:suit|armou?r)$/,''))||null};
+// A thing from the pack named anywhere in a sentence, the longest name first: {r, said}. For the meaning module.
+function packMention(t){
+  if(!pack.size)return null;
+  const w=knowNorm(t).split(' ');
+  for(let n=Math.min(5,w.length);n>=1;n--)for(let i=0;i+n<=w.length;i++){const said=w.slice(i,i+n).join(' '),r=packIndex().get(said);if(r)return {r,said}}
+  return null;
+}
+// Questions, as {q, x}: q what's asked, x the thing it's about. weak: "what is X", tried only after the chat answers.
+const KNOW_QS=[
+  ['about',/^(?:can you |could you |would you )?(?:tell me|teach me|talk to me|remind me)(?: something| some(?: facts| things| stuff)?| a (?:bit|little|few facts|few things)| more| all| everything| anything)? about (.+)$/],
+  ['about',/^what (?:do|can) you (?:know|tell me) about (.+)$/],
+  ['about',/^(?:give me |read me |tell me |show me |any |i want |i'd like )?(?:some |a few |the |your )?(?:facts|fact file|info|information|details|stats|statistics|data|file|files|notes) (?:about|on|for) (.+)$/],
+  ['far',/^how far (?:away )?(?:is|are) (.+?)(?: from (?:the sun|earth|us|here))?$/],
+  ['far',/^(?:what(?:'s| is) )?the distance (?:to|from (?:earth|the sun|us|here) to) (.+)$/],
+  ['big',/^how (?:big|large|wide|small) (?:is|are) (.+)$/],
+  ['day',/^how long is (?:a|one) day on (.+)$/],
+  ['year',/^how long is (?:a|one) year on (.+)$/],
+  ['hot',/^how (?:hot|cold|warm) is (?:it on )?(.+)$/],
+  ['hot',/^what(?:'s| is) the (?:average |mean )?temperature (?:on|of) (.+)$/],
+  ['gravity',/^(?:what(?:'s| is) the |how strong is the )?gravity (?:on|of) (.+)$/],
+  ['capital',/^what(?:'s| is) the capital(?: city)? of (.+)$/],
+  ['capital',/^what(?:'s| is) (.+?)(?:'s| s) capital(?: city)?$/],
+  ['flag',/^what (?:does|do) (?:the )?flag of (.+) look like$/],
+  ['flag',/^what (?:does|do) (.+?)(?:'s| s) flag look like$/],
+  ['flag',/^(?:what(?:'s| is) (?:on )?|describe )the flag of (.+)$/],
+  ['flag',/^what colou?rs? (?:is|are) (?:on )?the flag of (.+)$/],
+  ['high',/^what(?:'s| is) the (?:highest point|highest mountain|tallest mountain|highest peak) in (.+)$/],
+  ['symbol',/^what(?:'s| is) the (?:chemical )?symbol (?:for|of) (.+)$/],
+  ['number',/^what(?:'s| is) the atomic number (?:of|for) (.+)$/],
+  ['about',/^(?:what(?:'s| is) )?(element (?:number )?\d{1,3})$/],
+  ['launch',/^when (?:did|was) (.+?) (?:launch|launched|take off|go up|lift off|fly)$/],
+  ['about',/^(?:what|who) (?:is|was|are|were) (.+)$/,true],
+  ['about',/^what(?:'s| s) (.+)$/,true]
+];
+// Words that aren't a thing to look up: "tell me about yourself" isn't a fact question.
+const KNOW_NOT=/^(?:you|yourself|me|myself|it|that|this|them|him|her|us|everything|anything|something|nothing|today|tonight|the weather|the news|the time|the date|your .+|my .+|our .+)$/;
+function knowIntent(raw){
+  const s=meaningText(raw).replace(/^(?:hey |ok |okay )?jarvis /,'').replace(/ (?:please|jarvis|for me)$/,'');
+  for(const [q,re,weak] of KNOW_QS){const m=s.match(re);if(m){const x=m[1].replace(/^(?:the|a|an) /,'').trim();if(!x||KNOW_NOT.test(x)||DESTRUCTIVE.test(x))return null;return {q,x,weak:!!weak}}}
+  return null;
+}
+// The usage count for each kind of fact: what kind of thing was asked about, never its name.
+const KNOW_IDS={country:'cmd:know-country',planet:'cmd:know-planet',moon:'cmd:know-moon',star:'cmd:know-star',mission:'cmd:know-mission',element:'cmd:know-element',suit:'cmd:know-suit'};
+/* ---------- The answers ---------- */
+const fmtN=(v,dp=0)=>Number(v).toLocaleString('en-US',{maximumFractionDigits:dp});
+const imperial=()=>settings.units==='imperial';
+const tempWords=c=>imperial()?`${c<0?'minus ':''}${fmtN(Math.abs(Math.round(c*9/5+32)))} degrees Fahrenheit`:`${c<0?'minus ':''}${fmtN(Math.abs(c),1)} degrees Celsius`;
+const areaWords=km2=>imperial()?`about ${fmtN(roughly(km2*.386102))} square miles`:`${fmtN(km2)} square kilometres`;
+const regionWords=r=>/^(?:Middle East|Arctic Region)$/.test(r)?'the '+r:r;
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const lightTime=mkm=>{const min=mkm*1e6/299792.458/60;return min<90?`about ${Math.round(min)} minutes`:`about ${fmtN(min/60,1)} hours`};
+const bodyName=n=>n==='Moon'?'the Moon':n==='Earth'?'Earth':n;
+function planetAnswer(r,q){
+  const n=r.name,earth=n==='Earth',was=r.dwarf?`${n}, a dwarf planet,`:n;
+  const day=Math.abs(r.day)<48?`${fmtN(Math.abs(r.day),1)} hours`:`${fmtN(Math.abs(r.day)/24,1)} Earth days`;
+  const year=r.year<1000?`${fmtN(r.year,1)} Earth days`:`${fmtN(r.year/365.25,1)} Earth years`;
+  const g=earth?`${fmtN(r.gravity,1)} metres per second squared`:r.gravity<9.8?`about ${Math.round(r.gravity/9.8*100)} percent of Earth's`:`about ${fmtN(r.gravity/9.8,1)} times Earth's`;
+  const from=`${was} is ${fmtN(r.sun,1)} million kilometres from the Sun on average, and sunlight takes ${lightTime(r.sun)} to get there.`;
+  const e=[...pack.values()].find(x=>x.kind==='planet'&&x.name==='Earth');
+  const span=!earth&&e?` From Earth, it's between about ${fmtN(Math.max(0,r.peri>e.aph?r.peri-e.aph:e.peri-r.aph))} and ${fmtN(r.aph+e.aph)} million kilometres away, depending on where the two planets are in their orbits.`:'';
+  const x={far:from+span,big:`${n} is ${fmtN(r.size)} kilometres across.`,day:`A day on ${n} lasts ${day}.`,year:`A year on ${n} takes ${year}.`,
+    hot:`The average temperature on ${n} is ${tempWords(r.temp)}.`,gravity:`Gravity on ${n} is ${g}.`}[q];
+  if(x)return x;
+  return `${from} It's ${fmtN(r.size)} kilometres across. A day there lasts ${day}, and a year takes ${year}. Gravity is ${g}, and the average temperature is ${tempWords(r.temp)}.${r.rings?' It has rings.':''}${n==='Mercury'?' Ask about the element mercury for the metal.':''}`;
+}
+function moonAnswer(r,q){
+  if(q==='far'&&r.name==='Moon')return null; // the chat answer already knows this one
+  const who=r.name==='Moon'?'The Moon':r.name,round=r.planet==='Earth'?'the Earth':r.planet;
+  return `${who} goes round ${round}. It's ${fmtN(r.radius*2)} kilometres across, and ${r.density<1?'lighter than water for its size':`about ${fmtN(r.density,1)} times as dense as water`}.`;
+}
+const STAR_COLOUR={O:'blue',B:'blue-white',A:'white',F:'yellow-white',G:'yellow',K:'orange',M:'red'};
+function starAnswer(r,q){
+  const lc=(r.spectral.match(/^[OBAFGKM][0-9.:+-]*?(Iab|Ia|Ib|III|II|IV|V)/)||[])[1],what={Ia:'supergiant',Iab:'supergiant',Ib:'supergiant',II:'bright giant',III:'giant',IV:'subgiant',V:'star'}[lc]||'star';
+  const far=r.ly?`It's about ${fmtN(r.ly,1)} light years away.`:"It's too far away for my catalogue to give a reliable distance.";
+  if(q==='far')return `${r.name} is in ${r.constellation}. ${far}`;
+  const brightest=[...pack.values()].filter(x=>x.kind==='star').every(x=>x.mag>=r.mag);
+  return `${r.name} is a ${STAR_COLOUR[r.spectral[0]]} ${what} in ${r.constellation}. ${brightest?`At magnitude ${fmtN(r.mag,2)}, it's the brightest star in the night sky.`:`Its magnitude is ${fmtN(r.mag,2)}; the lower the number, the brighter.`} ${far}`;
+}
+const missionAnswer=r=>{const [y,m,d]=r.launch;return `${r.name} launched on ${d} ${MONTHS[m-1]} ${y}: a mission by ${r.agency} to ${r.target}.`};
+function elementAnswer(r,q){
+  const n=r.name;
+  if(q==='symbol')return `The symbol for ${n.toLowerCase()} is ${r.symbol}.`;
+  if(q==='number')return `${n} is element ${r.n}.`;
+  const state=/^expected/.test(r.state)?`It's ${r.state} at room temperature`:`It's a ${r.state} at room temperature`;
+  const heat=r.melt!==null&&r.boil!==null?` It melts at ${tempWords(r.melt)} and boils at ${tempWords(r.boil)}.`:r.melt!==null?` It melts at ${tempWords(r.melt)}.`:'';
+  return `${n}, symbol ${r.symbol}, is element number ${r.n}, ${/^[aeiou]/.test(r.family)?'an':'a'} ${r.family}. ${state}, with an atomic mass of ${fmtN(r.mass,3)}.${heat} ${r.found?`It was discovered in ${r.found}.`:'People have known it since ancient times.'}`;
+}
+function countryAnswer(r,q){
+  const n=r.name,the=/^(?:United|Netherlands|Philippines|DR )/.test(n)?'the '+n:n,The=the[0].toUpperCase()+the.slice(1);
+  const cap=r.capital.length>1?`The capitals of ${the} are ${listWords(r.capital)}.`:`The capital of ${the} is ${r.capital[0]}.`;
+  const high=`The highest point in ${the} is ${r.high}, at ${fmtN(r.high_m)} metres.`,flag=`The flag of ${the}: ${r.flag}.`;
+  const x={capital:cap,flag:`${flag} Its colours are ${listWords(r.colours)}.`,high,big:`${The} covers ${areaWords(r.area)}.`}[q];
+  if(x)return x;
+  return `${The}. ${r.capital.length>1?`Its capitals are ${listWords(r.capital)}`:`Its capital is ${r.capital[0]}`}. It's in ${regionWords(r.region)}, covering ${areaWords(r.area)}, and its highest point is ${r.high}, at ${fmtN(r.high_m)} metres. ${flag}`;
+}
+const suitAnswer=r=>`Fan knowledge, not an official source: the ${r.name}, from ${r.film}. ${r.line}`;
+// The scene a fact opens, when there's one to open: the globe on the country, the solar system near the planet (or
+// a moon's planet), the suit schematic for a suit.
+function knowScene(r){
+  if(r.kind==='country'){const k=Object.keys(PLACES).find(k=>PLACES[k].name===r.name);return k?{kind:'globe',arg:k}:null}
+  const pl=r.kind==='planet'?r.name:r.kind==='moon'?r.planet:null;
+  if(pl)return {kind:'solar',arg:new RegExp(`^(?:${PLANETS})$`).test(pl.toLowerCase())?pl.toLowerCase():null};
+  return r.kind==='suit'?{kind:'suit',arg:null}:null;
+}
+// A fact question's answer, or null when the pack can't answer it (not loaded, or no such thing in it).
+async function knowAnswer(k){
+  if(!(await packReady()))return null;
+  const r=packFind(k.x);if(!r)return null;
+  const raw={planet:planetAnswer,moon:moonAnswer,star:starAnswer,mission:missionAnswer,element:elementAnswer,country:countryAnswer,suit:suitAnswer}[r.kind](r,k.q);
+  if(!raw)return null; // (inUnits would turn null into the word "null")
+  const text=inUnits(raw);
+  track(KNOW_IDS[r.kind]);
+  const sc=knowScene(r);if(sc&&hasWebGL())await project(sc);
+  return because(text,r.kind==='suit'?"Because there's no official record of the suits, so those lines are written from the films. Everything else I know comes from NASA, the CIA World Factbook, the Yale Bright Star Catalogue and PubChem, copied from this site.":
+    "Because it's in my knowledge pack: public facts from NASA, the CIA World Factbook, the Yale Bright Star Catalogue and PubChem, copied from this site. Only facts that don't change, so nothing like population.");
+}
 /* ---------- Meaning module (Session 12): understanding rewordings, as a safety net ----------
    "Upgrade your brain" downloads MediaPipe's text embedder and the Universal Sentence Encoder from jarvis/text/ on
    this site (never at start-up, and never from anywhere else: the CSP's connect-src 'self' stands). It turns a
@@ -3569,7 +3779,13 @@ const MEANINGS=[
   ['back up my settings','a backup of your settings',['back up my settings','save a copy of my settings','download my settings']],
   ['restore my settings','restoring your settings',['restore my settings','load my settings backup','import my settings']],
   ['send my settings to my phone','your settings code',['send my settings to my phone','show my settings code','copy my settings to another device']],
-  ['scan settings','scanning a settings code',['scan settings','scan my settings code','read the code from my other device']]
+  ['scan settings','scanning a settings code',['scan settings','scan my settings code','read the code from my other device']],
+  // Fact questions (Session 13). See KNOW_MEANING: the name in each is swapped for whatever you asked about.
+  ['tell me about Peru','facts about Peru',['tell me about peru','what do you know about peru','give me some facts about peru',"i'd like to learn about peru"]],
+  ['how far is Mars','how far away Mars is',['how far is mars','how far away is mars','what is the distance to mars','how many kilometres away is mars']],
+  ['tell me about Jupiter','facts about Jupiter',['tell me about jupiter','what do you know about the planet jupiter','describe jupiter to me']],
+  ['tell me about gold','facts about gold',['tell me about gold','what do you know about the element gold','what kind of element is gold']],
+  ['tell me about the Mark 42','the Mark 42',['tell me about the mark 42','what do you know about the mark 42 suit','which iron man suit is the mark 42']]
 ];
 // The bands, set against the real model in headless Chromium (review 64). Scores are cosines of centred fingerprints.
 const MEAN_DO=.8,MEAN_ASK=.6,MEAN_GAP=.05;
@@ -3644,9 +3860,12 @@ async function upgradeBrain(){
   },0);
   return `Upgrading. I'm downloading my language comprehension module from this site, about 12 megabytes.${hasWebGL()?' Watch my neural network.':''}`;
 }
+// Fact questions in MEANINGS (Session 13): the kind of thing each is about, and the name its examples use. A sentence
+// naming something else of that kind is compared with that name swapped in, then asked about the real thing.
+const KNOW_MEANING={'tell me about Peru':['country','Peru'],'how far is Mars':['planet','Mars'],'tell me about Jupiter':['planet','Jupiter'],'tell me about gold':['element','gold'],'tell me about the Mark 42':['suit','Mark 42']};
 // What could be meant: every command in MEANINGS, the phrases you taught me, and your protocols' names.
 function meaningCandidates(){
-  const c=MEANINGS.map(([cmd,what,ex])=>({key:'cmd:'+cmd,ex:ex.map(meaningText),what,ask:asksFirst(cmd),run:()=>respond(cmd)}));
+  const c=MEANINGS.map(([cmd,what,ex])=>({key:'cmd:'+cmd,ex:ex.map(meaningText),what,ask:asksFirst(cmd),run:()=>respond(cmd),know:KNOW_MEANING[cmd]||null}));
   for(const [k,v] of Object.entries(learned))if(!DESTRUCTIVE.test(normPhrase(v))&&!DESTRUCTIVE.test(k))
     c.push({key:'learned:'+k,ex:[meaningText(k)],what:`"${k}", which you taught me`,ask:asksFirst(v),run:()=>respond(k)});
   for(const n of protocols.keys())c.push({key:'protocol:'+n,ex:[meaningText(n)],what:`the ${n} protocol`,ask:false,run:()=>runProtocol(n)});
@@ -3657,8 +3876,16 @@ function meaningOf(raw){
   if(mind.state!=='on')return null;
   const t=meaningText(raw);
   if(t.split(' ').length<2||t.length>120||DESTRUCTIVE.test(t)||personal(t))return null;
-  const v=fingerprint(t);
-  const ranked=meaningCandidates().map(c=>({c,score:Math.max(...c.ex.filter(Boolean).map(e=>cosine(v,fingerprint(e))))})).sort((a,b)=>b.score-a.score);
+  const v=fingerprint(t),ment=packMention(t);
+  // A fact question only counts when the sentence names something of its kind: "give me the lowdown on Japan" is
+  // compared as "give me the lowdown on peru", and runs as "tell me about Japan".
+  const cands=meaningCandidates().flatMap(c=>{
+    if(!c.know)return [c];
+    if(!ment||ment.r.kind!==c.know[0])return [];
+    const stand=knowNorm(c.know[1]),real=ment.r.name,swap=x=>x.replace(new RegExp(c.know[1],'i'),real);
+    return [{...c,said:ment.said===stand?t:t.replace(new RegExp(`\\b${ment.said}\\b`),stand),what:swap(c.what),run:()=>respond(swap(c.key.slice(4)))}];
+  });
+  const ranked=cands.map(c=>{const u=c.said?fingerprint(c.said):v;return {c,score:Math.max(...c.ex.filter(Boolean).map(e=>cosine(u,fingerprint(e))))}}).sort((a,b)=>b.score-a.score);
   const [best,next]=ranked;
   if(!best||!(best.score>=MEAN_ASK))return null;
   return {...best,sure:best.score>=MEAN_DO&&(!next||best.score-next.score>=MEAN_GAP)&&!best.c.ask};
@@ -3691,7 +3918,8 @@ const FRAMES={
   globe:x=>{const it=intent('show me '+x);return it&&it.kind==='globe'&&it.arg?'show me '+x:null},
   particles:x=>Object.hasOwn(SHAPE_WORDS,x)?`make ${/^[aeiou]/.test(x)?'an':'a'} ${x}`:null,
   skin:x=>skinIntent('switch to '+x)?'switch to '+x:null,
-  color:x=>{const s=settingsIntent('make the orb '+x);return s&&s.key==='color'&&s.value?'make the orb '+x:null}
+  color:x=>{const s=settingsIntent('make the orb '+x);return s&&s.key==='color'&&s.value?'make the orb '+x:null},
+  know:x=>packFind(x)?'tell me about '+x:null // after a fact (Session 13): "now Japan", "what about Saturn"
 };
 async function fragment(raw){
   const m=normPhrase(raw).match(/^((?:(?:and|now|ok|okay|so|then|what about|how about|try|do)\s+)*)(?:(?:the|a|an)\s+)?(.+?)(?:\s+(?:now|instead|please|too|next))?$/);
@@ -3763,8 +3991,17 @@ async function respond(text,inner=false){
   if(upgradeIntent(text)){note(null);return await upgradeBrain()}
   const it=intent(text);if(it){const need=lockOf(it);if(need>levelNow())return locked(need,it.kind==='tesseract'?'The Tesseract':'The Avengers logo');
     track(intentEvent(it));note(FRAMES[it.kind]?it.kind:null);return await project(it)}
+  // A fact question (Session 13): before the chat answers, whose loose patterns ("fact", "launch") would take it.
+  const kq=knowIntent(text);
+  if(kq&&!kq.weak){const r=await knowAnswer(kq);if(r!==null){note('know');return r}}
   if(skin!=='jarvis'&&/who are you|your name|what are you/.test(normPhrase(text)))return SKINS[skin].who;
-  const b=brainKnown(text);if(b===null)return NOPE;
+  const b=brainKnown(text);
+  if(b===null){
+    // "What is Betelgeuse": only once nothing in the chat answers has claimed it.
+    if(kq&&kq.weak){const r=await knowAnswer(kq);if(r!==null){note('know');return r}}
+    if(kq&&!kq.weak&&packGone&&!pack.size)return because("My knowledge pack isn't on this site yet, so I can't look that up.","Because my facts come from a file on this site, and it hasn't been built yet, or I couldn't reach it just now.");
+    return NOPE;
+  }
   track(chatEvent(text));note(null);return flair(b);
 }
 // What a command counts as in the usage counts: only its kind, from EVENT_IDS, never the words.
@@ -3828,7 +4065,9 @@ async function answerCore(text){
   const pn=protoName(text);if(protocols.has(pn))return runProtocol(pn);
   const fr=await fragment(text);if(fr!==null)return fr;
   if(/^(?:jarvis )?wake up$/.test(p))return "I'm awake. Say wake up, daddy's home, for my whole boot protocol.";
-  // Last of all, and only once the brain is upgraded: what it means, rather than how it's said (Session 12).
+  // Last of all, and only once the brain is upgraded: what it means, rather than how it's said (Session 12). The
+  // knowledge pack is read first, so a fact question in your own words can name anything in it (Session 13).
+  if(mind.state==='on'&&!packGone)await packReady();
   const mn=meaningOf(text);if(mn)return await byMeaning(mn,p);
   if(p&&p.length<=120)pendingTeach=p;
   return because(`${missLine()} ${favLead}${CAN_DO} What were you trying to say?`,"Because I only know the commands I was built with and the phrases you've taught me. Tell me what you meant and I'll learn it for next time.");
@@ -3933,6 +4172,8 @@ window.__jarvis={micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...
   STEPS,BUILTIN,PROTO_MAX,PROTO_STEPS,stepOf,protoName,nameProblem,protoProblem,protoCreate,adjuster,noteScene,fragment,
   protocols:()=>Object.fromEntries([...protocols].map(([k,v])=>[k,{steps:[...v.steps]}])),running:()=>running&&{label:running.label,i:running.i,n:running.steps.length},
   protocolDone:()=>runP,setPace:v=>{pace=v},context:()=>JSON.parse(JSON.stringify({...talk,question:!!talk.question})),
+  PACK_URL,PACK_FIELDS,PACK_MAX,STALE_KEY,STALE_TEXT,PERSONAL,packKey,packFits,knowIntent,knowAnswer,knowScene,KNOW_IDS,packFind,packMention,installPack,KNOW_MEANING,
+  setPackSource:f=>{packSource=f;packChecked=false},pack:()=>Object.fromEntries([...pack].map(([k,v])=>[k,JSON.parse(JSON.stringify(v))])),packGone:()=>packGone,
   MEANINGS,MEAN_DO,MEAN_ASK,MEAN_GAP,DESTRUCTIVE,asksFirst,upgradeIntent,meaningText,meaningOf,meaningCandidates,mind:()=>({state:mind.state,p:mind.p,fingerprints:mind.fp.size}),
   setTextLib:f=>{textLib=f},holoStat:()=>document.getElementById('holo-stat').textContent,
   DB_NAME,EVENT_IDS,KEEP_DAYS,dayNumber,fits,track,rollUp,streakDays,carryStreak,cleanKept,intentEvent,chatEvent,ready:null,loaded:()=>loaded,dbOK:()=>dbOK,

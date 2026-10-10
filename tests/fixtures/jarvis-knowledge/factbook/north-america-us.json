@@ -1,0 +1,40 @@
+{
+ "Geography": {
+  "Map references": {
+   "text": "North America"
+  },
+  "Area": {
+   "total ": {
+    "text": "9,833,517 sq km"
+   },
+   "land": {
+    "text": "9,147,593 sq km"
+   },
+   "water": {
+    "text": "685,924 sq km"
+   },
+   "note": "<strong>note:</strong> includes only the 50 states and District of Columbia, no overseas territories"
+  },
+  "Elevation": {
+   "highest point": {
+    "text": "Mount McKinley 6,190 m (highest point in North America)"
+   }
+  }
+ },
+ "Government": {
+  "Country name": {
+   "conventional short form": {
+    "text": "United States"
+   }
+  },
+  "Capital": {
+   "name": {
+    "text": "Washington, D.C."
+   }
+  },
+  "Flag": {
+   "text": "<strong>description:</strong> 13 equal horizontal stripes of red (top and bottom) alternating with white; a blue rectangle in the upper-left corner has 50 five-pointed white stars, arranged in nine offset horizontal rows of six stars (top and bottom) alternating with rows of five stars<br><br><strong>meaning:</strong> the stars represent the 50 states, and the stripes represent the 13 original colonies; blue stands for loyalty, devotion, truth, justice, and friendship; red for courage, zeal, and fervency; white for purity and rectitude of conduct",
+   "note": "<strong>note 1:</strong> sometimes referred to by its nickname of \"Old Glory\"<br><br><strong>note 2:</strong> the design and colors have been the basis for a number of other flags, including Chile, Liberia, Malaysia, and Puerto Rico"
+  }
+ }
+}

@@ -1,0 +1,39 @@
+{
+ "Geography": {
+  "Map references": {
+   "text": "Oceania"
+  },
+  "Area": {
+   "total ": {
+    "text": "7,741,220 sq km"
+   },
+   "land": {
+    "text": "7,682,300 sq km"
+   },
+   "water": {
+    "text": "58,920 sq km"
+   },
+   "note": "<strong>note:</strong> includes Lord Howe Island and Macquarie Island"
+  },
+  "Elevation": {
+   "highest point": {
+    "text": "Mount Kosciuszko 2,228 m"
+   }
+  }
+ },
+ "Government": {
+  "Country name": {
+   "conventional short form": {
+    "text": "Australia"
+   }
+  },
+  "Capital": {
+   "name": {
+    "text": "Canberra"
+   }
+  },
+  "Flag": {
+   "text": "<strong>description:</strong> blue, with the UK flag in the upper-left quadrant and a large seven-pointed star in the lower-left quadrant; on the right half is a representation of the Southern Cross constellation in white, with one small five-pointed star and four larger seven-pointed stars<br><br><strong>meaning:</strong> the largest star is known as the Commonwealth or Federation Star and represents the federation of the Australian colonies in 1901; the star has one point for each of the six original states, plus one representing all of Australia's internal and external territories"
+  }
+ }
+}

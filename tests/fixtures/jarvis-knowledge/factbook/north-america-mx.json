@@ -1,0 +1,38 @@
+{
+ "Geography": {
+  "Map references": {
+   "text": "North America"
+  },
+  "Area": {
+   "total ": {
+    "text": "1,964,375 sq km"
+   },
+   "land": {
+    "text": "1,943,945 sq km"
+   },
+   "water": {
+    "text": "20,430 sq km"
+   }
+  },
+  "Elevation": {
+   "highest point": {
+    "text": "Volcan Pico de Orizaba 5,636 m"
+   }
+  }
+ },
+ "Government": {
+  "Country name": {
+   "conventional short form": {
+    "text": "Mexico"
+   }
+  },
+  "Capital": {
+   "name": {
+    "text": "Mexico City (Ciudad de Mexico)"
+   }
+  },
+  "Flag": {
+   "text": "<strong>description:</strong> three equal vertical bands of green (left side), white, and red; Mexico's coat of arms (an eagle with a snake in its beak, perched on a cactus) is centered in the white band<br><br><strong>meaning:</strong> green stands for hope, joy, and love; white for peace and honesty; red for hardiness, bravery, strength, and valor"
+  }
+ }
+}

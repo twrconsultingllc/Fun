@@ -1,0 +1,39 @@
+{
+ "Geography": {
+  "Map references": {
+   "text": "Europe"
+  },
+  "Area": {
+   "total ": {
+    "text": "131,957 sq km"
+   },
+   "land": {
+    "text": "130,647 sq km"
+   },
+   "water": {
+    "text": "1,310 sq km"
+   }
+  },
+  "Elevation": {
+   "highest point": {
+    "text": "Mount Olympus 2,917"
+   }
+  }
+ },
+ "Government": {
+  "Country name": {
+   "conventional short form": {
+    "text": "Greece"
+   }
+  },
+  "Capital": {
+   "name": {
+    "text": "Athens"
+   }
+  },
+  "Flag": {
+   "text": "<strong>description:</strong> nine equal horizontal stripes of blue alternating with white; a blue square with a white cross is in the upper-left corner<br><br><strong>meaning:</strong> the cross symbolizes Greek Orthodoxy, the established religion; there is no set meaning for the stripes and colors",
+   "note": "<strong>note:</strong> Greek legislation states that the flag colors are cyan and white, but cyan can mean \"blue\" in Greek, so the exact shade of blue has never been set and has varied from a light to a dark blue over time; the blue is now usually an azure"
+  }
+ }
+}

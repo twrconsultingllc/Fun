@@ -1,0 +1,39 @@
+{
+ "Geography": {
+  "Map references": {
+   "text": "Europe"
+  },
+  "Area": {
+   "total ": {
+    "text": "78,867 sq km"
+   },
+   "land": {
+    "text": "77,247 sq km"
+   },
+   "water": {
+    "text": "1,620 sq km"
+   }
+  },
+  "Elevation": {
+   "highest point": {
+    "text": "Snezka 1,602 m"
+   }
+  }
+ },
+ "Government": {
+  "Country name": {
+   "conventional short form": {
+    "text": "Czechia"
+   }
+  },
+  "Capital": {
+   "name": {
+    "text": "Prague"
+   }
+  },
+  "Flag": {
+   "text": "<strong>description:</strong> two equal horizontal bands of white (top) and red with a blue isosceles triangle based on the left side",
+   "note": "<strong>note:</strong> combines the white and red of Bohemia with blue from the arms of Moravia; identical to the flag of the former Czechoslovakia"
+  }
+ }
+}

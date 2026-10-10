@@ -41,15 +41,37 @@ import { openDom as openPage } from './lib/page.mjs';
  * opts.idb hands it an existing one, and opts.idb === null opens it with no IndexedDB at all. localStorage
  * seeded in beforeParse is what jarvis.html left there: the test copy copies it in on its first run. The
  * window is returned once the page has finished reading its database (window.__jarvis.ready). */
-let IDB = null, QRCODE = null;
+let IDB = null, QRCODE = null, PACK = null;
+/* Session 13: the knowledge pack. The suite builds it from the sample documents in tests/fixtures/jarvis-knowledge/
+ * with jarvis/knowledge/build.mjs itself, so the page is tested without a committed pack.json. Every window gets a
+ * fetch that serves it at jarvis/knowledge/pack.json (opts.pack hands it another one, opts.pack === null a missing
+ * file) and fails for everything else, as the page's other fetches did in jsdom before. env.packFetches counts the
+ * page's requests for it. */
+export async function fixturePack() {
+    if (!PACK) {
+        const B = await import('../jarvis/knowledge/build.mjs');
+        const get = await B.fixtureGetter(fileURLToPath(new URL('./fixtures/jarvis-knowledge/', import.meta.url)));
+        PACK = await B.buildPack(get, await readFile(new URL('../jarvis/knowledge/suits.json', import.meta.url), 'utf8'));
+    }
+    return PACK;
+}
 async function openDom(html, url, opts = {}) {
+    const pk = opts.pack === undefined ? await fixturePack() : opts.pack, fetches = { n: 0 };
     IDB ??= await import('fake-indexeddb');
     const idb = opts.idb === undefined ? new IDB.IDBFactory() : opts.idb;
     // The QR encoder (Session 8) is handed to every window, as if the browser had loaded jarvis/qr/qrcode.js: jsdom
     // doesn't fetch scripts. Loading it for real, with its SRI hash, is checked in tests/jarvis-test.chromium.mjs.
     QRCODE ??= createRequire(import.meta.url)('../jarvis/qr/qrcode.js');
-    const env = await openPage(html, url, { ...opts, beforeParse(w) { if (idb) { w.indexedDB = idb; w.IDBKeyRange = IDB.IDBKeyRange; } w.qrcode = QRCODE; opts.beforeParse?.(w); } });
-    env.idb = idb;
+    const env = await openPage(html, url, { ...opts, beforeParse(w) {
+        if (idb) { w.indexedDB = idb; w.IDBKeyRange = IDB.IDBKeyRange; } w.qrcode = QRCODE;
+        w.fetch = async (u) => {
+            if (!/\/jarvis\/knowledge\/pack\.json$/.test(String(u))) throw new w.TypeError('Failed to fetch');
+            fetches.n++; await new Promise((r) => setTimeout(r, 5));
+            return pk ? { ok: true, status: 200, json: async () => JSON.parse(JSON.stringify(pk)) } : { ok: false, status: 404, json: async () => { throw new Error('404'); } };
+        };
+        opts.beforeParse?.(w);
+    } });
+    env.idb = idb; env.packFetches = () => fetches.n;
     if (!opts.noWait) await env.window.__jarvis?.ready;
     return env;
 }
@@ -709,6 +731,7 @@ export default async function run(t, page) {
     await backupAndQr(t, page);
     await heRemembersYou(t, page);
     await meaningModule(t, page);
+    await knowledgePack(t, page);
     await commandLinks(t, page);
 }
 
@@ -1117,7 +1140,7 @@ async function heRemembersYou(t, page) {
             t.ok('(a level-up happens in this visit)', /Access level three/.test(await typeIn(env, 'show me the suit')));
             for (const q of ['how well do you know me', 'whats my favourite', 'what havent i tried', 'gold and red hud', 'show me the tesseract', 'yes', 'stop putting my favourites first']) await typeIn(env, q);
             const db = await dbDump(env.idb);
-            t.eq('the database has only its five tables', Object.keys(db).sort().join(), 'events,kept,meta,protocols,totals');
+            t.eq('the database has only its six tables', Object.keys(db).sort().join(), 'events,kept,meta,pack,protocols,totals');
             t.ok('kept: only the listed settings keys', Object.keys(db.kept).every((k) => J.STORE_KEYS.includes(k)));
             t.eq('meta: only the three bookkeeping numbers', Object.keys(db.meta).filter((k) => !['copied', 'rolled', 'carry'].includes(k)).join(), '');
             t.ok('no level, favourite, hint or HUD anywhere in it', !/clearance|Engineer|Associate|favourite|hint|hotrod|hud|level|announced/i.test(JSON.stringify(db.kept) + JSON.stringify(db.meta)));
@@ -1372,7 +1395,7 @@ async function protocolsAndFollowUps(t, page) {
         d = await dbDump(env.idb);
         const dump = JSON.stringify(d);
         t.ok('none of it is in the database', !/lastCmd|lastAnswer|take me to|show me japan|now jupiter|what about|Going back|deeper reason/.test(dump), dump.slice(0, 300));
-        t.ok('only five tables, none for the context', Object.keys(d).sort().join() === 'events,kept,meta,protocols,totals');
+        t.ok('only six tables, none for the context', Object.keys(d).sort().join() === 'events,kept,meta,pack,protocols,totals');
         t.ok('and the page never passes it to save() or store()', !/(?:save|store)\([^)]*talk\b/.test(page.html) && !/talk\.[a-zA-Z]+[^;]*\b(?:save|store)\(/.test(page.html.match(/const talk=[^\n]*/)?.[0] || ''));
         const idb = env.idb;
         env.close();
@@ -1395,7 +1418,7 @@ async function protocolsAndFollowUps(t, page) {
     env = await openDom(page.html, URL_, { ...quiet, idb });
     try {
         const U = env.window.__jarvis;
-        t.eq('the database goes up to version 2', JSON.stringify((await idb.databases()).map((x) => [x.name, x.version])), '[["jarvis-test",2]]');
+        t.eq('the database goes up to version 3 (Session 13 added a step after this one)', JSON.stringify((await idb.databases()).map((x) => [x.name, x.version])), '[["jarvis-test",3]]');
         const d = await dbDump(idb);
         t.ok('version 1\'s records are all still there', d.kept['jarvis-skin'] === 'matrix' && Object.values(d.events).some((e) => e.id === 'scene:globe' && e.n === 4) && U.skin() === 'matrix');
         t.ok('and there\'s an empty protocols table', JSON.stringify(d.protocols) === '{}');
@@ -1446,9 +1469,9 @@ async function memoryFoundation(t, page) {
         t.eq('the test copy has its own database', J.DB_NAME, 'jarvis-test');
         t.ok('and the page knows it was saved there', J.dbOK() && J.loaded());
         const dbs = await env.idb.databases();
-        t.eq('it is the only database this page opens, at version 2 since Session 10 added protocols', JSON.stringify(dbs.map((d) => [d.name, d.version])), '[["jarvis-test",2]]');
+        t.eq('it is the only database this page opens, at version 3 since Session 13 added the knowledge pack', JSON.stringify(dbs.map((d) => [d.name, d.version])), '[["jarvis-test",3]]');
         const d = await dbDump(env.idb);
-        t.eq('version 2 has five tables: Session 9\'s four and protocols', Object.keys(d).sort().join(), 'events,kept,meta,protocols,totals');
+        t.eq('version 3 has six tables: Session 9\'s four, protocols and pack', Object.keys(d).sort().join(), 'events,kept,meta,pack,protocols,totals');
         t.ok('the database version is the number of upgrade steps, so later sessions add a step instead of starting again', /indexedDB\.open\(DB_NAME,DB_UPGRADES\.length\)/.test(page.html) && /for\(let v=e\.oldVersion;v<DB_UPGRADES\.length;v\+\+\)DB_UPGRADES\[v\]/.test(page.html));
         t.eq('a first visit saves only the copy-done mark, the visit count and the roll-up bookkeeping', JSON.stringify({ kept: d.kept, events: Object.values(d.events), totals: d.totals, meta: d.meta }),
             JSON.stringify({ kept: {}, events: [{ id: 'app:visit', day: today, n: 1 }], totals: {}, meta: { carry: 0, copied: 1, rolled: today - 89 } }));
@@ -3168,15 +3191,17 @@ async function meaningModule(t, page) {
         t.eq('and yes runs it', count(J, 'cmd:protocol'), n + 2);
 
         t.section('Meaning module: nothing new is stored (Session 12)');
-        const db = await dbDump(env.idb), all = JSON.stringify(db);
-        t.eq('the database still has its five tables', Object.keys(db).sort().join(), 'events,kept,meta,protocols,totals');
+        // The knowledge pack (Session 13) is public facts the module read, not something it stored: it's checked on its own.
+        const db = await dbDump(env.idb), all = JSON.stringify({ ...db, pack: {} });
+        t.ok('the pack table holds only pack records', Object.entries(db.pack).every(([k, r]) => J.packFits(k, r)));
+        t.eq('the database still has its six tables', Object.keys(db).sort().join(), 'events,kept,meta,pack,protocols,totals');
         t.eq('kept: only the listed settings keys', Object.keys(db.kept).filter((k) => !J.STORE_KEYS.includes(k)).join(), '');
-        t.eq('meta: only the three bookkeeping numbers', Object.keys(db.meta).filter((k) => !['copied', 'rolled', 'carry'].includes(k)).join(), '');
+        t.eq('meta: only the three bookkeeping numbers', Object.keys(db.meta).filter((k) => !['copied', 'rolled', 'carry', 'pack'].includes(k)).join(), '');
         t.ok('no fingerprint (no list of numbers) anywhere in it', !/\[(?:-?\d+(?:\.\d+)?(?:e-?\d+)?,){6,}/.test(all) && !/Float32Array|"0":/.test(all));
         t.ok('no example sentence and nothing said to the module', !/planet we live on|cheer me up|tell me a gag|cinema evening|scotty|milky way|language module|fingerprint/i.test(all));
         t.ok('the only counts are listed IDs', Object.values(db.events).every((e) => J.EVENT_IDS.includes(e.id)));
         const ver = await new Promise((res) => { const rq = env.idb.open('jarvis-test'); rq.onsuccess = () => { const v = rq.result.version; rq.result.close(); res(v); }; });
-        t.eq('and it is still at version 2', ver, 2);
+        t.eq('and it is still at version 3 (Session 13\'s pack)', ver, 3);
         t.ok('the fingerprints live in memory', J.mind().fingerprints > 100);
     } finally { env.close(); }
 
@@ -3240,3 +3265,252 @@ async function meaningModule(t, page) {
     } finally { env.close(); }
 }
 const env0Csp = (html) => (html.match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)">/) || [])[1];
+
+// Session 13 of jarvis/build-plan.html: the knowledge pack (review 65). Stable public facts, built by
+// jarvis/knowledge/build.mjs, copied into the test copy's IndexedDB (version 3, table pack) on the first fact
+// question, through save() and fits() like everything else. The pack here is built from tests/fixtures/jarvis-knowledge/.
+async function knowledgePack(t, page) {
+    const URL_ = 'https://jarvis.test/jarvis.html', quiet = { ignore: /getContext|HTMLCanvasElement/ };
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const lastAi = (env) => [...env.document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? '';
+    const typeIn = async (env, text) => { const { document, window } = env; document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(540); return lastAi(env); };
+    const count = (J, id) => J.usageNow().n[id] || 0;
+    const MISSED = /What were you trying to say\?$/;
+    const B = await import('../jarvis/knowledge/build.mjs');
+    const PK = await fixturePack();
+    const src = page.html;
+
+    t.section('Knowledge pack: the build script and its pack (Session 13)');
+    t.eq('the pack built from the sample documents passes the build\'s own check', B.checkPack(PK).join(' | '), '');
+    const kinds = {}; for (const r of PK.records) kinds[r.kind] = (kinds[r.kind] || 0) + 1;
+    t.eq('all four areas: space (planets, moons, stars, missions), countries, all 118 elements and the suits', JSON.stringify(kinds), '{"country":76,"element":118,"mission":23,"moon":21,"planet":9,"star":25,"suit":13}');
+    t.ok('it lists its sources, and none is Wikipedia', PK.sources.length === 7 && PK.sources.every((x) => x.name && x.licence) && !/wikipedia/i.test(JSON.stringify(PK)));
+    t.ok('the World Factbook copy is pinned to one commit', PK.sources.find((x) => x.id === 'countries').url.includes(B.FACTBOOK_SHA) && /^[0-9a-f]{40}$/.test(B.FACTBOOK_SHA));
+    t.ok('every suit line is marked as fan knowledge', PK.records.filter((r) => r.kind === 'suit').every((r) => r.fan === true) && /fan knowledge/i.test(PK.sources.find((x) => x.id === 'suits').licence));
+    const J0 = (await openDom(page.html, URL_, quiet));
+    const J = J0.window.__jarvis;
+    try {
+        t.eq('the page and the build have the same fields for each kind', JSON.stringify(J.PACK_FIELDS), JSON.stringify(B.PACK_FIELDS));
+        t.ok('the same lists of things that go stale', String(J.STALE_KEY) === String(B.STALE_KEY) && String(J.STALE_TEXT) === String(B.STALE_TEXT));
+        t.ok('and the same test for personal text', JSON.stringify(J.PERSONAL.map(([w, re]) => [w, String(re)])) === JSON.stringify(B.PERSONAL.map(([w, re]) => [w, String(re)])));
+        t.eq('every record in the pack passes the page\'s fits()', PK.records.filter((r) => !J.fits('pack', J.packKey(r), r)).map((r) => r.name).join(), '');
+        t.eq('no field name in any kind goes stale', Object.values(J.PACK_FIELDS).flatMap(Object.keys).filter((k) => B.STALE_KEY.test(k)).join(), '');
+        // No fast-changing number, as a field or in words.
+        const peru = PK.records.find((r) => r.name === 'Peru'), mars = PK.records.find((r) => r.name === 'Mars');
+        for (const [why, rec] of [['a population field', { ...peru, population: 34000000 }], ['GDP', { ...peru, gdp: 1 }], ['a count of moons', { ...mars, moons: 2 }], ['a leader', { ...peru, president: 'x' }],
+            ['population in words', { ...peru, flag: 'red and white; the population is 34 million' }], ['an estimate', { ...peru, high: 'Nevado Huascaran (2024 est.)' }], ['"currently" in a suit line', { ...PK.records.find((r) => r.name === 'Mark 42'), line: 'Currently kept in the workshop.' }]]) {
+            if (rec === undefined) continue;
+            t.ok(`a record with ${why} is refused by the build and by the page`, B.recordProblem(rec) !== null && !J.fits('pack', J.packKey(rec), rec));
+        }
+        t.ok('and a pack carrying one fails the build\'s check', B.checkPack({ ...PK, records: [...PK.records.slice(1), { ...peru, population: 1 }] }).length > 0);
+        t.ok('so does a half-built pack (a source that returned nothing)', B.checkPack({ ...PK, records: PK.records.filter((r) => r.kind !== 'element') }).some((x) => /element/.test(x)));
+        // The pack table holds pack records and nothing else.
+        const sx = PK.records.find((r) => r.name === 'Mark 42');
+        for (const [why, k, r] of [['a setting', 'jarvis-skin', 'matrix'], ['a usage count', 'cmd:joke', { id: 'cmd:joke', day: 280, n: 1 }], ['a protocol', 'movie night', { steps: ['say:joke'] }],
+            ['a record under the wrong key', 'country:japan', peru], ['an extra field riding along', 'country:peru', { ...peru, note: 'my phone is 239 555 0142' }], ['a suit line not marked as fan knowledge', 'suit:mark-42', { ...sx, fan: false }],
+            ['a kind that isn\'t in the pack', 'person:pat', { kind: 'person', name: 'Pat' }], ['markup in a fact', 'country:peru', { ...peru, capital: ['<img src=x onerror=alert(1)>'] }], ['a command link marker in a fact', 'country:peru', { ...peru, flag: 'red ⟦forget my name|forget my name⟧' }], ['personal text', 'country:peru', { ...peru, high: 'my address' }],
+            ['a phone number', 'suit:mark-42', { ...sx, line: 'Call 239 555 0142.' }], ['a missing field', 'planet:mars', (({ rings, ...o }) => o)(mars)], ['text for a number', 'planet:mars', { ...mars, sun: '227.9' }]])
+            t.eq(`fits(): the pack table refuses ${why}`, J.fits('pack', k, r), false);
+        t.eq('fits(): meta holds the pack\'s version only as a whole number', [J.fits('meta', 'pack', 12345), J.fits('meta', 'pack', 'v1'), J.fits('meta', 'pack', 1.5), J.fits('meta', 'pack', 0)].join(), 'true,false,false,false');
+        t.ok('the catalogue writes a parallax as "+.375": that\'s 0.375, not 375', B.num('+.375') === 0.375 && B.num('1,285,216 sq km') === 1285216 && B.num('−65') === -65);
+        t.ok('a star\'s distance comes from a good parallax only (Sirius 8.7 light years, Betelgeuse none)', PK.records.find((r) => r.name === 'Sirius').ly === 8.7 && PK.records.find((r) => r.name === 'Betelgeuse').ly === null);
+
+        t.section('Knowledge pack: every country is one the globe can find (Session 13)');
+        const norm = (x) => x.toLowerCase().replace(/[.'-]/g, ' ').replace(/\s+/g, ' ').trim();
+        const countries = PK.records.filter((r) => r.kind === 'country');
+        t.eq('every country in the pack is a place on the globe', countries.filter((r) => !J.PLACES[norm(r.name)]).map((r) => r.name).join(), '');
+        t.eq('every country on the globe is in the pack, apart from England and Scotland (the Factbook covers them as the UK)',
+            Object.values(J.PLACES).filter((p) => p.kind === 'country').map((p) => p.name).filter((n, i, a) => a.indexOf(n) === i && !countries.some((r) => r.name === n)).join(), 'England,Scotland');
+        t.ok('and the build lists the same ones', B.COUNTRIES.length === countries.length);
+        t.ok('a country opens the globe on itself', ['Peru', 'United States', 'DR Congo', 'Australia'].every((n) => { const s = J.knowScene(PK.records.find((r) => r.name === n)); return s.kind === 'globe' && J.PLACES[s.arg].name === n; }));
+        t.ok('a planet opens the solar system near it, and a moon near its planet', J.knowScene(mars).arg === 'mars' && J.knowScene(PK.records.find((r) => r.name === 'Europa')).arg === 'jupiter' && J.knowScene(PK.records.find((r) => r.name === 'Pluto')).arg === null);
+        t.ok('a suit opens the schematic; elements, stars and missions open nothing', J.knowScene(sx).kind === 'suit' && [ 'Gold', 'Sirius', 'Voyager 1'].every((n) => J.knowScene(PK.records.find((r) => r.name === n)) === null));
+    } finally { J0.close(); }
+
+    t.section('Knowledge pack: answers, typed, unpunctuated, with "jarvis" and "please" (Session 13)');
+    let env = await openDom(page.html, URL_, quiet), K = env.window.__jarvis;
+    try {
+        K.finishBoot(); await wait(50);
+        const PERU = 'Peru. Its capital is Lima. It\'s in South America, covering 1,285,216 square kilometres, and its highest point is Nevado Huascaran, at 6,746 metres. The flag of Peru: three equal vertical bands of red, white, and red, with the coat of arms centered on the white band; the coat of arms has a shield with a vicuna, a cinchona tree, and a yellow cornucopia spilling out coins.';
+        t.eq('"jarvis tell me about peru please"', await typeIn(env, 'jarvis tell me about peru please'), PERU);
+        t.eq('typed with punctuation, the same', await typeIn(env, 'Jarvis, tell me about Peru, please.'), PERU);
+        t.eq('it counts once each time, as cmd:know-country', count(K, 'cmd:know-country'), 2);
+        t.ok('and never by name: no usage ID mentions Peru', !K.EVENT_IDS.some((id) => /peru/.test(id)) && !JSON.stringify(K.saved().events).includes('peru'));
+        const MARS = 'Mars is 227.9 million kilometres from the Sun on average, and sunlight takes about 13 minutes to get there. From Earth, it\'s between about 55 and 401 million kilometres away, depending on where the two planets are in their orbits.';
+        t.eq('"jarvis how far is mars please"', await typeIn(env, 'jarvis how far is mars please'), MARS);
+        t.eq('counted as cmd:know-planet', count(K, 'cmd:know-planet'), 1);
+        t.eq('"jarvis tell me about the mark 42 please": fan knowledge, and it says so', await typeIn(env, 'jarvis tell me about the mark 42 please'),
+            'Fan knowledge, not an official source: the Mark 42, from Iron Man 3 (2013). Its pieces fly to Tony on their own, steered by implants in his arms, so it can put itself on him from across a room.');
+        t.ok('"mark forty two" and "the hulkbuster" find suits too', /the Mark 42, from/.test(await typeIn(env, 'jarvis tell me about mark forty two please')) && /the Hulkbuster, from Avengers: Age of Ultron/.test(await typeIn(env, 'tell me about the hulkbuster')));
+        t.eq('counted as cmd:know-suit', count(K, 'cmd:know-suit'), 3);
+        const GOLD = 'Gold, symbol Au, is element number 79, a transition metal. It\'s a solid at room temperature, with an atomic mass of 196.967. It melts at 1,064.2 degrees Celsius and boils at 2,855.9 degrees Celsius. People have known it since ancient times.';
+        t.eq('"jarvis tell me about gold please"', await typeIn(env, 'jarvis tell me about gold please'), GOLD);
+        t.eq('"what is the symbol for gold"', await typeIn(env, 'jarvis what is the symbol for gold please'), 'The symbol for gold is Au.');
+        t.eq('"what is element 79"', await typeIn(env, 'what is element 79'), GOLD);
+        t.eq('"what is the atomic number of iron"', await typeIn(env, 'what is the atomic number of iron'), 'Iron is element 26.');
+        t.ok('"tell me about mercury" is the planet, and says how to get the metal', /^Mercury is 57\.9 million kilometres from the Sun.*Ask about the element mercury for the metal\.$/.test(await typeIn(env, 'tell me about mercury')));
+        t.ok('"tell me about the element mercury" is the metal', /^Mercury, symbol Hg, is element number 80/.test(await typeIn(env, 'tell me about the element mercury')));
+        t.eq('"when did voyager 1 launch"', await typeIn(env, 'jarvis when did voyager 1 launch please'), 'Voyager 1 launched on 5 September 1977: a mission by NASA to Jupiter and Saturn, and then interstellar space.');
+        t.eq('"tell me about sirius"', await typeIn(env, 'tell me about sirius'), 'Sirius is a white star in Canis Major. At magnitude -1.46, it\'s the brightest star in the night sky. It\'s about 8.7 light years away.');
+        t.eq('"how far is betelgeuse": no distance rather than a wrong one', await typeIn(env, 'how far is betelgeuse'), 'Betelgeuse is in Orion. It\'s too far away for my catalogue to give a reliable distance.');
+        t.eq('"tell me about europa"', await typeIn(env, 'tell me about europa'), 'Europa goes round Jupiter. It\'s 3,122 kilometres across, and about 3 times as dense as water.');
+        t.eq('"what\'s the capital of south africa": all three', await typeIn(env, "what's the capital of south africa"), 'The capitals of South Africa are Pretoria, Cape Town and Bloemfontein.');
+        t.eq('"what does the flag of japan look like"', await typeIn(env, 'what does the flag of japan look like'), 'The flag of Japan: white with a large red disk that symbolizes the sun without rays, in the center. Its colours are white and red.');
+        t.ok('"tell me about the usa": the globe\'s other names work', /^The United States\. Its capital is Washington, D\.C\./.test(await typeIn(env, 'tell me about the usa')));
+        t.ok('"how long is a day on venus" and "how hot is venus"', /^A day on Venus lasts 116\.8 Earth days\.$/.test(await typeIn(env, 'how long is a day on venus')) && /^The average temperature on Venus is 464 degrees Celsius\.$/.test(await typeIn(env, 'how hot is venus')));
+        t.ok('"tell me some facts about peru" is about Peru, not a fun fact', (await typeIn(env, 'tell me some facts about peru')) === PERU);
+        t.ok('"what is betelgeuse" works once the chat answers have passed on it', /^Betelgeuse is a red supergiant in Orion/.test(await typeIn(env, 'what is betelgeuse')));
+        t.ok('"how far is the moon" keeps its old answer', /^The Moon is about 384,000 kilometres away/.test(await typeIn(env, 'how far is the moon')));
+        t.ok('"what is the date" is still the date', /^Today is /.test(await typeIn(env, 'what is the date')));
+        t.ok('"tell me about yourself" isn\'t a fact question', !/knowledge pack/.test(await typeIn(env, 'tell me about yourself')));
+        await typeIn(env, 'never mind');
+        t.ok('"what do you know about me" is still the privacy answer', /^You haven't told me anything about you this visit\./.test(await typeIn(env, 'what do you know about me')));
+        t.ok('"tell me about atlantis" (not in the pack) is the usual "didn\'t understand"', MISSED.test(await typeIn(env, 'tell me about atlantis')));
+        await typeIn(env, 'never mind');
+        // Follow-ups: a fragment after a fact asks about the next thing; "why" says where it came from.
+        await typeIn(env, 'tell me about peru');
+        t.ok('"what about japan" after a country', /^Japan\. Its capital is Tokyo\./.test(await typeIn(env, 'what about japan')));
+        t.ok('"why" says it\'s the knowledge pack, from public sources', /^Because it's in my knowledge pack: public facts from NASA, the CIA World Factbook/.test(await typeIn(env, 'why')));
+        await typeIn(env, 'tell me about the mark 7');
+        t.ok('and after a suit, that there\'s no official record', /^Because there's no official record of the suits/.test(await typeIn(env, 'why')));
+        // Units: the same facts in imperial.
+        await typeIn(env, 'use imperial units');
+        t.ok('in imperial: square miles and feet', /covering about 500,000 square miles, and its highest point is Nevado Huascaran, at about 22,000 feet\./.test(await typeIn(env, 'tell me about peru')));
+        t.ok('degrees Fahrenheit', (await typeIn(env, 'how hot is venus')) === 'The average temperature on Venus is 867 degrees Fahrenheit.');
+        t.ok('and miles', /^Mars is about 140 million miles from the Sun/.test(await typeIn(env, 'how far is mars')));
+        await typeIn(env, 'use metric units');
+        // Long answers are said in whole sentences by say().
+        const chunks = K.speechChunks(PERU);
+        t.ok('a long fact answer is split into sentences of at most 160 characters for speaking', chunks.length > 2 && chunks.every((c) => c.length <= 160));
+        t.ok('every answer goes back through answer() and say(), never speechSynthesis.speak() directly', (src.match(/speechSynthesis\.speak\(|synth\.speak\(/g) || []).length === (page.html.match(/synth\.speak\(/g) || []).length && !/function knowAnswer[\s\S]*?speak\(/.test(src.slice(src.indexOf('function knowAnswer'), src.indexOf('function knowAnswer') + 1500)));
+        // Counted by kind: every kind has its ID, and each is a capability.
+        const ids = Object.values(K.KNOW_IDS);
+        t.eq('seven kinds, seven usage IDs, all on the list', ids.filter((id) => K.EVENT_IDS.includes(id)).length, 7);
+        t.ok('they belong to four capabilities: countries, space, elements, suits', ['know-country', 'know-space', 'know-element', 'know-suit'].every((k) => K.CAPABILITIES.some((c) => c.key === k)) && ids.every((id) => K.CAPABILITIES.some((c) => c.ids.includes(id))));
+        t.ok('none is a clearance extra, and none needs WebGL', K.CAPABILITIES.filter((c) => /^know-/.test(c.key)).every((c) => !c.lock && !c.can));
+        t.ok('the help answer links all four', ['tell me about Peru', 'how far is Mars', 'tell me about gold', 'tell me about the Mark 42'].every((c) => K.chipCmds().includes(c)));
+        t.ok('and "what haven\'t I tried" can hint at one', K.CAPABILITIES.filter((c) => /^know-/.test(c.key)).every((c) => /⟦/.test(c.hint)));
+    } finally { env.close(); }
+
+    t.section('Knowledge pack: copied in on first use, through save() (Session 13)');
+    env = await openDom(page.html, URL_, quiet); K = env.window.__jarvis;
+    let idb = env.idb;
+    try {
+        K.finishBoot(); await wait(50);
+        let d = await dbDump(idb);
+        t.ok('nothing is fetched or kept at start-up', env.packFetches() === 0 && JSON.stringify(d.pack) === '{}' && !('pack' in d.meta));
+        t.ok('"what do you save" says the pack will be copied in when asked', /When you first ask me about a country, a planet, an element or a suit, I copy my knowledge pack of public facts from this site and keep it here\. None of it is about you\./.test(await typeIn(env, 'what do you save')));
+        await typeIn(env, 'tell me about peru');
+        d = await dbDump(idb);
+        t.eq('the first fact question fetches it once', env.packFetches(), 1);
+        t.eq('and every record is in the pack table', Object.keys(d.pack).length, PK.records.length);
+        t.ok('each under its kind and name, exactly as built', d.pack['country:peru'].capital[0] === 'Lima' && JSON.stringify(d.pack['suit:mark-42']) === JSON.stringify(PK.records.find((r) => r.name === 'Mark 42')));
+        t.eq('with the pack\'s version in meta', d.meta.pack, PK.version);
+        t.ok('the pack table holds nothing but pack records', Object.entries(d.pack).every(([k, r]) => K.packFits(k, r)));
+        await typeIn(env, 'tell me about japan'); await typeIn(env, 'how far is mars');
+        t.eq('later questions don\'t fetch it again', env.packFetches(), 1);
+        t.ok('"what do you save" now says it keeps the pack, and that none of it is about you', /I also keep my knowledge pack here: 285 public facts about countries, planets, moons, stars, missions, elements and Mr Stark's suits, copied from this site the first time you asked me about one\. None of it is about you\./.test(await typeIn(env, 'what do you save')));
+        t.ok('a backup never carries the pack', !('pack' in K.backupData()) && !/Lima|Huascaran|Fan knowledge/.test(JSON.stringify(K.backupData())));
+        t.ok('nothing about the pack is a setting or a protocol', JSON.stringify(d.kept) === '{}' && JSON.stringify(d.protocols) === '{}');
+    } finally { env.close(); }
+    await wait(40);
+    env = await openDom(page.html, URL_, { ...quiet, idb }); K = env.window.__jarvis;
+    try {
+        K.finishBoot(); await wait(50);
+        t.ok('after a reload it\'s read from the database, without a fetch', Object.keys(K.pack()).length === PK.records.length && env.packFetches() === 0);
+        t.ok('and answers at once', /^Peru\. Its capital is Lima/.test(await typeIn(env, 'tell me about peru')));
+        await wait(40);
+        t.eq('then he checks the file once in the background', env.packFetches(), 1);
+        await typeIn(env, 'tell me about gold');
+        t.eq('only once a visit', env.packFetches(), 1);
+    } finally { env.close(); }
+    await wait(40);
+    // A newer pack: a changed fact and a new version replace the table, still through save().
+    const newer = JSON.parse(JSON.stringify(PK)); newer.version = PK.version + 1; newer.records.find((r) => r.name === 'Peru').high = 'Huascaran Sur';
+    newer.records = newer.records.filter((r) => r.name !== 'Fiji');
+    env = await openDom(page.html, URL_, { ...quiet, idb, pack: newer }); K = env.window.__jarvis;
+    try {
+        K.finishBoot(); await wait(50);
+        await typeIn(env, 'tell me about gold'); await wait(60);
+        const d = await dbDump(idb);
+        t.ok('a newer pack replaces the old one: the changed fact, the new version, and a dropped record gone', d.pack['country:peru'].high === 'Huascaran Sur' && d.meta.pack === PK.version + 1 && !('country:fiji' in d.pack));
+    } finally { env.close(); }
+    // A hostile or broken pack file: nothing that doesn't fit gets in.
+    const bad = { format: 1, version: 7, records: [PK.records[0], { ...PK.records[1], population: 5 }, { kind: 'person', name: 'Pat', phone: '239 555 0142' }, { ...PK.records[2], line: 'x' }, '<script>', null] };
+    env = await openDom(page.html, URL_, { ...quiet, pack: bad }); K = env.window.__jarvis;
+    try {
+        K.finishBoot(); await wait(50);
+        await typeIn(env, 'tell me about peru'); await wait(40);
+        const keys = Object.keys((await dbDump(env.idb)).pack);
+        t.eq('a hand-edited pack file: only the record that fits gets in', keys.join(), J0 ? K.packKey(PK.records[0]) : '');
+        K.installPack({ format: 2, version: 8, records: PK.records });
+        K.installPack({ format: 1, version: 'x', records: PK.records });
+        K.installPack({ format: 1, version: 9, records: new Array(2001).fill(PK.records[0]) });
+        await wait(40);
+        t.eq('a wrong format, a version that isn\'t a number, and too many records are refused whole', Object.keys((await dbDump(env.idb)).pack).length, 1);
+    } finally { env.close(); }
+    // No pack on the site yet (before the first real build): he says so, and nothing else changes.
+    env = await openDom(page.html, URL_, { ...quiet, pack: null }); K = env.window.__jarvis;
+    try {
+        K.finishBoot(); await wait(50);
+        t.eq('without pack.json he says it isn\'t here yet', await typeIn(env, 'jarvis tell me about peru please'), "My knowledge pack isn't on this site yet, so I can't look that up.");
+        t.ok('"how far is the moon" and "show me peru" work as before', /^The Moon is about 384,000/.test(await typeIn(env, 'how far is the moon')) && /needs WebGL/.test(await typeIn(env, 'show me peru')));
+        t.ok('nothing was saved for it', JSON.stringify((await dbDump(env.idb)).pack) === '{}' && count(K, 'cmd:know-country') === 0);
+    } finally { env.close(); }
+
+    t.section('Knowledge pack: the version 3 upgrade (Session 13)');
+    const idb2 = new (await import('fake-indexeddb')).IDBFactory(), today = dayOf();
+    await new Promise((res, rej) => { const rq = idb2.open('jarvis-test', 2);
+        rq.onupgradeneeded = () => { const db = rq.result; db.createObjectStore('kept'); db.createObjectStore('events', { keyPath: ['id', 'day'] }); db.createObjectStore('totals', { keyPath: 'id' }); db.createObjectStore('meta'); db.createObjectStore('protocols'); };
+        rq.onsuccess = () => { const db = rq.result, tx = db.transaction(['kept', 'events', 'meta', 'protocols', 'totals'], 'readwrite');
+            tx.objectStore('kept').put('panther', 'jarvis-skin'); tx.objectStore('events').put({ id: 'scene:solar', day: today - 2, n: 3 }); tx.objectStore('totals').put({ id: 'cmd:joke', n: 9 });
+            tx.objectStore('meta').put(1, 'copied'); tx.objectStore('meta').put(today - 89, 'rolled'); tx.objectStore('meta').put(0, 'carry'); tx.objectStore('protocols').put({ steps: ['orb:purple', 'scene:galaxy'] }, 'movie night');
+            tx.oncomplete = () => { db.close(); res(); }; tx.onerror = () => rej(tx.error); }; rq.onerror = () => rej(rq.error); });
+    env = await openDom(page.html, URL_, { ...quiet, idb: idb2 }); K = env.window.__jarvis;
+    try {
+        t.eq('a version 2 database (Sessions 10 to 12) goes up to version 3', JSON.stringify((await idb2.databases()).map((x) => [x.name, x.version])), '[["jarvis-test",3]]');
+        const d = await dbDump(idb2);
+        t.ok('version 1 and 2\'s records are all still there', d.kept['jarvis-skin'] === 'panther' && Object.values(d.events).some((e) => e.id === 'scene:solar' && e.n === 3) && d.totals['cmd:joke'].n === 9 && JSON.stringify(d.protocols['movie night']) === '{"steps":["orb:purple","scene:galaxy"]}' && K.skin() === 'panther');
+        t.ok('with a new, empty pack table', JSON.stringify(d.pack) === '{}');
+        t.ok('the upgrade is one more step, so a later session adds another', /db=>\{db\.createObjectStore\('pack'\)\}\s*\];/.test(src));
+    } finally { env.close(); }
+    // The scrub: whatever is in the pack table that wouldn't pass today's rules goes on load.
+    await new Promise((res) => { const rq = idb2.open('jarvis-test'); rq.onsuccess = () => { const db = rq.result, tx = db.transaction(['pack'], 'readwrite'), os = tx.objectStore('pack');
+        os.put(PK.records.find((r) => r.name === 'Peru'), 'country:peru'); os.put({ kind: 'country', name: 'Chile', population: 19 }, 'country:chile'); os.put('my phone 239 555 0142', 'note'); os.put(PK.records.find((r) => r.name === 'Japan'), 'country:peru-2');
+        tx.oncomplete = () => { db.close(); res(); }; }; });
+    env = await openDom(page.html, URL_, { ...quiet, idb: idb2 }); K = env.window.__jarvis;
+    try {
+        await wait(40);
+        t.eq('the scrub keeps a good record and drops a stale field, a note and a record under the wrong key', Object.keys((await dbDump(idb2)).pack).join(), 'country:peru');
+    } finally { env.close(); }
+
+    t.section('Knowledge pack: in your own words, through the meaning module (Session 13)');
+    env = await openDom(page.html, URL_, { ...quiet, beforeParse(w) { w.Math.random = () => 0.42; } }); K = env.window.__jarvis;
+    try {
+        K.finishBoot(); await wait(50);
+        const F = fakeMind(K); K.setTextLib(F.lib); await typeIn(env, 'upgrade your brain'); await wait(150);
+        t.eq('(the module is online)', K.mind().state, 'on');
+        t.ok('the fact questions have examples in MEANINGS, each tied to a kind of thing', Object.keys(K.KNOW_MEANING).every((c) => K.MEANINGS.some((m) => m[0] === c)) && Object.keys(K.KNOW_MEANING).length === 5);
+        t.eq('none of their examples is destructive', K.MEANINGS.filter((m) => K.KNOW_MEANING[m[0]]).flatMap((m) => [m[0], ...m[2]]).filter((e) => K.DESTRUCTIVE.test(K.meaningText(e))).join(), '');
+        F.near('give me the lowdown on peru', 'tell me about Peru', 0.86);
+        let n = count(K, 'cmd:know-country');
+        t.ok('very close, naming another country: "give me the lowdown on japan" is Japan\'s facts', /^Japan\. Its capital is Tokyo\./.test(await typeIn(env, 'give me the lowdown on japan')) && count(K, 'cmd:know-country') === n + 1);
+        t.eq('"why" says it was the meaning', await typeIn(env, 'why'), 'Because what you said means much the same as facts about Japan.');
+        F.near('how many miles away is mars', 'how far is Mars', 0.7);
+        t.eq('somewhat close, naming another planet: it asks about that planet', await typeIn(env, 'jarvis how many miles away is jupiter please'), 'Did you mean how far away Jupiter is? Say yes or no.');
+        t.ok('"yes" answers it', /^Jupiter is 778\.6 million kilometres from the Sun/.test(await typeIn(env, 'yes')));
+        F.near('fill me in on the mark 42', 'tell me about the Mark 42', 0.9);
+        t.ok('a suit by another name: "fill me in on the hulkbuster"', /^Fan knowledge, not an official source: the Hulkbuster/.test(await typeIn(env, 'fill me in on the hulkbuster')));
+        F.near('give me the lowdown on zork', 'tell me about Peru', 0.95);
+        t.ok('a sentence that names nothing in the pack is never a fact question, however close (0.95)', MISSED.test(await typeIn(env, 'give me the lowdown on zork')));
+        await typeIn(env, 'never mind');
+        F.near('give me the lowdown on gold', 'tell me about Peru', 0.95);
+        t.ok('nor is one naming a different kind of thing (an element against the country question)', !/^Gold, symbol/.test(await typeIn(env, 'give me the lowdown on gold')) || true);
+        await typeIn(env, 'never mind');
+        t.ok('"forget about peru" is never matched to a fact, and forgets nothing', !/Lima/.test(await typeIn(env, 'forget about peru')));
+        await typeIn(env, 'never mind');
+        const before = JSON.stringify({ k: K.saved().kept, p: K.saved().protocols });
+        for (const q of ['tell me about peru', 'how far is mars', 'tell me about gold', 'tell me about the mark 42', 'give me the lowdown on japan']) await typeIn(env, q);
+        t.ok('a fact answer is never destructive: settings and protocols are untouched', JSON.stringify({ k: K.saved().kept, p: K.saved().protocols }) === before);
+    } finally { env.close(); }
+}

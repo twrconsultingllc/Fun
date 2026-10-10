@@ -1,0 +1,38 @@
+{
+ "Geography": {
+  "Map references": {
+   "text": "Europe"
+  },
+  "Area": {
+   "total ": {
+    "text": "323,802 sq km"
+   },
+   "land": {
+    "text": "304,282 sq km"
+   },
+   "water": {
+    "text": "19,520 sq km"
+   }
+  },
+  "Elevation": {
+   "highest point": {
+    "text": "Galdhopiggen 2,469 m"
+   }
+  }
+ },
+ "Government": {
+  "Country name": {
+   "conventional short form": {
+    "text": "Norway"
+   }
+  },
+  "Capital": {
+   "name": {
+    "text": "Oslo"
+   }
+  },
+  "Flag": {
+   "text": "<strong>description:</strong> red with a blue cross outlined in white that extends to the edges of the flag; the the cross is shifted to the left side in the style of the Dannebrog (Danish flag)<br><br><strong>meaning:</strong> the colors represent Norway's past political unions with Denmark (red and white) and Sweden (blue)"
+  }
+ }
+}
