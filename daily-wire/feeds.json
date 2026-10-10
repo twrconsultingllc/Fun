@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-10T06:39:35.155Z",
+ "generatedAt": "2026-10-10T12:38:43.936Z",
  "refreshHours": 6,
  "categories": [
   {
@@ -44,33 +44,37 @@
    "id": "gn-naples",
    "source": "Google News: Naples",
    "category": "swfl",
-   "ok": true,
+   "ok": false,
+   "error": "HTTP 503",
    "count": 10,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "gn-bonita",
    "source": "Google News: Bonita Springs & Estero",
    "category": "swfl",
-   "ok": true,
+   "ok": false,
+   "error": "HTTP 503",
    "count": 10,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "gn-collier",
    "source": "Google News: Collier County",
    "category": "swfl",
-   "ok": true,
+   "ok": false,
+   "error": "HTTP 503",
    "count": 10,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "gn-lee",
    "source": "Google News: Lee County",
    "category": "swfl",
-   "ok": true,
+   "ok": false,
+   "error": "HTTP 503",
    "count": 10,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "nws-swfl",
@@ -78,7 +82,7 @@
    "category": "swfl",
    "ok": true,
    "count": 4,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "bbc-world",
@@ -86,7 +90,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "bbc-us",
@@ -94,7 +98,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "npr",
@@ -102,7 +106,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "guardian-world",
@@ -110,7 +114,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "guardian-us",
@@ -118,7 +122,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "pbs",
@@ -126,7 +130,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "nyt",
@@ -135,7 +139,7 @@
    "paywall": true,
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "ars",
@@ -143,7 +147,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "verge",
@@ -151,7 +155,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "wired",
@@ -159,7 +163,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "hn",
@@ -167,7 +171,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "techcrunch",
@@ -175,7 +179,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "bbc-tech",
@@ -183,7 +187,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "github-blog",
@@ -191,7 +195,7 @@
    "category": "dev",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "willison",
@@ -199,7 +203,7 @@
    "category": "dev",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "chrome-dev",
@@ -207,7 +211,7 @@
    "category": "dev",
    "ok": true,
    "count": 2,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "claude-code",
@@ -215,7 +219,7 @@
    "category": "dev",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "threejs",
@@ -223,7 +227,7 @@
    "category": "dev",
    "ok": true,
    "count": 2,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "nasa-news",
@@ -231,7 +235,7 @@
    "category": "science",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "nasa-iotd",
@@ -240,7 +244,7 @@
    "ok": false,
    "error": "HTTP 429",
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "quanta",
@@ -248,7 +252,7 @@
    "category": "science",
    "ok": true,
    "count": 5,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "sciencedaily",
@@ -256,16 +260,15 @@
    "category": "science",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "nature",
    "source": "Nature",
    "category": "science",
-   "ok": false,
-   "error": "not an RSS or Atom feed",
+   "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "cisa",
@@ -273,7 +276,7 @@
    "category": "security",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "krebs",
@@ -281,7 +284,7 @@
    "category": "security",
    "ok": true,
    "count": 4,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "schneier",
@@ -289,7 +292,7 @@
    "category": "security",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "usgs",
@@ -297,7 +300,7 @@
    "category": "live",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "nws-fl",
@@ -305,7 +308,7 @@
    "category": "live",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "xkcd",
@@ -313,52 +316,47 @@
    "category": "fun",
    "ok": true,
    "count": 4,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "veritasium",
    "source": "Veritasium",
    "category": "fun",
-   "ok": false,
-   "error": "HTTP 404",
+   "ok": true,
    "count": 5,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "kurzgesagt",
    "source": "Kurzgesagt",
    "category": "fun",
-   "ok": false,
-   "error": "HTTP 404",
+   "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "mark-rober",
    "source": "Mark Rober",
    "category": "fun",
-   "ok": false,
-   "error": "HTTP 404",
+   "ok": true,
    "count": 3,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "fireship",
    "source": "Fireship",
    "category": "fun",
-   "ok": false,
-   "error": "HTTP 404",
+   "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "fed",
    "source": "Federal Reserve",
    "category": "business",
-   "ok": false,
-   "error": "HTTP 404",
+   "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   },
   {
    "id": "sec",
@@ -366,10 +364,54 @@
    "category": "business",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-10T06:39:35.155Z"
+   "checkedAt": "2026-10-10T12:38:43.936Z"
   }
  ],
  "items": [
+  {
+   "id": "eb4f0a2a6311",
+   "feed": "usgs",
+   "category": "live",
+   "source": "USGS Earthquakes",
+   "title": "M 4.6 - 268 km WNW of Houma, Tonga",
+   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1ej",
+   "date": "2026-10-10T12:37:37.040Z",
+   "summary": "Time2026-10-10 12:21:02 UTC2026-10-10 12:21:02 UTC at epicenterLocation19.945°S 177.526°WDepth560.20 km (348.09 mi)",
+   "image": null
+  },
+  {
+   "id": "c339b9a74da0",
+   "feed": "usgs",
+   "category": "live",
+   "source": "USGS Earthquakes",
+   "title": "M 4.2 - 4 km W of Aquiles Serdán 1ra. Sección, Mexico",
+   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1dh",
+   "date": "2026-10-10T12:37:34.918Z",
+   "summary": "DYFI? - II Time2026-10-10 07:47:00 UTC2026-10-10 07:47:00 UTC at epicenterLocation17.819°N 92.779°WDepth10.00 km (6.21 mi)",
+   "image": null
+  },
+  {
+   "id": "62030f5f059d",
+   "feed": "nws-fl",
+   "category": "live",
+   "source": "NWS Florida alerts",
+   "title": "Flood Advisory issued October 10 at 8:30AM EDT until October 10 at 10:30AM EDT by NWS Tallahassee FL",
+   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.eafb48e87a4d48d4f13304380455a30dca5e31e8.001.1.cap",
+   "date": "2026-10-10T12:30:00.000Z",
+   "summary": "* WHAT...Flooding caused by excessive rainfall is expected. * WHERE...Northeastern Jefferson County in Big Bend Florida... Western Madison County in Big Bend Florida... Northwestern Taylor County in Big Bend Florida... Southwestern Brooks County in south central Georgia... West…",
+   "image": null
+  },
+  {
+   "id": "61a0dc5aa6f1",
+   "feed": "guardian-world",
+   "category": "news",
+   "source": "The Guardian",
+   "title": "Hurricane Isaias live updates: warning of ‘spinoff tornadoes’ as hundreds of thousands without power",
+   "link": "https://www.theguardian.com/world/live/2026/oct/10/hurricane-isaias-gulf-coast-alabama-florida-louisiana-mississippi-latest-updates",
+   "date": "2026-10-10T12:29:47.000Z",
+   "summary": "First Atlantic hurricane of the 2026 season makes landfall in the US Full story: Hurricane Isaias hammers Gulf coast Sign up for the US Breaking News email Florida governor Ron DeSantis said no requests for search and rescue assistance had been received following Isaias, which…",
+   "image": "https://i.guim.co.uk/img/media/cd489a4b072e75d97586f5e2831c84af6d063ae8/498_0_4777_3821/master/4777.jpg?width=140&quality=85&auto=format&fit=max&s=2852496d686224b0b5d09054fffaf994"
+  },
   {
    "id": "a7ae4e090cbf",
    "feed": "usgs",
@@ -377,74 +419,19 @@
    "source": "USGS Earthquakes",
    "title": "M 7.7 - 12 km WSW of Pitaloza Arriba, Panama",
    "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u18k",
-   "date": "2026-10-10T06:37:44.395Z",
+   "date": "2026-10-10T12:29:34.348Z",
    "summary": "PAGER - RED ShakeMap - IX DYFI? - IX Time2026-10-09 17:56:06 UTC2026-10-09 17:56:06 UTC at epicenterLocation7.587°N 80.769°WDepth12.65 km (7.86 mi)",
    "image": null
   },
   {
-   "id": "44d34fce5f45",
+   "id": "e003a7c37f60",
    "feed": "usgs",
    "category": "live",
    "source": "USGS Earthquakes",
-   "title": "M 4.9 - 10 km SSW of Cañas, Panama",
-   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1d2",
-   "date": "2026-10-10T06:34:21.040Z",
-   "summary": "Time2026-10-10 06:18:55 UTC2026-10-10 06:18:55 UTC at epicenterLocation7.366°N 80.317°WDepth10.00 km (6.21 mi)",
-   "image": null
-  },
-  {
-   "id": "cacce6b0be85",
-   "feed": "usgs",
-   "category": "live",
-   "source": "USGS Earthquakes",
-   "title": "M 5.3 - 41 km NNE of Yigo Village, Guam",
-   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1cd",
-   "date": "2026-10-10T06:29:07.400Z",
-   "summary": "DYFI? - IV Time2026-10-10 03:58:18 UTC2026-10-10 03:58:18 UTC at epicenterLocation13.859°N 145.089°EDepth111.58 km (69.34 mi)",
-   "image": null
-  },
-  {
-   "id": "089613778522",
-   "feed": "nws-fl",
-   "category": "live",
-   "source": "NWS Florida alerts",
-   "title": "High Surf Warning issued October 10 at 1:28AM CDT until October 10 at 7:00AM CDT by NWS Mobile AL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.ca3282dcf7fde6d7a15a1e1ef68c73b78bf677c7.001.1.cap",
-   "date": "2026-10-10T06:28:00.000Z",
-   "summary": "* WHAT...For the High Surf Warning, dangerously large breaking waves of 10 to 15 feet in the surf zone. For the High Rip Current Risk, dangerous rip currents. * WHERE...In Alabama, Mobile Coastal and Baldwin Coastal Counties. In Florida, Escambia Coastal, Santa Rosa Coastal and…",
-   "image": null
-  },
-  {
-   "id": "2de34510bb2c",
-   "feed": "nws-fl",
-   "category": "live",
-   "source": "NWS Florida alerts",
-   "title": "Rip Current Statement issued October 10 at 1:28AM CDT until October 11 at 6:00PM CDT by NWS Mobile AL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.ca3282dcf7fde6d7a15a1e1ef68c73b78bf677c7.001.2.cap",
-   "date": "2026-10-10T06:28:00.000Z",
-   "summary": "* WHAT...For the High Surf Warning, dangerously large breaking waves of 10 to 15 feet in the surf zone. For the High Rip Current Risk, dangerous rip currents. * WHERE...In Alabama, Mobile Coastal and Baldwin Coastal Counties. In Florida, Escambia Coastal, Santa Rosa Coastal and…",
-   "image": null
-  },
-  {
-   "id": "9bd97c191982",
-   "feed": "usgs",
-   "category": "live",
-   "source": "USGS Earthquakes",
-   "title": "M 2.6 - 16 km S of Honaunau-Napoopoo, Hawaii",
-   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/hv75053257",
-   "date": "2026-10-10T06:25:15.875Z",
-   "summary": "DYFI? - II Time2026-10-10 04:51:43 UTC2026-10-10 04:51:43 UTC at epicenterLocation19.310°N 155.865°WDepth-0.91 km (-0.57 mi)",
-   "image": null
-  },
-  {
-   "id": "aacd11c5c8b0",
-   "feed": "usgs",
-   "category": "live",
-   "source": "USGS Earthquakes",
-   "title": "M 4.5 - 9 km WNW of Flores, Panama",
-   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1ck",
-   "date": "2026-10-10T06:23:50.525Z",
-   "summary": "DYFI? - III Time2026-10-10 04:33:03 UTC2026-10-10 04:33:03 UTC at epicenterLocation7.524°N 80.479°WDepth10.00 km (6.21 mi)",
+   "title": "M 4.6 - 31 km SE of Vanimo, Papua New Guinea",
+   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1dy",
+   "date": "2026-10-10T12:28:55.040Z",
+   "summary": "Time2026-10-10 09:42:58 UTC2026-10-10 09:42:58 UTC at epicenterLocation2.885°S 141.496°EDepth30.39 km (18.88 mi)",
    "image": null
   },
   {
@@ -454,53 +441,537 @@
    "source": "USGS Earthquakes",
    "title": "M 6.0 - 7 km N of La Tronosa, Panama",
    "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1cf",
-   "date": "2026-10-10T06:22:09.947Z",
+   "date": "2026-10-10T12:23:57.206Z",
    "summary": "PAGER - YELLOW ShakeMap - VIII DYFI? - VI Time2026-10-10 04:14:01 UTC2026-10-10 04:14:01 UTC at epicenterLocation7.507°N 80.599°WDepth10.00 km (6.21 mi)",
    "image": null
   },
   {
-   "id": "78049b6b849e",
-   "feed": "nws-fl",
-   "category": "live",
-   "source": "NWS Florida alerts",
-   "title": "Tropical Cyclone Local Statement issued October 10 at 1:22AM CDT by NWS Mobile AL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.3903ca01bdbb6db3a509fe98d38e6244fb9ed8fe.001.1.cap",
-   "date": "2026-10-10T06:22:00.000Z",
-   "summary": "HLSMOB This product covers portions of southwest Alabama...northwest Florida...south central Alabama...and inland southeast Mississippi. **ISAIAS MOVING OVER SOUTHERN ALABAMA** **FLASH FLOODING AND STRONG WIND THREAT SPREADS FARTHER INLAND** NEW INFORMATION --------------- *…",
+   "id": "5a43005c6266",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "Economic Pain and an Unpopular Trump Put G.O.P. on its Heels With Three Weeks to Go",
+   "link": "https://www.nytimes.com/2026/10/10/us/politics/trump-inflation-midterms-republicans.html",
+   "date": "2026-10-10T12:10:33.000Z",
+   "summary": "Inflation has hurt Americans at many levels: Farmers, truckers, consumers. It has also expanded the electoral map into what was safely Republican country just a few months ago.",
+   "image": "https://static01.nyt.com/images/2026/10/10/multimedia/10pol-gop-issues-01-zfmk/10pol-gop-issues-01-zfmk-mediumSquareAt3X.jpg"
+  },
+  {
+   "id": "fa5cd199ec83",
+   "feed": "hn",
+   "category": "tech",
+   "source": "Hacker News",
+   "title": "LLMs Aren't Inevitable",
+   "link": "https://deadsimpletech.com/blog/llms-arent-inevitable",
+   "date": "2026-10-10T12:04:04.000Z",
+   "summary": "",
    "image": null
   },
   {
-   "id": "0cc1c394ab32",
-   "feed": "nws-fl",
-   "category": "live",
-   "source": "NWS Florida alerts",
-   "title": "Rip Current Statement issued October 10 at 2:11AM EDT until October 12 at 4:00AM EDT by NWS Tallahassee FL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.61a9c28afc942be6bafb482b4e754a3ec5a696db.001.2.cap",
-   "date": "2026-10-10T06:11:00.000Z",
-   "summary": "* WHAT...For the High Rip Current Risk, dangerous rip currents. For the High Surf Warning, dangerously large breaking waves of 8 to 12 feet expected in the surf zone. * WHERE...Walton and Bay County Beaches. * WHEN...For the High Rip Current Risk, through late Sunday night. For…",
+   "id": "25cdac3ebebb",
+   "feed": "guardian-us",
+   "category": "news",
+   "source": "The Guardian US",
+   "title": "Six men on how they plan to stand up against rape culture: ‘Boys need to be taught what is appropriate’",
+   "link": "https://www.theguardian.com/us-news/2026/oct/10/men-standing-up-to-rape-culture",
+   "date": "2026-10-10T12:00:57.000Z",
+   "summary": "While most of the crowd at a Stop Sexual Violence rally in New York City was mostly women, men of all ages were in attendance too Tens of thousands of protesters gathered at city halls and college campuses across the country on Thursday to demand an end to sexual violence. The…",
+   "image": "https://i.guim.co.uk/img/media/221f4f19d2633d52c3a9a84ffe0e21d56d4e6da2/309_0_1978_1583/master/1978.jpg?width=140&quality=85&auto=format&fit=max&s=6460521d82aac17b8fdc3c79f2295153"
+  },
+  {
+   "id": "346ac849b05f",
+   "feed": "guardian-world",
+   "category": "news",
+   "source": "The Guardian",
+   "title": "FDA may allow some toxic chemicals to be added to food without safety review. Experts are alarmed",
+   "link": "https://www.theguardian.com/us-news/2026/oct/10/fda-toxic-chemicals-food-analysis",
+   "date": "2026-10-10T12:00:57.000Z",
+   "summary": "Regulator looks to expand loophole to allow dangerous compounds in food as long as they’re not carcinogenic The US Food and Drug Administration (FDA) is proposing to expand a controversial loophole to allow some of the world’s most toxic chemicals to be added directly to food…",
+   "image": "https://i.guim.co.uk/img/media/8125d451ea3e54a47c2e588694c410434779c531/355_0_4147_3317/master/4147.jpg?width=140&quality=85&auto=format&fit=max&s=de00a53f02293af1c0ee71ed7782f9cb"
+  },
+  {
+   "id": "681c20213cf4",
+   "feed": "guardian-world",
+   "category": "news",
+   "source": "The Guardian",
+   "title": "Study explores links between 19th-century Manchester workers and enslaved Africans in Caribbean",
+   "link": "https://www.theguardian.com/news/2026/oct/10/study-explores-links-between-19th-century-manchester-workers-and-enslaved-africans-in-caribbean",
+   "date": "2026-10-10T12:00:56.000Z",
+   "summary": "Global Threads research project reveals how slavery hung ‘like a spectre’ over the Peterloo massacre and other Mancunian struggles for equality They were the killings that changed Britain, paving the way for working-class people’s right to vote, as well as leading to the…",
+   "image": "https://i.guim.co.uk/img/media/d0658895b1b18d6958ae2dddfa7cd046328ee50e/480_0_4800_3840/master/4800.jpg?width=140&quality=85&auto=format&fit=max&s=6b3c9aedfa16612b770bd99bc1670ad2"
+  },
+  {
+   "id": "86d946ec9c88",
+   "feed": "guardian-world",
+   "category": "news",
+   "source": "The Guardian",
+   "title": "Candidate named Hitler Mussolini elected mayor in Peru",
+   "link": "https://www.theguardian.com/world/2026/oct/10/peru-election-hitler-mussolini-simeon-flores-mayor",
+   "date": "2026-10-10T12:00:10.000Z",
+   "summary": "Leftwing Hitler Mussolini Simeon Flores beats far-right candidate in election in remote district of Andes A businessman called Hitler Mussolini Simeon Flores has been elected the mayor of a remote district in the Peruvian Andes, according to local election data. The…",
+   "image": "https://i.guim.co.uk/img/media/26eabea86ba246c32284eb555c0c85cb55444797/0_39_2287_1829/master/2287.jpg?width=140&quality=85&auto=format&fit=max&s=099d832868385cfb52db7c3f2734d5d8"
+  },
+  {
+   "id": "52f24933b598",
+   "feed": "npr",
+   "category": "news",
+   "source": "NPR",
+   "title": "Opinion: Can I keep the baseball I caught?",
+   "link": "https://www.npr.org/2026/10/10/nx-s1-5982500/opinion-can-i-keep-the-baseball-i-caught",
+   "date": "2026-10-10T12:00:00.000Z",
+   "summary": "What would you do if you caught a baseball during the MLB playoffs? Give it to a kid nearby or keep it? This very scenario played out this week, with a fan deciding to keep the ball.",
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/1024x682+0+0/resize/1024x682!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F08%2F68%2F1884dab84d7aafb22dc23149203f%2Fap26281086247695.jpg"
+  },
+  {
+   "id": "b438dd9ed67d",
+   "feed": "verge",
+   "category": "tech",
+   "source": "The Verge",
+   "title": "The techlash has gone Hollywood",
+   "link": "https://www.theverge.com/tech/1008836/social-reckoning-cupertino-techlash-installer",
+   "date": "2026-10-10T12:00:00.000Z",
+   "summary": "Hi, friends! Welcome to Installer No. 147, your guide to the best and Verge-iest stuff in the world. (If you're new here, welcome, I missed you all, and also you can read all the old editions at the Installer homepage.) I'm back from parental leave! Part time, anyway. Thanks to…",
+   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/10/Installer-147.jpg?quality=90&strip=all&crop=0,0,100,100"
+  },
+  {
+   "id": "e83db66afa77",
+   "feed": "wired",
+   "category": "tech",
+   "source": "Wired",
+   "title": "AI Is Getting Really Good at Messing With Cybercriminals",
+   "link": "https://www.wired.com/story/ai-is-getting-really-good-at-messing-with-cybercriminals/",
+   "date": "2026-10-10T12:00:00.000Z",
+   "summary": "Anti-cybercrime initiatives are increasingly using AI to scam the scammers by tricking them into talking to lifelike bots that they think are real victims.",
+   "image": "https://media.wired.com/photos/6ac7e488d45774a31ff822a9/master/pass/Kernel-Panic-AI-Getting-Really-Good-Fucking-With-Cybercriminals-Security.jpg"
+  },
+  {
+   "id": "474410318e8e",
+   "feed": "bbc-world",
+   "category": "news",
+   "source": "BBC News",
+   "title": "Hurricane Isaias downgraded after making landfall in Florida",
+   "link": "https://www.bbc.co.uk/news/articles/c3vgx4450v2lo?at_medium=RSS&at_campaign=rss",
+   "date": "2026-10-10T11:55:12.000Z",
+   "summary": "Hundreds of thousands of households are without power in Florida and Alabama as Isaias continues its path across south-eastern US.",
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/a9eb/live/6c458470-c4a1-11f1-8fc0-0b58d7e26e4c.jpg"
+  },
+  {
+   "id": "2c7155ade931",
+   "feed": "guardian-world",
+   "category": "news",
+   "source": "The Guardian",
+   "title": "Greens must avoid ‘capture by extremists and racists’, says party MP",
+   "link": "https://www.theguardian.com/politics/2026/oct/10/greens-must-avoid-capture-by-extremists-and-racists-ellie-chowns-zionism-racism",
+   "date": "2026-10-10T11:46:03.000Z",
+   "summary": "Ellie Chowns says vote for ‘Zionism is racism’ policy by 0.4% of members shows party processes are not working A Green Party MP has said she wants to make sure her party is not “vulnerable to capture by extremists and racists” amid the continuing fallout from the “Zionism is…",
+   "image": "https://i.guim.co.uk/img/media/aa45a9e2289da29f8f64114b03c06771113a50e7/1725_409_3595_2876/master/3595.jpg?width=140&quality=85&auto=format&fit=max&s=a7b22086e7b3fbc6a4fd7ed6ce830ed9"
+  },
+  {
+   "id": "cb4f5345d423",
+   "feed": "wired",
+   "category": "tech",
+   "source": "Wired",
+   "title": "Best Lego Gifts for Brick Builders (2026): Smart Bricks, Video Games, and More",
+   "link": "https://www.wired.com/gallery/gifts-for-lego-lovers/",
+   "date": "2026-10-10T11:30:00.000Z",
+   "summary": "There's more to Lego than just another basic set. We tested tons of Lego-themed gifts to find the perfect ones for the brick builder in your life.",
+   "image": "https://media.wired.com/photos/6ac216c90afe89d0a5d9a6f6/master/pass/Best%20Gifts%20for%20Lego%20Lovers%20102026%20top%20art%20SOURCE%20Amazon.jpg"
+  },
+  {
+   "id": "02bc0911de8f",
+   "feed": "bbc-world",
+   "category": "news",
+   "source": "BBC News",
+   "title": "Russian glide bomb attack on Zaporizhzhia kills at least 15 people",
+   "link": "https://www.bbc.co.uk/news/articles/cwvgdpv642g5o?at_medium=RSS&at_campaign=rss",
+   "date": "2026-10-10T11:17:15.000Z",
+   "summary": "Children are among the victims, authorities say, and more victims could still be buried in the rubble of a large apartment block that was destroyed.",
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/98ce/live/569e8e50-c49c-11f1-869c-8f95c437952a.jpg"
+  },
+  {
+   "id": "dbb8d8deb793",
+   "feed": "ars",
+   "category": "tech",
+   "source": "Ars Technica",
+   "title": "One with the world? A new look at brains transformed by psychedelics.",
+   "link": "https://arstechnica.com/science/2026/10/the-psychedelic-brain-looks-like-chaos-underneath-theres-order/",
+   "date": "2026-10-10T11:15:35.000Z",
+   "summary": "Participants meditated inside an MRI tube, with and without psilocybin.",
+   "image": "https://cdn.arstechnica.net/wp-content/uploads/2026/10/GettyImages-1308927414-1152x648.jpg"
+  },
+  {
+   "id": "29a15ad42dfc",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "What to Know About the Delhi Protests",
+   "link": "https://www.nytimes.com/2026/10/09/world/asia/what-to-know-about-the-delhi-protests.html",
+   "date": "2026-10-10T11:07:00.000Z",
+   "summary": "Protesters opposed to sweeping revisions to India’s voter rolls are trying to rally in New Delhi. The police have come out in force.",
+   "image": "https://static01.nyt.com/images/2026/10/10/multimedia/10india-protests-What-We-Know-bqth/10india-protests-What-We-Know-bqth-mediumSquareAt3X.jpg"
+  },
+  {
+   "id": "a58f5de83d14",
+   "feed": "wired",
+   "category": "tech",
+   "source": "Wired",
+   "title": "The Best Smart Scales for Tracking Weight and Body Composition (2026)",
+   "link": "https://www.wired.com/gallery/best-smart-scales/",
+   "date": "2026-10-10T11:04:00.000Z",
+   "summary": "Whether you want a weight log on your phone or a bathroom gadget packed with sensors, I’ve found an option for you.",
+   "image": "https://media.wired.com/photos/6ac7fce2f7f3ea1155d46e62/master/pass/Update%20Best%20Smart%20Scales%20102026%20top%20art%20SOURCE%20Amazon.jpg"
+  },
+  {
+   "id": "fc0d00d5d9a6",
+   "feed": "guardian-world",
+   "category": "news",
+   "source": "The Guardian",
+   "title": "Marcy Kaptur: longest-serving congresswoman’s bid for another House term roiled by anti-trans ad",
+   "link": "https://www.theguardian.com/us-news/2026/oct/10/marcy-kaptur-ohio-trans-ad",
+   "date": "2026-10-10T11:00:57.000Z",
+   "summary": "Democrat in Congress since 1983 rebuked over ‘dangerous’ campaign ad – will it harm her chances in tight Ohio race? Last month, Marcy Kaptur, the longest-serving woman in congressional history, released a video advertisement in which she looks directly at the camera and says…",
+   "image": "https://i.guim.co.uk/img/media/f60681a10247a9155e9266ea6a5237cfddc88fb3/1246_927_5705_4563/master/5705.jpg?width=140&quality=85&auto=format&fit=max&s=c7b32bba0cef7e38736590495d3659a4"
+  },
+  {
+   "id": "aeed259bc83f",
+   "feed": "guardian-us",
+   "category": "news",
+   "source": "The Guardian US",
+   "title": "‘People are pissed’: union decries TSA’s removal of chairs for checkpoint staff",
+   "link": "https://www.theguardian.com/us-news/2026/oct/10/tsa-union-agency-checkpoints-chairs",
+   "date": "2026-10-10T11:00:55.000Z",
+   "summary": "Order for workers to remain standing to ‘reinforce professionalism’ draws rebuke amid plunging morale Union officials have launched a campaign to allow airport security staff to sit once more after the Trump administration unilaterally removed all the chairs for Transportation…",
+   "image": "https://i.guim.co.uk/img/media/d686e76442e28d7dd9a5986aa919bb83f371fd04/825_0_4333_3467/master/4333.jpg?width=140&quality=85&auto=format&fit=max&s=2b98986c7cd3a5f50709edf5cddf0318"
+  },
+  {
+   "id": "be71303d268a",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "Joseph Gordon-Levitt Has Some Things to Say About A.I.",
+   "link": "https://www.nytimes.com/2026/10/10/opinion/joseph-gordon-levitt-united-nations-ai.html",
+   "date": "2026-10-10T11:00:14.000Z",
+   "summary": "The actor takes Times Opinion to the United Nations to explore what’s at stake with A.I.",
    "image": null
   },
   {
-   "id": "3e4ccbc7921e",
-   "feed": "nws-fl",
-   "category": "live",
-   "source": "NWS Florida alerts",
-   "title": "Rip Current Statement issued October 10 at 2:11AM EDT until October 12 at 4:00AM EDT by NWS Tallahassee FL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.61a9c28afc942be6bafb482b4e754a3ec5a696db.002.2.cap",
-   "date": "2026-10-10T06:11:00.000Z",
-   "summary": "* WHAT...For the High Rip Current Risk, dangerous rip currents. For the High Surf Advisory, large breaking waves of 5 to 8 feet expected in the surf zone. * WHERE...Gulf and Franklin County Beaches. * WHEN...For the High Rip Current Risk, through late Sunday night. For the High…",
+   "id": "508970b9b011",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "Hold A.I. Companies Liable",
+   "link": "https://www.nytimes.com/2026/10/10/opinion/ai-companies-liability-laws.html",
+   "date": "2026-10-10T11:00:05.000Z",
+   "summary": "A.I. companies must operate under our laws.",
+   "image": "https://static01.nyt.com/images/2026/10/10/opinion/10AI-editorial-image/10AI-editorial-image-mediumSquareAt3X.jpg"
+  },
+  {
+   "id": "088141313313",
+   "feed": "verge",
+   "category": "tech",
+   "source": "The Verge",
+   "title": "The director of Fjord takes the ‘risky position’ of moderator",
+   "link": "https://www.theverge.com/entertainment/1008748/fjord-cristian-mungiu-interview",
+   "date": "2026-10-10T11:00:00.000Z",
+   "summary": "Cristian Mungiu's sixth feature, Fjord, concerns a family on trial. They seem like good people, God-fearing. They've just moved from Romania to a small hamlet nestled in the fjords of rural Norway. There is Mamma (Renate Reinsve), Tata (a bald and bespectacled Sebastian Stan)…",
+   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/10/6dcdc551-c3ac-483a-88b4-2ec76d2e9874.png?quality=90&strip=all&crop=0,0,100,100"
+  },
+  {
+   "id": "b4fb1229c407",
+   "feed": "verge",
+   "category": "tech",
+   "source": "The Verge",
+   "title": "The Telo MT1 is a big truck trapped in a tiny truck’s body",
+   "link": "https://www.theverge.com/transportation/1005502/telo-mt1-review-ev-tiny-truck",
+   "date": "2026-10-10T11:00:00.000Z",
+   "summary": "I'm bouncing down the road in San Carlos, California, zipping past behemoth tech companies like EA and Oracle, in America's smallest electric truck. The Telo MT1 (which stands for \"mini truck\") unquestionably turns heads because it looks so remarkably different from everything…",
+   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/10/telo_lifestyle_07.jpg?quality=90&strip=all&crop=0,0,100,100"
+  },
+  {
+   "id": "f6ee9ebc63ab",
+   "feed": "npr",
+   "category": "news",
+   "source": "NPR",
+   "title": "Ongoing lawsuits allege GLP-1s can cause serious harm. But we don't know how often",
+   "link": "https://www.npr.org/2026/10/10/nx-s1-5996652/glp1-fda-naion-blind-lawsuit-ozempic",
+   "date": "2026-10-10T11:00:00.000Z",
+   "summary": "Scant data about serious adverse effects makes it harder to answer scientific and legal questions about how often the drugs might cause serious harm like blindness or pancreatitis.",
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/4032x3024+0+0/resize/4032x3024!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Fe8%2F9c%2Fb51836a743e1982e21ce159b9d5a%2Ftodd-engel3.jpeg"
+  },
+  {
+   "id": "ce69094308f4",
+   "feed": "hn",
+   "category": "tech",
+   "source": "Hacker News",
+   "title": "Apple/macOS silently removed from official Unix registry",
+   "link": "https://www.opengroup.org//openbrand/register/",
+   "date": "2026-10-10T10:57:31.000Z",
+   "summary": "",
    "image": null
   },
   {
-   "id": "fb2cdec53a7c",
+   "id": "5761113d4f94",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "Screen Time",
+   "link": "https://www.nytimes.com/2026/10/10/briefing/screen-time.html",
+   "date": "2026-10-10T10:54:57.000Z",
+   "summary": "It’s fall. Which means a deluge of films ahead of awards season. When you leave the theater, notice the change in the light outside.",
+   "image": null
+  },
+  {
+   "id": "5c1db9239c15",
+   "feed": "hn",
+   "category": "tech",
+   "source": "Hacker News",
+   "title": "Talorys – A self-hosted personal AI agent on Cloudflare's free tier",
+   "link": "https://github.com/rociiu/talorys",
+   "date": "2026-10-10T10:52:09.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "ccd6a40efc8b",
+   "feed": "usgs",
+   "category": "live",
+   "source": "USGS Earthquakes",
+   "title": "M 4.8 - 4 km NE of Río Grande, Panama",
+   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1e5",
+   "date": "2026-10-10T10:50:44.040Z",
+   "summary": "Time2026-10-10 10:35:11 UTC2026-10-10 10:35:11 UTC at epicenterLocation7.746°N 81.309°WDepth10.00 km (6.21 mi)",
+   "image": null
+  },
+  {
+   "id": "87a64c79e65f",
+   "feed": "guardian-us",
+   "category": "news",
+   "source": "The Guardian US",
+   "title": "Zelenskyy furious as Trump announces deal to buy Russian diesel",
+   "link": "https://www.theguardian.com/us-news/2026/oct/09/trump-putin-russian-diesel-ukraine",
+   "date": "2026-10-10T10:09:46.000Z",
+   "summary": "US president says agreement needed to lower American fuel prices, but move likely to create fresh crisis with Ukraine and Nato allies Donald Trump was on a fresh collision course with the Ukrainian president, Volodymyr Zelenskyy, and European allies after a stunning agreement…",
+   "image": "https://i.guim.co.uk/img/media/e29aa72f0ab1f4d0fff1cdad48794d44d329f308/1376_0_6880_5504/master/6880.jpg?width=140&quality=85&auto=format&fit=max&s=9750084769f2c33381c827c1a885f1e8"
+  },
+  {
+   "id": "e179f3250f47",
+   "feed": "bbc-world",
+   "category": "news",
+   "source": "BBC News",
+   "title": "Rogue Anthropic AI agent gave police fake tip in unsolved murder case",
+   "link": "https://www.bbc.co.uk/news/articles/cqkg50j1yd5lo?at_medium=RSS&at_campaign=rss",
+   "date": "2026-10-10T10:06:23.000Z",
+   "summary": "Philadelphia police said the tip was \"flagged as spam\", but criticised the tech company for taking more than two months to detect and report the breach.",
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/9d64/live/61119c60-c483-11f1-9323-b15f40d5009a.jpg"
+  },
+  {
+   "id": "7a350847dfd4",
+   "feed": "guardian-us",
+   "category": "news",
+   "source": "The Guardian US",
+   "title": "Post-its, homework breaks and karaoke: inside the Women’s Pro Baseball League’s debut season",
+   "link": "https://www.theguardian.com/sport/ng-interactive/2026/oct/10/womens-pro-baseball-league-in-pictures",
+   "date": "2026-10-10T10:00:54.000Z",
+   "summary": "The first league of its kind in 70 years brought players from all around the world to Illinois for eight weeks, writing a new chapter in the history of women’s sports On the morning of 14 September, Rocky Henley sat at her rental home’s dining room table amid scattered…",
+   "image": "https://i.guim.co.uk/img/media/10845ea0b15a8a0a9cc756d9311efeaa3cd00e38/404_0_4050_3239/master/4050.jpg?width=140&quality=85&auto=format&fit=max&s=9cc1d5d23a86f46ab6612dbaf4450c0a"
+  },
+  {
+   "id": "3f6a817059c1",
    "feed": "nws-fl",
    "category": "live",
    "source": "NWS Florida alerts",
-   "title": "High Surf Advisory issued October 10 at 2:11AM EDT until October 11 at 11:00AM EDT by NWS Tallahassee FL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.61a9c28afc942be6bafb482b4e754a3ec5a696db.002.1.cap",
-   "date": "2026-10-10T06:11:00.000Z",
-   "summary": "* WHAT...For the High Rip Current Risk, dangerous rip currents. For the High Surf Advisory, large breaking waves of 5 to 8 feet expected in the surf zone. * WHERE...Gulf and Franklin County Beaches. * WHEN...For the High Rip Current Risk, through late Sunday night. For the High…",
+   "title": "Flood Warning issued October 10 at 5:57AM EDT until October 11 at 7:07PM EDT by NWS Tallahassee FL",
+   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.e2cf6762d3dac18282920795bfe3d618ac88b4ef.001.1.cap",
+   "date": "2026-10-10T09:57:00.000Z",
+   "summary": "...Forecast flooding changed from Moderate to Major severity and increased in duration for the following rivers in Florida... Shoal River near Mossy Head (CR 1087) affecting Walton County. * WHAT...Moderate flooding is occurring and major flooding is forecast. * WHERE...Shoal…",
    "image": null
+  },
+  {
+   "id": "1f6c7af33906",
+   "feed": "hn",
+   "category": "tech",
+   "source": "Hacker News",
+   "title": "`123456' password used in Danish CPR data breach",
+   "link": "https://cphpost.dk/2026-10-10/news/round-up/123456-password-used-in-massive-danish-cpr-data-breach/",
+   "date": "2026-10-10T09:51:49.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "6ad57716e0f6",
+   "feed": "nws-fl",
+   "category": "live",
+   "source": "NWS Florida alerts",
+   "title": "Rip Current Statement issued October 10 at 4:45AM CDT until October 11 at 6:00PM CDT by NWS Mobile AL",
+   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.2ebaff294168d66e9b232ea2e77111a494819f82.002.2.cap",
+   "date": "2026-10-10T09:45:00.000Z",
+   "summary": "* WHAT...For the High Surf Warning, dangerously large breaking waves of 6 to 9 feet in the surf zone. For the High Rip Current Risk, dangerous rip currents. * WHERE...Escambia Coastal, Santa Rosa Coastal and Okaloosa Coastal Counties. * WHEN...For the High Surf Warning, until 9…",
+   "image": null
+  },
+  {
+   "id": "b035d806d724",
+   "feed": "nws-fl",
+   "category": "live",
+   "source": "NWS Florida alerts",
+   "title": "High Surf Warning issued October 10 at 4:45AM CDT until October 10 at 9:00PM CDT by NWS Mobile AL",
+   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.2ebaff294168d66e9b232ea2e77111a494819f82.002.1.cap",
+   "date": "2026-10-10T09:45:00.000Z",
+   "summary": "* WHAT...For the High Surf Warning, dangerously large breaking waves of 6 to 9 feet in the surf zone. For the High Rip Current Risk, dangerous rip currents. * WHERE...Escambia Coastal, Santa Rosa Coastal and Okaloosa Coastal Counties. * WHEN...For the High Surf Warning, until 9…",
+   "image": null
+  },
+  {
+   "id": "1035c905377c",
+   "feed": "bbc-tech",
+   "category": "tech",
+   "source": "BBC Technology",
+   "title": "How drones are hunting fires hidden beneath the Cairngorms",
+   "link": "https://www.bbc.co.uk/news/articles/cwm24n9v8rdeo?at_medium=RSS&at_campaign=rss",
+   "date": "2026-10-10T09:31:14.000Z",
+   "summary": "Dramatic flames from the huge Cairngorms wildfire in July have disappeared - but hot spots can continue to burn beneath the earth.",
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/c9e6/live/0f446750-c48d-11f1-a915-a1cdb09cbaf6.jpg"
+  },
+  {
+   "id": "bb7f5a6b0036",
+   "feed": "wired",
+   "category": "tech",
+   "source": "Wired",
+   "title": "Humans Watched This Supernova Explode Nearly a Millennium Ago. Now You Can See It in High Definition",
+   "link": "https://www.wired.com/story/humans-watched-this-supernova-explode-nearly-a-millennium-ago-now-you-can-see-it-in-high-definition/",
+   "date": "2026-10-10T09:30:00.000Z",
+   "summary": "The new image isn’t just stunning—it may also provide clues about how this star survived its own explosion.",
+   "image": "https://media.wired.com/photos/6ac6c81bf72dd8f6dfa1d410/master/pass/noirlab2624a.jpg"
+  },
+  {
+   "id": "167d0cdc76e9",
+   "feed": "bbc-world",
+   "category": "news",
+   "source": "BBC News",
+   "title": "Public executions in the US stopped nearly a century ago - why are they resuming now?",
+   "link": "https://www.bbc.co.uk/news/articles/c6kgq7rqdql7o?at_medium=RSS&at_campaign=rss",
+   "date": "2026-10-10T09:17:36.000Z",
+   "summary": "The Pentagon says the execution of Fort Hood shooter Nidal Hasan will be livestreamed, but experts suggest officials are reading the country wrong.",
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/ca0b/live/df708420-c48a-11f1-a915-a1cdb09cbaf6.jpg"
+  },
+  {
+   "id": "94a467a7b7cc",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "She’s Been to Gaza. She Met With the Iranians. Now She Has a Warning.",
+   "link": "https://www.nytimes.com/2026/10/10/magazine/mirjana-spoljaric-interview.html",
+   "date": "2026-10-10T09:15:08.000Z",
+   "summary": "As the head of the International Committee of the Red Cross, Mirjana Spoljaric goes to both sides of conflicts. She’s worried that our warring world is spiraling out of control.",
+   "image": "https://static01.nyt.com/images/2026/10/18/magazine/18mag-interview-spoljaric-04/18mag-interview-spoljaric-04-mediumSquareAt3X.jpg"
+  },
+  {
+   "id": "b9d51a2a988d",
+   "feed": "nws-fl",
+   "category": "live",
+   "source": "NWS Florida alerts",
+   "title": "Tropical Cyclone Local Statement issued October 10 at 4:11AM CDT by NWS Mobile AL",
+   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.33f23154a29b348bc1ca60aa753d4953f3c0d107.001.1.cap",
+   "date": "2026-10-10T09:11:00.000Z",
+   "summary": "HLSMOB This product covers portions of southwest Alabama...northwest Florida...south central Alabama...and inland southeast Mississippi. **ALL HAZARDS HAVE ENDED. THEREFORE, THIS WILL BE THE FINAL STATEMENT FOR ISAIAS** NEW INFORMATION --------------- * CHANGES TO WATCHES AND…",
+   "image": null
+  },
+  {
+   "id": "8c21b600d7f3",
+   "feed": "nws-fl",
+   "category": "live",
+   "source": "NWS Florida alerts",
+   "title": "Tropical Cyclone Local Statement issued October 10 at 5:09AM EDT by NWS Tallahassee FL",
+   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.9da25030340d4c54af94db099a5ca14e49b1714c.001.1.cap",
+   "date": "2026-10-10T09:09:00.000Z",
+   "summary": "HLSTAE This product covers eastern Florida panhandle, Florida Big Bend, southeastern Alabama and southwestern Georgia **POST-TROPICAL CYCLONE ISAIAS CONTINUES PULLING AWAY FROM THE REGION. ALL TROPICAL HEADLINES HAVE BEEN DROPPED** NEW INFORMATION --------------- * CHANGES TO…",
+   "image": null
+  },
+  {
+   "id": "0a4edb4b2d74",
+   "feed": "npr",
+   "category": "news",
+   "source": "NPR",
+   "title": "After losing ground with Latino voters, Democrats are turning to influencers for help",
+   "link": "https://www.npr.org/2026/10/10/nx-s1-5991897/democrats-latino-voters-influencers-bold-pac",
+   "date": "2026-10-10T09:00:00.000Z",
+   "summary": "Democrats are hoping to win back Latino voters who have soured on both parties. They hope Latino content creators will bridge the gap.",
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/5472x3648+0+0/resize/5472x3648!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Ff0%2F7b%2F899029124ad2a5817177479815ae%2Fap24304669006483.jpg"
+  },
+  {
+   "id": "0f272473ce63",
+   "feed": "npr",
+   "category": "news",
+   "source": "NPR",
+   "title": "The Met puts a modern artist front and center (and there's some Jackson Pollock, too)",
+   "link": "https://www.npr.org/2026/10/10/nx-s1-5920376/lee-krasner-jackson-pollock-met",
+   "date": "2026-10-10T09:00:00.000Z",
+   "summary": "In a blockbuster show, The Metropolitan Museum of Art places the work of two major 20th century artists side by side: the married couple Lee Krasner and Jackson Pollock.",
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/5819x3896+0+0/resize/5819x3896!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F5e%2Fe6%2Fcc4894c441a99b6eaae0eb7549cf%2Fgettyimages-488958535.jpg"
+  },
+  {
+   "id": "e731a8d6f14c",
+   "feed": "wired",
+   "category": "tech",
+   "source": "Wired",
+   "title": "How This Tiny Startup Built the World’s Safest Bike Helmet",
+   "link": "https://www.wired.com/story/how-this-tiny-startup-pikio-built-the-worlds-safest-bike-helmet/",
+   "date": "2026-10-10T09:00:00.000Z",
+   "summary": "Inspired by head-banging woodpeckers, Vancouver-based Pikio Labs has discovered a new approach to skull protection.",
+   "image": "https://media.wired.com/photos/6ac8bde343102e19d08d1480/master/pass/Pikio%20Helmut.jpg"
+  },
+  {
+   "id": "f083c3bc77fc",
+   "feed": "npr",
+   "category": "news",
+   "source": "NPR",
+   "title": "16 cozy activities to add to your fall bucket list",
+   "link": "https://www.npr.org/2026/10/10/nx-s1-5993688/16-cozy-activities-to-add-to-your-fall-bucket-list",
+   "date": "2026-10-10T09:00:00.000Z",
+   "summary": "Carve a pumpkin? You can do better than that. Fun and unusual ways to celebrate the season, from writing a gratitude letter to making an ancestral altar.",
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/1920x1080+0+0/resize/1920x1080!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F9a%2F9e%2F68995f5746ce8ae1e4caa775343a%2Fcozy-illustration-16-9.jpg"
+  },
+  {
+   "id": "fb0eae658c95",
+   "feed": "npr",
+   "category": "news",
+   "source": "NPR",
+   "title": "A year of ceasefire in Gaza through the lens of NPR's reporter",
+   "link": "https://www.npr.org/sections/the-picture-show/2026/10/10/nx-s1-5991619/gaza-ceasefire-israel-life",
+   "date": "2026-10-10T09:00:00.000Z",
+   "summary": "It has been one year since Hamas released the remaining Israeli hostages and President Trump promised an end to the war, but Palestinians say the past 12 months have been a ceasefire in name only.",
+   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/4032x3024+0+0/resize/4032x3024!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F5d%2Fa4%2Fda87682f4b4e963a85f1dd2f71b2%2Fgaza-04.JPEG"
+  },
+  {
+   "id": "8b8e1e835130",
+   "feed": "nws-swfl",
+   "category": "swfl",
+   "source": "NWS alerts: Collier & Lee",
+   "title": "Rip Current Statement issued October 10 at 3:36AM EDT until October 11 at 8:00PM EDT by NWS Tampa Bay Ruskin FL",
+   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.f5935e5ae8e717b3758f7385decf5e48304da2d5.002.2.cap",
+   "date": "2026-10-10T07:36:00.000Z",
+   "summary": "* WHAT...Dangerous rip currents and large breaking waves expected. * WHERE...Coastal Manatee, Coastal Sarasota, Coastal Charlotte and Coastal Lee Counties. * WHEN...For the Rip Current Risk, through Sunday evening. For the High Surf Risk, through 8 PM EDT this evening. *…",
+   "image": null
+  },
+  {
+   "id": "bc36f2cba18e",
+   "feed": "nws-swfl",
+   "category": "swfl",
+   "source": "NWS alerts: Collier & Lee",
+   "title": "High Surf Advisory issued October 10 at 3:36AM EDT until October 10 at 8:00PM EDT by NWS Tampa Bay Ruskin FL",
+   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.f5935e5ae8e717b3758f7385decf5e48304da2d5.002.1.cap",
+   "date": "2026-10-10T07:36:00.000Z",
+   "summary": "* WHAT...Dangerous rip currents and large breaking waves expected. * WHERE...Coastal Manatee, Coastal Sarasota, Coastal Charlotte and Coastal Lee Counties. * WHEN...For the Rip Current Risk, through Sunday evening. For the High Surf Risk, through 8 PM EDT this evening. *…",
+   "image": null
+  },
+  {
+   "id": "f772d1678538",
+   "feed": "verge",
+   "category": "tech",
+   "source": "The Verge",
+   "title": "My brief romance with an AI bird feeder",
+   "link": "https://www.theverge.com/gadgets/1007674/smart-bird-feeders-attact-pests-too",
+   "date": "2026-10-10T07:00:00.000Z",
+   "summary": "It started off promising enough. Dozens of tiny, colorful birds were drawn to my garden just a few weeks after I mounted a $350 $269 Kiwibit Bird Feeder 2 Pro. \"Looks like Great Tit!\" read the first AI-driven alert sent to my phone. \"Looks like Eurasian Blue Tit!\" read another…",
+   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/10/IMG_5464.jpeg?quality=90&strip=all&crop=0,0,100,100"
   },
   {
    "id": "f62ac42d83fd",
@@ -514,70 +985,26 @@
    "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/3a1f/live/ce8a3d70-c450-11f1-a64c-550be9e3c66b.jpg"
   },
   {
-   "id": "82c5750d5c79",
-   "feed": "guardian-world",
-   "category": "news",
-   "source": "The Guardian",
-   "title": "‘If voters aren’t better off by the next election, we’re screwed’: Labour insiders voice fears over budget",
-   "link": "https://www.theguardian.com/uk-news/2026/oct/10/labour-fears-budget-burnham-healey",
-   "date": "2026-10-10T06:00:51.000Z",
-   "summary": "Some say party risks ‘looking twee’ by focusing on small fixes amid growing nervousness that budget lacks ambition In the days since Labour’s annual conference, party insiders have been sharing a word cloud produced by the pollsters More in Common, which shows the phrases…",
-   "image": "https://i.guim.co.uk/img/media/5db02fb2b803b721a93444ed5b66b92a97b8af50/349_0_2901_2321/master/2901.jpg?width=140&quality=85&auto=format&fit=max&s=fb671a0c5edd42f2e9662c6379333963"
+   "id": "39fb47001651",
+   "feed": "hn",
+   "category": "tech",
+   "source": "Hacker News",
+   "title": "Computers Cannot Make Decisions",
+   "link": "https://wiki.cateat.fish/art:computers_cannot_make_decisions",
+   "date": "2026-10-10T05:47:46.000Z",
+   "summary": "",
+   "image": null
   },
   {
-   "id": "9cfad4b0de84",
-   "feed": "guardian-world",
-   "category": "news",
-   "source": "The Guardian",
-   "title": "UK accused of giving people of Gaza false hope over new refugee safe route",
-   "link": "https://www.theguardian.com/uk-news/2026/oct/10/uk-gaza-refugee-resettlement-scheme-palestinians-home-office",
-   "date": "2026-10-10T06:00:50.000Z",
-   "summary": "Only ‘very small number’ of people already in Lebanon or Jordan will be referred, says organisation running scheme The Home Office is facing claims it gave false hope to the people of Gaza after it emerged that a new safe route for Palestinian refugees will only be open to…",
-   "image": "https://i.guim.co.uk/img/media/3aa7f42620809db20db93cdae47ec1311958cf5d/248_0_2503_2003/master/2503.jpg?width=140&quality=85&auto=format&fit=max&s=920fd66c292c3cdfb38d74c29f3181ba"
-  },
-  {
-   "id": "dfa912cce3cc",
-   "feed": "guardian-world",
-   "category": "news",
-   "source": "The Guardian",
-   "title": "UK savings: 5% interest rate deals may not last, say experts",
-   "link": "https://www.theguardian.com/money/2026/oct/10/uk-savings-interest-rate-deals-nsi-bonds",
-   "date": "2026-10-10T06:00:50.000Z",
-   "summary": "Competition is hotting up, with National Savings & Investments lifting rates to the highest in years National Savings and Investments (NS&I) has increased the returns on some of its accounts, with many now paying more than 5% for the first time in nearly three years…",
-   "image": "https://i.guim.co.uk/img/media/77284912719b14fef89f00dd9a9b89f3f35a8cbb/417_0_4167_3333/master/4167.jpg?width=140&quality=85&auto=format&fit=max&s=656db86dc76b3d87ecb92e9ae9194792"
-  },
-  {
-   "id": "167d0cdc76e9",
-   "feed": "bbc-world",
-   "category": "news",
-   "source": "BBC News",
-   "title": "Public executions in the US stopped nearly a century ago - why are they resuming now?",
-   "link": "https://www.bbc.co.uk/news/articles/c6kgq7rqdql7o?at_medium=RSS&at_campaign=rss",
-   "date": "2026-10-10T05:48:54.000Z",
-   "summary": "The Pentagon says the execution of Fort Hood shooter Nidal Hasan will be livestreamed, but experts suggest officials are reading the country wrong.",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/bd18/live/e7303f60-c42c-11f1-9d55-e93e64baf5ad.jpg"
-  },
-  {
-   "id": "6ceefd5d44cb",
-   "feed": "guardian-world",
-   "category": "news",
-   "source": "The Guardian",
-   "title": "‘Like a drill going into my eye’: why the mystery over Havana syndrome refuses to die",
-   "link": "https://www.theguardian.com/us-news/ng-interactive/2026/oct/10/havana-syndrome-mystery-cia-russia",
-   "date": "2026-10-10T05:00:48.000Z",
-   "summary": "Dozens of CIA officers have been afflicted by debilitating symptoms over the past decade. Are they the result of ‘mass hysteria’? Or are they from attacks with an energy weapon and, if so, who is responsible? And has there been a cover-up? Shortly after 1am one night in April…",
-   "image": "https://i.guim.co.uk/img/media/dd86a3791de0721c9fae3aeb6def7ef9609df8bd/1_0_4998_4000/master/4998.jpg?width=140&quality=85&auto=format&fit=max&s=dcbac9d21302f6a21158f1ade6bee80d"
-  },
-  {
-   "id": "fa1902b80661",
-   "feed": "guardian-world",
-   "category": "news",
-   "source": "The Guardian",
-   "title": "Create new pre-apprenticeship scheme to close youth unemployment gap, says Milburn",
-   "link": "https://www.theguardian.com/education/2026/oct/10/pre-apprenticeship-scheme-landmark-alan-milburn-youth-jobs-crisis-report",
-   "date": "2026-10-10T05:00:47.000Z",
-   "summary": "Exclusive: Former minister’s review warns that dramatic action is needed over huge drop in youth apprenticeship starts A national apprenticeship readiness scheme should be introduced in England to close the gap for young people between leaving school and starting work, the…",
-   "image": "https://i.guim.co.uk/img/media/6ba9839b5213ce0aa8891298391d1bfaf44453ca/77_0_4639_3710/master/4639.jpg?width=140&quality=85&auto=format&fit=max&s=018cb1da9426350f2091c42186174d3e"
+   "id": "ca71ea852d5e",
+   "feed": "hn",
+   "category": "tech",
+   "source": "Hacker News",
+   "title": "Food processing influences metabolism and brain activity",
+   "link": "https://news.vt.edu/articles/2026/10/research_fralinbiomed_upfhutelin.html",
+   "date": "2026-10-10T05:22:30.000Z",
+   "summary": "",
+   "image": null
   },
   {
    "id": "7f6f73dc3be6",
@@ -589,61 +1016,6 @@
    "date": "2026-10-10T05:00:00.000Z",
    "summary": "Save 20% with an LG promo code today, plus up to $1,000 off appliances, 40% off bestselling TVs and monitors.",
    "image": "https://media.wired.com/photos/67b63b985a505b018b67ed90/master/pass/WIRED-Coupons-R2_17.png"
-  },
-  {
-   "id": "9c8acde8dc81",
-   "feed": "wired",
-   "category": "tech",
-   "source": "Wired",
-   "title": "Home Depot Promo Codes: 30% Off in October 2026",
-   "link": "https://www.wired.com/story/home-depot-promo-code/",
-   "date": "2026-10-10T05:00:00.000Z",
-   "summary": "Save up to 50% today with the latest Home Depot promo codes for appliances, power tools, and more this October.",
-   "image": "https://media.wired.com/photos/67b63b9c2c751893c256c1e8/master/pass/WIRED-Coupons-R2_13.png"
-  },
-  {
-   "id": "abd3c2ac85d0",
-   "feed": "wired",
-   "category": "tech",
-   "source": "Wired",
-   "title": "30% Off Canon Promo Codes | October 2026",
-   "link": "https://www.wired.com/story/canon-promo-code/",
-   "date": "2026-10-10T05:00:00.000Z",
-   "summary": "Save an extra 10% or 30% with Canon coupon codes, plus up to $1,600 on cameras, printers, and more this October 2026.",
-   "image": "https://media.wired.com/photos/66ea077251891e6d3cb5d5cf/master/pass/WIRED-Coupons-3.jpg"
-  },
-  {
-   "id": "d4c9062ba217",
-   "feed": "wired",
-   "category": "tech",
-   "source": "Wired",
-   "title": "Altra Running Promo Codes: 10% Off October 2026",
-   "link": "https://www.wired.com/story/altra-promo-code/",
-   "date": "2026-10-10T05:00:00.000Z",
-   "summary": "Score big savings on Altra Running shoes with up to 50% off sale styles, 20% off select models, 10% off your first order when you sign up, plus free standard delivery on every purchase.",
-   "image": "https://media.wired.com/photos/67b63b9a4816461befb48207/master/pass/WIRED-Coupons-R2_12.png"
-  },
-  {
-   "id": "e345eebdc109",
-   "feed": "wired",
-   "category": "tech",
-   "source": "Wired",
-   "title": "Disney Plus Discount Codes: 52% Off October 2026",
-   "link": "https://www.wired.com/story/disney-plus-discounts/",
-   "date": "2026-10-10T05:00:00.000Z",
-   "summary": "Cut your subscription costs with the latest active Disney+ bundle deals, verified student offers, and partner promotions.",
-   "image": "https://media.wired.com/photos/66ea076e56fd4954a7f91e0c/master/pass/WIRED-Coupons-17.jpg"
-  },
-  {
-   "id": "f1f498d524b6",
-   "feed": "wired",
-   "category": "tech",
-   "source": "Wired",
-   "title": "eBay Coupons: 20% Off in October 2026",
-   "link": "https://www.wired.com/story/ebay-coupon-code/",
-   "date": "2026-10-10T05:00:00.000Z",
-   "summary": "Save up to 60% on a selection of items at eBay, including electronics, home products, card games, car parts and more.",
-   "image": "https://media.wired.com/photos/66ea03340e63ccab6b8add4b/master/pass/WIRED-Coupons-1.jpg"
   },
   {
    "id": "d3daf576dc7b",
@@ -691,58 +1063,14 @@
   },
   {
    "id": "26642edca61e",
-   "feed": "bbc-world",
+   "feed": "bbc-us",
    "category": "news",
-   "source": "BBC News",
+   "source": "BBC US & Canada",
    "title": "Trump announces deal for Russian diesel as Zelensky calls it a gift to Putin",
    "link": "https://www.bbc.co.uk/news/articles/cm1dwgr666wno?at_medium=RSS&at_campaign=rss",
    "date": "2026-10-10T04:38:20.000Z",
    "summary": "Ukraine's president sharply criticised the move, calling it an \"investment in war that must be ended, not prolonged\".",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/8c49/live/850032c0-c470-11f1-94f2-dbc7ff6db92b.jpg"
-  },
-  {
-   "id": "7c92b328b2e9",
-   "feed": "hn",
-   "category": "tech",
-   "source": "Hacker News",
-   "title": "Show HN: A simple to-do app for iPhone, Mac, and your agent",
-   "link": "https://ilia.page/writing/introducing-nagare",
-   "date": "2026-10-10T04:37:13.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
-   "id": "94620d57f3a0",
-   "feed": "bbc-world",
-   "category": "news",
-   "source": "BBC News",
-   "title": "Flydubai attacker began a 'drift towards extremism and terrorism' in Australia, UAE says",
-   "link": "https://www.bbc.co.uk/news/articles/cw3dj5n538jpo?at_medium=RSS&at_campaign=rss",
-   "date": "2026-10-10T04:34:55.000Z",
-   "summary": "The United Arab Emirates' attorney-general also alleges the co-pilot was trying to crash the plane into Tel Aviv's airport.",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/8092/live/6ab37a20-bfbc-11f1-a64c-550be9e3c66b.png"
-  },
-  {
-   "id": "e5c31f7343a1",
-   "feed": "bbc-world",
-   "category": "news",
-   "source": "BBC News",
-   "title": "'Stain on the country': Trump criticises Norway over Nobel Peace Prize",
-   "link": "https://www.bbc.co.uk/news/articles/ckgj921e14jdo?at_medium=RSS&at_campaign=rss",
-   "date": "2026-10-10T04:07:11.000Z",
-   "summary": "The US president told a rally he had \"never heard of\" the winner, former International Criminal Court judge Navi Pillay.",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/528b/live/a76ba860-c459-11f1-bc2e-018d645d8d21.jpg"
-  },
-  {
-   "id": "4f7a05ceb702",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "For Trump, a Firing Squad on Livestream Becomes the Latest Spectacle",
-   "link": "https://www.nytimes.com/2026/10/09/us/politics/trump-firing-squad-spectacle.html",
-   "date": "2026-10-10T04:06:53.000Z",
-   "summary": "The idea seemed to surprise even some inside the Trump administration.",
-   "image": "https://static01.nyt.com/images/2026/10/09/multimedia/09dc-execution-kvcg/09dc-execution-kvcg-mediumSquareAt3X.jpg"
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/f2e6/live/71115e00-c499-11f1-b094-cb5c335b015a.jpg"
   },
   {
    "id": "93af22c6863f",
@@ -767,39 +1095,6 @@
    "image": null
   },
   {
-   "id": "037a2897bd52",
-   "feed": "hn",
-   "category": "tech",
-   "source": "Hacker News",
-   "title": "Data Center Darling's $30B IPO Dream Crushed in 48 Hours",
-   "link": "https://www.bloomberg.com/news/articles/2026-10-09/data-center-darling-s-30-billion-ipo-dream-crushed-in-48-hours",
-   "date": "2026-10-10T04:04:17.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
-   "id": "22f07d143112",
-   "feed": "guardian-world",
-   "category": "news",
-   "source": "The Guardian",
-   "title": "Hurricane Isaias makes landfall in Florida and hammers Gulf coast",
-   "link": "https://www.theguardian.com/world/2026/oct/09/hurricane-isaias-makes-landfall",
-   "date": "2026-10-10T03:56:50.000Z",
-   "summary": "Governors of Mississippi, Alabama and Florida declare states of emergency as a downsized Fema faces first major test Hurricane Isaias crashed into the US Gulf coast on Friday as a dangerous category 2 storm, hammering communities in Alabama and the Florida panhandle with…",
-   "image": "https://i.guim.co.uk/img/media/9919fc358dd352f139432f923b1667e89cbb3a6b/399_0_3649_2921/master/3649.jpg?width=140&quality=85&auto=format&fit=max&s=79a7279e862c19a65238d40c9302baf3"
-  },
-  {
-   "id": "29a15ad42dfc",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "What to Know About the Delhi Protests",
-   "link": "https://www.nytimes.com/2026/10/09/world/asia/what-to-know-about-the-delhi-protests.html",
-   "date": "2026-10-10T03:56:38.000Z",
-   "summary": "Protesters opposed to sweeping revisions to India’s voter rolls are trying to rally in New Delhi. The police have come out in force.",
-   "image": "https://static01.nyt.com/images/2026/10/10/multimedia/10india-protests-What-We-Know-bqth/10india-protests-What-We-Know-bqth-mediumSquareAt3X.jpg"
-  },
-  {
    "id": "7304f0a63a0d",
    "feed": "gn-lee",
    "category": "swfl",
@@ -822,28 +1117,6 @@
    "image": null
   },
   {
-   "id": "36e577b475cc",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "Trump Says He Will Import Russian Diesel Fuel Amid High Prices",
-   "link": "https://www.nytimes.com/2026/10/09/us/politics/trump-russia-diesel-putin.html",
-   "date": "2026-10-10T03:09:00.000Z",
-   "summary": "President Trump said Russia had agreed to ship potentially millions of tons of diesel fuel in the coming months. But the amounts would be small relative to global demand.",
-   "image": "https://static01.nyt.com/images/2026/10/09/multimedia/09dc-trump-russia2-zgvq/09dc-trump-russia2-zgvq-mediumSquareAt3X.jpg"
-  },
-  {
-   "id": "eba6dbe0588e",
-   "feed": "hn",
-   "category": "tech",
-   "source": "Hacker News",
-   "title": "Telegram Desktop vulnerability allowed any user's file to be stolen",
-   "link": "https://beaksec.github.io/posts/telegram-desktop-one-click-account-takeover/",
-   "date": "2026-10-10T03:02:47.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
    "id": "f1918c664616",
    "feed": "gn-naples",
    "category": "swfl",
@@ -855,28 +1128,6 @@
    "image": null
   },
   {
-   "id": "6cde4978482a",
-   "feed": "nws-swfl",
-   "category": "swfl",
-   "source": "NWS alerts: Collier & Lee",
-   "title": "Rip Current Statement issued October 9 at 11:01PM EDT until October 10 at 8:00PM EDT by NWS Tampa Bay Ruskin FL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.62963419564245fe33b2b2f019e6226bb8cd614d.004.2.cap",
-   "date": "2026-10-10T03:01:00.000Z",
-   "summary": "* WHAT...Dangerous rip currents and large breaking waves expected. * WHERE...Coastal Manatee, Coastal Sarasota, Coastal Charlotte and Coastal Lee Counties. * WHEN...For the Rip Current Risk, through Saturday evening. For the High Surf Risk, through 8 AM EDT Saturday. *…",
-   "image": null
-  },
-  {
-   "id": "9e09dc906d7c",
-   "feed": "nws-swfl",
-   "category": "swfl",
-   "source": "NWS alerts: Collier & Lee",
-   "title": "High Surf Advisory issued October 9 at 11:01PM EDT until October 10 at 8:00AM EDT by NWS Tampa Bay Ruskin FL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.62963419564245fe33b2b2f019e6226bb8cd614d.004.1.cap",
-   "date": "2026-10-10T03:01:00.000Z",
-   "summary": "* WHAT...Dangerous rip currents and large breaking waves expected. * WHERE...Coastal Manatee, Coastal Sarasota, Coastal Charlotte and Coastal Lee Counties. * WHEN...For the Rip Current Risk, through Saturday evening. For the High Surf Risk, through 8 AM EDT Saturday. *…",
-   "image": null
-  },
-  {
    "id": "9a358fb6527d",
    "feed": "gn-lee",
    "category": "swfl",
@@ -884,39 +1135,6 @@
    "title": "High school football photos as Cape Coral defeats North Fort Myers",
    "link": "https://news.google.com/rss/articles/CBMi8gFBVV95cUxNOGl1amxlS2dsUS12bjB2Yi1IZVBaaURUSlQteFlNSktMQnBDb3BIYmZ3TVhDYnBoMkM0alNpb1hBLXBRLXB1SndxRHZFeGlOczFkZXM0RE56b1o4LXMyMjBiVDRJeENqM0xnSVNYdXlfZDRnRFp1ekR0bTJXZ01VR3BaWTRYS0lGY0FIU0JFdml6NUhvcWJRMHllLWN6aWlRcHBBVHI4cElKVk5rSXhPWE9COFhHdVJseXZObVhxQk1PLUUyNXFqdF9oUTI0aWJmYXVBdW00em5CU1BScTkwa0IzMF9yeTF2VHpUc0I5cGN6dw?oc=5",
    "date": "2026-10-10T02:59:00.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
-   "id": "f989e253650c",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "What We Know About the Man Shot By ICE",
-   "link": "https://www.nytimes.com/2026/10/09/nyregion/oscar-belgal-ice-shooting-nyc.html",
-   "date": "2026-10-10T02:54:05.000Z",
-   "summary": "Oscar Belgal, 28, was often seen fixing cars and playing music on Marble Hill Avenue, where few residents knew of his criminal record.",
-   "image": null
-  },
-  {
-   "id": "b9f193294e18",
-   "feed": "hn",
-   "category": "tech",
-   "source": "Hacker News",
-   "title": "Put a price on breakthroughs",
-   "link": "https://alexwang.ai/posts/put-a-price-on-breakthroughs/",
-   "date": "2026-10-10T02:37:47.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
-   "id": "153343ccc6fd",
-   "feed": "hn",
-   "category": "tech",
-   "source": "Hacker News",
-   "title": "Next.js 16.4",
-   "link": "https://nextjs.org/blog/next-16-4",
-   "date": "2026-10-10T02:13:44.000Z",
    "summary": "",
    "image": null
   },
@@ -932,56 +1150,12 @@
    "image": null
   },
   {
-   "id": "a9e8761f36e0",
-   "feed": "guardian-us",
-   "category": "news",
-   "source": "The Guardian US",
-   "title": "‘I want to thank President Putin’, Trump says after agreeing to lift sanctions on Russian diesel – as it happened",
-   "link": "https://www.theguardian.com/us-news/live/2026/oct/09/pentagon-fort-hood-livestream-firing-squad-execution-reaction-backlash-pete-hegseth-donald-trump-mussolini-latest-news-updates",
-   "date": "2026-10-10T02:02:45.000Z",
-   "summary": "This liveblog is now closed. Zelenskyy furious as Trump announces deal to buy Russian diesel Sign up for the US Breaking News email In a statement to the Guardian, Robin M Maher, the executive director of the Death Penalty Information Center, said that her group is “not aware…",
-   "image": "https://i.guim.co.uk/img/media/9610b0c75f0b852329fa1e2d582d691ffa77c026/391_0_3747_3000/master/3747.jpg?width=140&quality=85&auto=format&fit=max&s=f19fd015ad4980d85f036cbf0f4482a2"
-  },
-  {
-   "id": "474410318e8e",
-   "feed": "bbc-us",
-   "category": "news",
-   "source": "BBC US & Canada",
-   "title": "Life-threatening Hurricane Isaias makes landfall in Florida",
-   "link": "https://www.bbc.co.uk/news/articles/c3vgx4450v2lo?at_medium=RSS&at_campaign=rss",
-   "date": "2026-10-10T01:58:56.000Z",
-   "summary": "The storm took direct aim at Florida and is expected to impact Alabama, Georgia, and Louisiana.",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/32d0/live/ee00aa70-c443-11f1-8e13-7de7b0658be0.jpg"
-  },
-  {
-   "id": "9d1894fb9c11",
-   "feed": "guardian-us",
-   "category": "news",
-   "source": "The Guardian US",
-   "title": "Trump fumes over Nobel peace prize snub and criticizes Norway",
-   "link": "https://www.theguardian.com/us-news/2026/oct/09/trump-nobel-peace-prize",
-   "date": "2026-10-10T01:57:03.000Z",
-   "summary": "President complains about not winning prize in year he started war with Iran and says: ‘We will not forget, Norway’ Donald Trump complained Friday about not winning the Nobel peace prize for 2026, a year in which he started a war with Iran. At what was supposed to be a rally…",
-   "image": "https://i.guim.co.uk/img/media/d7c9b346616c32518ef2286af5b754c8b6516b86/623_0_4250_3400/master/4250.jpg?width=140&quality=85&auto=format&fit=max&s=567a4f6ea2265553ed54b97eeb8f278c"
-  },
-  {
-   "id": "3cf7d8a3c334",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "Anthropic Agents Tried to Fill Out Visa Forms on State Dept. Website",
-   "link": "https://www.nytimes.com/2026/10/09/technology/anthropic-rogue-ai-agents.html",
-   "date": "2026-10-10T01:19:55.000Z",
-   "summary": "The Philadelphia Police Department said the agents had also sent in a false homicide tip. The incidents led the White House to call for better disclosure of rogue A.I. behavior.",
-   "image": "https://static01.nyt.com/images/2026/10/09/multimedia/09biz-anthropic-zptw/09biz-anthropic-zptw-mediumSquareAt3X.jpg"
-  },
-  {
-   "id": "7fc568d33d45",
+   "id": "a0e77a89b85a",
    "feed": "bbc-tech",
    "category": "tech",
    "source": "BBC Technology",
    "title": "Tech Now",
-   "link": "https://www.bbc.co.uk/iplayer/live/bbcnews?at_medium=RSS&at_campaign=rss",
+   "link": "https://www.bbc.co.uk/iplayer/episode/m0032yng?at_medium=RSS&at_campaign=rss",
    "date": "2026-10-10T01:00:00.000Z",
    "summary": "Shiona McCallum visits Cairngorms National Park to see tech monitor wildfire damage.",
    "image": "https://ichef.bbci.co.uk/images/ic/240x135/p0pfw9y5.jpg"
@@ -1007,28 +1181,6 @@
    "date": "2026-10-10T00:45:00.000Z",
    "summary": "",
    "image": null
-  },
-  {
-   "id": "bd7f0877a9a1",
-   "feed": "hn",
-   "category": "tech",
-   "source": "Hacker News",
-   "title": "REA Reverse – Engineer Anything",
-   "link": "https://rea.tools/",
-   "date": "2026-10-10T00:37:07.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
-   "id": "b9b011aef784",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "He Left Behind Millions. Who Would Get It — His Family, or the D.S.A.?",
-   "link": "https://www.nytimes.com/2026/10/09/nyregion/nyu-professor-dsa-inheritance.html",
-   "date": "2026-10-10T00:22:54.000Z",
-   "summary": "When a New York University professor died in 2024, it set off a legal dispute over a quietly accumulated fortune.",
-   "image": "https://static01.nyt.com/images/2026/10/18/nyregion/18met-professor/09met-professor-mediumSquareAt3X.jpg"
   },
   {
    "id": "6fafcbf09565",
@@ -1095,17 +1247,6 @@
    "date": "2026-10-09T23:50:00.000Z",
    "summary": "",
    "image": null
-  },
-  {
-   "id": "87a64c79e65f",
-   "feed": "guardian-us",
-   "category": "news",
-   "source": "The Guardian US",
-   "title": "Zelenskyy furious as Trump announces deal to buy Russian diesel",
-   "link": "https://www.theguardian.com/us-news/2026/oct/09/trump-putin-russian-diesel-ukraine",
-   "date": "2026-10-09T23:39:31.000Z",
-   "summary": "President says deal essential to lower US fuel prices but move set to create fresh crisis with Ukraine and Nato allies Donald Trump was on a fresh collision course with the Ukrainian president, Volodymyr Zelenskyy, and European allies on Friday after a stunning agreement to buy…",
-   "image": "https://i.guim.co.uk/img/media/e29aa72f0ab1f4d0fff1cdad48794d44d329f308/1376_0_6880_5504/master/6880.jpg?width=140&quality=85&auto=format&fit=max&s=9750084769f2c33381c827c1a885f1e8"
   },
   {
    "id": "2f7582dd1b4e",
@@ -1240,17 +1381,6 @@
    "image": "https://d3i6fh83elv35t.cloudfront.net/static/2026/10/corruptionallegations-1024x683.jpg"
   },
   {
-   "id": "cc519232dff8",
-   "feed": "npr",
-   "category": "news",
-   "source": "NPR",
-   "title": "Kalshi taps former FBI agent to fight against money laundering",
-   "link": "https://www.npr.org/2026/10/09/nx-s1-5996683/kalshi-fbi-sean-fern-money-laundering",
-   "date": "2026-10-09T22:23:11.000Z",
-   "summary": "The prediction market company says it wants to prevent its platform from being abused by criminals. The company is facing mounting pressure over market manipulation and insider trading on the site.",
-   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/1920x1945+0+0/resize/1920x1945!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F9a%2F1c%2Fdb89fe814ef380a180ae4dfac20a%2Fsean-fern-photo.jpg"
-  },
-  {
    "id": "6f1466c2638a",
    "feed": "techcrunch",
    "category": "tech",
@@ -1288,22 +1418,11 @@
    "feed": "bbc-us",
    "category": "news",
    "source": "BBC US & Canada",
-   "title": "JD Vance casts doubt on firing squad execution and says he will not watch it",
+   "title": "JD Vance casts doubt on firing squad execution and says he would not watch it",
    "link": "https://www.bbc.co.uk/news/articles/ck20r39nl3qzo?at_medium=RSS&at_campaign=rss",
    "date": "2026-10-09T21:50:47.000Z",
    "summary": "The planned execution of Nidal Hasan by firing squad would be the first military execution in more than 60 years.",
    "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/2cf5/live/cc41a870-c40d-11f1-838e-6d1d6d701264.jpg"
-  },
-  {
-   "id": "94552bc1b936",
-   "feed": "guardian-us",
-   "category": "news",
-   "source": "The Guardian US",
-   "title": "One person killed and nine injured in chain-reaction crash in New York City",
-   "link": "https://www.theguardian.com/us-news/2026/oct/09/new-york-city-car-crash",
-   "date": "2026-10-09T21:50:02.000Z",
-   "summary": "Motorist, reportedly trying to beat a traffic light, barrels through busy intersection and slams into pedestrians At least one person was killed and nine injured in New York City’s eastern Bronx when a motorist barreled through a busy intersection, slammed into pedestrians and…",
-   "image": "https://i.guim.co.uk/img/media/694d224ef40ba576b403b7d9db5c4cc8572f308a/688_0_6880_5504/master/6880.jpg?width=140&quality=85&auto=format&fit=max&s=29d67bfd7f844c01c3092429f23deaba"
   },
   {
    "id": "8d0d5e3b472f",
@@ -1339,17 +1458,6 @@
    "image": null
   },
   {
-   "id": "64af5a812d4a",
-   "feed": "guardian-us",
-   "category": "news",
-   "source": "The Guardian US",
-   "title": "Trump says he picked ‘devoted fan’ Katie Zacharia to be next press secretary",
-   "link": "https://www.theguardian.com/us-news/2026/oct/09/katie-zacharia-new-white-house-press-secretary-trump",
-   "date": "2026-10-09T21:39:06.000Z",
-   "summary": "Zacharia will replace Karoline Leavitt, who left the role at the end of August after giving birth to her second child Donald Trump on Friday announced that he had picked Katie Zacharia to be the next White House press secretary, lining up a conservative commentator he called a…",
-   "image": "https://i.guim.co.uk/img/media/27006d3611ae3b259d73e810f7234fd77ee9fb4e/1183_761_2128_1701/master/2128.jpg?width=140&quality=85&auto=format&fit=max&s=ff47c8e1d050d83428e0e29e0cb71822"
-  },
-  {
    "id": "f0a1c67c0848",
    "feed": "ars",
    "category": "tech",
@@ -1359,28 +1467,6 @@
    "date": "2026-10-09T21:34:09.000Z",
    "summary": "\"We’ve made it clear that NASA will never give up its presence in low Earth orbit.\"",
    "image": "https://cdn.arstechnica.net/wp-content/uploads/2012/11/323069main_s119e009662.jpg"
-  },
-  {
-   "id": "ddfa4e186cef",
-   "feed": "npr",
-   "category": "news",
-   "source": "NPR",
-   "title": "Fired OpenAI employees question the company's commitment to safety",
-   "link": "https://www.npr.org/2026/10/09/nx-s1-5996890/openai-safety-firings",
-   "date": "2026-10-09T21:28:09.000Z",
-   "summary": "The three fired workers say OpenAI punished them for being outspoken about safety. The company disputes the claims and says they were fired over mishandling sensitive information.",
-   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/8256x5504+0+0/resize/8256x5504!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F4d%2Fab%2F353f227b4ed395e0c6390444a5a6%2Fgettyimages-2295203915.jpg"
-  },
-  {
-   "id": "882903f0d7d5",
-   "feed": "npr",
-   "category": "news",
-   "source": "NPR",
-   "title": "Trump says U.S. to get diesel from Russia, relaxing pressure on Moscow to ease prices before midterms",
-   "link": "https://www.npr.org/2026/10/09/nx-s1-5996912/trump-says-u-s-to-get-diesel-from-russia-relaxing-pressure-on-moscow-to-ease-prices-before-midterms",
-   "date": "2026-10-09T21:24:13.000Z",
-   "summary": "Trump says the U.S. will obtain diesel from Russia, relaxing years of U.S. pressure on Moscow, to combat prices before midterms. He said he struck the deal with Russian President Vladimir Putin in a phone call.",
-   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/8640x5760+0+0/resize/8640x5760!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F1b%2Ff7%2Fba5e41fe4a0eb0f617a90d2e222c%2Fap26274756029238.jpg"
   },
   {
    "id": "0854a3cada87",
@@ -1438,28 +1524,6 @@
    "image": null
   },
   {
-   "id": "13a86554d2a3",
-   "feed": "ars",
-   "category": "tech",
-   "source": "Ars Technica",
-   "title": "AI coding agents generate more code, but not more software",
-   "link": "https://arstechnica.com/ai/2026/10/ai-coding-agents-generate-more-code-but-not-more-software/",
-   "date": "2026-10-09T19:43:50.000Z",
-   "summary": "Study finds coding efficiency gains get \"absorbed\" by human review \"bottleneck.\"",
-   "image": "https://cdn.arstechnica.net/wp-content/uploads/2026/10/GettyImages-2264559974-1152x648.jpg"
-  },
-  {
-   "id": "3c9f53595f6b",
-   "feed": "verge",
-   "category": "tech",
-   "source": "The Verge",
-   "title": "Ohio blogger found guilty of harassment for sending Shrek nude to senator",
-   "link": "https://www.theverge.com/policy/1008991/ohio-blogger-harassment-shrek-nude",
-   "date": "2026-10-09T19:41:11.000Z",
-   "summary": "A jury found an Ohio political blogger guilty of telecommunications harassment after he sent an explicit image of Shrek to a Republican state senator. On Friday, a judge ordered DJ Byrnes, owner of political commentary blog The Rooster, to pay a $200 fine, according to a report…",
-   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/10/gettyimages-2261816039.jpg?quality=90&strip=all&crop=0,0,100,100"
-  },
-  {
    "id": "43fd2a198be0",
    "feed": "techcrunch",
    "category": "tech",
@@ -1482,17 +1546,6 @@
    "image": null
   },
   {
-   "id": "42d1906c74af",
-   "feed": "verge",
-   "category": "tech",
-   "source": "The Verge",
-   "title": "‘Pure insanity’: Mathematicians will need years to make sense of OpenAI’s latest drop",
-   "link": "https://www.theverge.com/ai-artificial-intelligence/1008726/openai-mathematics-solutions-chaos",
-   "date": "2026-10-09T19:09:44.000Z",
-   "summary": "\"Staggering.\" \"Overwhelming.\" \"Unprecedented.\" \"Surreal.\" \"Pure insanity.\" Those were among the descriptions more than three dozen mathematicians reached for in conversations with The Verge as they tried to make sense of the flood of mathematical results OpenAI abruptly dropped…",
-   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/10/STKS537_AI_MATH_5.jpg?quality=90&strip=all&crop=0,0,100,100"
-  },
-  {
    "id": "eed1fa114cfa",
    "feed": "techcrunch",
    "category": "tech",
@@ -1502,28 +1555,6 @@
    "date": "2026-10-09T18:57:58.000Z",
    "summary": "Batteries are now cheaper than natural gas turbines as the data center boom pushes prices up.",
    "image": null
-  },
-  {
-   "id": "28080ccb7d2b",
-   "feed": "npr",
-   "category": "news",
-   "source": "NPR",
-   "title": "The U.S. last held a public execution in the 1930s. The Pentagon wants to change that",
-   "link": "https://www.npr.org/2026/10/09/nx-s1-5996529/firing-squad-livestream-execution-fort-hood-shooter",
-   "date": "2026-10-09T18:55:38.000Z",
-   "summary": "The Pentagon says it will livestream the firing squad execution of Nidal Hasan at Fort Hood, the site of his 2009 mass shooting. That would be the first public execution in the U.S. since the 1930s.",
-   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/3000x2424+0+0/resize/3000x2424!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Fdf%2Ff8%2F534d592e4c20a62c07112b8cc7a6%2Fgettyimages-808644.jpg"
-  },
-  {
-   "id": "dc82b8d44824",
-   "feed": "verge",
-   "category": "tech",
-   "source": "The Verge",
-   "title": "Brendan Carr says he’ll let Pete Hegseth decide whether TV networks can air the public execution",
-   "link": "https://www.theverge.com/policy/1008950/fcc-brendan-carr-pete-hegseth-execution-tv-networks-air",
-   "date": "2026-10-09T18:30:48.000Z",
-   "summary": "FCC chairman Brendan Carr said he will defer to Secretary of Defense Pete Hegseth on whether TV networks can air the planned execution of convicted Fort Hood shooter Nidal Hasan by firing squad. The Pentagon has said the execution will be livestreamed, suggesting it'll appear…",
-   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/chorus/uploads/chorus_asset/file/25840497/STKP211_BRENDAN_CARR_B.jpg?quality=90&strip=all&crop=0,0,100,100"
   },
   {
    "id": "7d508f2895f5",
@@ -1546,17 +1577,6 @@
    "date": "2026-10-09T18:11:44.000Z",
    "summary": "NASA is advancing American leadership in space by taking the next step toward a future where commercial space stations lead the way in low Earth orbit. On Friday, the agency released its final Request for Proposals inviting industry to submit plans for the next generation of…",
    "image": "https://www.nasa.gov/wp-content/uploads/2022/02/nasa_meatball_large.jpg?w=2048"
-  },
-  {
-   "id": "57fe1472ddc3",
-   "feed": "verge",
-   "category": "tech",
-   "source": "The Verge",
-   "title": "Nikon microscopic video competition winner disqualified for using generative AI",
-   "link": "https://www.theverge.com/ai-artificial-intelligence/1008930/nikon-small-world-in-motion-winner-ai",
-   "date": "2026-10-09T18:06:57.000Z",
-   "summary": "Nikon says the video that originally won first place in its Small World in Motion contest \"did not comply with the competition rules regarding generative AI.\" BBC reports that the original first place video from Dr. Ning Xu claimed to show \"tiny, hair-like structures called…",
-   "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/10/nikon-small-world-in-motion-ning-xu.png?quality=90&strip=all&crop=0,0,100,100"
   },
   {
    "id": "432ae81fd2b3",
@@ -1592,17 +1612,6 @@
    "image": "https://i2.ytimg.com/vi/5N17EbYJBwQ/hqdefault.jpg"
   },
   {
-   "id": "d1f0b4c8e227",
-   "feed": "npr",
-   "category": "news",
-   "source": "NPR",
-   "title": "U.S. working to reverse an Egyptian man's third-country deportation to Africa",
-   "link": "https://www.npr.org/2026/10/09/g-s1-147476/trump-third-country-deportation-africa-reverse",
-   "date": "2026-10-09T17:49:28.000Z",
-   "summary": "The Trump administration's effort to return Ahmed Soliman to the U.S. come after an Arizona judge said his deportation violated due process.",
-   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/3600x2260+0+0/resize/3600x2260!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F78%2F76%2Ffedb4c01483190601424b3f5f19e%2Fgettyimages-2250389212.jpg"
-  },
-  {
    "id": "10bbe153c070",
    "feed": "gn-naples",
    "category": "swfl",
@@ -1634,17 +1643,6 @@
    "date": "2026-10-09T16:59:24.000Z",
    "summary": "NASA is testing heat shields that can keep astronauts safe as they return from missions to the Moon and Mars in an unusual way: by taking out the trash. When Northrop Grumman 24th cargo resupply mission for NASA undocked from the International Space Station, it carried a fleet…",
    "image": "https://www.nasa.gov/wp-content/uploads/2026/10/iss075e0185943.jpg?w=2048"
-  },
-  {
-   "id": "babc8a79a2d5",
-   "feed": "npr",
-   "category": "news",
-   "source": "NPR",
-   "title": "Did Russia play by the rules in reporting lab worker's death?",
-   "link": "https://www.npr.org/2026/10/09/g-s1-147295/russia-lab-death-pneumonia-plague",
-   "date": "2026-10-09T16:43:45.000Z",
-   "summary": "A global treaty signed by 197 countries — including Russia — requires reporting any death that could be a sign of an outbreak to come.",
-   "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/8192x5464+0+0/resize/8192x5464!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F6e%2F2a%2F3ddd11034463ac7c7879271335f8%2Frussia-plague-2298434595.jpg"
   },
   {
    "id": "85c11fca4aa4",
@@ -1942,28 +1940,6 @@
    "date": "2026-10-09T08:25:24.000Z",
    "summary": "Nearly a century after physicist Hans Bethe predicted them, scientists have created and directly observed unusual quantum states known as “Bethe strings” in an ultracold gas. By cooling cesium atoms to near absolute zero and trapping them in thousands of tiny one-dimensional…",
    "image": null
-  },
-  {
-   "id": "2eced5b9b09d",
-   "feed": "bbc-tech",
-   "category": "tech",
-   "source": "BBC Technology",
-   "title": "Nvidia-backed data centre firm scraps IPO as AI valuation concerns deepen",
-   "link": "https://www.bbc.co.uk/news/articles/ck9dzpw4ll8po?at_medium=RSS&at_campaign=rss",
-   "date": "2026-10-09T07:14:30.000Z",
-   "summary": "Firmus said it had made the decision due to \"recent market volatility and prevailing market conditions\".",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/0cb7/live/41bf1cb0-c380-11f1-b333-87955b7be3e7.jpg"
-  },
-  {
-   "id": "4a0e708d5892",
-   "feed": "bbc-tech",
-   "category": "tech",
-   "source": "BBC Technology",
-   "title": "'Careless use of AI is the real threat - not the ghost stories'",
-   "link": "https://www.bbc.co.uk/news/articles/cjzxz9yp1kq9o?at_medium=RSS&at_campaign=rss",
-   "date": "2026-10-09T07:05:01.000Z",
-   "summary": "Meredith Whittaker says the tech has been misunderstood, in an exclusive interview with BBC Global Women.",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/d541/live/208feab0-bc0f-11f1-a430-4d16ee157c41.jpg"
   },
   {
    "id": "abbc04868c38",
@@ -2960,7 +2936,6 @@
   "earthquake.usgs.gov",
   "raw.githubusercontent.com",
   "www.cisa.gov",
-  "www.npr.org",
   "www.schneier.com"
  ]
 }
