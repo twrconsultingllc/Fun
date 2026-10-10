@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #64 — J.A.R.V.I.S. Session 12: meaning module</title>
+<meta name="description" content="Review of Session 12 of the J.A.R.V.I.S. build plan in the test copy: a self-hosted MediaPipe text embedder and Universal Sentence Encoder, loaded only on &quot;upgrade your brain&quot;, used only after every pattern has failed, with destructive commands never chosen by meaning, the camera and mic only ever asked about, and nothing new stored.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #64 — J.A.R.V.I.S. Session 12: meaning module</h1>
+    <p class="sub">Say "upgrade your brain" and the test copy downloads a language module from this site (MediaPipe's text embedder and the Universal Sentence Encoder, about 12 MB) while its neural network lights up. From then on, a sentence nothing else understood is compared by meaning with a few example sentences for each command, with the phrases you taught it and with your protocols' names. Very close: he does it. Somewhat close: "Did you mean …?". Otherwise, the usual line. It's a safety net only: every command that worked before works the same.</p>
+    <div class="meta">Review performed 2026-10-10 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>jarvis/text/</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>tests/jarvis-test.chromium.mjs</code>, <code>tests/README.md</code>, <code>jarvis/build-plan.html</code> · suites run: <code>jarvis-test</code> (1443 checks), then <code>tests/jarvis-test.chromium.mjs</code> (128 checks) on its own</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 80%;"></div></div>
+    <div class="progress-label">20 items: 16 verified clean or fixed, 4 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security and privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Head block and CSP unchanged</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>git diff</code> of <code>jarvis-test.html</code> touches no <code>&lt;meta&gt;</code> line except the description. The suite pins the whole CSP string to what it was before Session 8, now from the Session 12 section too. The module needs only what the hand tracker already uses: <code>script-src 'self' 'wasm-unsafe-eval'</code> for the bundle and its WebAssembly, and <code>connect-src 'self'</code> for the model. In Chromium over the local server, every request the upgrade made went to the page's own origin, and no CSP violation was logged.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Self-hosted and pinned by hash</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>jarvis/text/</code> holds four unmodified files: <code>text_bundle.js</code>, <code>text_wasm_internal.js</code> and <code>text_wasm_internal.wasm</code> from npm <code>@mediapipe/tasks-text@0.10.14</code> (the same version as the hand tracker's vision package; its npm integrity was <code>sha512-hQU/t9df…</code>), and <code>universal_sentence_encoder.tflite</code> (float32, v1) from MediaPipe's model bucket, 6.1 MB. Apache-2.0. The README lists each file's source and SHA-256, and the suite checks all four hashes and that the README lists them. Only the SIMD WebAssembly build is included, as in <code>jarvis/hands/</code>. Like the hand tracker, the bundle is loaded with <code>import()</code>, which can't carry an SRI attribute; the pinned hashes in the suite are the check, as they are for <code>jarvis/hands/</code>.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Never loaded at start-up</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The bundle is imported in one place, <code>textLib</code>, which only <code>upgradeBrain()</code> calls (both pinned in the suite). In Chromium, the request log after loading the page and skipping the boot holds nothing from <code>jarvis/text/</code>; after "jarvis upgrade your brain please" it holds the bundle, the loader, the WebAssembly and the model. A changed page that loaded the module at start-up failed the suite.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Browser cache, not the Cache API</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Decided in the session. The files are fetched normally, so the browser's own cache keeps them, and a second upgrade in a later visit is quick. Keeping them in the Cache API would be a new kind of stored data, 12 MB of it, with nothing in the page to clear it except clearing site data, and offline use is Session 15's job. In Chromium, <code>caches.keys()</code> is empty after an upgrade.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Nothing new is stored</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The fingerprints (100 numbers per sentence) and their middle point live in memory, are worked out on each upgrade, and are gone on reload. The one-place-that-saves checks pass unchanged: no <code>localStorage</code> write anywhere, exactly one <code>'readwrite'</code> transaction, in <code>flush()</code>, and Session 12 adds no <code>save(</code> call. In jsdom, after the upgrade and every kind of match, a database dump holds the same five tables at version 2, only listed keys in <code>kept</code> and <code>meta</code>, no list of numbers, no example sentence and nothing said to the module. In real IndexedDB in Chromium, the database before and after the upgrade and three matched turns differed only in the usage counts, and was still at version 2.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Destructive commands are exact only</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Two guards. No command in the meaning list deletes, forgets, resets or reboots (the suite checks the list and its examples against <code>DESTRUCTIVE</code>), and a taught phrase whose meaning does is left out of the candidates. And anything said with such a word (forget, delete, remove, erase, wipe, clear, reset, undo, scrap, ditch, get rid of, throw away, cancel, reboot, power down…) is never matched at all, however close: "forget about the globe" at 0.99 gets the usual "didn't understand". The word list was widened in the session, after "get rid of the movie night thing" turned out to be a way of saying delete that the first list missed. Deleting a protocol still needs its exact command and a yes.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The camera and mic are never started on a guess</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>A match for the threat scan, hand control, always listening or scanning a settings code always asks first, even at 0.97. These are worked out from the commands themselves (<code>asksFirst()</code>), so a taught phrase meaning "scan the room" asks too. The same rule as Session 10's protocols: the camera only starts when you ask.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No user text as markup</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>"Did you mean …?" can name a taught phrase or a protocol, both already normalised to lower-case letters, digits, apostrophes and spaces, and shown through <code>add()</code>, which builds text nodes. The suite's "no innerHTML anywhere" check passes. A sentence that looks personal is never compared, and nothing compared is kept.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">npm audit: source-map-js</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Carried from review 61. No test dependency was added; the model files are served to the page, not installed.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A safety net: the patterns always win</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The module is asked last in <code>answerCore()</code>, after <code>respond()</code> (so after <code>intent()</code> and <code>brainKnown()</code>), a protocol name, a fragment and "wake up". To pin it, the suite opens two windows, one with a brain that never matches and one with a brain that thinks everything means "tell me a joke", and types the same 78 phrases into both: every command link, plus unpunctuated phrasings, settings, short-term memory, delete, forget and reset commands. Every answer is identical, and the always-a-joke brain was never reached. A page that asked the module first failed it.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The bands, set against the real model</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Raw Universal Sentence Encoder fingerprints for short commands are all alike: in a calibration run of 205 sentences in Chromium, nearly every pair scored above 0.9, so "where is my phone" scored 0.956 against "what time is it". Measured from the middle of the example sentences (worked out on each upgrade, never stored), they spread out: of 29 rewordings, 25 ranked their own command first, and 25 sentences that mean nothing he can do scored 0.28 to 0.70. So: 0.80 or more, and at least 0.05 ahead of the next, does it; 0.60 or more asks; less is the usual line. Of the unrelated sentences, three land in the "Did you mean" band ("what is love", 0.70, asks about a heart in particles; "play some music" and "sing me a song" ask about always listening) and none in the "do it" band. "Show me the planet we live on" scores 0.821 against the globe in the page, 0.11 ahead of the next.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">"Did you mean …?" through ask()</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Pinned with real turns, typed into the input: "yes" runs it and counts it; "no" runs nothing and asks what you meant, so the next thing you say teaches him the phrase, as usual; anything else is answered as itself and drops the question, so a "yes" after it answers nothing. Two candidates within 0.05 of each other ask rather than pick.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Counted under their own IDs; one new ID</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>A matched command runs through <code>respond()</code> with its own command text, so it counts as itself (<code>scene:globe</code>, <code>cmd:joke</code>, <code>cmd:protocol</code>…), both straight away and after "yes". Asking counts nothing. "Upgrade your brain" counts once as <code>cmd:upgrade</code> (44 usage IDs now) and has a <code>CAPABILITIES</code> entry, which needs only WebAssembly. It isn't a clearance extra, decided in the session: it helps him understand you, which a newcomer needs most, so it's open from level 1.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Phone speech, and everything through say()</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>"Upgrade your brain" is matched on <code>normPhrase()</code> with "jarvis", "hey jarvis", "please", "can you" in front and "please", "now", "jarvis" after; "jarvis upgrade your brain please", "Jarvis, upgrade your brain." and "please upgrade your brain jarvis" are pinned. Rewordings are compared the same way, so "jarvis show me the planet we live on please" is the same sentence to the module. The two lines said later ("Language comprehension module online." and the failure line) go through <code>say()</code>, and the download starts after the first answer has been said, so a fast result can't come before it.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The suite fails when the code is broken</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Fourteen changes were run against the suite. All fourteen failed it: asking the module before the patterns (5 checks), no destructive check on what was said (2), destructive taught phrases as candidates (8 or more), the camera and mic not asking (4), no gap check (2), no "Did you mean" band (8 or more), "no" running it anyway (8 or more), loading at start-up (1), fingerprints in <code>localStorage</code> (2), matched commands not counted (7), the upgrade only understood punctuated (8 or more), a wider CSP (5), the "online" line not through <code>say()</code> (2), and a loose "delete a protocol" candidate (3). In the first pass the gap check wasn't caught: the test's near-tie couldn't score above 0.7 with its made-up fingerprints, so it asked for the wrong reason. It's now a real near-tie (0.90 against 0.88).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Rendered at both sizes, with the real model</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Headless Chromium over the local server, in a fresh profile at 1280×800 and at 390×844: "jarvis upgrade your brain please" typed; the neural network turned gold layer by layer with "UPGRADING · 73%" in its stat line (screenshot), short enough that a phone shows the number (checked); "Language comprehension module online."; "show me the planet we live on" typed and the Earth opened, counted as <code>scene:globe</code>; "make me smile" asked "Did you mean a joke? Say yes or no." (screenshot) and "yes" told one. No sideways scroll. The first run showed the progress twice over the scene, in the stat line and the amber protocol line; the amber line is now only used over the orb or another scene, and the check pins it. At 390 wide, "UPGRADING · LANGUAGE MODULE · 73%" was cut off before the number, so the scene's line is now "UPGRADING · 73%", then "BRAIN UPGRADED". MediaPipe prints two start-up notes ("Created TensorFlow Lite XNNPACK delegate", a delegate warning) through <code>console.error</code>; the check lets exactly those two lines through and still fails on any other error. 128 checks pass, run on their own after the jsdom suite; the whole run takes about four and a half minutes under SwiftShader.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Contrast</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>No new text colour. The progress uses the existing stat line and amber protocol line, already measured in reviews 61 and 63. The gold front is on the 3D nodes, not on text.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not tried on a real phone</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>How long the download and the example sentences take on a phone, and how 12 MB feels on mobile data, are your Session 12 checks. Under SwiftShader in this container each sentence took about 140 ms on the CPU, so the 152 example sentences took about 21 seconds; a phone should be faster, but that's unmeasured.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Some rewordings are still missed</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>By design, a miss is cheaper than a wrong guess. In the calibration run, "show me the red planet" ranked the globe above Mars, "turn into morpheus" and "i want to see the world" scored under 0.6, and "how is your day going" ranked the date first (0.62, so it would ask). More example sentences would help, and are cheap to add; each one moves the middle point, so the bands should be checked again in Chromium when the list changes.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Carried</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>From review 60: a failed save isn't reported, and chat answers are counted by an approximate kind. From review 62: a Session 10 Chromium step can time out under load. It did once in this session, straight after the jsdom suite (the protocol HUD wait, before any Session 12 step ran), and passed on the next run on its own. From review 63: no hidden level override, and a level can drop after a long time away.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Previous review: <a href="63.html">63</a>. Built to the fixed report template: no scripts, no external loads, no forms.</p>
+  </footer>
+</div>
+</body>
+</html>
