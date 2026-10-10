@@ -140,7 +140,11 @@ const oneLine = (s) => s.replace(/\s+/g, ' ').trim();
 export function tableRows(html) {
     const rows = [];
     for (const tr of String(html).matchAll(/<tr\b[^>]*>([\s\S]*?)(?=<tr\b|<\/table>|$)/gi)) {
-        const cells = [...tr[1].matchAll(/<t([dh])\b[^>]*>([\s\S]*?)(?=<t[dh]\b|<\/tr>|$)/gi)].map((c) => oneLine(plain(c[2].replace(/<\/t[dh]>/gi, ''))));
+        // A cell with colspan="3" counts as three, so a header lines up with rows that give each value its own ± and reference cells.
+        const cells = [...tr[1].matchAll(/<t([dh])\b([^>]*)>([\s\S]*?)(?=<t[dh]\b|<\/tr>|$)/gi)].flatMap((c) => {
+            const text = oneLine(plain(c[3].replace(/<\/t[dh]>/gi, ''))), span = Math.min(12, Math.max(1, parseInt((c[2].match(/colspan\s*=\s*["']?(\d+)/i) || [])[1] || '1', 10)));
+            return Array(span).fill(text);
+        });
         if (cells.length) rows.push(cells);
     }
     for (const pre of String(html).matchAll(/<pre\b[^>]*>([\s\S]*?)<\/pre>/gi))
@@ -202,10 +206,18 @@ export function parseMoons(html) {
         if (head) {
             // Line the row up with the header by its name column: a planet named only on its first moon's row shifts the rest.
             const hn = head.findIndex((c) => /sat|name|moon/i.test(c)), off = at - (hn < 0 ? 0 : hn);
-            radius = num(row[head.findIndex((c) => /radius/i.test(c)) + off]); density = num(row[head.findIndex((c) => /density/i.test(c)) + off]);
+            const ri = head.findIndex((c) => /radius/i.test(c)), di = head.findIndex((c) => /density/i.test(c));
+            radius = num(row[ri + off]); density = num(row[di + off]);
+            // JPL's table gives each value three cells (the value, ±, a reference) under one header cell. If the header
+            // didn't say so with colspan, the value columns are spread evenly over the extra cells.
+            const gi = head.findIndex((c) => /^GM\b/i.test(c));
+            if (!(Math.abs(radius - about) <= about * 0.15) && gi > hn && ri > gi && di > ri) {
+                const cols = head.length - gi, w = (row.length - off - gi) / cols;
+                if (Number.isInteger(w) && w > 1) { radius = num(row[off + gi + (ri - gi) * w]); density = num(row[off + gi + (di - gi) * w]); }
+            }
         }
         if (!(Math.abs(radius - about) <= about * 0.15)) { const n = row.slice(at + 1).map(num).filter(Number.isFinite); radius = n[1]; density = n[2]; } // GM, radius, density
-        if (!(Math.abs(radius - about) <= about * 0.15)) throw new Error(`moons: ${name} radius ${radius}, expected about ${about}`);
+        if (!(Math.abs(radius - about) <= about * 0.15)) throw new Error(`moons: ${name} radius ${radius}, expected about ${about}. The table's header row: ${JSON.stringify(head)}; ${name}'s row: ${JSON.stringify(row)}`);
         sane(`${name} density`, density, 0.3, 6);
         out.push({ kind: 'moon', name, planet, radius: round(radius, 1), density: round(density, 3) });
     }
@@ -270,13 +282,13 @@ export const MISSIONS = [
     ['Parker Solar Probe', '2018-065A', 'Parker Solar Probe', 'the Sun, closer than any spacecraft before it', 'NASA'],
     ['Perseverance', '2020-052A', 'Perseverance', 'Mars, as a rover with the Ingenuity helicopter', 'NASA'],
     ['James Webb Space Telescope', '2021-130A', 'Webb', 'a point beyond the Moon, as a space telescope', 'NASA, ESA and the Canadian Space Agency'],
-    ['Artemis I', '2022-156A', 'Artemis', 'the Moon and back, uncrewed', 'NASA'],
-    ['Europa Clipper', '2024-182A', 'Europa Clipper', 'Jupiter, to study its moon Europa', 'NASA']
+    ['Artemis I', '2022-156A', 'Artemis', 'the Moon and back, uncrewed', 'NASA']
+    // Europa Clipper (2024-182A) was dropped on 2026-10-10: the catalogue has no record for it yet ("no data found").
 ];
 export const missionUrl = (id) => `https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=${id}`;
 export function parseMission(html, [name, id, must, target, agency]) {
-    const t = oneLine(plain(html));
-    if (!t.toLowerCase().includes(must.toLowerCase())) throw new Error(`missions: the page for ${id} doesn't mention ${must}`);
+    const t = oneLine(plain(html)), loose = (x) => x.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    if (!loose(t).includes(loose(must))) throw new Error(`missions: the page for ${id} doesn't mention ${must}. It begins: ${JSON.stringify(t.slice(0, 300))}`);
     if (!t.includes(id)) throw new Error(`missions: the page for ${name} doesn't show its ID ${id}`);
     const m = t.match(/Launch Date:?\s*(\d{4})-(\d{2})-(\d{2})/i);
     if (!m) throw new Error(`missions: no launch date for ${name} (${id})`);
@@ -385,15 +397,40 @@ export function parseSuits(json) {
 /* ---------- Putting it together ---------- */
 
 // get(url, {binary}) returns the text (or bytes) at a URL. The real build fetches; the dry run reads fixtures.
-export async function buildPack(get, suitsJson) {
+export async function buildPack(get, suitsJson, { wait = 3000 } = {}) {
+    // Every source is tried even when one fails, so a single run names every page that didn't parse.
+    const problems = [], skipped = [], part = async (what, f) => { try { return await f(); } catch (e) { problems.push(e.message); return []; } };
+    const parts = [
+        await part('planets', async () => parsePlanets(await get(SOURCES[0].url))),
+        await part('moons', async () => parseMoons(await get(SOURCES[1].url))),
+        await part('stars', async () => parseStars(await get(SOURCES[2].url, { binary: true }))),
+        await part('missions', async () => {
+            // One page at a time. On 2026-10-10 the catalogue answered six of these (Sputnik 1, Explorer 1, Vostok 1,
+            // Galileo, Hubble and Cassini) with its own error page every time, though their IDs are right. Its error page is
+            // tried again twice, then that mission is left out and named in the log, so a later run picks it up once
+            // NASA fixes the record. Anything else (a page naming another craft, a year that doesn't match) stops the build.
+            const out = [], bad = [];
+            for (const m of MISSIONS) {
+                for (let attempt = 1; ; attempt++) {
+                    try { out.push(parseMission(await get(missionUrl(m[1])), m)); break; } catch (e) {
+                        const theirs = /An error has occurred|no data found/.test(e.message);
+                        if (theirs && attempt < 3) { await new Promise((r) => setTimeout(r, wait * attempt)); continue; }
+                        if (theirs) skipped.push(`${m[0]} (${m[1]})`); else bad.push(e.message);
+                        break;
+                    }
+                }
+            }
+            if (bad.length) throw new Error(bad.join('\n'));
+            return out;
+        }),
+        await part('elements', async () => parseElements(await get(SOURCES[4].url))),
+        await part('countries', async () => Promise.all(COUNTRIES.map(async (c) => parseCountry(await get(factbookUrl(c[1])), c)))),
+        await part('suits', async () => parseSuits(suitsJson))
+    ];
+    if (problems.length) throw new Error(problems.join('\n'));
+    if (skipped.length) console.warn(`Left out, because NASA's catalogue answered with its error page: ${skipped.join(', ')}.`);
     const records = [
-        ...parsePlanets(await get(SOURCES[0].url)),
-        ...parseMoons(await get(SOURCES[1].url)),
-        ...parseStars(await get(SOURCES[2].url, { binary: true })),
-        ...(await Promise.all(MISSIONS.map(async (m) => parseMission(await get(missionUrl(m[1])), m)))),
-        ...parseElements(await get(SOURCES[4].url)),
-        ...(await Promise.all(COUNTRIES.map(async (c) => parseCountry(await get(factbookUrl(c[1])), c)))),
-        ...parseSuits(suitsJson)
+        ...parts.flat()
     ].sort((a, b) => (a.kind === b.kind ? (a.name < b.name ? -1 : 1) : a.kind < b.kind ? -1 : 1));
     // The version is worked out from the records, so the page fetches a new pack only when the facts change.
     const version = parseInt(createHash('sha256').update(JSON.stringify(records)).digest('hex').slice(0, 8), 16) || 1;

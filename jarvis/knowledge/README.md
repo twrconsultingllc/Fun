@@ -16,7 +16,7 @@ unchanged: nothing comes from another host.
 | 8 planets and Pluto: distance from the Sun, size, day, year, gravity, temperature, rings | NASA NSSDCA Planetary Fact Sheet (metric), `https://nssdc.gsfc.nasa.gov/planetary/factsheet/` | US government work, public domain |
 | 21 major moons: radius, density | NASA JPL Solar System Dynamics, satellite physical parameters, `https://ssd.jpl.nasa.gov/sats/phys_par/` | US government work, public domain |
 | 25 well-known stars: constellation, spectral type, magnitude, distance where the parallax is good enough | Yale Bright Star Catalogue, 5th revised edition (Hoffleit and Warren 1991), from CDS, `https://cdsarc.cds.unistra.fr/ftp/V/50/catalog.gz` | free to use, with credit to the authors and CDS |
-| 23 space missions: launch date | NASA NSSDCA Master Catalog, one page per mission | US government work, public domain |
+| 16 space missions: launch date | NASA NSSDCA Master Catalog, one page per mission. Seven more are listed in `build.mjs` but left out: on 2026-10-10 the catalogue answered Sputnik 1, Explorer 1, Vostok 1, Galileo, Hubble and Cassini with its own error page, and has no record for Europa Clipper. A later run picks them up once NASA fixes them; the run log names any left out | US government work, public domain |
 | All 118 elements | PubChem Periodic Table (NIH), `https://pubchem.ncbi.nlm.nih.gov/rest/pug/periodictable/JSON` | US government work, public domain |
 | 76 countries (every country on the globe except England and Scotland): capital, region, area, highest point, flag | CIA World Factbook, last archived copy in `factbook/factbook.json`, pinned to commit `144d6977b2b01ac1cbd220de754c0a005616760b` | public domain |
 | 13 Iron Man suits, a line or two each | Hand-written in `suits.json` | fan knowledge, not an official source |
@@ -34,8 +34,9 @@ its licence needs attribution on every reuse.
 
 ## Building it
 
-The claude.ai/code containers can't reach NASA, JPL, CDS or PubChem (their proxy refuses them), so
-the real build runs somewhere else. Either:
+The committed `pack.json` was built by the workflow on 2026-10-10. Rebuild it after changing
+`build.mjs` or `suits.json`. The claude.ai/code containers can't reach NASA, JPL, CDS or PubChem
+(their proxy refuses them), so the real build runs somewhere else. Either:
 
 - **From the Actions tab:** open "J.A.R.V.I.S. knowledge pack" and press **Run workflow**. It builds
   from the sample documents first, then from the real sources, checks the result and commits
@@ -61,7 +62,7 @@ The samples are real data where it was reachable: trimmed copies of the archived
 real catalogue lines for the 25 stars, and PubChem's table as published in the `pubchem-elements`
 npm package. The NASA and JPL pages are laid out like the real pages with their values, and the
 mission pages are minimal stand-ins; the real build will say exactly which page didn't parse if
-NASA's layout differs. The suite builds its pack from these samples, so the page is tested
+NASA's layout differs (the build reports every failing source in one run, with the row it read). The suite builds its pack from these samples, so the page is tested
 without `pack.json`.
 
 No dependencies: Node 22's own `fetch` and `zlib`.

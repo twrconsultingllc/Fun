@@ -3283,7 +3283,7 @@ async function knowledgePack(t, page) {
     t.section('Knowledge pack: the build script and its pack (Session 13)');
     t.eq('the pack built from the sample documents passes the build\'s own check', B.checkPack(PK).join(' | '), '');
     const kinds = {}; for (const r of PK.records) kinds[r.kind] = (kinds[r.kind] || 0) + 1;
-    t.eq('all four areas: space (planets, moons, stars, missions), countries, all 118 elements and the suits', JSON.stringify(kinds), '{"country":76,"element":118,"mission":23,"moon":21,"planet":9,"star":25,"suit":13}');
+    t.eq('all four areas: space (planets, moons, stars, missions), countries, all 118 elements and the suits', JSON.stringify(kinds), '{"country":76,"element":118,"mission":22,"moon":21,"planet":9,"star":25,"suit":13}');
     t.ok('it lists its sources, and none is Wikipedia', PK.sources.length === 7 && PK.sources.every((x) => x.name && x.licence) && !/wikipedia/i.test(JSON.stringify(PK)));
     t.ok('the World Factbook copy is pinned to one commit', PK.sources.find((x) => x.id === 'countries').url.includes(B.FACTBOOK_SHA) && /^[0-9a-f]{40}$/.test(B.FACTBOOK_SHA));
     t.ok('every suit line is marked as fan knowledge', PK.records.filter((r) => r.kind === 'suit').every((r) => r.fan === true) && /fan knowledge/i.test(PK.sources.find((x) => x.id === 'suits').licence));
@@ -3322,6 +3322,14 @@ async function knowledgePack(t, page) {
         t.eq('every country on the globe is in the pack, apart from England and Scotland (the Factbook covers them as the UK)',
             Object.values(J.PLACES).filter((p) => p.kind === 'country').map((p) => p.name).filter((n, i, a) => a.indexOf(n) === i && !countries.some((r) => r.name === n)).join(), 'England,Scotland');
         t.ok('and the build lists the same ones', B.COUNTRIES.length === countries.length);
+        // The committed pack, once the real build has run (jarvis/knowledge/README.md): the same rules, record by record.
+        let real = null;
+        if (page.url.startsWith('file:')) { try { real = JSON.parse(await readFile(fileURLToPath(new URL('jarvis/knowledge/pack.json', page.url)), 'utf8')); } catch { real = null; } }
+        if (real) {
+            t.eq('the committed pack.json passes the build\'s check', B.checkPack(real).join(' | '), '');
+            t.eq('every record in it passes the page\'s fits()', real.records.filter((r) => !J.fits('pack', J.packKey(r), r)).map((r) => r.name).join(), '');
+            t.eq('and every country in it is a place on the globe', real.records.filter((r) => r.kind === 'country' && !J.PLACES[norm(r.name)]).map((r) => r.name).join(), '');
+        } else t.note('no committed pack.json to check (the real build hasn\'t run, or this isn\'t the working copy)');
         t.ok('a country opens the globe on itself', ['Peru', 'United States', 'DR Congo', 'Australia'].every((n) => { const s = J.knowScene(PK.records.find((r) => r.name === n)); return s.kind === 'globe' && J.PLACES[s.arg].name === n; }));
         t.ok('a planet opens the solar system near it, and a moon near its planet', J.knowScene(mars).arg === 'mars' && J.knowScene(PK.records.find((r) => r.name === 'Europa')).arg === 'jupiter' && J.knowScene(PK.records.find((r) => r.name === 'Pluto')).arg === null);
         t.ok('a suit opens the schematic; elements, stars and missions open nothing', J.knowScene(sx).kind === 'suit' && [ 'Gold', 'Sirius', 'Voyager 1'].every((n) => J.knowScene(PK.records.find((r) => r.name === n)) === null));
@@ -3409,7 +3417,7 @@ async function knowledgePack(t, page) {
         t.ok('the pack table holds nothing but pack records', Object.entries(d.pack).every(([k, r]) => K.packFits(k, r)));
         await typeIn(env, 'tell me about japan'); await typeIn(env, 'how far is mars');
         t.eq('later questions don\'t fetch it again', env.packFetches(), 1);
-        t.ok('"what do you save" now says it keeps the pack, and that none of it is about you', /I also keep my knowledge pack here: 285 public facts about countries, planets, moons, stars, missions, elements and Mr Stark's suits, copied from this site the first time you asked me about one\. None of it is about you\./.test(await typeIn(env, 'what do you save')));
+        t.ok('"what do you save" now says it keeps the pack, and that none of it is about you', /I also keep my knowledge pack here: 284 public facts about countries, planets, moons, stars, missions, elements and Mr Stark's suits, copied from this site the first time you asked me about one\. None of it is about you\./.test(await typeIn(env, 'what do you save')));
         t.ok('a backup never carries the pack', !('pack' in K.backupData()) && !/Lima|Huascaran|Fan knowledge/.test(JSON.stringify(K.backupData())));
         t.ok('nothing about the pack is a setting or a protocol', JSON.stringify(d.kept) === '{}' && JSON.stringify(d.protocols) === '{}');
     } finally { env.close(); }

@@ -170,13 +170,13 @@
   <header>
     <h1>Review #65 — J.A.R.V.I.S. Session 13: knowledge pack</h1>
     <p class="sub">Ask the test copy "tell me about Peru" and it spins the globe to Peru and reads stable public facts. "How far is Mars" opens the solar system near Mars, and "tell me about the Mark 42" opens the suit schematic, with the line marked as fan knowledge. The facts come from a pack built by a script in the repo from NASA, JPL, the Yale Bright Star Catalogue, PubChem and the CIA World Factbook. The page copies the pack into its own database the first time you ask.</p>
-    <div class="meta">Review performed 2026-10-10 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>jarvis/knowledge/</code>, <code>.github/workflows/jarvis-knowledge.yml</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>tests/jarvis-test.chromium.mjs</code>, <code>tests/fixtures/jarvis-knowledge/</code>, <code>jarvis/build-plan.html</code> · suites run: <code>jarvis-test-dom</code> (1566 checks) and <code>tests/jarvis-test.chromium.mjs</code> (168 checks), one after the other</div>
+    <div class="meta">Review performed 2026-10-10 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>jarvis/knowledge/</code>, <code>.github/workflows/jarvis-knowledge.yml</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>tests/jarvis-test.chromium.mjs</code>, <code>tests/fixtures/jarvis-knowledge/</code>, <code>jarvis/build-plan.html</code> · suites run: <code>jarvis-test-dom</code> (1569 checks) and <code>tests/jarvis-test.chromium.mjs</code> (168 checks), one after the other</div>
     <div class="legend">
       <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
       <span><span class="dot open"></span> Open</span>
     </div>
-    <div class="progress-bar"><div class="progress-fill" style="width: 90%;"></div></div>
-    <div class="progress-label">21 items: 19 verified clean or fixed, 2 open.</div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">21 items: 21 verified clean or fixed, 0 open.</div>
   </header>
   <section>
     <h2><span class="num">01</span>Security and privacy</h2>
@@ -226,13 +226,13 @@
   <section>
     <h2><span class="num">02</span>Code quality</h2>
     <div class="item">
-      <div class="item-head"><div class="item-title">The real pack isn't committed: its sources are blocked here</div><span class="badge open">Open</span></div>
-      <div class="item-body"><p>The container's proxy refuses NASA, JPL, CDS and PubChem (CONNECT 403, the same as the Daily Wire's feed hosts). As asked, no pack built from anything else was committed. Until the workflow runs, the live test copy answers a fact question with "My knowledge pack isn't on this site yet", which the suite pins, and every other answer is unchanged. To fix: run "J.A.R.V.I.S. knowledge pack" from the Actions tab, or <code>node build.mjs</code> in the Codespace. Only the Factbook archive was reachable from here.</p></div>
-    </div>
+      <div class="item-head"><div class="item-title">The real pack isn't committed: its sources are blocked here</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The container's proxy refuses NASA, JPL, CDS and PubChem (CONNECT 403, the same as the Daily Wire's feed hosts), and no pack built from anything else was committed. Until it was built, the live test copy answered a fact question with "My knowledge pack isn't on this site yet" (pinned in the suite).</p></div>
+      <div class="fix-note"><b>Fix:</b> At the user's request, the workflow was run from GitHub on 2026-10-10, on this session's branch first. It built <code>pack.json</code> from the real sources (278 records, 54 KB) and committed it as <code>github-actions[bot]</code>. <code>build.mjs --check</code> passes, and a new suite check confirms every committed record passes the page's <code>fits()</code> and every country is a globe place.</div>
     <div class="item">
-      <div class="item-head"><div class="item-title">NASA and JPL page layouts are reconstructed, not copied</div><span class="badge open">Open</span></div>
-      <div class="item-body"><p>The planet and moon samples use the real values (from a dataset scraped from those pages) in the layout those pages are known to use, and the mission pages are minimal stand-ins. The parsers read tables by their header and row labels, not by fixed positions, and fall back to positions for the moon table. If the real layout differs, the build stops and names the page; it never writes a half-built pack. Open until the first real run passes.</p></div>
-    </div>
+      <div class="item-head"><div class="item-title">NASA and JPL page layouts were reconstructed, not copied</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The first real run showed two differences. JPL's moon table gives each value three cells (value, ±, reference) under one header cell, so the reader took the Moon's gravity value (4902.8) for its radius; the 15% range check refused it and nothing was written. NASA's master catalogue answered six missions (Sputnik 1, Explorer 1, Vostok 1, Galileo, Hubble, Cassini) with its own error page on every try, one at a time and retried, though their IDs are right, and has no record for Europa Clipper. The planet sheet, the star catalogue, PubChem and the Factbook parsed first time.</p></div>
+      <div class="fix-note"><b>Fix:</b> The table reader now honours <code>colspan</code> and falls back to equal-width value groups (checked against both layouts). Mission pages are fetched one at a time, NASA's error page is retried twice, then that mission is left out and named in the log. Anything else still stops the build. The build now reports every failing source in one run, with the row it read. The pack has 16 of the 23 listed missions.</div>
     <div class="item">
       <div class="item-head"><div class="item-title">Stable facts only, enforced on both sides</div><span class="badge fixed">Confirmed clean</span></div>
       <div class="item-body"><p><code>STALE_KEY</code> (field names) and <code>STALE_TEXT</code> (words such as population, GDP, president, currency, "est.", "currently", "number of moons") are the same in the page and the build, and the suite compares them. A record with a population, GDP, moon-count or leader field, population in words, an estimate, or "currently" in a suit line is refused by both. A pack carrying one fails <code>checkPack()</code>. No field in <code>PACK_FIELDS</code> has such a name. The build lists its sources, and none is Wikipedia.</p></div>
