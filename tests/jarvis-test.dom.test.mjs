@@ -3322,6 +3322,14 @@ async function knowledgePack(t, page) {
         t.eq('every country on the globe is in the pack, apart from England and Scotland (the Factbook covers them as the UK)',
             Object.values(J.PLACES).filter((p) => p.kind === 'country').map((p) => p.name).filter((n, i, a) => a.indexOf(n) === i && !countries.some((r) => r.name === n)).join(), 'England,Scotland');
         t.ok('and the build lists the same ones', B.COUNTRIES.length === countries.length);
+        // The committed pack, once the real build has run (jarvis/knowledge/README.md): the same rules, record by record.
+        let real = null;
+        if (page.url.startsWith('file:')) { try { real = JSON.parse(await readFile(fileURLToPath(new URL('jarvis/knowledge/pack.json', page.url)), 'utf8')); } catch { real = null; } }
+        if (real) {
+            t.eq('the committed pack.json passes the build\'s check', B.checkPack(real).join(' | '), '');
+            t.eq('every record in it passes the page\'s fits()', real.records.filter((r) => !J.fits('pack', J.packKey(r), r)).map((r) => r.name).join(), '');
+            t.eq('and every country in it is a place on the globe', real.records.filter((r) => r.kind === 'country' && !J.PLACES[norm(r.name)]).map((r) => r.name).join(), '');
+        } else t.note('no committed pack.json to check (the real build hasn\'t run, or this isn\'t the working copy)');
         t.ok('a country opens the globe on itself', ['Peru', 'United States', 'DR Congo', 'Australia'].every((n) => { const s = J.knowScene(PK.records.find((r) => r.name === n)); return s.kind === 'globe' && J.PLACES[s.arg].name === n; }));
         t.ok('a planet opens the solar system near it, and a moon near its planet', J.knowScene(mars).arg === 'mars' && J.knowScene(PK.records.find((r) => r.name === 'Europa')).arg === 'jupiter' && J.knowScene(PK.records.find((r) => r.name === 'Pluto')).arg === null);
         t.ok('a suit opens the schematic; elements, stars and missions open nothing', J.knowScene(sx).kind === 'suit' && [ 'Gold', 'Sirius', 'Voyager 1'].every((n) => J.knowScene(PK.records.find((r) => r.name === n)) === null));

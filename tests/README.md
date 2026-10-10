@@ -42,7 +42,9 @@ copy and against the deploy.
 `fixtures/jarvis-knowledge/` holds sample documents for
 `jarvis/knowledge/build.mjs` (see its README): `jarvis-test.dom.test.mjs`
 builds the knowledge pack from them with the build script itself and serves
-it to every window, so the page is tested without a committed `pack.json`.
+it to every window, so the page's answers are pinned against known samples. When the committed
+`pack.json` is there, the suite also checks every record in it against the
+page's `fits()`.
 
 `fake-indexeddb` is there for `jarvis-test.dom.test.mjs` only. jsdom has no
 IndexedDB, and since Session 9 of `jarvis/build-plan.html` the J.A.R.V.I.S.
@@ -95,9 +97,9 @@ Since Session 13 it also checks the knowledge pack, in a fresh profile at each
 size: "jarvis tell me about peru please" spins the real globe to Peru,
 "how far is mars" opens the solar system near Mars and "tell me about the
 mark 42" opens the suit, with screenshots of each, and the pack lands in
-real IndexedDB at version 3 with the older tables unchanged. No `pack.json`
-is committed until the real build runs, so its server hands out the pack
-built from `fixtures/jarvis-knowledge/`.
+real IndexedDB at version 3 with the older tables unchanged. Its server hands out the pack
+built from `fixtures/jarvis-knowledge/` (the one the jsdom suite uses), so
+its pinned answers don't change when the committed `pack.json` is rebuilt.
 Run it after the jsdom suite, not alongside it: its timing waits fail when
 the two compete for the CPU.
 
