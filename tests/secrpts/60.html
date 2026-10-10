@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #60 — J.A.R.V.I.S. Session 9: memory foundation</title>
+<meta name="description" content="Review of Session 9 of the J.A.R.V.I.S. build plan in the test copy: saved data moved to its own IndexedDB database, a one-time copy from the main page's localStorage, usage counts by day number, the 90-day roll-up, the streak on usage counts, and the suite's fake IndexedDB.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #60 — J.A.R.V.I.S. Session 9: memory foundation</h1>
+    <p class="sub">The test copy now saves into its own IndexedDB database instead of localStorage. It copies what <code>jarvis.html</code> saved once, then never writes localStorage again. Beside the settings it keeps usage counts: a fixed event ID, a day number and a count. Days older than 90 roll up into all-time totals, and the visit streak is worked out from the counts. No wipe command was added, by decision.</p>
+    <div class="meta">Review performed 2026-10-10 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>tests/package.json</code> and lock file, <code>tests/README.md</code>, <code>jarvis/build-plan.html</code>, <code>CLAUDE.md</code> · suites run: <code>jarvis-test</code> (851 checks, all passing). <code>jarvis.html</code> is unchanged, so its suite wasn't run · follows: <a href="59.html">59.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 75%;"></div></div>
+    <div class="progress-label">16 items: 12 verified clean, 4 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security and privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Head block, CSP and the personal filter unchanged</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>git diff</code> of <code>jarvis-test.html</code> starts inside the script, so the CSP, referrer policy, charset and description are what they were. The <code>PERSONAL</code> patterns and <code>personal()</code> have no changed line. IndexedDB isn't a network fetch and the CSP doesn't govern it, so no directive needed to change. No new outside host, script or link.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">One place that saves, widened to IndexedDB</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Every write goes through <code>save()</code>, which calls <code>fits()</code> on the record itself before queueing it. A setting has to be a key in <code>STORE_KEYS</code> holding text that passes <code>personal()</code>. A usage count has to be exactly <code>{id, day, n}</code>, with an ID from <code>EVENT_IDS</code> and whole numbers. A total has to be exactly <code>{id, n}</code>. The bookkeeping table takes only three named numbers. <code>store()</code> is still the only caller that writes a setting. The suite checks this in the source: no <code>localStorage</code> write call anywhere, exactly one <code>'readwrite'</code> transaction, in <code>flush()</code>, <code>flush</code> reached only from <code>save()</code>, one <code>pending.push(</code>, and <code>save('kept', …)</code> with a value only inside <code>store()</code>. It also checks <code>fits()</code> directly: an unlisted ID, an extra field, a date string as a day, a key that doesn't match the record, a fractional count, and an unknown table are all refused.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Usage counts hold no words and no dates</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>29 fixed IDs, each a <code>kind:name</code> word that passes <code>personal()</code>. Commands are counted by kind only (<code>intentEvent</code>, <code>chatEvent</code>). Days are whole days since 1 January 2026, so 10 October 2026 is stored as <code>282</code>. After eleven typed commands in jsdom, the database held no word that was typed. In headless Chromium the real database held <code>{"id":"cmd:joke","day":282,"n":1}</code>-shaped records only, and no date pattern.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The two copies can't change each other's saves</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>From the code: <code>jarvis.html</code> contains no <code>indexedDB</code>, and its <code>scrubStore()</code> only removes <code>jarvis-*</code> localStorage keys missing from its own list. The test copy now writes no localStorage at all, so there's nothing for that scrub to find, and <code>jarvis.html</code> needed no change. In headless Chromium over <code>python3 -m http.server</code>, with one browser profile: <code>jarvis.html</code> saved Panthers, a pink orb and a taught phrase; the test copy copied them in, switched to Morpheus and a blue orb, and kept those across a reload; localStorage stayed exactly as the main page left it; then <code>jarvis.html</code> opened in the same profile with Panthers, pink and its phrase, and the test copy's database read back identical before and after.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The first-run copy happens once and only reads</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>copyIn()</code> runs only while the database has no <code>copied</code> mark, cleans each value the way the scrub does (a saved name, an unlisted key and a taught phrase with a phone number in it aren't copied), and then sets the mark. A second visit with different main-page settings keeps the test copy's own. The jsdom suite compares every localStorage key before and after.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Bad data already in the database is scrubbed</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>A database seeded with a saved name, a personal taught phrase, a phone number as a voice pick, an extra field in the settings, an unlisted event ID, an event with an extra field, an event with a date for a day, an unlisted total and an unknown bookkeeping key loads with only the clean settings and the one valid event left.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No wipe command added</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>As decided. The suite checks the page calls no <code>clear()</code> or <code>deleteDatabase()</code>. The memory core's history star explains that only clearing the site's data removes the counts, and forgetting it leaves them in place. This removed the old streak star, which could be forgotten before. Forgetting it now would mean deleting the counts, which is a wipe. That's recorded in the build plan.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Test dependency: fake-indexeddb</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>fake-indexeddb</code> 6.2.5, Apache-2.0, with no dependencies of its own, added as a dev dependency of <code>tests/</code> only. <code>tests/node_modules/</code> is git-ignored, so only the <code>package.json</code> and lock-file entries are published. They hold no secrets or personal data.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">npm audit: source-map-js</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p><code>npm audit</code> reports one high-severity advisory (GHSA-68fv-2mgg-jv7q, a denial of service in <code>source-map-js</code>), which comes in through jsdom. It was already in the lock file before this change. It only affects the test runner on a developer's machine, never a page. Not fixed here, to keep this change to Session 9.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Start-up waits for the first read</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The page runs on its defaults, reads the database, then <code>hydrate()</code> puts the saved skin, settings, voices, phrases and mic note in place. <code>finishBoot()</code> waits for that, so the greeting, the streak line and the opening scene use saved values. The suite holds the database closed with a gated factory: two taps on Skip give no greeting, and releasing it gives one greeting, in the saved skin and colour. A database that never answers is given up on after 4 seconds, and he greets you and says nothing can be saved. With no IndexedDB at all, the page runs, uses the main page's values for the visit, and still writes no localStorage.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Roll-up and streak, checked from first principles</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The day numbers in the suite are worked out independently of the page. With records 89, 90 and 95 days old, only the 89-day-old one stays by day, and the others' counts are added to the totals (10 + 3 = 13 jokes). From the counts alone: yesterday and the day before give 3, a missed day gives 2, a day with only a joke counts. 95 days in a row before today give 96, with 6 in the carry, and 97 the next day. An old 120-day <code>jarvis-streak</code> from yesterday becomes 121: 90 days kept by day and 31 in the carry and the visit total.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The suite fails when the code is broken</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Each of these changes to the page was run against the suite, which failed every time: keeping 91 days, copying in on every visit, removing localStorage after the copy (written so the source check wouldn't see it), dropping the carry, greeting before the read, skipping the event checks in <code>fits()</code>, and the scrub skipping events. Failing checks per change: at least 6 for 91 days, 4 for copying every visit, 3 each for moving instead of copying, dropping the carry, greeting early and unchecked events, and 1 for the scrub skipping events.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Rendered at both sizes</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Headless Chromium (SwiftShader, three.js r128 from npm served in place of cdnjs with the SRI check on) at 1280×800 and 390×844: the booted page as Morpheus with the saved blue orb, and the memory core with its Usage history star, labelled and laid out by <code>layoutCallouts</code>. No page errors and no CSP violations.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Chat answers are counted by an approximate kind</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p><code>chatEvent()</code> sorts a chat answer into help, time, date, joke, fact, coin, die, math or other with its own short list of patterns, not by asking <code>brainKnown()</code> which branch answered. A mixed phrase like "hello, what time is it" is answered as a hello but counted as <code>cmd:time</code>. Only the kind is stored either way, so this affects how accurate later sessions' favourites are, not privacy. Worth tightening if Session 11 relies on chat kinds.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A save that fails is not reported</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>The page keeps its copy in memory and writes to the database a moment later. If the browser refuses the write (storage full, or the tab closed before the transaction finished), the page still behaves as if it saved for the rest of the visit, and the next visit doesn't have it. localStorage had the same gap for a full disk. Nothing personal is affected. A later session could listen for the transaction's error and say so.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not tested on a real phone</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>IndexedDB on Android Chrome and iPhone Safari, Safari's 7-day clearing (which covers IndexedDB too), and private windows were not tried. That's your check: use the test copy, reload, then open <code>jarvis.html</code> in the same browser and check its skin, colour and taught phrases are still yours.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: the <code>jarvis-test</code> suite in jsdom with <code>fake-indexeddb</code>, seven deliberate breakages of the page, and headless Chromium with real IndexedDB over a local HTTP server in one browser profile, with screenshots at two sizes. See <a href="59.html">59.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>

@@ -212,14 +212,17 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
 
 <script>
 /* ---------- Privacy scrub: nothing personal is ever stored in this browser ----------
-   Jarvis saves only settings: the skin, voice picks per skin, whether the mic note has been seen, and
-   phrases you taught him. Every save goes through store(), which refuses any other key and any text that
-   looks personal. scrubStore() runs on every visit and deletes whatever an older version saved that
-   doesn't pass, such as a saved name or a taught phrase with a phone number in it. Your name is kept in
-   memory for this visit only. Only jarvis-* keys are touched: other pages on this site share the storage.
-   Settings (Session 7) are fixed choices from SETTING_CHOICES, never free text, and the visit streak is a
-   day count and a date kept as separate numbers, so personal() itself doesn't need an exception for it. */
-const STORE_KEYS=['jarvis-skin','jarvis-voices','jarvis-learned','jarvis-mic-note','jarvis-settings','jarvis-streak'];
+   Jarvis saves only settings: the skin, voice picks per skin, whether the mic note has been seen, phrases
+   you taught him and the fixed choices in SETTING_CHOICES. Every one goes through store(), which refuses
+   any other key and any text that looks personal. scrubStore() runs on every visit and deletes whatever an
+   older version saved that doesn't pass, such as a saved name or a taught phrase with a phone number in it.
+   Your name is kept in memory for this visit only.
+   Session 9: this test copy keeps everything in its own IndexedDB database (DB_NAME), not in localStorage,
+   which jarvis.html still uses for the same jarvis-* keys. On its first run it copies those values in,
+   reading them and never changing or removing them, and after that it never touches localStorage, so
+   nothing done here changes the main page. Beside the settings it keeps usage counts: an ID from the fixed
+   EVENT_IDS list, a day number and a count. Never a word you said, and never a date. */
+const STORE_KEYS=['jarvis-skin','jarvis-voices','jarvis-learned','jarvis-mic-note','jarvis-settings'];
 // Every value a setting can take. Anything else is dropped on load and never saved.
 const SETTING_CHOICES={
   color:['green','blue','cyan','purple','pink','red','orange','gold','white'],
@@ -232,19 +235,12 @@ function cleanSettings(o){
   for(const k of Object.keys(SETTING_CHOICES))if(Object.hasOwn(o,k)&&SETTING_CHOICES[k].includes(o[k]))out[k]=o[k];
   return out;
 }
-// The streak: {days, y, m, d}. Kept as separate small numbers: an ISO date like 2026-10-10 reads to personal()
-// as a phone number, and that filter stays strict rather than learning an exception.
+// The old localStorage streak: {days, y, m, d}. Read once, on the first run, to carry a streak that's still
+// going over into the usage counts (carryStreak). The test copy never saves one again.
 function cleanStreak(o){
   if(!o||typeof o!=='object')return null;
   const {days,y,m,d}=o,int=(v,a,b)=>Number.isInteger(v)&&v>=a&&v<=b;
   return int(days,1,9999)&&int(y,2000,2999)&&int(m,1,12)&&int(d,1,31)?{days,y,m,d}:null;
-}
-// The next streak for a visit on `today` ({y,m,d}, local): the same day keeps the count, the next day adds one,
-// and a missed day (or a clock that went backwards) starts again at 1.
-function streakNext(prev,today){
-  const p=cleanStreak(prev),day=x=>Date.UTC(x.y,x.m-1,x.d)/864e5,gap=p?day(today)-day(p):NaN;
-  const days=gap===0?p.days:gap===1?Math.min(9999,p.days+1):1;
-  return {days,y:today.y,m:today.m,d:today.d};
 }
 const ORDINALS=['','First','Second','Third','Fourth','Fifth','Sixth','Seventh','Eighth','Ninth','Tenth'];
 const streakLine=n=>n<2?'':n<ORDINALS.length?`${ORDINALS[n]} day in a row!`:`Day ${n} in a row!`;
@@ -259,13 +255,164 @@ const PERSONAL=[
 ];
 // Why a piece of text looks personal ("an email address", …), or null when it doesn't.
 function personal(text){const s=String(text);for(const [why,re] of PERSONAL)if(re.test(s))return why;return null}
+
+/* ---------- Saving (Session 9): one IndexedDB database, read once at start-up ---------- */
+const DB_NAME='jarvis-test'; // the test copy's own database. Promotion changes it, like the TEST tag.
+// One step per database version. A later session adds a step, so older saves are upgraded, never deleted.
+const DB_UPGRADES=[
+  db=>{db.createObjectStore('kept');db.createObjectStore('events',{keyPath:['id','day']});db.createObjectStore('totals',{keyPath:'id'});db.createObjectStore('meta')}
+];
+const TABLES=['kept','events','totals','meta'];
+// The only things ever counted. Later sessions add IDs here; nothing outside this list can be saved as an event.
+const EVENT_IDS=['app:visit',
+  ...['galaxy','solar','globe','neural','suit','particles','memory'].map(k=>'scene:'+k),
+  ...['scan','briefing','setting','remember','teach','help','time','date','joke','fact','coin','die','math','chat'].map(k=>'cmd:'+k),
+  ...['jarvis','matrix','panther'].map(k=>'skin:'+k),
+  ...['mic','wake-word','hands','voice'].map(k=>'feature:'+k)];
+// Days are counted from a fixed start, so a day is stored as a small number such as 282, never as a date.
+const DAY0=Date.UTC(2026,0,1),KEEP_DAYS=90,MAX_COUNT=1e6,KEPT_MAX=100000;
+const dayNumber=(d=new Date())=>Math.round((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-DAY0)/864e5);
+const isDay=v=>Number.isInteger(v)&&v>=0&&v<=99999;
+const isCount=(v,max=MAX_COUNT)=>Number.isInteger(v)&&v>=1&&v<=max;
+const exactly=(o,ks)=>!!o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).sort().join()===ks.join();
+// What's saved, also held in memory so reading never waits. Filled from the database once, at start-up.
+const kept=new Map(),events=new Map(),totals=new Map(),meta=new Map(),TABLE_MAPS={kept,events,totals,meta};
+const evKey=(id,day)=>id+'|'+day;
+let readDone=false,loaded=false,dbOK=false,visitedBefore=false,early=[],pending=[],flushing=false,firstTime=true,streak={days:1};
+function openDb(){
+  return new Promise(res=>{
+    let rq;try{rq=indexedDB.open(DB_NAME,DB_UPGRADES.length)}catch(e){res(null);return}
+    rq.onupgradeneeded=e=>{for(let v=e.oldVersion;v<DB_UPGRADES.length;v++)DB_UPGRADES[v](rq.result,rq.transaction)};
+    rq.onsuccess=()=>{const db=rq.result;db.onversionchange=()=>db.close();res(db)};
+    rq.onerror=()=>res(null);
+  });
+}
+// A browser that never answers (a blocked upgrade, a broken profile) mustn't stop Jarvis starting: after 4 s
+// he runs without saving, as he does where there's no IndexedDB at all.
+const dbP=Promise.race([openDb(),new Promise(r=>setTimeout(()=>r(null),4000))]);
+function readAll(db){
+  return new Promise(res=>{
+    if(!db){res();return}
+    try{
+      const tx=db.transaction(TABLES,'readonly');
+      for(const t of TABLES){const rq=tx.objectStore(t).openCursor();
+        rq.onsuccess=()=>{const c=rq.result;if(!c)return;const r=c.value;
+          if(t==='events'){if(r&&typeof r==='object')events.set(evKey(r.id,r.day),r)}
+          else if(t==='totals'){if(r&&typeof r==='object')totals.set(r.id,r)}
+          else if(typeof c.key==='string'&&!TABLE_MAPS[t].has(c.key))TABLE_MAPS[t].set(c.key,r);
+          c.continue()}}
+      tx.oncomplete=()=>{dbOK=true;res()};tx.onerror=tx.onabort=()=>res();
+    }catch(e){res()}
+  });
+}
+// Whether a record may be saved. Checked inside save() itself, so no caller can get round it: settings must be
+// a listed key holding text that passes personal(), and usage counts must be a listed ID, a day number and a count.
+function fits(table,key,rec){
+  switch(table){
+    case 'kept':return STORE_KEYS.includes(key)&&typeof rec==='string'&&rec.length<=KEPT_MAX&&!personal(rec);
+    case 'events':return exactly(rec,['day','id','n'])&&EVENT_IDS.includes(rec.id)&&isDay(rec.day)&&isCount(rec.n)&&Array.isArray(key)&&key[0]===rec.id&&key[1]===rec.day;
+    case 'totals':return exactly(rec,['id','n'])&&EVENT_IDS.includes(rec.id)&&isCount(rec.n,1e9)&&key===rec.id;
+    case 'meta':return key==='copied'?rec===1:key==='rolled'?isDay(rec):key==='carry'?Number.isInteger(rec)&&rec>=0&&rec<=9999:false;
+  }
+  return false;
+}
+// The one place anything is written. rec undefined removes the record. Saves made in the same moment go to the
+// database together, in one transaction, after the page has carried on.
+function save(table,key,rec){
+  if(rec!==undefined&&!fits(table,key,rec))return false;
+  if(!Object.hasOwn(TABLE_MAPS,table))return false;
+  const mk=table==='events'?evKey(key[0],key[1]):key;
+  if(rec===undefined)TABLE_MAPS[table].delete(mk);else{TABLE_MAPS[table].set(mk,rec);keepStorage()}
+  pending.push([table,key,rec]);
+  if(!flushing){flushing=true;dbP.then(flush)}
+  return true;
+}
+function flush(db){
+  const ops=pending;pending=[];flushing=false;
+  if(!db||!ops.length)return;
+  try{
+    const tx=db.transaction(TABLES,'readwrite');
+    for(const [t,k,r] of ops){const os=tx.objectStore(t);if(r===undefined)os.delete(k);else if(os.keyPath)os.put(r);else os.put(r,k)}
+  }catch(e){}
+}
+// Settings: only a listed key, and only text that doesn't look personal.
 function store(key,value){
-  if(!STORE_KEYS.includes(key)||personal(value))return false;
-  try{localStorage.setItem(key,value)}catch(e){return false}
-  keepStorage();return true;
+  if(!STORE_KEYS.includes(key)||typeof value!=='string'||personal(value))return false;
+  return save('kept',key,value);
 }
 // Forgetting a setting: only a listed key, and only removal.
-function unstore(key){if(!STORE_KEYS.includes(key))return false;try{localStorage.removeItem(key);return true}catch(e){return false}}
+function unstore(key){if(!STORE_KEYS.includes(key))return false;if(kept.has(key))save('kept',key,undefined);return true}
+const keptGet=k=>kept.has(k)?kept.get(k):null;
+// Count one use of something on the fixed list, on the given day (today). Nothing else about it is kept.
+function track(id,day=dayNumber()){
+  if(!EVENT_IDS.includes(id)||!isDay(day))return false;
+  if(!readDone){early.push([id,day]);return true} // counted once the saved counts have been read
+  const was=events.get(evKey(id,day));
+  return save('events',[id,day],{id,day,n:Math.min(MAX_COUNT,(was?was.n:0)+1)});
+}
+// Days older than KEEP_DAYS are added into all-time totals ({id, n}) and removed. The run of visit days just
+// before the oldest day kept is remembered as one number (carry), so a streak longer than that isn't cut short.
+function rollUp(today=dayNumber()){
+  const cutoff=today-KEEP_DAYS+1,prev=meta.get('rolled');
+  if(!isDay(cutoff)||(Number.isInteger(prev)&&cutoff<=prev))return 0;
+  const old=[...events.values()].filter(e=>e.day<cutoff),days=new Set(old.map(e=>e.day));
+  let run=0;
+  for(let d=cutoff-1;;d--){
+    if(Number.isInteger(prev)&&d===prev-1){run+=meta.get('carry')||0;break}
+    if(!days.has(d))break;run++;
+  }
+  for(const e of old){const t=totals.get(e.id);save('totals',e.id,{id:e.id,n:Math.min(1e9,(t?t.n:0)+e.n)});save('events',[e.id,e.day],undefined)}
+  save('meta','rolled',cutoff);save('meta','carry',Math.min(9999,run));
+  return old.length;
+}
+// The visit streak, from the usage counts alone: today and each day before it with anything counted, plus the
+// carry when that run reaches back past the oldest day kept.
+function streakDays(today=dayNumber()){
+  const days=new Set([...events.values()].map(e=>e.day));
+  let n=0,d=today;while(days.has(d)){n++;d--}
+  const prev=meta.get('rolled');if(n&&Number.isInteger(prev)&&d===prev-1)n+=meta.get('carry')||0;
+  return Math.min(9999,n);
+}
+// The old streak becomes visit counts, once. Only a streak that's still going (last visit today or yesterday)
+// is carried over. Days before the oldest kept day go straight into the totals and the carry.
+function carryStreak(o,today=dayNumber()){
+  const s=cleanStreak(o);if(!s)return 0;
+  const last=Math.round((Date.UTC(s.y,s.m-1,s.d)-DAY0)/864e5);
+  if(!isDay(last)||last>today||last<today-1)return 0;
+  const first=last-s.days+1,lo=Math.max(first,today-KEEP_DAYS+1,0);
+  for(let d=lo;d<=last;d++)track('app:visit',d);
+  if(first<lo&&!meta.has('rolled')){const extra=Math.min(9999,lo-first),t=totals.get('app:visit');
+    save('totals','app:visit',{id:'app:visit',n:(t?t.n:0)+extra});save('meta','rolled',lo);save('meta','carry',extra)}
+  return s.days;
+}
+// A saved setting cleaned the way the scrub cleans it: the cleaned text, or null to drop it.
+function cleanKept(k,v){
+  if(typeof v!=='string'||!STORE_KEYS.includes(k))return null;
+  let o=null;
+  if(k==='jarvis-learned'){try{o=JSON.parse(v)}catch(e){}const keep=Object.create(null);
+    if(o&&typeof o==='object'&&!Array.isArray(o))for(const [a,b] of Object.entries(o))if(typeof b==='string'&&!personal(a)&&!personal(b))keep[a]=b;
+    return JSON.stringify(keep)}
+  // Settings are rewritten from their fixed shape, so nothing else can ride along in them.
+  if(k==='jarvis-settings'){try{o=JSON.parse(v)}catch(e){}const c=cleanSettings(o);return Object.keys(c).length?JSON.stringify(c):null}
+  return v.length>4000||personal(v)?null:v;
+}
+// First run only: copy what jarvis.html keeps in localStorage. Read only, because the main page still uses it.
+function copyIn(){
+  let ls=null;try{ls=localStorage}catch(e){}
+  const get=k=>{try{return ls?ls.getItem(k):null}catch(e){return null}};
+  for(const k of STORE_KEYS){const c=cleanKept(k,get(k));if(c!==null&&!kept.has(k))store(k,c)}
+  let s=null;try{s=JSON.parse(get('jarvis-streak')||'null')}catch(e){}
+  if(cleanStreak(s))visitedBefore=true; // even a broken streak means this browser has been here before
+  carryStreak(s);
+  save('meta','copied',1);
+}
+// Every visit: whatever is in the database that wouldn't pass today's rules goes, whoever put it there.
+function scrubStore(){
+  for(const [k,v] of [...kept]){const c=cleanKept(k,v);if(c===null||(c!==v&&!store(k,c)))save('kept',k,undefined)}
+  for(const r of [...events.values()])if(!fits('events',[r.id,r.day],r))save('events',[r.id,r.day],undefined);
+  for(const r of [...totals.values()])if(!fits('totals',r.id,r))save('totals',r.id,undefined);
+  for(const [k,v] of [...meta])if(!fits('meta',k,v))save('meta',k,undefined);
+}
 // Once something is saved, ask the browser not to clear it when space runs low. Only in Chrome and Edge, which
 // decide quietly: Firefox would pop up a permission prompt for it. Safari on iPhone still deletes a site's
 // storage after 7 days without a visit, whatever the page asks.
@@ -275,54 +422,37 @@ function keepStorage(){
   const chromium=!!(navigator.userAgentData&&Array.isArray(navigator.userAgentData.brands)&&navigator.userAgentData.brands.some(b=>/Chrom|Edge/.test(b.brand)));
   try{const s=navigator.storage;if(chromium&&s&&typeof s.persist==='function')Promise.resolve(s.persisted?s.persisted():false).then(p=>p||s.persist()).then(p=>{persisted=!!p}).catch(()=>{})}catch(e){}
 }
-function scrubStore(){
-  let ls;try{ls=localStorage;ls.length}catch(e){return}
-  try{
-    for(let i=ls.length-1;i>=0;i--){const k=ls.key(i);if(k&&k.startsWith('jarvis-')&&!STORE_KEYS.includes(k))ls.removeItem(k)}
-    const raw=ls.getItem('jarvis-learned');
-    if(raw!==null){
-      let o=null;try{o=JSON.parse(raw)}catch(e){}
-      const keep=Object.create(null);
-      if(o&&typeof o==='object'&&!Array.isArray(o))for(const [k,v] of Object.entries(o))if(typeof v==='string'&&!personal(k)&&!personal(v))keep[k]=v;
-      const out=JSON.stringify(keep);if(out!==raw)ls.setItem('jarvis-learned',out);
-    }
-    for(const k of ['jarvis-skin','jarvis-voices','jarvis-mic-note']){const v=ls.getItem(k);if(v!==null&&(v.length>4000||personal(v)))ls.removeItem(k)}
-    // Settings and the streak are rewritten from their fixed shapes, so nothing else can ride along in them.
-    const rs=ls.getItem('jarvis-settings');
-    if(rs!==null){let o=null;try{o=JSON.parse(rs)}catch(e){}const c=cleanSettings(o),out=JSON.stringify(c);
-      if(!Object.keys(c).length)ls.removeItem('jarvis-settings');else if(out!==rs)ls.setItem('jarvis-settings',out)}
-    const rk=ls.getItem('jarvis-streak');
-    if(rk!==null){let o=null;try{o=JSON.parse(rk)}catch(e){}const c=cleanStreak(o);
-      if(!c)ls.removeItem('jarvis-streak');else if(JSON.stringify(c)!==rk)ls.setItem('jarvis-streak',JSON.stringify(c))}
-  }catch(e){}
+// Start-up: read the database, copy in on the first run, scrub, count today's visit, roll up old days, then put
+// the saved settings in place. The greeting, the streak and the opening scene wait for this (see finishBoot).
+async function startUp(){
+  const db=await dbP;await readAll(db);readDone=true;
+  if(meta.get('copied')!==1)copyIn();
+  scrubStore();
+  // Nothing kept at all: a first visit, or Safari cleared it after 7 days away. A page can't tell which.
+  firstTime=!kept.size&&!events.size&&!totals.size&&!visitedBefore;
+  for(const [id,day] of early.splice(0))track(id,day);
+  track('app:visit');rollUp();
+  streak={days:streakDays()};
 }
-scrubStore();
-const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
-// Nothing kept at all: a first visit, or Safari cleared it after 7 days away. A page can't tell which.
-const firstTime=!STORE_KEYS.some(k=>lsGet(k)!==null);
-let settings={};try{settings=cleanSettings(JSON.parse(lsGet('jarvis-settings')||'{}'))}catch(e){}
+let settings={};
 function saveSettings(){if(Object.keys(settings).length)store('jarvis-settings',JSON.stringify(settings));else unstore('jarvis-settings')}
-// Count today's visit: only a number of days and today's date.
-const streak=(()=>{let prev=null;try{prev=JSON.parse(lsGet('jarvis-streak')||'null')}catch(e){}
-  const d=new Date(),s=streakNext(prev,{y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate()});
-  store('jarvis-streak',JSON.stringify(s));return s})();
-// "What do you save?": exactly what's in this browser, read back from storage rather than from memory.
+// "What do you save?": exactly what's in this browser, read back from what was saved rather than from the page.
 function storedSummary(){
-  let ls=null;try{ls=localStorage}catch(e){}
-  const get=k=>{try{return ls&&ls.getItem(k)}catch(e){return null}};
-  const parts=[];
+  const get=keptGet,parts=[];
   const sk=get('jarvis-skin');if(sk&&typeof SKINS==='object'&&Object.hasOwn(SKINS,sk))parts.push(`your skin (${SKINS[sk].short})`);
   let v={};try{v=JSON.parse(get('jarvis-voices')||'{}')||{}}catch(e){}const nv=Object.keys(v).length;if(nv)parts.push(`your voice pick for ${nv===1?'one skin':nv+' skins'}`);
   let l={};try{l=JSON.parse(get('jarvis-learned')||'{}')||{}}catch(e){}const nl=Object.keys(l).length;if(nl)parts.push(`${nl===1?'one phrase':nl+' phrases'} you taught me`);
   if(get('jarvis-mic-note'))parts.push("that you've seen the mic note");
   let st={};try{st=cleanSettings(JSON.parse(get('jarvis-settings')||'{}'))}catch(e){}
   if(Object.keys(st).length)parts.push(`your settings (${settingsWords(st).join(', ')})`);
-  let sk2=null;try{sk2=cleanStreak(JSON.parse(get('jarvis-streak')||'null'))}catch(e){}
-  if(sk2)parts.push(`your visit streak (${sk2.days===1?'one day':sk2.days+' days'}, and the date of your last visit)`);
-  const list=parts.length?`Here's everything I keep in this browser: ${parts.length>1?parts.slice(0,-1).join(', ')+' and '+parts[parts.length-1]:parts[0]}.`:"I'm not keeping anything in this browser right now.";
+  const counted=events.size||totals.size;
+  const list=!dbOK?"This browser won't let me save anything, so nothing is kept after you close the page.":
+    parts.length?`Here's everything I keep in this browser: ${parts.length>1?parts.slice(0,-1).join(', ')+' and '+parts[parts.length-1]:parts[0]}.`:
+    counted?"I'm not keeping any settings in this browser right now.":"I'm not keeping anything in this browser right now.";
+  const counts=dbOK&&counted?` Counts of which scenes and commands you use, by day. Nothing you say. Your visit streak${streak.days>1?`, ${streak.days} days,`:''} is worked out from those counts.`:'';
   const now=typeof userName==='string'&&userName?` Your name, ${userName}, is only in memory for this visit.`:'';
   const told=typeof memory==='object'&&memory.length?` ${memory.length===1?'One thing':memory.length+' things'} you told me ${memory.length===1?'is':'are'} only in memory for this visit too.`:'';
-  return `${list}${now}${told} No names, no personal details, nothing from the camera and no chat history. Anything that looks personal is never saved. On an iPhone, Safari clears what I keep after 7 days without a visit.`;
+  return `${list}${counts}${now}${told} No names, no personal details, nothing from the camera and no chat history. Anything that looks personal is never saved. On an iPhone, Safari clears what I keep after 7 days without a visit.`;
 }
 // Settings in words, for "what do you save" and the memory core.
 const SCENE_NAMES={galaxy:'the galaxy',solar:'the solar system',globe:'the Earth',neural:'my neural network',suit:'the suit',particles:'the particles'};
@@ -689,7 +819,7 @@ const SKINS={
     open:["Let's go, Cats!","Puck drop!","Hold onto your rat!"],
     close:["Go Panthers!","Time to light the lamp!","That's a power play!"]}
 };
-let skin='jarvis';try{const k=localStorage.getItem('jarvis-skin');if(k&&Object.hasOwn(SKINS,k))skin=k}catch(e){}
+let skin='jarvis'; // the saved skin is put in place once the database has been read (hydrate)
 
 /* ---------- Voice out ---------- */
 const synth=window.speechSynthesis||null;
@@ -698,7 +828,7 @@ const synth=window.speechSynthesis||null;
 // with the right accent. A voice chosen for the character already sounds the part, so it gets a gentler
 // pitch and speed (tuned) than a generic voice, which needs pitch and speed to do all the work.
 let voice=null,tuned=false,voicePicks={};
-try{const o=JSON.parse(localStorage.getItem('jarvis-voices')||'{}');if(o&&typeof o==='object')for(const k of Object.keys(SKINS))if(typeof o[k]==='string'&&o[k].length<=200)voicePicks[k]=o[k]}catch(e){}
+function loadVoicePicks(){voicePicks={};try{const o=JSON.parse(keptGet('jarvis-voices')||'{}');if(o&&typeof o==='object')for(const k of Object.keys(SKINS))if(typeof o[k]==='string'&&o[k].length<=200)voicePicks[k]=o[k]}catch(e){}}
 const voiceSel=document.getElementById('voice');
 // Android lists one voice per accent, named after the language ("English United States"), sometimes
 // twice (on-device and online), so the menu drops repeated names.
@@ -729,7 +859,7 @@ function fillVoices(){
 if(synth){pickVoice();synth.onvoiceschanged=pickVoice;
   voiceSel.addEventListener('change',()=>{
     if(voiceSel.value)voicePicks[skin]=voiceSel.value;else delete voicePicks[skin];
-    store('jarvis-voices',JSON.stringify(voicePicks));
+    store('jarvis-voices',JSON.stringify(voicePicks));track('feature:voice');
     pickVoice();say(SKINS[skin].sample);
   });
 }
@@ -1620,16 +1750,17 @@ function memoryStars(){
   const out=[];
   for(const k of Object.keys(SETTING_CHOICES))if(settings[k])
     out.push({type:'setting',key:k,label:`${SETTING_LABEL[k]}: ${k==='scene'?SCENE_NAMES[settings[k]].replace(/^(?:the|my) /,''):settings[k]}`,text:`A saved setting: ${settingsWords({[k]:settings[k]})[0]}.`});
-  const sk=lsGet('jarvis-skin');
+  const sk=keptGet('jarvis-skin');
   if(sk&&Object.hasOwn(SKINS,sk))out.push({type:'skin',label:`Skin: ${SKINS[sk].short}`,text:`A saved setting: your skin, ${SKINS[sk].short}.`});
   if(userName)out.push({type:'name',visit:true,label:`Name: ${userName}`,text:`This visit only: your name is ${userName}.`});
   for(const f of memory.slice().reverse())out.push({type:'visit',visit:true,key:f.key,label:f.label,text:`This visit only: ${f.text}.`});
   for(const k of Object.keys(learned).reverse())out.push({type:'phrase',key:k,label:`"${k}"`,text:`A phrase you taught me: "${k}" means "${learned[k]}".`});
   for(const k of Object.keys(voicePicks))if(Object.hasOwn(SKINS,k))
     out.push({type:'voice',skin:k,label:`Voice for ${wakeName(k)}`,text:`A saved setting: ${shortName(voicePicks[k])} is the voice for ${SKINS[k].short}.`});
-  let st=null;try{st=cleanStreak(JSON.parse(lsGet('jarvis-streak')||'null'))}catch(e){}
-  if(st)out.push({type:'streak',label:`Streak: ${st.days} day${st.days===1?'':'s'}`,text:`Your visit streak: ${st.days===1?'one day':st.days+' days in a row'}. I keep only the count and the date of your last visit.`});
-  if(lsGet('jarvis-mic-note'))out.push({type:'micnote',label:'Mic note seen',text:"A saved setting: you've seen the note about the mic, so I don't show it again."});
+  if(keptGet('jarvis-mic-note'))out.push({type:'micnote',label:'Mic note seen',text:"A saved setting: you've seen the note about the mic, so I don't show it again."});
+  // The usage counts (Session 9) are one star. Nothing you say is in them, and only clearing the site's data removes them.
+  if(events.size||totals.size){const n=new Set([...events.values()].map(e=>e.day)).size;
+    out.push({type:'history',label:'Usage history',text:`Counts of which scenes and commands you use, by day, from the last ${n===1?'day':n+' days'} you visited. Nothing you say. Your visit streak${streak.days>1?`, ${streak.days} days,`:''} comes from them.`})}
   return out;
 }
 // Forget one star's memory for real, and say what went.
@@ -1642,7 +1773,7 @@ function forgetStar(st){
     case 'phrase':delete learned[st.key];saveLearned();return `Forgotten. "${st.key}" doesn't mean anything to me now.`;
     case 'voice':delete voicePicks[st.skin];if(Object.keys(voicePicks).length)store('jarvis-voices',JSON.stringify(voicePicks));else unstore('jarvis-voices');if(synth)pickVoice();
       return `Forgotten. ${SKINS[st.skin].short} goes back to the automatic voice.`;
-    case 'streak':unstore('jarvis-streak');return "Forgotten. Your streak starts again next visit.";
+    case 'history':return "I can't forget the usage counts from here. Only clearing this site's data in your browser removes them.";
     case 'micnote':unstore('jarvis-mic-note');return "Forgotten. I'll show the mic note again next visit.";
   }
   return "There's nothing there to forget.";
@@ -1728,7 +1859,7 @@ function buildMemory(T){
   }
   // The star nearest a point on screen, within px, or -1.
   const nearest=(x,y,px)=>{let best=-1,bd=px;scr.forEach((p,i)=>{if(p.behind)return;const d=Math.hypot(p.x-x,p.y-y);if(d<bd){bd=d;best=i}});return best};
-  function crush(i){const text=forgetStar(stars[i]);focus=-1;blip(160,.35,.035,'sawtooth');blip(90,.4,.03,'square',.08);build();place();return text}
+  function crush(i){if(stars[i].type==='history')return forgetStar(stars[i]);const text=forgetStar(stars[i]);focus=-1;blip(160,.35,.035,'sawtooth');blip(90,.4,.03,'square',.08);build();place();return text}
   build();
   const intro=stars.length?"This is my memory core. Each bright star is something saved in this browser, and the amber ones are what you told me this visit. They fade when you close the page. Tap a star to hear it, or say forget that.":
     "My memory core is empty. Nothing is saved in this browser, and you haven't told me anything this visit.";
@@ -2154,8 +2285,11 @@ function runBoot(){
   (function grow(){if(!booting)return;bootP=Math.min(1,(performance.now()-t0)/dur);if(bootP<1)requestAnimationFrame(grow)})();
 }
 let greeted=false; // the first-visit and streak lines are said once per visit, not on every reboot
+let bootWaiting=false;
 function finishBoot(){
   if(boot.hidden)return;
+  // The greeting, the streak and the opening scene need what was saved, so they wait for the database (Session 9).
+  if(!loaded){if(!bootWaiting){bootWaiting=true;ready.then(()=>{bootWaiting=false;finishBoot()})}return}
   bootTimers.forEach(clearTimeout);bootTimers=[];booting=false;bootP=1;
   boot.classList.add('fade');bootTimers.push(setTimeout(()=>{boot.hidden=true},reduce?0:600));
   blip(440,.18,.03,'sine');blip(880,.3,.03,'sine',.1);
@@ -2190,7 +2324,7 @@ function setSkin(k,save=true){
   const was=skin;skin=k;const S=SKINS[k];
   document.documentElement.dataset.skin=k;whoEl.textContent=S.name;skinBtn.textContent='SKIN: '+S.label;
   orbColours();
-  if(save)store('jarvis-skin',k);
+  if(save){store('jarvis-skin',k);if(was!==k)track('skin:'+k)}
   if(synth)pickVoice();
   rain(k==='matrix');
   if(wakeBtn)wakeBtn.textContent=`👂 HEY ${wakeName(k).toUpperCase()}: ${wakeOn?'ON':'OFF'}`;
@@ -2326,18 +2460,18 @@ function memoryForget(raw){
 
 /* ---------- Learned phrases (this browser only) ---------- */
 // When Jarvis doesn't understand something, he asks what you meant. If that turns out to be something he
-// knows, the phrase is saved here, so saying it again just works. Stored in localStorage, nowhere else.
+// knows, the phrase is saved here, so saying it again just works. Stored in this browser's database, nowhere else.
 function normPhrase(t){return String(t).toLowerCase().replace(/[^a-z0-9' ]+/g,' ').replace(/\s+/g,' ').trim()}
 const LEARN_MAX=200;
 let learned=Object.create(null);
-try{const o=JSON.parse(localStorage.getItem('jarvis-learned')||'{}');if(o&&typeof o==='object'&&!Array.isArray(o))
-  for(const [k,v] of Object.entries(o))if(typeof v==='string'&&k.length<=120&&v.length<=200)learned[k]=v}catch(e){}
+function loadLearned(){learned=Object.create(null);try{const o=JSON.parse(keptGet('jarvis-learned')||'{}');if(o&&typeof o==='object'&&!Array.isArray(o))
+  for(const [k,v] of Object.entries(o))if(typeof v==='string'&&k.length<=120&&v.length<=200)learned[k]=v}catch(e){}}
 function saveLearned(){store('jarvis-learned',JSON.stringify(learned))}
 function learn(said,meant){
   if(personal(said)||personal(meant))return false; // never saved: see the privacy scrub
   delete learned[said];learned[said]=meant; // newest last
   const ks=Object.keys(learned);ks.slice(0,Math.max(0,ks.length-LEARN_MAX)).forEach(k=>delete learned[k]);
-  saveLearned();return true;
+  saveLearned();track('cmd:teach');return true;
 }
 let pendingTeach=null; // the phrase Jarvis just didn't understand, while he waits to hear what it meant
 const NOPE=Symbol('not understood');
@@ -2346,15 +2480,21 @@ CHIP_CMDS=chipCommands(brainKnown('help'),CAN_DO);
 // One answer, or NOPE when nothing understood it. A learned phrase stands in for what it means.
 async function respond(text){
   const p=normPhrase(text);if(learned[p])text=learned[p];
-  const mt=memoryTell(text);if(mt)return remember(mt);
+  const mt=memoryTell(text);if(mt){track('cmd:remember');return remember(mt)}
   const ma=memoryAsk(text);if(ma!==null)return ma;
-  const se=settingsIntent(text);if(se)return applySetting(se);
+  const se=settingsIntent(text);if(se){track('cmd:setting');return applySetting(se)}
   const sk=skinIntent(text);if(sk)return setSkin(sk);
-  if(BRIEF_RE.test(normPhrase(text).replace(/^(?:jarvis )/,'')))return await briefing();
-  const it=intent(text);if(it)return await project(it);
+  if(BRIEF_RE.test(normPhrase(text).replace(/^(?:jarvis )/,''))){track('cmd:briefing');return await briefing()}
+  const it=intent(text);if(it){track(intentEvent(it));return await project(it)}
   if(skin!=='jarvis'&&/who are you|your name|what are you/.test(normPhrase(text)))return SKINS[skin].who;
-  const b=brainKnown(text);return b===null?NOPE:flair(b);
+  const b=brainKnown(text);if(b===null)return NOPE;
+  track(chatEvent(text));return flair(b);
 }
+// What a command counts as in the usage counts: only its kind, from EVENT_IDS, never the words.
+function intentEvent(it){const id=it.kind==='scan'?'cmd:scan':it.kind==='hands'?(it.arg?'feature:hands':''):'scene:'+it.kind;return EVENT_IDS.includes(id)?id:null}
+const CHAT_EVENTS=[['cmd:help',/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do/],['cmd:time',/what.*\btime\b/],['cmd:date',/what.*(?:date|day)/],
+  ['cmd:joke',/joke|funny/],['cmd:fact',/fact|tell me something/],['cmd:coin',/flip.*coin|heads or tails/],['cmd:die',/roll.*di(?:c)?e/]];
+function chatEvent(raw){const s=String(raw).toLowerCase();for(const [id,re] of CHAT_EVENTS)if(re.test(s))return id;return mathAnswer(s)?'cmd:math':'cmd:chat'}
 const MEANT=/^(?:what\s+)?i\s+(?:was\s+(?:trying|going)\s+to\s+(?:say|ask)|tried\s+to\s+(?:say|ask)|wanted\s+to\s+(?:say|ask)|meant\s+to\s+(?:say|ask)|wanted\s+(?:you\s+)?to|want\s+(?:you\s+)?to|meant|mean)(?:\s+(?:was|is))?[\s,:]*/i;
 async function answer(text){
   const p=normPhrase(text);
@@ -2437,12 +2577,10 @@ function wakeIntent(raw){
 }
 let setWake=()=>"Always listening works in Chrome and Edge only, with a microphone.";
 if(SR){
-  // Shown until the mic has been used once on this device.
-  let noted=false;try{noted=!!localStorage.getItem('jarvis-mic-note')}catch(e){}
-  if(!noted)micNote.hidden=false;
+  // The mic note is shown until the mic has been used once on this device (see hydrate).
   const rec=new SR();rec.lang='en-US';rec.interimResults=false;
   const armed=()=>performance.now()<armedUntil;
-  rec.onstart=()=>{hearing=false;store('jarvis-mic-note','1');if(wakeOn&&!armed())return;mic.classList.add('on');setMode('listen')};
+  rec.onstart=()=>{hearing=false;store('jarvis-mic-note','1');if(!wakeOn)track('feature:mic');if(wakeOn&&!armed())return;mic.classList.add('on');setMode('listen')};
   // The orb reacts to your voice through recognition's own events, so it never competes for the mic.
   rec.onspeechstart=()=>{hearing=true;wakeUp()};rec.onspeechend=()=>{hearing=false};
   rec.onend=()=>{
@@ -2482,7 +2620,7 @@ if(SR){
       wakeOn=on;armedUntil=0;wakeRestarts=[];rec.continuous=on;
       wakeBtn.setAttribute('aria-pressed',String(on));wakeBtn.textContent=`👂 HEY ${wakeName(skin).toUpperCase()}: ${on?'ON':'OFF'}`;
       wakeNote.hidden=!on;mic.classList.toggle('wake',on);
-      if(on){try{rec.start()}catch(e){}return `Always listening is on. Everything the mic hears goes to your browser's online speech service until you turn it off. Start with my name, like: Jarvis, what time is it?`}
+      if(on){track('feature:wake-word');try{rec.start()}catch(e){}return `Always listening is on. Everything the mic hears goes to your browser's online speech service until you turn it off. Start with my name, like: Jarvis, what time is it?`}
       try{rec.stop()}catch(e){}
       return why||"Always listening is off.";
     };
@@ -2492,11 +2630,22 @@ if(SR){
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
 window.__jarvis={micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
-  SETTING_CHOICES,cleanSettings,cleanStreak,streakNext,streakLine,settingsIntent,applySetting,settings:()=>({...settings}),inUnits,ORB_COLOURS,ring:()=>ringRGB,SPEEDS,
-  memoryTell,memoryAsk,memoryForget,memory:()=>memory.map(x=>({...x})),memoryStars,forgetStar,constellation,constellationLinks,firstTime,streak:()=>({...streak}),persisted:()=>persisted,
+  SETTING_CHOICES,cleanSettings,cleanStreak,streakLine,settingsIntent,applySetting,settings:()=>({...settings}),inUnits,ORB_COLOURS,ring:()=>ringRGB,SPEEDS,
+  memoryTell,memoryAsk,memoryForget,memory:()=>memory.map(x=>({...x})),memoryStars,forgetStar,constellation,constellationLinks,get firstTime(){return firstTime},streak:()=>({...streak}),
+  DB_NAME,EVENT_IDS,KEEP_DAYS,dayNumber,fits,track,rollUp,streakDays,carryStreak,cleanKept,intentEvent,chatEvent,ready:null,loaded:()=>loaded,dbOK:()=>dbOK,
+  saved:()=>({kept:Object.fromEntries(kept),events:[...events.values()].map(e=>({...e})),totals:[...totals.values()].map(e=>({...e})),meta:Object.fromEntries(meta)}),persisted:()=>persisted,
   applyGesture,dreamDue,dreamCheck,setDream,dreaming:()=>dreaming,DREAM_AFTER,idleFor:ms=>{lastActive=performance.now()-ms;return dreamCheck()},mode:()=>mode};
 setSkin(skin,false); // the skin on load is only saved once you pick one
 showBoot();
+// Once the database has been read: put what was saved back in place. Until then the page runs on its defaults.
+function hydrate(){
+  try{settings=cleanSettings(JSON.parse(keptGet('jarvis-settings')||'{}'))}catch(e){settings={}}
+  loadVoicePicks();loadLearned();
+  const k=keptGet('jarvis-skin');setSkin(k&&Object.hasOwn(SKINS,k)?k:skin,false);
+  if(SR)micNote.hidden=!!keptGet('jarvis-mic-note');
+}
+const ready=startUp().catch(()=>{}).then(()=>{hydrate();loaded=true});
+window.__jarvis.ready=ready;
 </script>
 </body>
 </html>

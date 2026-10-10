@@ -10,6 +10,7 @@
     "test:swarm": "node run.mjs --page=ai-swarm.html"
   },
   "devDependencies": {
+    "fake-indexeddb": "^6.2.5",
     "jsdom": "^27.0.0"
   }
 }
