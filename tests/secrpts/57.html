@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #57 — J.A.R.V.I.S.: the mic says why when it can't listen</title>
+<meta name="description" content="Review of a fix to jarvis.html and jarvis-test.html: a mic tap that failed in speech recognition did nothing visible. Each error now explains itself in the chat.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #57 — J.A.R.V.I.S.: the mic says why when it can't listen</h1>
+    <p class="sub">A fix in both <code>jarvis.html</code> and <code>jarvis-test.html</code>: when speech recognition fails, Jarvis now says why in the chat, instead of the mic seeming to do nothing.</p>
+    <div class="meta">Review performed 2026-10-10 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis.html</code>, <code>jarvis-test.html</code> and both suites · suites run: <code>jarvis</code> (424 passed), <code>jarvis-test</code> (765 passed) · follows: <a href="56.html">56.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 75%;"></div></div>
+    <div class="progress-label">4 items: 3 fixed or verified clean, 1 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>The fix</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A failed mic tap did nothing at all</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Reported on 2026-10-10: "when I click the mic, nothing happens". In headless Chromium, with a fake recognizer that throws like Chrome's real one, the mic worked on both pages, at 1280×800 and 390×844, and after every feature added today (help links, a link click, dreaming, the memory core open and closed, a reboot, a scene opening on start-up). So the cause wasn't found here. What the check did find is that when Chrome's speech recognition fails, the page showed nothing: no LISTENING and no message. That happens when the mic is blocked for the site (Chrome blocks it by itself after its prompt is dismissed a few times), when there's no working microphone, or when the speech service can't be reached. <code>micTrouble()</code> now explains each of those in the chat, in both copies. A deliberate stop ("aborted") stays silent, and a start that fails for any reason but "already listening" says so too.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Nothing new reaches outside</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Messages are fixed strings shown with <code>add()</code>, so as text. No new API, permission or host. Recognition is still the only thing that uses the mic, so the rule in <code>CLAUDE.md</code> (never open a second mic stream) holds.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Checks</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Both suites get the same new section: five error codes are explained, the orb goes back to STANDBY, "aborted" says nothing, another start failure says so, and a second tap while listening still stops it. <code>jarvis</code>: 424 passed (was 410). <code>jarvis-test</code>: 765 passed (was 751). In Chromium, a blocked mic shows the message on both pages with no page errors.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The real cause on your device</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>If the mic still does nothing, the new message should say why. If there's no message and no LISTENING at all, tell me the device and browser: that would point at something these checks can't reach.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: both suites in jsdom, and headless Chromium with fake speech recognition. Real speech recognition can't run headless. See <a href="56.html">56.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>

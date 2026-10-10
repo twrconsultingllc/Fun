@@ -1766,6 +1766,16 @@ const f=document.getElementById('f'),q=document.getElementById('q'),mic=document
 f.addEventListener('submit',e=>{e.preventDefault();handle(q.value);q.value=''});
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const micNote=document.getElementById('mic-note');
+// What to say when speech recognition fails, so a tap on the mic never just does nothing. null: say nothing
+// ("aborted" is a second tap stopping it on purpose).
+function micTrouble(err){
+  return {'not-allowed':"I'm not allowed to use the microphone. Tap the icon at the left of the address bar, allow the microphone for this site, then try again. Typing works too.",
+    'service-not-allowed':"This browser won't let me use its speech service here. Try Chrome or Edge, or just type.",
+    'audio-capture':"I couldn't get any sound from a microphone. Check one is connected and not being used by another app.",
+    'network':"I couldn't reach the browser's speech service, so I didn't hear you. Check your internet connection, or type instead.",
+    'no-speech':"I didn't hear anything. Tap the mic and try again.",
+    'language-not-supported':"Speech recognition doesn't support English on this device. You can type instead."}[err]||null;
+}
 if(SR){
   // Shown until the mic has been used once on this device.
   let noted=false;try{noted=!!localStorage.getItem('jarvis-mic-note')}catch(e){}
@@ -1775,12 +1785,12 @@ if(SR){
   // The orb reacts to your voice through recognition's own events, so it never competes for the mic.
   rec.onspeechstart=()=>{hearing=true};rec.onspeechend=()=>{hearing=false};
   rec.onend=()=>{hearing=false;mic.classList.remove('on');if(mode==='listen')setMode('idle')};
-  rec.onerror=()=>{hearing=false;mic.classList.remove('on');setMode('idle')};
+  rec.onerror=e=>{hearing=false;mic.classList.remove('on');setMode('idle');const why=micTrouble(e&&e.error);if(why)add(why,'ai')};
   rec.onresult=e=>handle(e.results[0][0].transcript);
-  mic.addEventListener('click',()=>{if(synth)synth.cancel();try{rec.start()}catch(e){rec.stop()}});
+  mic.addEventListener('click',()=>{if(synth)synth.cancel();try{rec.start()}catch(e){if(e&&e.name==='InvalidStateError')rec.stop();else add("I couldn't start listening. Try again, or type instead.",'ai')}});
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,orbPulse,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing};
+window.__jarvis={micTrouble,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,orbPulse,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing};
 setSkin(skin);
 showBoot();
 </script>
