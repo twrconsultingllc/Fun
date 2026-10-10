@@ -1607,7 +1607,7 @@ const whoEl=document.getElementById('who'),skinBtn=document.getElementById('skin
 function skinIntent(raw){
   const s=normPhrase(raw);
   const to='(?:switch|change|go|turn|put|set|use|load|activate|become|be|give me|i want)';
-  const want=(words)=>new RegExp(`\\b${to}\\b(?: (?:back|it|over|me|you|us|the|to|into|on|in|now|skin|mode|theme|voice|a|my))* (?:${words})\\b|\\b(?:${words}) (?:skin|mode|theme|voice|persona)\\b|^(?:${words})(?: please)?$`).test(s);
+  const want=(words)=>new RegExp(`\\b${to}\\b(?: (?:back|it|over|me|you|us|the|to|into|on|in|now|skin|mode|theme|voice|a|my))* (?:${words})\\b|\\b(?:${words}) (?:skin|mode|theme|voice|persona)\\b|^(?:${words})(?: please)?$|^(?:(?:go|come|switch|change|turn) )?back (?:to )?(?:the )?(?:${words})\\b`).test(s);
   if(want('matrix|morpheus|the matrix')||/\b(?:take|taking) the red pill\b|^red pill$/.test(s))return 'matrix';
   if(want('panthers?|florida panthers|stanley|stanley c panther|hockey'))return 'panther';
   if(want('jarvis|normal|default|standard|original|usual')||/\b(?:take|taking) the blue pill\b|^blue pill$/.test(s))return 'jarvis';
