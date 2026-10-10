@@ -990,8 +990,10 @@ async function heRemembersYou(t, page) {
             const help = await typeIn(env, 'help');
             const links = [...env.document.querySelectorAll('#log .msg.ai')].pop().querySelectorAll('button.cmd');
             t.eq('they are real links in the bubble', [...links].slice(0, 3).map((b) => b.textContent).join(' | '), 'the Earth | the galaxy | house party');
-            for (let i = 0; i < 40; i++) J.track('scene:suit');
+            for (let i = 0; i < 39; i++) J.track('scene:suit');
+            await typeIn(env, 'show me the suit'); // a real turn, which is when anything worked out after a turn would change
             t.eq('the order doesn\'t move mid-visit, even when the counts change', J.favLead(), lead);
+            t.ok('nor do the links in the help', J.brainKnown('help').startsWith(lead));
             t.eq('though "what\'s my favourite" answers from the counts as they are', await J.answer('whats my favourite'), 'The suit schematic, just ahead of the Earth. Opened 42 times.');
             t.eq('favourites glow brighter in the memory core', J.capabilityStars().filter((s) => s.state === 'favourite').map((s) => s.key).sort().join(), 'galaxy,globe,suit');
             void help;
