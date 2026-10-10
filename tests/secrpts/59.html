@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #59 — J.A.R.V.I.S. build plan: Sessions 9–15</title>
+<meta name="description" content="Review of the J.A.R.V.I.S. build plan update that adds Sessions 9 to 15 (memory foundation, protocols, clearance levels, a meaning model, a knowledge pack, a tiny on-device model, offline mode), a parked and ruled-out list, and a CLAUDE.md note on shared storage.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #59 — J.A.R.V.I.S. build plan: Sessions 9–15</h1>
+    <p class="sub">You went through the second round of memory ideas one at a time. The build plan now holds what you picked as Sessions 9–15, a parked and ruled-out list with reasons, and a corrected status line. <code>CLAUDE.md</code> gains a note on the storage the two Jarvis pages share.</p>
+    <div class="meta">Review performed 2026-10-10 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis/build-plan.html</code>, <code>CLAUDE.md</code> · suites run: none (no suite covers the build plan, and no page code changed) · follows: <a href="58.html">58.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 75%;"></div></div>
+    <div class="progress-label">8 items: 6 verified clean, 2 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Head block and policy unchanged</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The CSP, referrer policy and charset are byte-for-byte what they were. Only the <code>description</code> meta changed, to name the new sessions. The page still has zero <code>&lt;script&gt;</code> tags and zero inline event handlers (counted in jsdom), and no new inline <code>style</code> attribute (the only two are the existing <code>grid-column</code> layout rules).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No new outside links</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Every link was walked in jsdom: all <code>#</code> anchors resolve to an existing id (including the new <code>s9</code>–<code>s15</code> and <code>later</code>), every relative link points at a file that exists (<code>hands/README.md</code>, the reviews, the two Jarvis pages), and the only absolute URL is the existing link to the live test copy. There are no duplicate ids. Hosts the plan mentions (Hugging Face, Google Fonts, cdnjs) appear as inert <code>&lt;code&gt;</code> text or prose, not links.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The plan doesn't widen anything on its own</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Nothing in this change touches <code>jarvis.html</code> or <code>jarvis-test.html</code>. The sessions are written to keep the CSP closed: Sessions 12 and 14 host their code on the site with hash pins, Session 14 fetches its weights once by a workflow you run (pinned commit, SHA-256 per chunk), and Session 15 <em>removes</em> three outside hosts. The one idea that would add an outside host (bigger models from Hugging Face) is parked, with its safeguards written next to it. The no-personal-data rule is restated at the top of Session 9, and the vault that would have changed it is parked as your decision to make.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A real cross-page storage bug, recorded</div><span class="badge fixed">Confirmed</span></div>
+      <div class="item-body"><p>While planning Session 9: both Jarvis pages use the same <code>jarvis-*</code> localStorage keys, and each page's <code>scrubStore()</code> deletes <code>jarvis-*</code> keys missing from its own <code>STORE_KEYS</code>. <code>git show 1c21c60^:jarvis.html</code> shows the main page's list was <code>['jarvis-skin','jarvis-voices','jarvis-learned','jarvis-mic-note']</code> until the promotion, so from Session 7 until then, opening <code>jarvis.html</code> deleted the test copy's <code>jarvis-settings</code> and <code>jarvis-streak</code>. The promotion made the lists match, so nothing is being deleted today. <code>CLAUDE.md</code> now records the trap, and Session 9 separates the copies. Reading the code shows <code>scrubStore()</code> touches only localStorage, so a test copy that writes only IndexedDB needs no change to the main page. Session 9 is told to confirm that, not assume it.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Index, contents and sections agree</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>21 contents entries for 21 sections, and 16 index rows (1–8, i1, 9–15). The stale status line ("Sessions 5 and 6 in test… 7 and 8 planned") now reads "Sessions 1 to 7 and the interim session live… 8 to 15 planned (do 9 before 8)". Session 8 gains a dated note that it now comes after Session 9 and must back up the new database, rather than being silently rewritten.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Rendered at both sizes, both themes</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Headless Chromium at 1280×800 (dark) and 390×844 (dark and light), with screenshots of the index, Session 9, Session 14 and the parked list. No page errors and no CSP messages. The order guidance was first written in the index table's caption, which clipped on a phone, so it moved into a paragraph above the table.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Table captions clip on phones</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>The page is 2px wider than a 390px screen, and a caption inside a sideways-scrolling table is cut at the screen edge. Both were already true before this edit: the same 2px, measured on the previous version. The cause is a long line of code inside a <code>&lt;pre&gt;</code>, and tables that are wider than the screen by design. Not fixed here, because it's a layout change to the whole page, not to this update.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Facts from outside, checked by search only</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>The text-model sizes (6.1 MB and 26 MB) were measured with <code>curl -I</code> against Google's model storage. The Chrome 148 Prompt API, its hardware limits, on-device speech recognition from Chrome 139 and WebGPU on iOS 26 came from web search results, because <code>developer.chrome.com</code> couldn't be fetched from this container. The small-model sizes are third-party estimates, and Session 14 is told to check them. Each session should re-check its facts before relying on them.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: a jsdom walk of every link, id, script and inline style in the build plan, headless Chromium screenshots at two sizes and two themes, and <code>git show</code> for the storage history. See <a href="58.html">58.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
