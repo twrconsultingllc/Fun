@@ -945,6 +945,9 @@ async function heRemembersYou(t, page) {
     env = await openDom(page.html, URL_, quiet); J = env.window.__jarvis;
     try {
         t.eq('a new profile is level 1', J.levelNow(), 1);
+        t.ok('at level 1 the Tesseract is locked, says what opens it, and isn\'t counted', /^The Tesseract is above your clearance\. It opens at level three, Engineer/.test(await J.answer('show me the tesseract')) && !J.saved().events.some((e) => e.id === 'scene:tesseract'));
+        t.ok('so are the HUD, the Avengers logo and the last line', /above your clearance/.test(await J.answer('gold and red hud')) && /above your clearance/.test(await J.answer('avengers assemble')) && /above your clearance/.test(await J.answer('I am Iron Man')) && !env.document.documentElement.dataset.hud);
+        t.eq('the levels the extras need', JSON.stringify([J.lockOf({ kind: 'tesseract' }), J.lockOf({ kind: 'particles', arg: { shape: 'avengers' } }), J.lockOf({ kind: 'particles', arg: { shape: 'heart' } }), J.lockOf({ kind: 'galaxy' })]), '[3,4,0,0]');
         const lockedKeys = J.CAPABILITIES.filter((c) => c.lock).map((c) => c.key).join();
         t.eq('only four things are locked: the new extras', lockedKeys, 'hud,tesseract,avengers,iron-man');
         t.ok('and none of their IDs existed before Session 11', J.CAPABILITIES.filter((c) => c.lock).every((c) => c.ids.every((id) => !EVENT_IDS_BEFORE_S11.includes(id))));
