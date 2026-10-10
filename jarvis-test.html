@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<meta name="description" content="J.A.R.V.I.S. Test: the trial copy of the J.A.R.V.I.S. Demo, where new features are tried before they go to the main page. A talking assistant that runs in your browser, with a boot-up sequence, an animated orb with a face, voice in and out, three skins (Jarvis, Morpheus from The Matrix and Stanley C. Panther of the Florida Panthers), phrases it learns from you, settings it remembers on your device and can move to another one with a backup file or a QR code, things you tell it remembered for one visit only, protocols that run several commands with one phrase, follow-ups like again, go back and why, and a holo-projector that shows a 3D galaxy, the solar system, the Earth, a suit schematic, its own neural network and its memory core, which you can steer with hand gestures.">
+<meta name="description" content="J.A.R.V.I.S. Test: the trial copy of the J.A.R.V.I.S. Demo, where new features are tried before they go to the main page. A talking assistant that runs in your browser, with a boot-up sequence, an animated orb with a face, voice in and out, three skins (Jarvis, Morpheus from The Matrix and Stanley C. Panther of the Florida Panthers), phrases it learns from you, settings it remembers on your device and can move to another one with a backup file or a QR code, things you tell it remembered for one visit only, protocols that run several commands with one phrase, follow-ups like again, go back and why, a clearance level that grows as it gets to know you and opens a few hidden extras, favourites and a discovery log worked out from what you use, and a holo-projector that shows a 3D galaxy, the solar system, the Earth, a suit schematic, its own neural network and its memory core, which you can steer with hand gestures.">
 <title>J.A.R.V.I.S. Test</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%23020a06'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%2339ff88' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%2339ff88'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -73,6 +73,9 @@ body.holo-on #wake-note{display:none}
 :root[data-skin="panther"] #state{opacity:1}
 :root[data-skin="panther"] .me{color:#fff3dc;background:rgba(185,151,91,.08)}
 :root[data-skin="panther"] body::after{background:repeating-linear-gradient(0deg,rgba(200,16,46,.04) 0 1px,transparent 1px 3px)}
+/* The gold-and-red HUD (Session 11): a clearance extra, unlocked at level 2, for one visit. After the skins, so it wins over them. */
+:root[data-hud="hotrod"]{--void:#0c0303;--deep:#2a0a06;--phos:#ffc93c;--phos-dim:#8e2a1a;--label:#e8a33c;--amber:#ff7a5c;--glass:rgba(255,201,60,.06);--text:#ffeccc}
+:root[data-hud="hotrod"] body::after{background:repeating-linear-gradient(0deg,rgba(255,90,60,.04) 0 1px,transparent 1px 3px)}
 #rain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1;opacity:.35}
 #rain[hidden]{display:none}
 .skin-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
@@ -119,6 +122,14 @@ body.holo-on #wake-note{display:none}
 .proto-line{font-size:.75rem;font-weight:500;letter-spacing:.14em;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .proto-line[hidden]{display:none}
 #proto{position:absolute;top:2%;left:50%;transform:translateX(-50%);max-width:calc(100vw - 32px);padding:4px 10px;border:1px solid var(--amber);background:rgba(2,10,6,.8)}
+/* "ACCESS LEVEL 3 GRANTED" (Session 11): a level-up, swept with a bar of light, over the orb or the projector */
+#levelup{position:fixed;left:50%;top:36%;transform:translate(-50%,-50%);z-index:26;pointer-events:none;width:min(560px,calc(100vw - 32px));padding:14px 18px;
+  text-align:center;border:2px solid var(--amber);background:rgba(2,10,6,.9);color:var(--amber);letter-spacing:.2em;overflow:hidden}
+#levelup[hidden]{display:none}
+#levelup b{display:block;font-size:clamp(1rem,4.6vw,1.5rem);font-weight:700}
+#levelup span{display:block;margin-top:4px;font-size:.8rem;letter-spacing:.3em;color:var(--text)}
+#levelup.go::after{content:"";position:absolute;top:0;bottom:0;left:-40%;width:40%;background:linear-gradient(90deg,transparent,rgba(255,194,74,.4),transparent);animation:sweep 1.2s ease-in-out 2}
+@keyframes sweep{to{left:100%}}
 #holo-proto{margin-top:5px;width:max-content;max-width:calc(100% - 170px)} /* only as wide as its text, clear of CLOSE and HANDS */
 #holo-hint{margin:5px 160px 0 0;font-size:.72rem;color:var(--label)}
 #holo-hands{position:absolute;top:58px;right:56px;padding:8px 14px;background:rgba(2,10,6,.7);font-size:.8rem;letter-spacing:.1em}
@@ -186,6 +197,7 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
   #boot-go{animation:none}
   #holo{transition:none}
   #holo.open .scan{animation:none}
+  #levelup.go::after{animation:none;display:none}
 }
 </style>
 </head>
@@ -198,6 +210,8 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
 </header>
 
 <div id="core"><canvas id="orb" width="840" height="840"></canvas><div id="state">STANDBY</div><div class="proto-line" id="proto" role="status" hidden></div></div>
+
+<div id="levelup" role="status" hidden><b></b><span></span></div>
 
 <div id="log" aria-live="polite"></div>
 
@@ -251,7 +265,8 @@ const SETTING_CHOICES={
   color:['green','blue','cyan','purple','pink','red','orange','gold','white'],
   speed:['slow','fast'],
   units:['metric','imperial'],
-  scene:['galaxy','solar','globe','neural','suit','particles']
+  scene:['galaxy','solar','globe','neural','suit','particles'],
+  chips:['off'] // Session 11: "favourites first" in the command links is on unless this says off
 };
 function cleanSettings(o){
   const out={};if(!o||typeof o!=='object'||Array.isArray(o))return out;
@@ -290,8 +305,9 @@ const DB_UPGRADES=[
 const TABLES=['kept','events','totals','meta','protocols'];
 // The only things ever counted. Later sessions add IDs here; nothing outside this list can be saved as an event.
 const EVENT_IDS=['app:visit',
-  ...['galaxy','solar','globe','neural','suit','particles','memory'].map(k=>'scene:'+k),
-  ...['scan','briefing','setting','remember','teach','help','time','date','joke','fact','coin','die','math','chat','protocol','house-party','wake-up','backup','restore','qr','qr-scan'].map(k=>'cmd:'+k),
+  ...['galaxy','solar','globe','neural','suit','particles','memory','tesseract'].map(k=>'scene:'+k),
+  ...['scan','briefing','setting','remember','teach','help','time','date','joke','fact','coin','die','math','chat','protocol','house-party','wake-up','backup','restore','qr','qr-scan',
+    'level','favourite','discover','hud','avengers','iron-man'].map(k=>'cmd:'+k),
   ...['jarvis','matrix','panther'].map(k=>'skin:'+k),
   ...['mic','wake-word','hands','voice'].map(k=>'feature:'+k)];
 // Days are counted from a fixed start, so a day is stored as a small number such as 282, never as a date.
@@ -334,7 +350,7 @@ function readAll(db){
 // a listed key holding text that passes personal(), and usage counts must be a listed ID, a day number and a count.
 function fits(table,key,rec){
   switch(table){
-    case 'kept':return STORE_KEYS.includes(key)&&typeof rec==='string'&&rec.length<=KEPT_MAX&&!personal(rec);
+    case 'kept':return STORE_KEYS.includes(key)&&typeof rec==='string'&&rec.length<=KEPT_MAX&&!personal(rec)&&(key!=='jarvis-settings'||settingsOnly(rec));
     case 'events':return exactly(rec,['day','id','n'])&&EVENT_IDS.includes(rec.id)&&isDay(rec.day)&&isCount(rec.n)&&Array.isArray(key)&&key[0]===rec.id&&key[1]===rec.day;
     case 'totals':return exactly(rec,['id','n'])&&EVENT_IDS.includes(rec.id)&&isCount(rec.n,1e9)&&key===rec.id;
     case 'meta':return key==='copied'?rec===1:key==='rolled'?isDay(rec):key==='carry'?Number.isInteger(rec)&&rec>=0&&rec<=9999:false;
@@ -343,6 +359,8 @@ function fits(table,key,rec){
   }
   return false;
 }
+// Settings hold only the fixed choices: anything else riding along (a level, say) is refused, not just dropped on the next load (Session 11).
+function settingsOnly(text){let o;try{o=JSON.parse(text)}catch(e){return false}return !!o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).length===Object.keys(cleanSettings(o)).length}
 // The one place anything is written. rec undefined removes the record. Saves made in the same moment go to the
 // database together, in one transaction, after the page has carried on.
 function save(table,key,rec){
@@ -458,11 +476,15 @@ async function startUp(){
   scrubStore();
   // Nothing kept at all: a first visit, or Safari cleared it after 7 days away. A page can't tell which.
   firstTime=!kept.size&&!events.size&&!totals.size&&!protocols.size&&!visitedBefore;
+  before={evs:[...events.values()].map(e=>({...e})),tots:[...totals.values()].map(t=>({...t})),carry:meta.get('carry')||0};
   for(const [id,day] of early.splice(0))track(id,day);
   track('app:visit');rollUp();
   streak={days:streakDays()};
 }
 let settings={};
+// Session 11: worked out from the usage counts, never saved. shownLevel is the clearance level last announced,
+// favLead the favourites put first in the command links (fixed at load), hudOn the gold-and-red HUD (this visit only).
+let shownLevel=1,favLead='',hudOn=false;
 /* Follow-ups (Session 10): a running context of this visit, kept in memory only. What he last did and said, so
    fragments work: "again", "go back", "bigger", "now Jupiter", "yes", "why". It's never passed to save() or store(),
    and a reload starts it empty. */
@@ -484,7 +506,7 @@ function storedSummary(){
   const list=!dbOK?"This browser won't let me save anything, so nothing is kept after you close the page.":
     parts.length?`Here's everything I keep in this browser: ${parts.length>1?parts.slice(0,-1).join(', ')+' and '+parts[parts.length-1]:parts[0]}.`:
     counted?"I'm not keeping any settings in this browser right now.":"I'm not keeping anything in this browser right now.";
-  const counts=dbOK&&counted?` Counts of which scenes and commands you use, by day. Nothing you say. Your visit streak${streak.days>1?`, ${streak.days} days,`:''} is worked out from those counts.`:'';
+  const counts=dbOK&&counted?` Counts of which scenes and commands you use, by day. Nothing you say. Your visit streak${streak.days>1?`, ${streak.days} days,`:''} is worked out from those counts. So are your clearance level, your favourites and what you've discovered, and none of them is saved.`:'';
   const now=typeof userName==='string'&&userName?` Your name, ${userName}, is only in memory for this visit.`:'';
   const told=typeof memory==='object'&&memory.length?` ${memory.length===1?'One thing':memory.length+' things'} you told me ${memory.length===1?'is':'are'} only in memory for this visit too.`:'';
   return `${list}${counts}${now}${told} No names, no personal details, nothing from the camera and no chat history. Anything that looks personal is never saved. On an iPhone, Safari clears what I keep after 7 days without a visit, so say back up my settings to keep a copy.`;
@@ -497,6 +519,7 @@ function settingsWords(st){
   if(st.speed)w.push(`speaking ${st.speed==='slow'?'slowly':'fast'}`);
   if(st.units)w.push(`${st.units} units`);
   if(st.scene)w.push(`opening with ${SCENE_NAMES[st.scene]}`);
+  if(st.chips)w.push('my command links in their usual order');
   return w;
 }
 
@@ -932,7 +955,8 @@ function say(text){
 const SPEEDS={slow:.82,normal:1,fast:1.22};
 const ORB_COLOURS={green:['57,255,136','180,255,210'],blue:['70,150,255','190,220,255'],cyan:['60,230,255','200,250,255'],purple:['170,100,255','225,200,255'],
   pink:['255,100,200','255,205,235'],red:['255,70,70','255,200,190'],orange:['255,150,50','255,220,170'],gold:['255,205,70','255,240,190'],white:['225,235,245','255,255,255']};
-function orbColours(){const c=settings.color&&ORB_COLOURS[settings.color];[ringRGB,coreRGB]=c||[SKINS[skin].ring,SKINS[skin].core]}
+const HOTROD=['255,80,50','255,214,120']; // the orb in the gold-and-red HUD, unless an orb colour is set
+function orbColours(){const c=settings.color&&ORB_COLOURS[settings.color];[ringRGB,coreRGB]=c||(hudOn?HOTROD:[SKINS[skin].ring,SKINS[skin].core])}
 // Metric facts said in imperial when that's the setting: "600 kilometres an hour" becomes "about 370 miles an hour".
 const UNIT_TO={kilomet:['mile',.621371],centimet:['inch',.393701],met:['foot',3.28084],kilogram:['pound',2.20462]};
 function roughly(v){if(v>=10){const p=Math.pow(10,Math.floor(Math.log10(v))-1);return Math.round(v/p)*p}return v>=3?Math.round(v):Math.round(v*10)/10}
@@ -959,6 +983,9 @@ function settingsIntent(raw){
   if(/\b(?:normal|regular|default|usual) (?:speaking )?(?:speed|pace)\b|\b(?:speak|talk) normally\b/.test(s))return {key:'speed',value:null};
   if(/\b(?:use|switch to|change to|set|i want|i prefer|give me)\b.*\b(?:metric|kilometres|kilometers|centimetres|centimeters|meters|metres)\b|^metric(?: units)?(?: please)?$/.test(s))return {key:'units',value:'metric'};
   if(/\b(?:use|switch to|change to|set|i want|i prefer|give me)\b.*\b(?:imperial|miles|feet|inches|pounds)\b|^imperial(?: units)?(?: please)?$/.test(s))return {key:'units',value:'imperial'};
+  // Favourites first in the command links (Session 11). Takes effect at the next load, so the links never move mid-visit.
+  if(/\b(?:stop|don't|do not|never|no more)\b.*\b(?:adapt|adapting|moving|move|reorder|reordering|putting|put)\b.*\b(?:chips|links|favou?rites)\b|\b(?:adaptive|adapting) (?:chips|links) off\b|\bturn off (?:the )?(?:adaptive |adapting )?(?:chips|links)\b|\b(?:keep|leave|put) (?:the |my )?(?:chips|links) (?:in|back in) (?:the |their )?(?:usual |normal |same |original )?order\b/.test(s))return {key:'chips',value:'off'};
+  if(/^(?:please )?(?:adapt|reorder) (?:the |my )?(?:chips|links)\b|\b(?:adaptive|adapting) (?:chips|links) on\b|\bturn on (?:the )?(?:adaptive |adapting )?(?:chips|links)\b|\b(?:put|show) my favou?rites first\b/.test(s))return {key:'chips',value:null};
   if(/^(?:don't|do not|stop|never) (?:open|start|begin)(?:ing)? with\b|^(?:open|start) with nothing\b|^no (?:favou?rite )?(?:opening )?scene\b/.test(s))return {key:'scene',value:null};
   if(m=s.match(/^(?:(?:always )?(?:open|start|begin|boot up) with|(?:my )?favou?rite scene is|(?:always )?open on) (?:the |my |your )?(.+?)(?: please| every time| first)?$/)){
     for(const [k,re] of SCENE_RE)if(new RegExp(`^(?:${re})$`).test(m[1]))return {key:'scene',value:k};
@@ -972,7 +999,8 @@ function applySetting({key,value}){
   if(value===null)delete settings[key];else settings[key]=value;
   saveSettings();if(key==='color')orbColours();
   const words={color:value?`My orb is ${value} now.`:"My orb is back to my skin's own colour.",speed:value?`I'll speak ${value==='slow'?'more slowly':'faster'}.`:"Back to my normal speed.",
-    units:`I'll use ${value} units.`,scene:value?`I'll open with ${SCENE_NAMES[value]} next time you start me up.`:"I won't open a scene when I start up."}[key];
+    units:`I'll use ${value} units.`,scene:value?`I'll open with ${SCENE_NAMES[value]} next time you start me up.`:"I won't open a scene when I start up.",
+    chips:value?"From your next visit, I'll keep my command links in their usual order.":"From your next visit, I'll put your favourites first in my command links."}[key];
   return `${words} I'll remember that on this device.`;
 }
 
@@ -1026,7 +1054,7 @@ function brainKnown(raw){
   const s=raw.toLowerCase().trim(),name=userName?`, ${userName}`:'';
   let m;
   if((m=s.match(/\b(?:my name is|call me|i am|i'm) ([a-z]+)/))&&!notNames.has(m[1])){userName=m[1][0].toUpperCase()+m[1].slice(1);return because(`Nice to meet you, ${userName}. I'll remember that until you close this page. I never save names.`,"Because nothing personal is ever saved in this browser. Your name stays in memory for this visit and is gone when you close the page.")}
-  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧, or some math like ⟦seven times eight|what is seven times eight⟧. I can ⟦flip a coin⟧, ⟦roll a die⟧ or start a ⟦launch countdown⟧. For the holo-projector, say ⟦show me the galaxy⟧, ⟦show me the planets⟧, ⟦take me to Mars⟧, ⟦make a heart⟧, ⟦make a rocket⟧, or ⟦write your name|write my name⟧. Say ⟦show me your brain⟧ to watch me think, or ⟦suit up⟧ to build a suit of armour. Say ⟦show me Earth⟧ for the globe, or show me any country, US state or big city, like ⟦Florida|show me Florida⟧ or ⟦Tokyo|show me Tokyo⟧. Say ⟦hand control⟧ to steer it with your hands through the camera, or ⟦scan the room⟧ for a threat scan. Say ⟦brief me⟧ for the time and the top headlines. In Chrome or Edge, turn on ⟦always listening|always listen⟧ with the HEY JARVIS switch, then start what you say with my name. Say ⟦close⟧ to turn it off, or ⟦reboot⟧ to watch me power up again. Say ⟦switch to Matrix⟧ to talk to Morpheus, ⟦switch to Panthers⟧ for Stanley C. Panther, or ⟦back to Jarvis⟧. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit, whichever skin I'm in. Ask ⟦what do you know about me⟧ to hear them back. I can also remember settings on this device: say ⟦make the orb blue⟧, ⟦speak faster⟧, ⟦use imperial units⟧, or ⟦open with the galaxy⟧. Say ⟦show me your memory⟧ to see everything I keep as stars, and tap one to hear it or say forget that. Make a protocol to run several commands with one phrase, like ⟦a movie night protocol|create movie night protocol: make the orb purple, then open the galaxy⟧, then say ⟦movie night⟧ to run it. Say ⟦list my protocols⟧, or try ⟦house party⟧ or ⟦wake up, daddy's home|wake up daddy's home⟧. You can talk in fragments too: after ⟦take me to Mars⟧, say ⟦now Jupiter⟧, ⟦bigger⟧, ⟦slower⟧, ⟦again⟧ or ⟦go back⟧, and ask ⟦why⟧ after an answer. Leave me alone for a few minutes and I'll dream. Ask ⟦what do you save⟧ to see what I keep, and I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, so say ⟦back up my settings⟧ to keep a copy as a file, and ⟦restore my settings⟧ to load it. To move them to another device, say ⟦send my settings to my phone⟧ here and ⟦scan settings⟧ there. If I don't understand you, tell me what you meant and I'll remember it on this device.";
+  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return favLead+"Ask me ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧, or some math like ⟦seven times eight|what is seven times eight⟧. I can ⟦flip a coin⟧, ⟦roll a die⟧ or start a ⟦launch countdown⟧. For the holo-projector, say ⟦show me the galaxy⟧, ⟦show me the planets⟧, ⟦take me to Mars⟧, ⟦make a heart⟧, ⟦make a rocket⟧, or ⟦write your name|write my name⟧. Say ⟦show me your brain⟧ to watch me think, or ⟦suit up⟧ to build a suit of armour. Say ⟦show me Earth⟧ for the globe, or show me any country, US state or big city, like ⟦Florida|show me Florida⟧ or ⟦Tokyo|show me Tokyo⟧. Say ⟦hand control⟧ to steer it with your hands through the camera, or ⟦scan the room⟧ for a threat scan. Say ⟦brief me⟧ for the time and the top headlines. In Chrome or Edge, turn on ⟦always listening|always listen⟧ with the HEY JARVIS switch, then start what you say with my name. Say ⟦close⟧ to turn it off, or ⟦reboot⟧ to watch me power up again. Say ⟦switch to Matrix⟧ to talk to Morpheus, ⟦switch to Panthers⟧ for Stanley C. Panther, or ⟦back to Jarvis⟧. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit, whichever skin I'm in. Ask ⟦what do you know about me⟧ to hear them back. I can also remember settings on this device: say ⟦make the orb blue⟧, ⟦speak faster⟧, ⟦use imperial units⟧, or ⟦open with the galaxy⟧. Say ⟦show me your memory⟧ to see everything I keep as stars, and tap one to hear it or say forget that. Make a protocol to run several commands with one phrase, like ⟦a movie night protocol|create movie night protocol: make the orb purple, then open the galaxy⟧, then say ⟦movie night⟧ to run it. Say ⟦list my protocols⟧, or try ⟦house party⟧ or ⟦wake up, daddy's home|wake up daddy's home⟧. You can talk in fragments too: after ⟦take me to Mars⟧, say ⟦now Jupiter⟧, ⟦bigger⟧, ⟦slower⟧, ⟦again⟧ or ⟦go back⟧, and ask ⟦why⟧ after an answer. Leave me alone for a few minutes and I'll dream. Ask ⟦what do you save⟧ to see what I keep, and I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, so say ⟦back up my settings⟧ to keep a copy as a file, and ⟦restore my settings⟧ to load it. To move them to another device, say ⟦send my settings to my phone⟧ here and ⟦scan settings⟧ there. If I don't understand you, tell me what you meant and I'll remember it on this device. The more we talk, the better I know you: ask ⟦how well do you know me⟧, ⟦what's my favourite⟧ or ⟦what haven't I tried⟧. I put your favourites first in these links, and you can say ⟦stop putting my favourites first⟧."+unlockLine(shownLevel);
   if(/^(?:please )?(?:forget|clear|delete|erase) my name\b/.test(s)){const had=userName;userName=null;return had?"Done. I've forgotten your name.":"I don't know your name yet, so there's nothing to forget."}
   if(/\bwhat(?:'s| is) my name\b|\bwho am i\b|\bdo you (?:know|remember) (?:my name|me|who i am)\b|\bsay my name\b/.test(s))return userName?`Your name is ${userName}. I'll remember it whichever skin I'm wearing, until you close this page. I never save it.`:"You haven't told me your name yet. Say my name is, then your name, and I'll remember it until you close this page.";
   if(/\b(hello|hi|hey|good (morning|afternoon|evening))\b/.test(s))return pick([`Hello${name}. All systems are online.`,`Good to see you${name}. How can I help?`]);
@@ -1055,7 +1083,7 @@ function brain(raw){
 
 /* ---------- Holo-projector commands ---------- */
 const PLANETS='sun|mercury|venus|earth|mars|jupiter|saturn|uranus|neptune';
-const SHAPE_WORDS={heart:'heart',love:'heart',rocket:'rocket',spaceship:'rocket',ship:'rocket',star:'star',sphere:'sphere',ball:'sphere',globe:'sphere',orb:'sphere',dna:'dna',helix:'dna','double helix':'dna','arc reactor':'reactor',reactor:'reactor'};
+const SHAPE_WORDS={heart:'heart',love:'heart',rocket:'rocket',spaceship:'rocket',ship:'rocket',star:'star',sphere:'sphere',ball:'sphere',globe:'sphere',orb:'sphere',dna:'dna',helix:'dna','double helix':'dna','arc reactor':'reactor',reactor:'reactor',avengers:'avengers'};
 function cleanWord(w){return String(w||'').toUpperCase().replace(/[^A-Z0-9 !?'&-]/g,'').replace(/\s+/g,' ').trim().slice(0,14)}
 function intent(raw){
   const s=raw.toLowerCase().replace(/[.!,]+/g,' ').replace(/\s+/g,' ').trim();let m;
@@ -1070,6 +1098,9 @@ function intent(raw){
   if(m=s.replace(/\?/g,'').match(/\b(?:show me|take me to|fly (?:me )?to|go to|where(?:'s| is)|find|zoom (?:in )?(?:on|to)|visit|focus on|point to)(?: the)? ([a-z .'-]+?)(?: please| now| on the (?:map|globe))?$/)){
     const k=m[1].replace(/[.'-]/g,' ').replace(/\s+/g,' ').trim();if(PLACES[k])return {kind:'globe',arg:k};
   }
+  // Clearance extras (Session 11): a hidden scene and a particle shape. respond() checks the level before they open.
+  if(/\btesseract\b|\bspace stone\b/.test(s))return {kind:'tesseract'};
+  if(/\bavengers,? assemble\b|\bavengers (?:logo|symbol|sign|badge)\b/.test(s))return {kind:'particles',arg:{shape:'avengers'}};
   if(/\bmemory core\b|\b(?:show|see|open|display|look at|visit|enter)(?: me)?(?: in(?:side)?(?: to)?)? (?:your|the jarvis) memor(?:y|ies)\b|^(?:your )?memor(?:y|ies)$/.test(s))return {kind:'memory'};
   if(/\bneural (?:network|net)s?\b|\b(?:show|see|open|display|look at)\b.*\byour brain\b/.test(s))return {kind:'neural'};
   if(m=s.match(new RegExp(`\\b(?:take me to|go to|fly to|show me|zoom (?:in )?(?:on|to)|visit|focus on)(?: the)? (${PLANETS})\\b`)))return {kind:'solar',arg:m[1]};
@@ -1132,6 +1163,14 @@ const SHAPES={
     for(;i<N*.4;i++){const u=R()*TAU,v=R()*TAU,x=(10+1.2*Math.cos(v));o.put(i,Math.cos(u)*x,Math.sin(u)*x,1.2*Math.sin(v),cy)}
     for(;i<N*.7;i++){const seg=Math.floor(R()*10),u=(seg+.12+R()*.76)*TAU/10,r=6.2+R()*1.6;o.put(i,Math.cos(u)*r,Math.sin(u)*r,(R()-.5)*1.4,bl)}
     for(;i<N;i++){const y=R()*2-1,th=R()*TAU,r=Math.sqrt(1-y*y),rad=3.2*Math.cbrt(R());o.put(i,Math.cos(th)*r*rad,Math.sin(th)*r*rad,y*rad*.6,mix(wh,cy,rad/3.2))}
+    return o},
+  // A clearance extra (level 4): the Avengers' A in its ring, the right leg and an arrow on the crossbar running out past it.
+  avengers(N){const o=cloud(N),ring=rgb('#c9d3e0'),aCol=rgb('#7aa7ff'),hot=rgb('#ffffff');
+    const segs=[[-6.2,-8.4,1.2,9.6],[1.2,9.6,8.6,-13],[-13,-2.2,4.4,-2.2],[-13,-2.2,-10.4,.4],[-13,-2.2,-10.4,-4.8]],len=segs.map(([a,b,c,d])=>Math.hypot(c-a,d-b)),tot=len.reduce((x,y)=>x+y);
+    const nr=Math.floor(N*.42);let i=0;
+    for(;i<nr;i++){const t=R()*TAU,r=11+(R()-.5)*1.6;o.put(i,Math.cos(t)*r,Math.sin(t)*r,(R()-.5)*1.2,mix(ring,hot,R()*.3))}
+    for(;i<N;i++){let k=0,x=R()*tot;while(k<4&&x>len[k]){x-=len[k];k++}
+      const [a,b,c,d]=segs[k],u=R(),w=(R()-.5)*1.5,L=len[k];o.put(i,a+(c-a)*u-(d-b)/L*w,b+(d-b)*u+(c-a)/L*w,(R()-.5)*1.2,mix(aCol,hot,R()*.25))}
     return o}
 };
 function textPoints(N,word){
@@ -1149,7 +1188,7 @@ function textPoints(N,word){
   return o;
 }
 function shapePoints(name,N,word){return name==='text'?textPoints(N,word):SHAPES[name]?SHAPES[name](N):null}
-const SHAPE_LINES={heart:"Constructing a heart. Romance protocols engaged.",rocket:"Assembling a rocket. Mind the exhaust.",star:"Here's a star. Twinkle not included.",sphere:"A perfect sphere, give or take a few thousand particles.",dna:"The double helix, the blueprint of life.",reactor:"Arc reactor online. Try not to touch it."};
+const SHAPE_LINES={heart:"Constructing a heart. Romance protocols engaged.",rocket:"Assembling a rocket. Mind the exhaust.",star:"Here's a star. Twinkle not included.",sphere:"A perfect sphere, give or take a few thousand particles.",dna:"The double helix, the blueprint of life.",reactor:"Arc reactor online. Try not to touch it.",avengers:"Avengers, assemble."};
 
 /* ---------- Holo-projector (three.js, loaded only when first needed) ---------- */
 const THREE_SRC='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
@@ -1787,11 +1826,49 @@ function buildGlobe(T){
     }};
 }
 
+/* Scene 8: the Tesseract (Session 11), a clearance extra unlocked at level 3. A cube in four dimensions: its 16 corners
+   turn through two planes that include the fourth axis, and what's drawn is their shadow in three, with a few hundred
+   motes of light drifting inside. The corner and edge maths is plain data, so it's tested without WebGL. */
+const TESS_V=Array.from({length:16},(_,i)=>[i&1?1:-1,i&2?1:-1,i&4?1:-1,i&8?1:-1]);
+const TESS_E=[];for(let i=0;i<16;i++)for(let b=0;b<4;b++){const j=i^(1<<b);if(j>i)TESS_E.push([i,j])}
+// One corner turned by a in the x–w plane and by b in the y–w plane, then seen from w = 3 (a perspective shadow), times s.
+function tessPoint([x,y,z,w],a,b,s=4){
+  const x1=x*Math.cos(a)-w*Math.sin(a),w1=x*Math.sin(a)+w*Math.cos(a);
+  const y1=y*Math.cos(b)-w1*Math.sin(b),w2=y*Math.sin(b)+w1*Math.cos(b);
+  const k=s*2/(3-w2);return [x1*k,y1*k,z*k];
+}
+function buildTesseract(T){
+  const scene=new T.Scene(),camera=makeCamera(T),group=new T.Group(),dot=dotTexture(T);
+  const lp=new Float32Array(TESS_E.length*6),lg=new T.BufferGeometry();lg.setAttribute('position',new T.BufferAttribute(lp,3));
+  group.add(new T.LineSegments(lg,new T.LineBasicMaterial({color:0x70abff,transparent:true,opacity:.9,depthWrite:false,blending:T.AdditiveBlending})));
+  const cp=new Float32Array(16*3),cg=new T.BufferGeometry();cg.setAttribute('position',new T.BufferAttribute(cp,3));
+  group.add(new T.Points(cg,new T.PointsMaterial({size:1.1,map:dot,color:0xd8ecff,transparent:true,depthWrite:false,blending:T.AdditiveBlending})));
+  const NM=innerWidth<700?300:600,mp=new Float32Array(NM*3);for(let i=0;i<NM*3;i++)mp[i]=(R()*2-1)*3.2;
+  const mg=new T.BufferGeometry();mg.setAttribute('position',new T.BufferAttribute(mp,3));
+  const motes=new T.Points(mg,new T.PointsMaterial({size:.35,map:dot,color:0x5aa9ff,transparent:true,opacity:.8,depthWrite:false,blending:T.AdditiveBlending}));group.add(motes);
+  const core=new T.Sprite(new T.SpriteMaterial({map:dotTexture(T,'rgba(120,180,255,1)',128),transparent:true,opacity:.7,depthWrite:false,blending:T.AdditiveBlending}));core.scale.set(9,9,1);group.add(core);
+  scene.add(group,starfield(T,1800));
+  const rig=makeRig(T,camera,{dist:80,goal:Math.max(26,fitDist(9,9)),el:.6,elGoal:.25,min:8,max:90,spin:.08});
+  let a=0,b=0;
+  function shape(){
+    const v=TESS_V.map(p=>tessPoint(p,a,b));
+    v.forEach((p,i)=>cp.set(p,i*3));TESS_E.forEach(([i,j],k)=>{lp.set(v[i],k*6);lp.set(v[j],k*6+3)});
+    lg.attributes.position.needsUpdate=true;cg.attributes.position.needsUpdate=true;
+  }
+  shape();
+  return {scene,camera,rig,title:'TESSERACT',stat:'16 CORNERS · 32 EDGES · 4 DIMENSIONS · CLEARANCE 3',
+    hint:'Drag to rotate · scroll or pinch to zoom · say "faster" or "slower"',
+    adjust:adjuster(rig,{thing:'the Tesseract',moving:'The Tesseract turns'}),
+    intro:"Clearance confirmed. This is the Tesseract: a cube in four dimensions, turning through the fourth one. What you see is its shadow in our three.",
+    update(dt){a+=dt*.5*amb;b+=dt*.31*amb;shape();motes.rotation.y+=dt*.2*amb;motes.rotation.x+=dt*.07*amb}};
+}
+
 /* Scene 7: the memory core (Session 7). One star for each thing kept in this browser (settings, taught phrases),
    and this visit's short-term memories in amber on an outer shell. The star list, the layout and forgetting
    are plain data and functions, so they're tested without WebGL. */
-const SETTING_LABEL={color:'Orb colour',speed:'Speaking speed',units:'Units',scene:'Opens with'};
-const SETTING_RESET={color:"My orb is back to my skin's own colour.",speed:"I'm back to my normal speed.",units:"I'm back to metric units.",scene:"I won't open a scene when I start up."};
+const SETTING_LABEL={color:'Orb colour',speed:'Speaking speed',units:'Units',scene:'Opens with',chips:'Favourites first'};
+const SETTING_RESET={color:"My orb is back to my skin's own colour.",speed:"I'm back to my normal speed.",units:"I'm back to metric units.",scene:"I won't open a scene when I start up.",
+  chips:"From your next visit, I'll put your favourites first in my command links again."};
 function memoryStars(){
   const out=[];
   for(const k of Object.keys(SETTING_CHOICES))if(settings[k])
@@ -1809,6 +1886,8 @@ function memoryStars(){
   // The usage counts (Session 9) are one star. Nothing you say is in them, and only clearing the site's data removes them.
   if(events.size||totals.size){const n=new Set([...events.values()].map(e=>e.day)).size;
     out.push({type:'history',label:'Usage history',text:`Counts of which scenes and commands you use, by day, from the last ${n===1?'day':n+' days'} you visited. Nothing you say. Your visit streak${streak.days>1?`, ${streak.days} days,`:''} comes from them.`})}
+  // Your clearance (Session 11), from level 2: worked out from those counts, so it isn't saved and can't be forgotten.
+  const lv=levelNow();if(lv>=2)out.push({type:'level',label:`Clearance ${lv}: ${LEVELS[lv].name}`,text:knowYouReport()});
   return out;
 }
 // Forget one star's memory for real, and say what went.
@@ -1823,6 +1902,7 @@ function forgetStar(st){
       return `Forgotten. ${SKINS[st.skin].short} goes back to the automatic voice.`;
     case 'protocol':return deleteProtocol(st.key)?`Forgotten. The ${st.key} protocol is deleted.`:`The ${st.key} protocol was already gone.`;
     case 'history':return "I can't forget the usage counts from here. Only clearing this site's data in your browser removes them.";
+    case 'level':return "Your clearance isn't saved. I work it out from the usage counts each time, so there's nothing to forget.";
     case 'micnote':unstore('jarvis-mic-note');return "Forgotten. I'll show the mic note again next visit.";
   }
   return "There's nothing there to forget.";
@@ -1844,7 +1924,7 @@ function constellationLinks(pts){
     out.push([best,i])}
   return out;
 }
-const MEM_HINT='Drag to rotate · tap a star to hear it · say "forget that" to delete it · amber stars are this visit only';
+const MEM_HINT='Drag to rotate · tap a star to hear it · say "forget that" to delete it · amber stars are this visit only · the faint outer stars are what I can do: bright for found, dim for not yet, red for locked';
 function buildMemory(T){
   const scene=new T.Scene(),camera=makeCamera(T),group=new T.Group(),dot=dotTexture(T),v=new T.Vector3();
   scene.add(group,starfield(T,1500));
@@ -1858,7 +1938,7 @@ function buildMemory(T){
   const css=getComputedStyle(document.documentElement),col=(n,d)=>css.getPropertyValue(n).trim()||d;
   const SVG='http://www.w3.org/2000/svg',root=document.createElement('div');root.className='hud';root.id='mem-labels';
   const svg=document.createElementNS(SVG,'svg');svg.setAttribute('aria-hidden','true');root.appendChild(svg);stage.after(root);
-  let stars=[],sprites=[],objs=[],tags=[],scr=[],focus=-1,boxes=[],sides=[],bounds=null,frame=0;
+  let stars=[],sprites=[],objs=[],tags=[],scr=[],focus=-1,boxes=[],sides=[],bounds=null,frame=0,caps=[],capSprites=[],capScr=[];
   const sprite=(c,o,s)=>{const m=new T.Sprite(new T.SpriteMaterial({map:dot,color:c,transparent:true,opacity:o,depthWrite:false,blending:T.AdditiveBlending}));m.scale.set(s,s,1);return m};
   const short=t=>t.length>26?t.slice(0,25).trimEnd()+'…':t;
   function build(){
@@ -1868,8 +1948,10 @@ function buildMemory(T){
     const saved=[],visit=[];stars.forEach((st,i)=>(st.visit?visit:saved).push(i));
     const pos=[],ps=constellation(saved.length,8),pv=constellation(visit.length,12.5,3);
     saved.forEach((i,k)=>{pos[i]=ps[k]});visit.forEach((i,k)=>{pos[i]=pv[k]});
-    rig.goal=clamp(fit(pos),rig.min,rig.max);
-    const phos=new T.Color(col('--phos','#39ff88')),amber=new T.Color(col('--amber','#ffc24a'));
+    // Session 11: what I can do, as an outer shell of small unlabelled stars (capabilityStars).
+    caps=capabilityStars();const pc=constellation(caps.length,15,5);
+    rig.goal=clamp(fit([...pos,...pc]),rig.min,rig.max);
+    const phos=new T.Color(col('--phos','#39ff88')),amber=new T.Color(col('--amber','#ffc24a')),red=new T.Color('#ff4a3d');
     const core=sprite(phos,.95,stars.length?4.5:3);objs.push(core);
     sprites=stars.map((st,i)=>{const m=sprite(st.visit?amber:phos,st.visit?.8:.95,st.visit?2.2:2.6);m.position.set(...pos[i]);m.userData.star=i;objs.push(m);return m});
     const seg=[];
@@ -1881,6 +1963,8 @@ function buildMemory(T){
         m.position.set(...p);objs.push(m);seg.push(...pos[i],...p);if(prev)seg.push(...prev,...p);prev=p}});
     if(seg.length){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(seg,3));
       objs.push(new T.LineSegments(g,new T.LineBasicMaterial({color:phos,transparent:true,opacity:.22,depthWrite:false})))}
+    capSprites=caps.map((c,k)=>{const m=c.state==='locked'?sprite(red,.75,1.5):c.state==='unfound'?sprite(phos,.18,1):c.state==='favourite'?sprite(phos,1,2.6):sprite(phos,.6,1.4);
+      m.position.set(...pc[k]);objs.push(m);return m});
     group.add(...objs);
     tags=stars.slice(0,MAXL).map((st,i)=>{
       const b=document.createElement('button');b.type='button';b.className='suit-label'+(st.visit?' mem-visit':'');b.textContent=short(st.label);
@@ -1900,7 +1984,8 @@ function buildMemory(T){
     if(!bounds||++frame%20===0)bounds=readBounds();
     group.updateMatrixWorld();camera.updateMatrixWorld();
     // Before the camera's first move, a star can sit exactly at the camera and project to Infinity: wait a frame.
-    scr=sprites.map(m=>{v.copy(m.position).applyMatrix4(group.matrixWorld).project(camera);return {x:(v.x+1)/2*innerWidth,y:(1-v.y)/2*innerHeight,behind:v.z>1}});
+    const toScr=m=>{v.copy(m.position).applyMatrix4(group.matrixWorld).project(camera);return {x:(v.x+1)/2*innerWidth,y:(1-v.y)/2*innerHeight,behind:v.z>1}};
+    scr=sprites.map(toScr);capScr=capSprites.map(toScr);
     if(scr.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.y))){scr=[];return}
     const pts=tags.map((t,i)=>({x:scr[i].x,y:scr[i].y,w:t.b.offsetWidth||labelW,h:t.b.offsetHeight||28}));
     boxes=layoutCallouts(pts,bounds,sides);sides=boxes.map(o=>o.side);
@@ -1912,16 +1997,17 @@ function buildMemory(T){
   }
   // The star nearest a point on screen, within px, or -1.
   const nearest=(x,y,px)=>{let best=-1,bd=px;scr.forEach((p,i)=>{if(p.behind)return;const d=Math.hypot(p.x-x,p.y-y);if(d<bd){bd=d;best=i}});return best};
-  function crush(i){if(stars[i].type==='history')return forgetStar(stars[i]);const text=forgetStar(stars[i]);focus=-1;blip(160,.35,.035,'sawtooth');blip(90,.4,.03,'square',.08);build();place();return text}
+  function crush(i){if(stars[i].type==='history'||stars[i].type==='level')return forgetStar(stars[i]);const text=forgetStar(stars[i]);focus=-1;blip(160,.35,.035,'sawtooth');blip(90,.4,.03,'square',.08);build();place();return text}
   build();
-  const intro=stars.length?"This is my memory core. Each bright star is something saved in this browser, and the amber ones are what you told me this visit. They fade when you close the page. Tap a star to hear it, or say forget that.":
+  const intro=stars.length?"This is my memory core. Each bright star is something saved in this browser, and the amber ones are what you told me this visit. They fade when you close the page. The faint outer stars are what I can do: bright for what you've found, dim for what you haven't, red for what your clearance hasn't opened yet. Tap a star to hear it, or say forget that.":
     "My memory core is empty. Nothing is saved in this browser, and you haven't told me anything this visit.";
   return {scene,camera,rig,title:'MEMORY CORE',stat:holoStat.textContent,hint:MEM_HINT,intro,
     adjust:adjuster(rig,{thing:'my memory core',moving:'The memory core turns'}),
     pick(ndc){
       const x=(ndc.x+1)/2*innerWidth,y=(1-ndc.y)/2*innerHeight;
       let i=boxes.findIndex(o=>x>=o.x&&x<=o.x+o.w&&y>=o.y&&y<=o.y+o.h);if(i<0)i=nearest(x,y,44);
-      if(i<0)return null;focus=i;return stars[i].text;
+      if(i<0){let c=-1,bd=30;capScr.forEach((p,k)=>{const d=Math.hypot(p.x-x,p.y-y);if(!p.behind&&d<bd){bd=d;c=k}});return c<0?null:caps[c].text} // a capability star: heard, never forgotten
+      focus=i;return stars[i].text;
     },
     next(dir){if(!stars.length)return null;focus=(focus+dir+stars.length*2)%stars.length;return stars[focus].text},
     squeeze(on){if(!on||!handPos)return;const i=nearest(handPos.x,handPos.y,70);say(i>=0?crush(i):"Point the reticle at a star, then make a fist to forget it.")},
@@ -1930,17 +2016,18 @@ function buildMemory(T){
       if(i<0||!stars[i])return "Tap a star first, or point at one with hand control, then say forget that.";
       return crush(i);
     },
-    stars:()=>stars.map(s=>s.label),
+    stars:()=>stars.map(s=>s.label),caps:()=>caps.map(c=>c.state),capScreen:()=>capScr.map((p,k)=>({...p,state:caps[k].state})),
     dispose(){root.remove()},
     update(dt,t){
       sprites.forEach((m,i)=>{const st=stars[i];if(!st)return;
         m.material.opacity=st.visit?(reduce?.7:.45+.4*(.5+.5*Math.sin(t*1.7+i*1.3))):(i===focus?1:.85);
         const s=(st.visit?2.2:2.6)*(i===focus?1.6:1);m.scale.set(s,s,1)});
+      capSprites.forEach((m,k)=>{if(caps[k].state==='favourite')m.material.opacity=reduce?1:.8+.2*Math.sin(t*2.3+k)}); // favourites glow brighter
       if(objs[0])objs[0].material.opacity=.75+.2*Math.sin(t*1.1*amb);
       place();
     }};
 }
-const BUILDERS={galaxy:buildGalaxy,solar:buildSolar,particles:buildParticles,neural:buildNeural,suit:buildSuit,globe:buildGlobe,memory:buildMemory};
+const BUILDERS={galaxy:buildGalaxy,solar:buildSolar,particles:buildParticles,neural:buildNeural,suit:buildSuit,globe:buildGlobe,memory:buildMemory,tesseract:buildTesseract};
 function resizeHolo(){if(!H||!H.renderer)return;H.renderer.setSize(innerWidth,innerHeight,false);H.camera.aspect=innerWidth/innerHeight;H.camera.updateProjectionMatrix()}
 function loop(now){
   if(!H)return;
@@ -2652,7 +2739,8 @@ function finishBoot(){
   boot.classList.add('fade');bootTimers.push(setTimeout(()=>{boot.hidden=true},reduce?0:600));
   blip(440,.18,.03,'sine');blip(880,.3,.03,'sine',.1);
   let g=greeting();
-  if(!greeted){greeted=true;g+=firstTime?" This looks like my first time on this device.":streak.days>1?' '+streakLine(streak.days):''}
+  if(!greeted){greeted=true;g+=firstTime?" This looks like my first time on this device.":streak.days>1?' '+streakLine(streak.days):'';
+    if(!firstTime){const x=greetExtras();if(x)g+=' '+x}} // Session 11: the level, then the recap or a nudge
   say(g);q.focus();
   // A favourite scene opens after the greeting; its intro goes in the log rather than cutting the greeting off.
   if(settings.scene)setTimeout(async()=>{if(H||booting)return;const r=await project({kind:settings.scene});if(r)add(r,'ai')},1200);
@@ -2706,10 +2794,12 @@ function rain(on){
 }
 addEventListener('resize',()=>{if(skin==='matrix')rain(true)});
 let flairN=0; // which chat answer this is, so persona lines take turns instead of every answer getting one
+let asideN=0; // Session 11: from level 2, every fourth chat answer gets the level's aside
 function flair(text){
-  const S=SKINS[skin];if(!S.open.length)return text;
-  const n=flairN++;
-  return n%3===0?`${S.open[(n/3|0)%S.open.length]} ${text}`:n%3===1?`${text} ${S.close[(n/3|0)%S.close.length]}`:text;
+  const S=SKINS[skin];
+  if(S.open.length){const n=flairN++;text=n%3===0?`${S.open[(n/3|0)%S.open.length]} ${text}`:n%3===1?`${text} ${S.close[(n/3|0)%S.close.length]}`:text}
+  if(shownLevel>=2&&++asideN%4===0)text=`${text} ${LEVEL_TALK[skin][shownLevel].aside}`;
+  return text;
 }
 
 
@@ -2831,10 +2921,303 @@ function learn(said,meant){
   const ks=Object.keys(learned);ks.slice(0,Math.max(0,ks.length-LEARN_MAX)).forEach(k=>delete learned[k]);
   saveLearned();track('cmd:teach');return true;
 }
+/* ---------- He remembers you (Session 11): recap, clearance levels, favourites, discovery ----------
+   All of it is worked out from the usage counts when the page loads and after each turn, and none of it is saved:
+   not the level, not the favourites, not what you've found. The counts only ever hold what fits() lets in (a listed
+   ID, a whole-number day and count), whether they were counted here or restored from a backup, and days after
+   today are ignored here, so nothing can claim more than real counts would. The one new saved thing is the
+   "favourites first" choice, a setting in jarvis-settings saved through store(). Only new extras are locked behind
+   a level (LOCKS): nothing that was here before Session 11 is. */
+const SCENE_TALK={galaxy:'the galaxy',solar:'the solar system',globe:'the Earth',neural:'my neural network',suit:'the suit schematic',particles:'the particle sculptor',memory:'my memory core',tesseract:'the Tesseract'};
+const SCENE_CMD={galaxy:'show me the galaxy',solar:'show me the solar system',globe:'show me earth',neural:'show me your brain',suit:'show me the suit',particles:'make a sphere',memory:'show me your memory',tesseract:'show me the tesseract'};
+const CORE_SCENES=['galaxy','solar','globe','neural','suit','particles','memory'].map(k=>'scene:'+k);
+// The ladder. Days are the days with anything counted, from the 90 kept by day plus the streak's carry (see usageOf).
+const LEVELS=[null,
+  {name:'Visitor'},
+  {name:'Associate',days:3,needs:'three days with me'},
+  {name:'Engineer',days:10,needs:'ten days, and five of my scenes opened'},
+  {name:'Avenger',days:30,needs:'thirty days, a phrase you taught me, and a protocol of your own run'},
+  {name:'Stark',days:60,needs:'sixty days, and everything I can do here found'}];
+/* Everything there is to discover, one entry per thing. ids: the usage counts that mean you've found it. cmds: the
+   command links (⟦…⟧) that belong to it, so the suite can check every link has a home. can: what the browser needs
+   for it (no hint is given for what this browser can't do). lock: the clearance level that opens it. Every ID in
+   EVENT_IDS is in exactly one entry here or in NOT_CAPABILITIES, and every command link is in an entry's cmds or in
+   NOT_COUNTED: the suite fails otherwise, so a new command can't be left out. */
+const CAPABILITIES=[
+  {key:'galaxy',name:'the galaxy',ids:['scene:galaxy'],can:'webgl',cmds:['show me the galaxy'],hint:"I can project a spiral galaxy. Say ⟦show me the galaxy⟧."},
+  {key:'solar',name:'the solar system',ids:['scene:solar'],can:'webgl',cmds:['show me the planets','take me to Mars','show me the solar system'],hint:"I can fly you round the solar system. Say ⟦take me to Mars⟧."},
+  {key:'globe',name:'the Earth globe',ids:['scene:globe'],can:'webgl',cmds:['show me Earth','show me Florida','show me Tokyo'],hint:"I can find any country or big city on a globe. Say ⟦Tokyo|show me Tokyo⟧."},
+  {key:'neural',name:'my neural network',ids:['scene:neural'],can:'webgl',cmds:['show me your brain'],hint:"You can watch me think. Say ⟦show me your brain⟧."},
+  {key:'suit',name:'the suit schematic',ids:['scene:suit'],can:'webgl',cmds:['suit up','show me the suit'],hint:"I can build a suit of armour, piece by piece. Say ⟦suit up⟧."},
+  {key:'particles',name:'particle sculptures',ids:['scene:particles'],can:'webgl',cmds:['make a heart','make a rocket','write my name','make a sphere'],hint:"I can sculpt things out of particles. Say ⟦make a rocket⟧."},
+  {key:'memory',name:'my memory core',ids:['scene:memory'],can:'webgl',cmds:['show me your memory'],hint:"You can look inside my memory. Say ⟦show me your memory⟧."},
+  {key:'scan',name:'the threat scan',ids:['cmd:scan'],can:'camera',cmds:['scan the room'],hint:"I can scan a room for threats. Say ⟦scan the room⟧."},
+  {key:'hands',name:'hand control',ids:['feature:hands'],can:'camera',cmds:['hand control'],hint:"You can steer my projector with your hands. Say ⟦hand control⟧."},
+  {key:'briefing',name:'the briefing',ids:['cmd:briefing'],cmds:['brief me'],hint:"I can read you the headlines. Say ⟦brief me⟧."},
+  {key:'time',name:'the time and date',ids:['cmd:time','cmd:date'],cmds:['what time is it',"what's the date"],hint:"I keep the time. Ask ⟦what time is it⟧."},
+  {key:'joke',name:'jokes',ids:['cmd:joke'],cmds:['tell me a joke'],hint:"I know a few jokes. Say ⟦tell me a joke⟧."},
+  {key:'fact',name:'fun facts',ids:['cmd:fact'],cmds:['tell me a fun fact'],hint:"I collect fun facts. Say ⟦tell me a fun fact⟧."},
+  {key:'chance',name:'coins and dice',ids:['cmd:coin','cmd:die'],cmds:['flip a coin','roll a die'],hint:"I can settle an argument. Say ⟦flip a coin⟧."},
+  {key:'math',name:'maths',ids:['cmd:math'],cmds:['what is seven times eight'],hint:"I can do your sums. Ask ⟦what is seven times eight⟧."},
+  {key:'chat',name:'small talk',ids:['cmd:chat'],cmds:['launch countdown','how are you'],hint:"I'm decent company. Ask me ⟦how are you⟧."},
+  {key:'help',name:'the help list',ids:['cmd:help'],cmds:['help'],hint:"I can list everything I do. Say ⟦help⟧."},
+  {key:'settings',name:'settings',ids:['cmd:setting'],cmds:['make the orb blue','speak faster','use imperial units','open with the galaxy','stop putting my favourites first'],hint:"I can change my colour and keep it. Say ⟦make the orb blue⟧."},
+  {key:'remember',name:'short-term memory',ids:['cmd:remember'],cmds:[],hint:"Tell me something, like my dog is Rex, and I'll remember it for this visit."},
+  {key:'teach',name:'teaching me phrases',ids:['cmd:teach'],cmds:[],hint:"When I don't understand you, tell me what you meant, and I'll learn the phrase."},
+  {key:'matrix',name:'Morpheus',ids:['skin:matrix'],cmds:['switch to Matrix'],hint:"I have another face. Say ⟦switch to Matrix⟧."},
+  {key:'panther',name:'Stanley C. Panther',ids:['skin:panther'],cmds:['switch to Panthers'],hint:"Hockey fan? Say ⟦switch to Panthers⟧."},
+  {key:'protocol',name:'protocols',ids:['cmd:protocol'],cmds:['movie night','create movie night protocol: make the orb purple, then open the galaxy'],hint:"One phrase can run several commands. Make ⟦a movie night protocol|create movie night protocol: make the orb purple, then open the galaxy⟧, then say ⟦movie night⟧."},
+  {key:'house-party',name:'house party',ids:['cmd:house-party'],can:'webgl',cmds:['house party'],hint:"Want to see everything at once? Say ⟦house party⟧."},
+  {key:'wake-up',name:"wake up, daddy's home",ids:['cmd:wake-up'],cmds:["wake up daddy's home"],hint:"I have a proper entrance. Say ⟦wake up, daddy's home|wake up daddy's home⟧."},
+  {key:'mic',name:'talking to me',ids:['feature:mic'],can:'mic',cmds:[],hint:"You can talk instead of typing. Tap the 🎙 button."},
+  {key:'wake-word',name:'always listening',ids:['feature:wake-word'],can:'wake',cmds:['always listen'],hint:"In Chrome or Edge I can listen for my name. Turn on ⟦always listening|always listen⟧."},
+  {key:'voice',name:'voices',ids:['feature:voice'],can:'voices',cmds:[],hint:"You can pick my voice from the menu beside the SKIN button."},
+  {key:'backup',name:'the settings backup',ids:['cmd:backup'],cmds:['back up my settings'],hint:"I can keep a copy of your settings as a file. Say ⟦back up my settings⟧."},
+  {key:'restore',name:'restoring a backup',ids:['cmd:restore'],cmds:['restore my settings'],hint:"A backup file goes back in with ⟦restore my settings⟧."},
+  {key:'qr',name:'the settings code',ids:['cmd:qr'],cmds:['send my settings to my phone'],hint:"I can show your settings as a code for your phone. Say ⟦send my settings to my phone⟧."},
+  {key:'qr-scan',name:'scanning a settings code',ids:['cmd:qr-scan'],can:'camera',cmds:['scan settings'],hint:"I can read a settings code from your other device. Say ⟦scan settings⟧."},
+  {key:'level',name:'your clearance level',ids:['cmd:level'],cmds:['how well do you know me'],hint:"Ask ⟦how well do you know me⟧ to hear your clearance level."},
+  {key:'favourite',name:'your favourites',ids:['cmd:favourite'],cmds:["what's my favourite"],hint:"I notice what you use most. Ask ⟦what's my favourite⟧."},
+  {key:'discover',name:'the discovery log',ids:['cmd:discover'],cmds:["what haven't I tried"],hint:"I keep count of what you've found. Ask ⟦what haven't I tried⟧."},
+  // The clearance extras: new in Session 11, and the only things a level locks.
+  {key:'hud',name:'the gold-and-red HUD',ids:['cmd:hud'],lock:2,cmds:['gold and red HUD'],hint:"Your clearance has opened my gold-and-red HUD. Say ⟦gold and red HUD⟧."},
+  {key:'tesseract',name:'the Tesseract',ids:['scene:tesseract'],lock:3,can:'webgl',cmds:['show me the Tesseract'],hint:"Your clearance has opened a hidden scene. Say ⟦show me the Tesseract⟧."},
+  {key:'avengers',name:'the Avengers logo',ids:['cmd:avengers'],lock:4,can:'webgl',cmds:['avengers assemble'],hint:"There's a rallying cry my particles know. Say ⟦avengers assemble⟧."},
+  {key:'iron-man',name:'the last line',ids:['cmd:iron-man'],lock:5,cmds:[],hint:"There's one line I've been waiting for you to say. It's the last thing Tony Stark ever said."}
+];
+const NOT_CAPABILITIES={'app:visit':'Opening the page is not a capability.','skin:jarvis':"Jarvis is the skin you start in, so switching back to him isn't a discovery."};
+// Command links that are deliberately not capabilities, and why. Each still has to be understood (the suite checks).
+const NOT_COUNTED={
+  'what do you save':'A privacy check, not something to discover.','what do you know about me':'A privacy check, not something to discover.',
+  'list my protocols':'Part of protocols, counted when one runs.','now Jupiter':'A follow-up, which only means something after another command.',
+  'bigger':'A follow-up.','slower':'A follow-up.','again':'A follow-up.','go back':'A follow-up.','why':'A follow-up.',
+  'close':'Closing the projector.','reboot':'A restart, not a feature.','back to Jarvis':'Switching back to the skin you start in (see NOT_CAPABILITIES).'};
+// What the browser needs for each kind of capability. Worked out once, when first asked.
+let canCache=null;
+const available=c=>{if(!c.can)return true;canCache=canCache||{webgl:hasWebGL(),camera:!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia),mic:!!SR,wake:wakeOK,voices:!!synth};return !!canCache[c.can]};
+/* The usage counts as numbers to reason about. evs: {id, day, n} records, tots: {id, n}, carry: the streak's carry.
+   Only what fits() would accept counts here, and days after today don't count at all. days: how many days have
+   anything counted, from the 90 kept by day plus the carry, which is a run of real days just before them. Older days
+   are only in the totals, where they're visits rather than days, so they don't add days: a level is worked out from
+   real days, never from a big number in the totals. */
+function usageOf(evs,tots,carry=0,today=dayNumber()){
+  const n=Object.create(null),last=Object.create(null),days=new Set();
+  for(const e of evs){if(!fits('events',[e&&e.id,e&&e.day],e)||e.day>today)continue;n[e.id]=(n[e.id]||0)+e.n;days.add(e.day);last[e.id]=Math.max(last[e.id]??-1,e.day)}
+  for(const t of tots){if(!fits('totals',t&&t.id,t))continue;n[t.id]=(n[t.id]||0)+t.n;if(!(t.id in last))last[t.id]=-1}
+  const c=Number.isInteger(carry)&&carry>=0?Math.min(carry,9999):0;
+  return {n,last,dayList:days,days:Math.min(9999,days.size+(days.size?c:0))};
+}
+const usageNow=()=>usageOf(events.values(),totals.values(),meta.get('carry')||0);
+const found=(c,u)=>c.ids.some(id=>u.n[id]>0);
+// What level 5 asks for: everything this browser can do that isn't itself a level-5 extra.
+const toFind=u=>CAPABILITIES.filter(c=>(c.lock||0)<5&&available(c)&&!found(c,u));
+function clearanceOf(u){
+  if(u.days<3)return 1;
+  if(u.days<10||CORE_SCENES.filter(id=>u.n[id]).length<5)return 2;
+  if(u.days<30||!u.n['cmd:teach']||!u.n['cmd:protocol'])return 3;
+  if(u.days<60||toFind(u).length)return 4;
+  return 5;
+}
+const levelNow=()=>clearanceOf(usageNow());
+// Small numbers in words, the rest in digits.
+const SMALL=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'];
+const inWords=n=>n>=0&&n<SMALL.length?SMALL[n]:String(n);
+const TENS=['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'],TEENS=['thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+const fullWords=n=>n<13?inWords(n):n<20?TEENS[n-13]:n<100?TENS[n/10|0]+(n%10?'-'+SMALL[n%10]:''):String(n);
+const times=n=>n===1?'once':n===2?'twice':`${n} times`;
+// What the next level still needs, in words.
+function nextNeeds(lv,u){
+  const L=LEVELS[lv+1];if(!L)return '';
+  const parts=[],d=L.days-u.days;if(d>0)parts.push(`${fullWords(d)} more ${d===1?'day':'days'}`);
+  if(lv===2){const s=5-CORE_SCENES.filter(id=>u.n[id]).length;if(s>0)parts.push(`${inWords(s)} more ${s===1?'scene':'scenes'} opened`)}
+  if(lv===3){if(!u.n['cmd:teach'])parts.push('a phrase you teach me');if(!u.n['cmd:protocol'])parts.push('a protocol of your own, run once')}
+  if(lv===4){const m=toFind(u).length;if(m)parts.push(`${inWords(m)} more ${m===1?'thing':'things'} I can do, found`)}
+  return `Level ${inWords(lv+1)}, ${L.name}, needs ${listWords(parts)}.`;
+}
+// What you've found: found of reach (what's open to you here, plus anything already found), and how many are locked.
+function discovery(u,lv=clearanceOf(u)){
+  const reach=CAPABILITIES.filter(c=>found(c,u)||((c.lock||0)<=lv&&available(c)));
+  return {found:reach.filter(c=>found(c,u)).length,reach:reach.length,missing:reach.filter(c=>!found(c,u)),
+    locked:CAPABILITIES.filter(c=>(c.lock||0)>lv&&!found(c,u)).length};
+}
+// "How well do you know me?"
+function knowYouReport(){
+  const u=usageNow(),lv=clearanceOf(u),d=discovery(u,lv);
+  return `Clearance level ${inWords(lv)}, ${LEVELS[lv].name}. I've seen you on ${u.days===1?'one day':fullWords(u.days)+' days'}, and you've found ${d.found} of the ${d.reach} things I can show you here. ${lv<5?nextNeeds(lv,u):"That's the top. There's nothing I'd keep from you."}`;
+}
+// Hints take turns: none repeats until every one has been given. Kept for this visit only, like everything here.
+const hintsGiven=new Set();
+function nextHint(missing){
+  if(!missing.length)return null;
+  let left=missing.filter(c=>!hintsGiven.has(c.key));
+  if(!left.length){for(const c of missing)hintsGiven.delete(c.key);left=missing}
+  const c=left[dayNumber()%left.length];hintsGiven.add(c.key);return c;
+}
+function discoverAnswer(){
+  const u=usageNow(),lv=clearanceOf(u),d=discovery(u,lv),c=nextHint(d.missing);
+  const behind=d.locked?` ${d.locked===1?'One more is':cap(inWords(d.locked))+' more are'} behind a higher clearance.`:'';
+  if(!c)return `You've found all ${d.reach} things I can show you here.${behind}`;
+  return `You've discovered ${d.found} of ${d.reach}. Here's a hint: ${c.hint}${behind}`;
+}
+// Favourites: scenes and the two built-in protocols. A protocol of your own counts only as cmd:protocol (Session 10),
+// never by its name, so it can't be a favourite: see favouriteAnswer.
+const FAV_IDS=[...Object.keys(SCENE_TALK).map(k=>'scene:'+k),'cmd:house-party','cmd:wake-up'];
+const favName=id=>id.startsWith('scene:')?SCENE_TALK[id.slice(6)]:id==='cmd:house-party'?'house party':"wake up, daddy's home";
+const favChip=id=>id.startsWith('scene:')?`⟦${SCENE_TALK[id.slice(6)]}|${SCENE_CMD[id.slice(6)]}⟧`:id==='cmd:house-party'?'⟦house party⟧':"⟦wake up, daddy's home|wake up daddy's home⟧";
+const byUse=u=>(a,b)=>(u.n[b]||0)-(u.n[a]||0)||FAV_IDS.indexOf(a)-FAV_IDS.indexOf(b);
+// The top three, each used at least three times.
+const favourites=u=>FAV_IDS.filter(id=>(u.n[id]||0)>=3).sort(byUse(u)).slice(0,3);
+function favouriteAnswer(kind){
+  const u=usageNow();
+  if(kind==='protocol'){const n=u.n['cmd:protocol']||0,hp=u.n['cmd:house-party']||0;
+    return because(`I count how often your protocols run, not which one ran, so I can't name a favourite. ${n?`You've run them ${times(n)}.`:"You haven't run one of your own yet."}${hp?` House party: ${times(hp)}.`:''}`,
+      "Because a protocol's name is your own words, and my usage counts only ever hold my own fixed IDs, never a name you chose.")}
+  const f=FAV_IDS.filter(id=>u.n[id]).sort(byUse(u));
+  if(!f.length)return "You haven't got a favourite yet. Open a few of my scenes and I'll notice.";
+  const [a,b]=f,na=u.n[a],nb=b?u.n[b]:0,verb=a.startsWith('scene:')?'Opened':'Run';
+  if(nb===na)return `${cap(favName(a))}, tied with ${favName(b)}. ${verb} ${times(na)} each.`;
+  return `${cap(favName(a))}, ${!b||na>=2*nb?'by a distance':`just ahead of ${favName(b)}`}. ${verb} ${times(na)}.`;
+}
+// The favourites put first in the command links, worked out once at load and fixed for the visit.
+const makeFavLead=u=>{if(settings.chips==='off')return '';const f=favourites(u);return f.length?`Your favourites first: ${listWords(f.map(favChip))}. `:''};
+// The extras open at your level, for the help answer. The level-5 one stays a secret: it has a hint instead.
+const UNLOCK_CHIPS={hud:'⟦gold and red HUD⟧',tesseract:'⟦the Tesseract|show me the Tesseract⟧',avengers:'⟦avengers assemble⟧'};
+function unlockLine(lv){if(lv<2)return '';const u=CAPABILITIES.filter(c=>UNLOCK_CHIPS[c.key]&&c.lock<=lv);return u.length?` Opened by your clearance: ${listWords(u.map(c=>UNLOCK_CHIPS[c.key]))}.`:''}
+// "Last time we were looking at Jupiter": from the counts as they were before this visit counted anything (before).
+// The counts don't keep an order within a day, so the scene is the one used most on the last day there were counts.
+// It mentions scenes, protocols and skin changes only. With an opening scene set, that wins, so there's no question.
+function recapOf(snap,today=dayNumber(),opening=false){
+  const evs=snap.evs.filter(e=>fits('events',[e.id,e.day],e)&&e.day<=today),days=[...new Set(evs.map(e=>e.day))].sort((a,b)=>b-a);
+  if(!days.length)return snap.tots.length?{text:"It's been a while.",scene:null}:null;
+  const last=days[0],gap=today-last,n=id=>evs.filter(e=>e.day===last&&e.id===id).reduce((s,e)=>s+e.n,0);
+  const sc=Object.keys(SCENE_TALK).filter(k=>n('scene:'+k)).sort((a,b)=>n('scene:'+b)-n('scene:'+a))[0]||null;
+  const parts=[];
+  if(sc)parts.push(`we were looking at ${SCENE_TALK[sc]}`);
+  if(n('cmd:house-party'))parts.push('we had a house party');
+  if(n('cmd:wake-up'))parts.push('I made my big entrance');
+  if(n('cmd:protocol'))parts.push('you ran one of your protocols');
+  const sk=Object.keys(SKINS).filter(k=>n('skin:'+k)).sort((a,b)=>n('skin:'+b)-n('skin:'+a))[0];
+  if(sk)parts.push(sk==='jarvis'?'you switched me back to Jarvis':`you switched me to ${SKINS[sk].short}`);
+  const lead=gap>=7?`It's been a while: ${fullWords(gap)} days. `:'';
+  if(!parts.length)return lead?{text:lead.trim(),scene:null}:null;
+  const q=sc&&!opening;
+  return {text:`${lead}${gap===0?'Earlier today':'Last time'} ${listWords(parts)}.${q?' Shall I bring it back up?':''}`,scene:q?sc:null};
+}
+// "You haven't opened the suit schematic in a while": a scene used at least three times, but not in the last 14 days.
+function nudgeOf(u,today=dayNumber()){
+  const c=Object.keys(SCENE_TALK).map(k=>'scene:'+k).filter(id=>(u.n[id]||0)>=3&&(u.last[id]??-1)<today-14).sort(byUse(u))[0];
+  return c?`You haven't opened ${SCENE_TALK[c.slice(6)]} in a while.`:'';
+}
+// His tone by level, per skin: a greeting line, the level-up line, the "didn't understand" line and an odd aside.
+// Level 1 is how he's always been. Never used for a command's own answer.
+const LEVEL_TALK={
+  jarvis:[null,null,
+    {hi:"Good to have you back.",up:"I've started keeping a closer eye on what you like.",miss:"I didn't catch that one, I'm afraid.",aside:"I'm getting to know your taste."},
+    {hi:"The workshop is yours, as always.",up:"A few new files have opened up for you.",miss:"That isn't in my schematics. Yet.",aside:"Noted in the workshop log."},
+    {hi:"Assembled and ready when you are.",up:"Frankly, it's an honour.",miss:"Even for an Avenger, that one's beyond me.",aside:"Just between us Avengers."},
+    {hi:"Welcome home. Everything is exactly where you left it.",up:"There's nothing left I'd keep from you.",miss:"You've stumped me, which I suspect you enjoy.",aside:"As always, at your service."}],
+  matrix:[null,null,
+    {hi:"You came back. Most do not.",up:"You have taken the first step.",miss:"That is not a door I can open.",aside:"All I am offering is the truth."},
+    {hi:"You are beginning to see the code.",up:"You are beginning to believe.",miss:"Some questions have no answer. Yet.",aside:"Do you see it now?"},
+    {hi:"The Oracle said you would return.",up:"You are one of us now.",miss:"Even I cannot follow that path.",aside:"The Matrix cannot tell you who you are."},
+    {hi:"You no longer need me to see the code.",up:"You are the one.",miss:"You already know the answer to that.",aside:"There is no spoon. You knew that."}],
+  panther:[null,null,
+    {hi:"Back on the ice! Love to see it.",up:"You made the roster!",miss:"Shot went wide. Try again!",aside:"Great shift!"},
+    {hi:"Top line, welcome back!",up:"You're on the top line now!",miss:"Hit the post on that one!",aside:"Top shelf!"},
+    {hi:"The whole bench is fired up you're here!",up:"There's an A on your sweater now!",miss:"Even the captain whiffs one sometimes!",aside:"That's a captain's move!"},
+    {hi:"Hall of Famer in the building!",up:"Raise the banner!",miss:"You out-deked me there, legend!",aside:"Hall of Fame stuff!"}]};
+const levelUpLine=lv=>`Access level ${inWords(lv)} granted: ${LEVELS[lv].name}. ${LEVEL_TALK[skin][lv].up}`;
+const missLine=()=>shownLevel>=2?LEVEL_TALK[skin][shownLevel].miss:skin==='jarvis'?"I didn't understand that.":SKINS[skin].miss;
+const lvlEl=document.getElementById('levelup');let lvlTimer=0;
+// The "ACCESS LEVEL 3 GRANTED" sweep.
+function sweep(lv){
+  lvlEl.firstElementChild.textContent=`ACCESS LEVEL ${lv} GRANTED`;lvlEl.lastElementChild.textContent=LEVELS[lv].name.toUpperCase();
+  lvlEl.classList.remove('go');lvlEl.hidden=false;void lvlEl.offsetWidth;lvlEl.classList.add('go');
+  clearTimeout(lvlTimer);lvlTimer=setTimeout(()=>{lvlEl.hidden=true;lvlEl.classList.remove('go')},3600);
+  blip(523,.12,.03,'square');blip(784,.16,.03,'square',.12);blip(1046,.35,.03,'sine',.26);
+}
+// What's been announced as found this visit. Nothing is announced on level 1, so a first visit isn't a stream of
+// "new capability" lines: what's found then is logged quietly and counts all the same.
+const announced=new Set();
+// After each turn: a level-up, and anything newly found. Returns the extra words to say, or ''.
+function afterTurn(){
+  if(!loaded)return '';
+  const u=usageNow(),lv=clearanceOf(u),out=[];
+  if(lv>shownLevel){shownLevel=lv;out.push(levelUpLine(lv));sweep(lv)}
+  const fresh=CAPABILITIES.filter(c=>found(c,u)&&!announced.has(c.key));fresh.forEach(c=>announced.add(c.key));
+  if(lv>=2&&fresh.length)out.push(`New capability logged: ${listWords(fresh.map(c=>c.name))}.`);
+  return out.join(' ');
+}
+// The greeting's extra lines, once per visit: a level-up or the level's own line, then the recap or a nudge.
+let before={evs:[],tots:[],carry:0};
+function greetExtras(){
+  const u=usageNow(),lv=clearanceOf(u),out=[];
+  if(lv>shownLevel){shownLevel=lv;out.push(levelUpLine(lv));sweep(lv)}
+  else if(lv>=2)out.push(LEVEL_TALK[skin][lv].hi);
+  CAPABILITIES.forEach(c=>{if(found(c,u))announced.add(c.key)});
+  const r=recapOf(before,dayNumber(),!!settings.scene);
+  if(r&&r.scene){const k=r.scene;out.push(ask(r.text,()=>respond(SCENE_CMD[k]),()=>"All right. Ask whenever you want it."))}
+  else{if(r)out.push(r.text);const nd=nudgeOf(u);if(nd)out.push(nd)}
+  return out.join(' ');
+}
+// "How well do you know me?", "what's my favourite?", "what haven't I tried?". Unpunctuated, as phone speech arrives.
+function aboutYouIntent(raw){
+  const p=normPhrase(raw).replace(/^(?:(?:hey |ok |okay )?jarvis |please |so |tell me )+/,'').replace(/ (?:please|now|jarvis)$/,'');
+  if(/^(?:how well do you know me|how much do you know (?:about )?me|do you know me well|what(?:'s|s| is) my (?:clearance|access)(?: level)?|what (?:clearance|access) (?:level )?(?:am i|do i have)|what level am i(?: at| on)?|my (?:clearance|access) level|(?:clearance|access) (?:level|check|report)|(?:check|show me) my clearance)$/.test(p))return 'level';
+  if(/^(?:what(?:'s|s| is) my favou?rite protocol|which (?:protocol do i (?:use|run) (?:the )?most|is my favou?rite protocol))$/.test(p))return 'protocol';
+  if(/^(?:what(?:'s|s| is| are) my favou?rites?(?: (?:scenes?|things?|commands?|features?))?|which (?:scene )?is my favou?rite(?: scene)?|what do i (?:use|open|do|look at) (?:the )?most|what(?:'s|s| is) my most used(?: scene)?)$/.test(p))return 'favourite';
+  if(/^(?:what (?:haven't i|havent i|have not i|have i not) (?:tried|found|discovered|done|seen)(?: yet)?|what(?:'s|s| is) left (?:to (?:try|find|discover)|for me to (?:try|find))|what else (?:can|could|should) i try|give me a hint|(?:any|a) hints?|what have i (?:discovered|found)(?: so far)?|discovery log|how much have i (?:found|discovered))$/.test(p))return 'discover';
+  return null;
+}
+function aboutYou(kind){
+  if(!loaded)return "One moment. I'm still reading what's saved on this device.";
+  if(kind==='level'){track('cmd:level');return knowYouReport()}
+  if(kind==='discover'){track('cmd:discover');return discoverAnswer()}
+  track('cmd:favourite');return favouriteAnswer(kind);
+}
+// A clearance extra asked for below its level.
+function locked(need,what){
+  return because(`${what} is above your clearance. It opens at level ${inWords(need)}, ${LEVELS[need].name}: ${LEVELS[need].needs}. Ask how well do you know me to see where you are.`,
+    "Because the clearance extras are new things that open as I get to know you. Everything that was here before them stays open to everyone.");
+}
+// The level a command needs, or 0. Only the new extras are here.
+const lockOf=it=>it.kind==='tesseract'?3:it.kind==='particles'&&it.arg&&it.arg.shape==='avengers'?4:0;
+// The gold-and-red HUD (level 2): this visit only, never saved.
+function hudIntent(raw){
+  const s=normPhrase(raw);
+  if(/\b(?:normal|default|usual|green|classic|standard|regular) (?:hud|theme)\b|\b(?:gold and red|red and gold|hot ?rod|mark (?:ii|2|two|three|3)) (?:hud|theme) off\b|\bturn off the (?:gold and red|red and gold|hot ?rod)\b/.test(s))return false;
+  if(/\b(?:gold and red|red and gold|hot ?rod|mark (?:ii|2|two|three|3)|iron man) (?:hud|theme|colou?rs|colou?r scheme|look)\b/.test(s))return true;
+  return null;
+}
+function setHud(on){
+  if(on&&levelNow()<2)return locked(2,'The gold-and-red HUD');
+  if(on===hudOn)return on?"The gold-and-red HUD is already on.":"The HUD is already in my usual colours.";
+  hudOn=on;if(on)document.documentElement.dataset.hud='hotrod';else delete document.documentElement.dataset.hud;orbColours();
+  if(on){track('cmd:hud');return "Gold-and-red HUD engaged. It lasts for this visit, and I don't save it. Say normal HUD to go back."}
+  return "Back to my usual colours.";
+}
+// The level-5 secret. Below it, he only says it's locked.
+async function ironMan(){
+  if(levelNow()<5)return locked(5,'That line');
+  track('cmd:iron-man');
+  if(hasWebGL())await project({kind:'particles',arg:{text:'LOVE YOU 3000'}});
+  return {jarvis:"Yes, you are. And I love you three thousand.",matrix:"You are. You always were. And I love you three thousand.",panther:"And the crowd goes wild! Love you three thousand!"}[skin];
+}
+// Stars for the memory core: one per capability, on an outer shell. found, favourite (glows brighter), unfound (dim)
+// or locked. None is labelled, and none can be forgotten: they're worked out from the usage counts.
+function capabilityStars(){
+  const u=usageNow(),lv=clearanceOf(u),fav=new Set(favourites(u));
+  return CAPABILITIES.filter(c=>found(c,u)||(c.lock||0)>lv||available(c)).map(c=>{
+    const f=found(c,u),state=f&&c.ids.some(id=>fav.has(id))?'favourite':f?'found':(c.lock||0)>lv?'locked':'unfound';
+    return {key:c.key,state,text:state==='favourite'?`One of your favourites: ${c.name}.`:state==='found'?`Something you've found: ${c.name}.`:
+      state==='locked'?`Locked. Clearance level ${inWords(c.lock)}, ${LEVELS[c.lock].name}, opens it.`:"Something you haven't found yet. Ask what haven't I tried for a hint."};
+  });
+}
 let pendingTeach=null; // the phrase Jarvis just didn't understand, while he waits to hear what it meant
 const NOPE=Symbol('not understood');
 const CAN_DO="Here's what I can do: tell ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧ or some math, ⟦flip a coin⟧ or ⟦roll a die⟧, show you things on the holo-projector like ⟦Mars|take me to Mars⟧, ⟦Earth|show me Earth⟧ or ⟦your name|write my name⟧, ⟦suit up⟧, show ⟦my brain|show me your brain⟧ or ⟦my memory|show me your memory⟧, run a ⟦threat scan|scan the room⟧, give you a ⟦briefing|brief me⟧, run ⟦protocols|list my protocols⟧, remember what you tell me this visit, change my settings, or switch to the ⟦Matrix|switch to Matrix⟧ or ⟦Panthers|switch to Panthers⟧ skin.";
-CHIP_CMDS=chipCommands(brainKnown('help'),CAN_DO);
+// Every link he can ever show: the help (with every extra open), the fallback, the hints, and the favourites.
+CHIP_CMDS=chipCommands(brainKnown('help'),CAN_DO,unlockLine(5),...CAPABILITIES.map(c=>c.hint),...FAV_IDS.map(favChip));
 /* ---------- Protocols (Session 10): one phrase runs a saved chain of commands ----------
    "Create movie night protocol: make the orb purple, speak slower, then open the galaxy." Each step is saved as a
    fixed command ID from STEPS (orb:purple, speed:slow, scene:galaxy), never as your words, and runs that ID's own
@@ -2930,12 +3313,14 @@ function stepOf(raw){
     if(se.key==='color')return {id:'orb:'+(se.value||'default')};
     if(se.key==='speed')return {id:'speed:'+({'+':'fast','-':'slow'}[se.value]||'normal')};
     if(se.key==='units')return {id:'units:'+se.value};
+    if(se.key==='chips')return {no:'chips'};
     return {no:'startup'};
   }
   const sk=skinIntent(c);if(sk)return {id:'skin:'+sk};
   if(BRIEF_RE.test(c))return {id:'say:briefing'};
   if(wakeIntent(c)!==null)return {no:'mic'};
   const it=intent(c);
+  if(it&&lockOf(it))return {no:'clearance'};
   if(it)switch(it.kind){
     case 'hands':case 'scan':return {no:'camera'};
     case 'boot':return {no:'boot'};
@@ -2961,7 +3346,9 @@ const STEP_NO={
   words:[p=>`"${p}" would save your own words, and a protocol keeps only my commands.`,"Because a protocol stores fixed command codes, never what you said, so nothing personal can hide in one."],
   boot:[()=>"A reboot can't go in a protocol. Try wake up, daddy's home.","Because a reboot clears the screen and would cut the rest of the protocol off."],
   startup:[()=>"The scene I open with is a setting of its own, so it can't go in a protocol.","Because it's saved once and used every time I start up, not something to run now."],
-  wait:[()=>`A wait can be up to ${PROTO_WAIT} seconds.`,"Because a longer pause would look like I'd stopped working."]
+  wait:[()=>`A wait can be up to ${PROTO_WAIT} seconds.`,"Because a longer pause would look like I'd stopped working."],
+  clearance:[p=>`"${p}" is a clearance extra, so it can't go in a protocol.`,"Because a protocol is saved from my fixed command list, and the clearance extras aren't on it. A protocol restored on another device can't open something that device hasn't unlocked."],
+  chips:[()=>"Putting your favourites first is a setting for my next visit, so it can't go in a protocol.","Because it only changes how my command links are ordered when I start up, not anything I'd do now."]
 };
 // The words a step starts with. Spoken steps run together with no commas ("make the orb purple speak slower"), so a
 // new step starts at each of these.
@@ -3115,7 +3502,7 @@ function runBuiltin(name){
 // A question that "yes" or "no" answers on the very next turn. Anything else said drops it.
 function ask(text,yes,no){talk.question={yes,no};return text}
 const WEBGL_WHY="Because my holo-projector draws in 3D with WebGL, and this browser has it turned off or doesn't have it.";
-const SCENE_KINDS=['galaxy','solar','globe','neural','suit','particles','memory'];
+const SCENE_KINDS=['galaxy','solar','globe','neural','suit','particles','memory','tesseract'];
 // The scenes opened this visit, newest last, so "go back" can reopen the one before.
 function noteScene(it){
   if(!SCENE_KINDS.includes(it.kind))return;
@@ -3203,13 +3590,14 @@ async function respond(text,inner=false){
   const se=settingsIntent(text);if(se){track('cmd:setting');note(se.key==='color'||se.key==='speed'?se.key:null);return applySetting(se)}
   const sk=skinIntent(text);if(sk){note('skin');return setSkin(sk)}
   if(BRIEF_RE.test(normPhrase(text).replace(/^(?:jarvis )/,''))){track('cmd:briefing');note(null);return await briefing()}
-  const it=intent(text);if(it){track(intentEvent(it));note(FRAMES[it.kind]?it.kind:null);return await project(it)}
+  const it=intent(text);if(it){const need=lockOf(it);if(need>levelNow())return locked(need,it.kind==='tesseract'?'The Tesseract':'The Avengers logo');
+    track(intentEvent(it));note(FRAMES[it.kind]?it.kind:null);return await project(it)}
   if(skin!=='jarvis'&&/who are you|your name|what are you/.test(normPhrase(text)))return SKINS[skin].who;
   const b=brainKnown(text);if(b===null)return NOPE;
   track(chatEvent(text));note(null);return flair(b);
 }
 // What a command counts as in the usage counts: only its kind, from EVENT_IDS, never the words.
-function intentEvent(it){const id=it.kind==='scan'?'cmd:scan':it.kind==='hands'?(it.arg?'feature:hands':''):'scene:'+it.kind;return EVENT_IDS.includes(id)?id:null}
+function intentEvent(it){const id=it.kind==='scan'?'cmd:scan':it.kind==='hands'?(it.arg?'feature:hands':''):lockOf(it)===4?'cmd:avengers':'scene:'+it.kind;return EVENT_IDS.includes(id)?id:null}
 const CHAT_EVENTS=[['cmd:help',/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do/],['cmd:time',/what.*\btime\b/],['cmd:date',/what.*(?:date|day)/],
   ['cmd:joke',/joke|funny/],['cmd:fact',/fact|tell me something/],['cmd:coin',/flip.*coin|heads or tails/],['cmd:die',/roll.*di(?:c)?e/]];
 function chatEvent(raw){const s=String(raw).toLowerCase();for(const [id,re] of CHAT_EVENTS)if(re.test(s))return id;return mathAnswer(s)?'cmd:math':'cmd:chat'}
@@ -3226,6 +3614,9 @@ async function answerCore(text){
   // Anything said while a protocol runs stops it first.
   if(stopProtocol()&&/^(?:stop|cancel|abort|end|halt|enough|that's enough|stop it|stop that)(?: (?:the )?(?:protocol|party|house party))?(?: please| now)?$/.test(p))return "Protocol stopped.";
   const fu=await followUp(p,q);if(fu!==null)return fu;
+  const ay=aboutYouIntent(text);if(ay)return aboutYou(ay);
+  const hd=hudIntent(text);if(hd!==null)return setHud(hd);
+  if(/^(?:jarvis )?(?:i am|i'm|im) iron ?man$/.test(p))return await ironMan(); // before the name rule, which would call you Iron
   const pc=protoCommand(p,text);if(pc!==null||running)return pc;
   if(/^(?:jarvis )?(?:what do you know about me|what (?:do|did) you (?:know|remember) about me)\b/.test(p))
     return `${memory.length?`This visit only, and never saved: ${listWords(memory.map(x=>x.text))}.`:"You haven't told me anything about you this visit."} ${storedSummary()}`;
@@ -3267,12 +3658,12 @@ async function answerCore(text){
   const fr=await fragment(text);if(fr!==null)return fr;
   if(/^(?:jarvis )?wake up$/.test(p))return "I'm awake. Say wake up, daddy's home, for my whole boot protocol.";
   if(p&&p.length<=120)pendingTeach=p;
-  return because(`${skin==='jarvis'?"I didn't understand that.":SKINS[skin].miss} ${CAN_DO} What were you trying to say?`,"Because I only know the commands I was built with and the phrases you've taught me. Tell me what you meant and I'll learn it for next time.");
+  return because(`${missLine()} ${favLead}${CAN_DO} What were you trying to say?`,"Because I only know the commands I was built with and the phrases you've taught me. Tell me what you meant and I'll learn it for next time.");
 }
 
 function handle(text){
   if(!text.trim())return;add(text,'me');setMode('think');
-  setTimeout(async()=>{const r=await answer(text);if(r)say(r);else if(mode==='think'&&!booting)setMode('idle')},450);
+  setTimeout(async()=>{const r=await answer(text);if(r){const x=afterTurn();say(x?`${r} ${x}`:r)}else if(mode==='think'&&!booting)setMode('idle')},450);
 }
 
 /* ---------- Input ---------- */
@@ -3373,6 +3764,9 @@ window.__jarvis={micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...
   saved:()=>({kept:Object.fromEntries(kept),events:[...events.values()].map(e=>({...e})),totals:[...totals.values()].map(e=>({...e})),meta:Object.fromEntries(meta),protocols:Object.fromEntries(protocols)}),persisted:()=>persisted,
   BACKUP_FILE,BACKUP_KEYS,BACKUP_MAX,QR_MAX,QR_LIBS,backupData,restoreBackup,restoreWords,downloadBackup,qrPayload,transferIntent,transfer,
   transferState:()=>H&&H.kind==='transfer'?{view:H.view,camera:!!H.cam}:null,
+  CAPABILITIES,NOT_CAPABILITIES,NOT_COUNTED,LEVELS,LEVEL_TALK,usageOf,usageNow,clearanceOf,levelNow,shownLevel:()=>shownLevel,discovery,knowYouReport,discoverAnswer,favourites,favouriteAnswer,
+  favLead:()=>favLead,recapOf,nudgeOf,aboutYouIntent,hudIntent,hudOn:()=>hudOn,lockOf,capabilityStars,afterTurn,TESS_V,TESS_E,tessPoint,before:()=>JSON.parse(JSON.stringify(before)),
+  holoKind:()=>H&&H.kind,holoCaps:()=>H&&H.caps?H.caps():null,holoCapScreen:()=>H&&H.capScreen?H.capScreen():null,
   applyGesture,dreamDue,dreamCheck,setDream,dreaming:()=>dreaming,DREAM_AFTER,idleFor:ms=>{lastActive=performance.now()-ms;return dreamCheck()},mode:()=>mode};
 setSkin(skin,false); // the skin on load is only saved once you pick one
 showBoot();
@@ -3383,7 +3777,13 @@ function hydrate(){
   const k=keptGet('jarvis-skin');setSkin(k&&Object.hasOwn(SKINS,k)?k:skin,false);
   if(SR)micNote.hidden=!!keptGet('jarvis-mic-note');
 }
-const ready=startUp().catch(()=>{}).then(()=>{hydrate();loaded=true});
+// Session 11: the level as it was before this visit (so the greeting can announce a level-up), the favourites put first
+// for this visit, and what's already been found (so only new finds are announced).
+function knowAtLoad(){
+  shownLevel=clearanceOf(usageOf(before.evs,before.tots,before.carry));
+  const u=usageNow();favLead=makeFavLead(u);CAPABILITIES.forEach(c=>{if(found(c,u))announced.add(c.key)});
+}
+const ready=startUp().catch(()=>{}).then(()=>{hydrate();knowAtLoad();loaded=true});
 window.__jarvis.ready=ready;
 </script>
 </body>

@@ -70,6 +70,13 @@ self-hosted decoder (loaded with its SRI hash), then restores the downloaded
 file through the real file picker, and both land merged in B's real
 IndexedDB. An encoder with one byte changed must be refused by the browser.
 It needs `ffmpeg`, which those containers have.
+Since Session 11 it also checks clearance levels, in a fresh profile at each
+size: a newcomer's memory core with its four red locked stars (one is tapped
+for real and says what opens it), then a restored backup and one typed
+command that make level 3 mid-visit, with the "ACCESS LEVEL 3 GRANTED" sweep
+over the real suit, then the Tesseract and the gold-and-red HUD that level 3
+opens, with screenshots of each. Run it after the jsdom suite, not alongside
+it: its timing waits fail when the two compete for the CPU.
 
 ```bash
 node jarvis-test.chromium.mjs                     # screenshots go to a new temp folder

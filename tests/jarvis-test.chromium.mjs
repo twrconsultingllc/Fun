@@ -22,6 +22,12 @@
  * downloaded file through the real file picker. Both land in B's real IndexedDB, merged with what B had. A copy of
  * the encoder with one byte changed is refused by the browser. Screenshots of the code and the scan at both sizes.
  *
+ * Session 11 added step 6: clearance, in a fresh profile at each size. The memory core of a newcomer, with its four
+ * red locked stars (one is tapped for real, and says what opens it). Then nine earlier days and four scenes are
+ * restored from a backup, "show me the suit" is typed, and the fifth scene makes level 3 mid-visit: the "ACCESS
+ * LEVEL 3 GRANTED" sweep over the real suit. Then the extras level 3 opened: the Tesseract, rendered, and the
+ * gold-and-red HUD. Screenshots of each.
+ *
  * It isn't part of run.mjs, because it needs Playwright and Chromium, which the claude.ai/code containers
  * have and the Codespace doesn't (see "Browsers and screenshots" in CLAUDE.md). Run it from tests/:
  *
@@ -349,6 +355,64 @@ try {
             ok('an encoder with one byte changed is refused by the browser, and he points to the file instead', /couldn't load my code maker/.test(r) && errs.some((e) => /integrity/i.test(e)) && !(await t.evaluate(() => typeof window.qrcode)).includes('function'), r + ' | ' + errs.join(' | '));
             await t.close();
         } finally { await ctxB.close(); }
+    }
+    // 6. Session 11: clearance, in a fresh profile at each size, so each one starts as a newcomer.
+    if (three) for (const [w, h] of [[1280, 800], [390, 844]]) {
+        const ctxC = await chromium.launchPersistentContext(join(work, `profile-c-${w}`), { executablePath, headless: true,
+            args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: w, height: h } });
+        await ctxC.route('https://cdnjs.cloudflare.com/**', (r) => r.fulfill({ path: three, contentType: 'application/javascript', headers: { 'access-control-allow-origin': '*' } }));
+        await ctxC.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
+        try {
+            const p = await open('jarvis-test.html', { width: w, height: h }, ctxC);
+            await p.click('#boot-skip'); await p.waitForTimeout(800);
+            const say = (q) => p.evaluate((x) => window.__jarvis.answer(x), q);
+            const lastAi = () => p.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent || '');
+            ok(`a newcomer is level 1 at ${w}×${h}`, await p.evaluate(() => window.__jarvis.levelNow()) === 1);
+            // The memory core: four red locked stars on the outer shell, among the dim ones not found yet.
+            await say('show me your memory'); await p.waitForTimeout(2500);
+            const caps = await p.evaluate(() => window.__jarvis.holoCaps());
+            ok(`the memory core shows the four locked stars at ${w}×${h}`, caps && caps.filter((x) => x === 'locked').length === 4 && caps.includes('unfound'), JSON.stringify(caps));
+            await p.screenshot({ path: join(OUT, `locked-stars-${w}.png`) });
+            // Tap a locked star that's on screen and clear of the labels.
+            const spot = await p.evaluate(() => { const boxes = [...document.querySelectorAll('#mem-labels .suit-label')].map((b) => b.getBoundingClientRect());
+                return (window.__jarvis.holoCapScreen() || []).find((s) => s.state === 'locked' && !s.behind && s.x > 20 && s.x < innerWidth - 20 && s.y > 140 && s.y < innerHeight - 200 && boxes.every((b) => s.x < b.left - 30 || s.x > b.right + 30 || s.y < b.top - 30 || s.y > b.bottom + 30)); });
+            if (spot) {
+                await p.mouse.click(spot.x, spot.y); await p.waitForTimeout(400);
+                const heard = await lastAi();
+                ok(`tapping a locked star says what opens it at ${w}×${h}`, /^Locked\. Clearance level (two|three|four|five), \w+, opens it\.$/.test(heard), heard);
+            } else ok(`a locked star is clear of the labels to tap at ${w}×${h}`, false, 'none on screen');
+            await say('close'); await p.waitForTimeout(800);
+            // Nine earlier days and three scenes, restored from another device: with the memory core, ten days and four scenes is level 2.
+            const today = await p.evaluate(() => window.__jarvis.dayNumber());
+            const days = [];
+            for (let k = 1; k <= 9; k++) days.push(['app:visit', today - k, 1]);
+            ['galaxy', 'solar', 'globe'].forEach((s, k) => days.push(['scene:' + s, today - 1 - k, 2])); // the memory core, opened above, is the fourth
+            await p.evaluate((d) => window.__jarvis.restoreBackup(JSON.stringify({ app: 'jarvis', backup: 1, kept: {}, protocols: {}, days: d, totals: [] })), days);
+            ok(`ten days and four scenes is level 2 at ${w}×${h}`, await p.evaluate(() => window.__jarvis.levelNow()) === 2);
+            // The fifth scene, typed: level 3, mid-visit, with the sweep over the suit.
+            await p.fill('#q', 'show me the suit'); await p.press('#q', 'Enter');
+            await p.waitForFunction(() => !document.getElementById('levelup').hidden, null, { timeout: 15000 }).catch(() => {});
+            await p.waitForTimeout(700);
+            const sw = await p.evaluate(() => { const e = document.getElementById('levelup'), r = e.getBoundingClientRect(); return { text: e.textContent, shown: !e.hidden && r.width > 0, inside: r.left >= 0 && r.right <= innerWidth, holo: document.getElementById('holo-title').textContent }; });
+            ok(`"ACCESS LEVEL 3 GRANTED" sweeps in over the suit at ${w}×${h}`, sw.shown && sw.inside && sw.text === 'ACCESS LEVEL 3 GRANTEDENGINEER' && /SUIT/.test(sw.holo), JSON.stringify(sw));
+            await p.screenshot({ path: join(OUT, `level-up-${w}.png`) });
+            await p.waitForFunction(() => /Access level three granted: Engineer/.test([...document.querySelectorAll('#log .msg.ai')].pop()?.textContent || ''), null, { timeout: 5000 }).catch(() => {});
+            ok('and he says so after his answer', /Access level three granted: Engineer\./.test(await lastAi()), await lastAi());
+            await p.waitForTimeout(3600);
+            ok('the sweep goes after a few seconds', await p.evaluate(() => document.getElementById('levelup').hidden));
+            // What level 3 opened: the Tesseract, rendered, and the gold-and-red HUD.
+            const ts = await say('show me the tesseract'); await p.waitForTimeout(2000);
+            ok(`the Tesseract opens at level 3 at ${w}×${h}`, /^Clearance confirmed\. This is the Tesseract/.test(ts) && (await p.evaluate(() => document.getElementById('holo-title').textContent)).includes('TESSERACT'), ts);
+            await p.screenshot({ path: join(OUT, `tesseract-${w}.png`) });
+            await say('close'); await p.waitForTimeout(800);
+            const hud = await say('gold and red hud'); await p.waitForTimeout(300);
+            ok(`the gold-and-red HUD at ${w}×${h}`, /^Gold-and-red HUD engaged/.test(hud) && (await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--phos').trim())) === '#ffc93c', hud);
+            await p.screenshot({ path: join(OUT, `hud-${w}.png`) });
+            const dbC = await dbOf(p);
+            ok('nothing about the level, the HUD or the favourites is in the real database', !/Engineer|clearance|hotrod|favourite/i.test(JSON.stringify({ kept: dbC.kept, meta: dbC.meta })) && Object.keys(dbC.meta || {}).every((k) => ['"copied"', '"rolled"', '"carry"'].includes(k)), JSON.stringify(dbC.meta));
+            ok(`no sideways scroll at ${w}×${h}`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+            await p.close();
+        } finally { await ctxC.close(); await rm(join(work, `profile-c-${w}`), { recursive: true, force: true }); }
     }
 } finally {
     await ctx.close();

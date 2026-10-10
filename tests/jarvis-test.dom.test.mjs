@@ -707,7 +707,422 @@ export default async function run(t, page) {
     await keptApart(t, page);
     await protocolsAndFollowUps(t, page);
     await backupAndQr(t, page);
+    await heRemembersYou(t, page);
     await commandLinks(t, page);
+}
+
+// Session 11 of jarvis/build-plan.html: he remembers you (review 63). The recap, clearance levels, favourites and the
+// discovery log are all worked out from the usage counts on each load and after each turn, and none of them is saved.
+// The only new saved thing is the "favourites first" choice, a setting in jarvis-settings, through store(). Only the
+// new extras (the gold-and-red HUD, the Tesseract, the Avengers logo, the last line) are locked behind a level.
+// Levels are tested by filling the usage counts, the way the plan asks.
+// The 36 usage IDs as they stood before Session 11: none of them may be locked behind a level.
+const EVENT_IDS_BEFORE_S11 = ['app:visit', ...['galaxy', 'solar', 'globe', 'neural', 'suit', 'particles', 'memory'].map((k) => 'scene:' + k),
+    ...['scan', 'briefing', 'setting', 'remember', 'teach', 'help', 'time', 'date', 'joke', 'fact', 'coin', 'die', 'math', 'chat', 'protocol', 'house-party', 'wake-up', 'backup', 'restore', 'qr', 'qr-scan'].map((k) => 'cmd:' + k),
+    ...['jarvis', 'matrix', 'panther'].map((k) => 'skin:' + k), ...['mic', 'wake-word', 'hands', 'voice'].map((k) => 'feature:' + k)];
+async function heRemembersYou(t, page) {
+    const URL_ = 'https://jarvis.test/jarvis.html', quiet = { ignore: /getContext|HTMLCanvasElement/ };
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const today = dayOf();
+    // n visit days before today (1 to n days ago), each with app:visit and anything else listed for that day.
+    const daysBack = (n, extra = () => []) => Array.from({ length: n }, (_, k) => [{ id: 'app:visit', day: today - 1 - k, n: 1 }, ...extra(k)]).flat();
+    const ev = (id, ago, n = 1) => ({ id, day: today - ago, n });
+    // A profile whose database holds exactly these records, as earlier visits would have left them.
+    const profile = async (records) => {
+        const first = await openDom(page.html, URL_, quiet), idb = first.idb;
+        first.close(); await wait(40);
+        await new Promise((res) => { const rq = idb.open('jarvis-test'); rq.onsuccess = () => { const db = rq.result, tx = db.transaction(['kept', 'events', 'totals', 'meta', 'protocols'], 'readwrite'); for (const n of ['kept', 'events', 'totals', 'meta', 'protocols']) tx.objectStore(n).clear(); tx.oncomplete = () => { db.close(); res(); }; }; });
+        await dbSeed(idb, { ...records, meta: { copied: 1, ...(records.meta || {}) } });
+        return idb;
+    };
+    const lastAi = (env) => [...env.document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? '';
+    const typeIn = async (env, text) => { const { document, window } = env; document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(520); return lastAi(env); };
+    const greet = async (env) => { env.window.__jarvis.finishBoot(); await wait(50); return lastAi(env); };
+    let env = await openDom(page.html, URL_, quiet);
+    let J = env.window.__jarvis;
+    const SCENES5 = ['galaxy', 'solar', 'globe', 'neural', 'suit'].map((k) => 'scene:' + k);
+    // Every capability found, as all-time totals (everything this jsdom window can do, and the rest too).
+    const allFound = () => J.CAPABILITIES.filter((c) => (c.lock || 0) < 5).flatMap((c) => c.ids).map((id) => ({ id, n: 1 }));
+    const lv = (evs, tots = [], carry = 0) => J.clearanceOf(J.usageOf(evs, tots, carry, today));
+    try {
+        t.section('He remembers you: every clearance threshold (Session 11)');
+        t.eq('five levels: Visitor, Associate, Engineer, Avenger, Stark', J.LEVELS.slice(1).map((l) => l.name).join(), 'Visitor,Associate,Engineer,Avenger,Stark');
+        t.eq('no counts: level 1', lv([]), 1);
+        t.eq('2 days: still 1', lv(daysBack(2)), 1);
+        t.eq('3 days: 2, Associate', lv(daysBack(3)), 2);
+        const scenes = (k) => (k < 5 ? [{ id: SCENES5[k], day: today - 1 - k, n: 1 }] : []);
+        t.eq('9 days and 5 scenes: still 2', lv(daysBack(9, scenes)), 2);
+        t.eq('10 days and 4 scenes: still 2', lv(daysBack(10, (k) => (k < 4 ? scenes(k) : []))), 2);
+        t.eq('10 days and 5 scenes: 3, Engineer', lv(daysBack(10, scenes)), 3);
+        t.eq('the memory core counts as one of the five', lv(daysBack(10, (k) => (k < 4 ? scenes(k) : k === 4 ? [ev('scene:memory', 5)] : []))), 3);
+        t.eq('the Tesseract (an extra) does not', lv(daysBack(10, (k) => (k < 4 ? scenes(k) : k === 4 ? [ev('scene:tesseract', 5)] : []))), 2);
+        const four = (k) => [...scenes(k), ...(k === 7 ? [ev('cmd:teach', 8)] : []), ...(k === 8 ? [ev('cmd:protocol', 9)] : [])];
+        t.eq('29 days, a phrase taught and a protocol run: still 3', lv(daysBack(29, four)), 3);
+        t.eq('30 days, a phrase taught and a protocol run: 4, Avenger', lv(daysBack(30, four)), 4);
+        t.eq('30 days without a phrase taught: 3', lv(daysBack(30, (k) => four(k).filter((e) => e.id !== 'cmd:teach'))), 3);
+        t.eq('30 days without a protocol run: 3', lv(daysBack(30, (k) => four(k).filter((e) => e.id !== 'cmd:protocol'))), 3);
+        t.eq('house party is not "a protocol of your own"', lv(daysBack(30, (k) => [...four(k).filter((e) => e.id !== 'cmd:protocol'), ...(k === 8 ? [ev('cmd:house-party', 9)] : [])])), 3);
+        t.eq('59 days with everything found: 4', lv(daysBack(59, four), allFound()), 4);
+        t.eq('60 days with everything found: 5, Stark', lv(daysBack(60, four), allFound()), 5);
+        const oneShort = allFound().filter((x) => x.id !== 'cmd:joke');
+        t.eq('60 days with one thing not found: 4', lv(daysBack(60, four), oneShort), 4);
+        t.eq('level 5 does not ask for the level-5 secret itself', lv(daysBack(60, four), allFound().filter((x) => x.id !== 'cmd:iron-man')), 5);
+        t.eq('the streak\'s carry is real days, so it counts', lv(daysBack(2), [], 1), 2);
+
+        t.section('He remembers you: counts can\'t push a level past what fits() allows (Session 11)');
+        t.eq('a huge all-time visit total adds no days', lv([], [{ id: 'app:visit', n: 1e9 }]), 1);
+        t.eq('nor does every capability in the totals, with no days', lv([], allFound().map((x) => ({ ...x, n: 1e9 }))), 1);
+        t.eq('days after today don\'t count', lv(Array.from({ length: 70 }, (_, k) => ({ id: 'app:visit', day: today + 1 + k, n: 1 }))), 1);
+        t.eq('an ID not on the list doesn\'t count', lv(Array.from({ length: 70 }, (_, k) => ({ id: 'cmd:secret', day: today - k, n: 1 }))), 1);
+        t.eq('nor a count that isn\'t a whole number, a date for a day, or an extra field',
+            lv([...Array.from({ length: 5 }, (_, k) => ({ id: 'app:visit', day: today - k, n: 1.5 })), ...Array.from({ length: 5 }, (_, k) => ({ id: 'app:visit', day: `2026-10-0${k + 1}`, n: 1 })), ...Array.from({ length: 5 }, (_, k) => ({ id: 'app:visit', day: today - 10 - k, n: 1, note: 'x' }))]), 1);
+        t.eq('a negative carry is ignored', lv(daysBack(2), [], -50), 1);
+    } finally { env.close(); }
+
+    // A restored backup: only what fits() lets in reaches the counts, and the level is read from those.
+    env = await openDom(page.html, URL_, quiet); J = env.window.__jarvis;
+    try {
+        const hostile = { app: 'jarvis', backup: 1, kept: {}, protocols: {},
+            days: [...Array.from({ length: 80 }, (_, k) => ['cmd:secret', today - k, 1]), ...Array.from({ length: 80 }, (_, k) => ['app:visit', today + 1 + k, 1]),
+                ...Array.from({ length: 10 }, (_, k) => ['app:visit', today - 1 - k, 1.5]), ...Array.from({ length: 10 }, (_, k) => ['app:visit', String(today - 1 - k), 1]), ...Array.from({ length: 10 }, (_, k) => ['app:visit', today - 1 - k, 1, 'x'])],
+            totals: [['app:visit', 1e9], ...J.CAPABILITIES.flatMap((c) => c.ids).map((id) => [id, 1e9])], meta: { carry: 9999, rolled: 0 }, level: 5 };
+        const r = J.restoreBackup(JSON.stringify(hostile));
+        t.eq('a hostile backup: 190 bad days refused, and its "meta" and "level" keys', r.skipped, 192);
+        // Its totals are all allowed (a listed ID and a whole number), so everything counts as found, but they add no days.
+        const d = J.discovery(J.usageNow());
+        t.ok('its totals fit(), so everything counts as found', d.found === d.reach);
+        t.eq('but the level stays where real days put it', J.levelNow(), 1);
+        t.eq('its meta and its "level" are ignored', JSON.stringify(J.saved().meta.carry ?? 0), '0');
+        t.ok('every count that did get in fits()', J.saved().events.every((e) => J.fits('events', [e.id, e.day], e)) && J.saved().totals.every((x) => J.fits('totals', x.id, x)));
+        // A valid backup from another device, with 60 real days in the window: that does count, as fits() allows.
+        const good = { app: 'jarvis', backup: 1, kept: {}, protocols: {}, days: daysBack(60, four2).map((e) => [e.id, e.day, e.n]), totals: [] };
+        function four2(k) { return [...(k < 5 ? [{ id: SCENES5[k], day: today - 1 - k, n: 1 }] : []), ...(k === 7 ? [{ id: 'cmd:teach', day: today - 8, n: 1 }] : []), ...(k === 8 ? [{ id: 'cmd:protocol', day: today - 9, n: 1 }] : [])]; }
+        J.restoreBackup(JSON.stringify(good));
+        t.eq('a valid backup with 60 real days brings its days, which is what fits() allows: now level 5', J.levelNow(), 5);
+        t.ok('and "how well do you know me" says so', /^Clearance level five, Stark\. I've seen you on sixty-one days/.test(await J.answer('how well do you know me')));
+    } finally { env.close(); }
+    // Counts edited straight into the database (the browser's developer tools): days after today still don't count.
+    {
+        const idb = await profile({ events: Array.from({ length: 70 }, (_, k) => ({ id: 'app:visit', day: today + 1 + k, n: 1 })) });
+        env = await openDom(page.html, URL_, { ...quiet, idb }); J = env.window.__jarvis;
+        t.eq('70 future days put straight into the database: level 1', J.levelNow(), 1);
+        env.close();
+    }
+
+    t.section('He remembers you: the recap (Session 11)');
+    env = await openDom(page.html, URL_, quiet); J = env.window.__jarvis;
+    try {
+        const snap = (evs, tots = []) => ({ evs, tots, carry: 0 });
+        t.eq('no counts: no recap', J.recapOf(snap([]), today), null);
+        let r = J.recapOf(snap([ev('app:visit', 1), ev('scene:solar', 1, 2), ev('scene:galaxy', 1), ev('scene:suit', 3, 9)]), today);
+        t.eq('the scene used most on the last day, with a question', r.text, 'Last time we were looking at the solar system. Shall I bring it back up?');
+        t.eq('which "yes" will reopen', r.scene, 'solar');
+        r = J.recapOf(snap([ev('app:visit', 11), ev('scene:globe', 11)]), today);
+        t.eq('after a long gap, worked out from day numbers', r.text, "It's been a while: eleven days. Last time we were looking at the Earth. Shall I bring it back up?");
+        t.eq('a gap of 23 days in words', J.recapOf(snap([ev('app:visit', 23), ev('scene:globe', 23)]), today).text.split('.')[0], "It's been a while: twenty-three days");
+        t.eq('six days is not a long gap', J.recapOf(snap([ev('app:visit', 6), ev('scene:globe', 6)]), today).text, 'Last time we were looking at the Earth. Shall I bring it back up?');
+        r = J.recapOf(snap([ev('app:visit', 2), ev('scene:neural', 2)]), today, true);
+        t.eq('with an opening scene set, that wins: he only mentions the last one', r.text, 'Last time we were looking at my neural network.');
+        t.eq('and asks nothing', r.scene, null);
+        t.eq('protocols and skin changes', J.recapOf(snap([ev('app:visit', 1), ev('cmd:house-party', 1), ev('cmd:protocol', 1), ev('skin:matrix', 1)]), today).text, 'Last time we had a house party, you ran one of your protocols and you switched me to Morpheus.');
+        t.eq('only chat on the last day: nothing to recap', J.recapOf(snap([ev('app:visit', 1), ev('cmd:joke', 1), ev('cmd:time', 1)]), today), null);
+        t.eq('a visit earlier today', J.recapOf(snap([ev('app:visit', 0), ev('scene:memory', 0)]), today).text, 'Earlier today we were looking at my memory core. Shall I bring it back up?');
+        t.eq('older than the 90 kept days: only that it\'s been a while', J.recapOf(snap([], [{ id: 'scene:globe', n: 4 }]), today).text, "It's been a while.");
+        t.eq('days after today are ignored', J.recapOf(snap([ev('app:visit', -3), ev('scene:galaxy', -3)]), today), null);
+    } finally { env.close(); }
+    {
+        const fake = fakeSpeech();
+        const idb = await profile({ events: [ev('app:visit', 1), ev('scene:globe', 1, 3), ev('scene:galaxy', 1), ev('app:visit', 2)] });
+        env = await openDom(page.html, URL_, { ...quiet, idb, beforeParse: fake.beforeParse }); J = env.window.__jarvis;
+        try {
+            const g = await greet(env);
+            t.ok('the greeting carries the recap, once per visit', /Last time we were looking at the Earth\. Shall I bring it back up\?$/.test(g), g);
+            t.ok('and it is spoken through say()', fake.log.spoken.join(' ').includes('Shall I bring it back up?'));
+            const before = J.saved().events.find((e) => e.id === 'scene:globe' && e.day === today)?.n ?? 0;
+            const y = await typeIn(env, 'yes');
+            t.ok('"yes" reopens it (no WebGL here, so he says so)', /needs WebGL/.test(y), y);
+            t.eq('and counts it, like asking for it', (J.saved().events.find((e) => e.id === 'scene:globe' && e.day === today)?.n ?? 0) - before, 1);
+            J.finishBoot(); await J.answer('reboot'); J.finishBoot(); await wait(50);
+            t.ok('a reboot doesn\'t repeat it', !/Last time/.test(lastAi(env)));
+        } finally { env.close(); }
+        // With an opening scene saved, the recap asks nothing.
+        const idb2 = await profile({ kept: { 'jarvis-settings': '{"scene":"galaxy"}' }, events: [ev('app:visit', 1), ev('scene:suit', 1)] });
+        env = await openDom(page.html, URL_, { ...quiet, idb: idb2 });
+        try {
+            const g = await greet(env);
+            t.ok('with an opening scene set, the greeting mentions the last one and asks nothing', /Last time we were looking at the suit schematic\.$/.test(g), g);
+            t.eq('"no" then just gets "All right."', await env.window.__jarvis.answer('no'), 'All right.');
+        } finally { env.close(); }
+        // "No" to the question.
+        const idb3 = await profile({ events: [ev('app:visit', 1), ev('scene:suit', 1)] });
+        env = await openDom(page.html, URL_, { ...quiet, idb: idb3 });
+        try { await greet(env); t.eq('"no" drops it', await env.window.__jarvis.answer('no'), 'All right. Ask whenever you want it.'); } finally { env.close(); }
+    }
+
+    t.section('He remembers you: levels on the page (Session 11)');
+    {
+        const scenes10 = (k) => (k < 5 ? [{ id: SCENES5[k], day: today - 1 - k, n: 1 }] : []);
+        const fake = fakeSpeech();
+        const idb = await profile({ events: daysBack(9, scenes10) });
+        env = await openDom(page.html, URL_, { ...quiet, idb, beforeParse: fake.beforeParse }); J = env.window.__jarvis;
+        try {
+            t.eq('nine days before today and five scenes: level 2 before this visit', J.shownLevel(), 2);
+            const g = await greet(env);
+            t.ok('today makes ten: the greeting announces level 3', / Access level three granted: Engineer\. A few new files have opened up for you\./.test(g), g);
+            const sw = env.document.getElementById('levelup');
+            t.ok('with the ACCESS LEVEL 3 GRANTED sweep', !sw.hidden && sw.textContent === 'ACCESS LEVEL 3 GRANTEDENGINEER' && sw.classList.contains('go'));
+            t.eq('which is a status line for screen readers', sw.getAttribute('role'), 'status');
+            await wait(3700);
+            t.ok('and goes after a few seconds', sw.hidden);
+            t.ok('"how well do you know me" gives the level and the day count', /^Clearance level three, Engineer\. I've seen you on ten days, and you've found \d+ of the \d+ things I can show you here\. Level four, Avenger, needs twenty more days, a phrase you teach me and a protocol of your own, run once\.$/.test(await J.answer('how well do you know me')));
+            for (const q of ['how well do you know me?', 'How well do you know me', 'jarvis how well do you know me', 'hey jarvis how well do you know me please', 'what level am i', "what's my clearance level", 'whats my clearance', 'what clearance do i have'])
+                t.ok(`"${q}" asks for it`, /^Clearance level three/.test(await J.answer(q)));
+            t.ok('his "didn\'t understand" line follows the level', /^That isn't in my schematics\. Yet\. .*What were you trying to say\?$/.test(await J.answer('blorp the snorkel')));
+            await J.answer('no');
+            const chats = [];
+            for (let i = 0; i < 8; i++) chats.push(await J.answer('how are you'));
+            t.eq('the odd aside: every fourth chat answer', chats.map((c) => c.endsWith('Noted in the workshop log.')).join(), 'false,false,false,true,false,false,false,true');
+            t.ok('commands themselves don\'t change: the time is just the time', /^It's \d/.test(await J.answer('what time is it')) && !/Noted/.test(await J.answer('flip a coin')));
+            t.ok('a third-level extra is open now: the Tesseract (no WebGL here, so he says so)', /needs WebGL/.test(await J.answer('show me the tesseract')) && J.saved().events.some((e) => e.id === 'scene:tesseract'));
+            t.ok('and so is the gold-and-red HUD', /^Gold-and-red HUD engaged/.test(await J.answer('gold and red hud')) && env.document.documentElement.dataset.hud === 'hotrod');
+            t.eq('which turns the orb red and gold', J.ring(), '255,80,50');
+            t.ok('"normal hud" turns it off', /usual colours/.test(await J.answer('normal hud')) && !env.document.documentElement.dataset.hud && J.ring() === '57,255,136');
+            t.ok('the Avengers logo is still locked at 3', /^The Avengers logo is above your clearance\. It opens at level four, Avenger/.test(await J.answer('avengers assemble')));
+            t.ok('a locked extra isn\'t counted as found', !J.saved().events.some((e) => e.id === 'cmd:avengers'));
+            t.ok('"why" explains the lock', /stays open to everyone/.test(await J.answer('why')));
+            t.ok('help lists what this level opened', /Opened by your clearance: ⟦gold and red HUD⟧ and ⟦the Tesseract\|show me the Tesseract⟧\.$/.test(J.brainKnown('help')));
+            t.ok('every spoken line went through say(), a sentence at a time', fake.log.spoken.every((x) => x.length <= 200));
+        } finally { env.close(); }
+        // The next visit: no level-up again, just the level's own greeting line.
+        env = await openDom(page.html, URL_, { ...quiet, idb }); J = env.window.__jarvis;
+        try {
+            const g = await greet(env);
+            t.ok('the next visit doesn\'t announce it again, and says the level\'s line', !/Access level/.test(g) && /The workshop is yours, as always\./.test(g), g);
+            t.ok('the HUD was for that visit only', !env.document.documentElement.dataset.hud);
+        } finally { env.close(); }
+        // Mid-visit: one more scene opened makes level 3.
+        const idb2 = await profile({ events: daysBack(9, (k) => (k < 4 ? scenes10(k) : [])) });
+        env = await openDom(page.html, URL_, { ...quiet, idb: idb2 }); J = env.window.__jarvis;
+        try {
+            await greet(env);
+            t.eq('ten days and four scenes: level 2', J.levelNow(), 2);
+            const said = await typeIn(env, 'show me the suit');
+            t.ok('the fifth scene, mid-visit: level 3 is announced after the answer', /needs WebGL.* Access level three granted: Engineer\./.test(said), said);
+            t.ok('with the sweep', !env.document.getElementById('levelup').hidden);
+            t.ok('only once', !/Access level/.test(await typeIn(env, 'tell me a joke')));
+        } finally { env.close(); }
+        // Each skin has its own lines for every level.
+        const L = J.LEVEL_TALK;
+        let complete = true;
+        for (const k of ['jarvis', 'matrix', 'panther']) for (let l = 2; l <= 5; l++) for (const f of ['hi', 'up', 'miss', 'aside']) if (typeof L[k][l]?.[f] !== 'string' || !L[k][l][f]) complete = false;
+        t.ok('Jarvis, Morpheus and Stanley each have a greeting, a level-up, a miss and an aside for levels 2 to 5', complete);
+        t.ok('and none of Morpheus\'s or Stanley\'s lines is Jarvis\'s', ['matrix', 'panther'].every((k) => [2, 3, 4, 5].every((l) => ['hi', 'up', 'miss', 'aside'].every((f) => L[k][l][f] !== L.jarvis[l][f]))));
+        const idb3 = await profile({ kept: { 'jarvis-skin': 'matrix' }, events: daysBack(9, scenes10) });
+        env = await openDom(page.html, URL_, { ...quiet, idb: idb3 }); J = env.window.__jarvis;
+        try {
+            const g = await greet(env);
+            t.ok('Morpheus announces it his way', /Access level three granted: Engineer\. You are beginning to believe\./.test(g), g);
+            t.ok('and misses his way', /^Some questions have no answer\. Yet\./.test(await J.answer('blorp the snorkel')));
+        } finally { env.close(); }
+        const idb4 = await profile({ kept: { 'jarvis-skin': 'panther' }, events: daysBack(4) });
+        env = await openDom(page.html, URL_, { ...quiet, idb: idb4 });
+        try { t.ok('Stanley greets an Associate his way', /Back on the ice! Love to see it\./.test(await greet(env))); } finally { env.close(); }
+        // Level 5: the last line.
+        const all = (k) => [...(k < 5 ? [{ id: SCENES5[k], day: today - 1 - k, n: 1 }] : [])];
+        const idb5 = await profile({ events: daysBack(60, all), totals: J.CAPABILITIES.filter((c) => (c.lock || 0) < 5).flatMap((c) => c.ids).map((id) => ({ id, n: 3 })) });
+        env = await openDom(page.html, URL_, { ...quiet, idb: idb5 }); J = env.window.__jarvis;
+        try {
+            t.eq('sixty days and everything found: level 5', J.levelNow(), 5);
+            t.eq('"I am Iron Man" is the last line', await J.answer('I am Iron Man'), 'Yes, you are. And I love you three thousand.');
+            t.ok('counted, so it shows as found', J.saved().events.some((e) => e.id === 'cmd:iron-man'));
+            t.ok('"how well do you know me" at the top', /That's the top\. There's nothing I'd keep from you\.$/.test(await J.answer('how well do you know me')));
+        } finally { env.close(); }
+        env = await openDom(page.html, URL_, quiet); J = env.window.__jarvis;
+        try { t.ok('below 5, "I am Iron Man" is locked, and he doesn\'t call you Iron', /^That line is above your clearance/.test(await J.answer("i'm iron man")) && !/Iron\b/.test(await J.answer('what is my name'))); } finally { env.close(); }
+    }
+
+    t.section('He remembers you: nothing that existed is gated (Session 11)');
+    env = await openDom(page.html, URL_, quiet); J = env.window.__jarvis;
+    try {
+        t.eq('a new profile is level 1', J.levelNow(), 1);
+        t.ok('at level 1 the Tesseract is locked, says what opens it, and isn\'t counted', /^The Tesseract is above your clearance\. It opens at level three, Engineer/.test(await J.answer('show me the tesseract')) && !J.saved().events.some((e) => e.id === 'scene:tesseract'));
+        t.ok('so are the HUD, the Avengers logo and the last line', /above your clearance/.test(await J.answer('gold and red hud')) && /above your clearance/.test(await J.answer('avengers assemble')) && /above your clearance/.test(await J.answer('I am Iron Man')) && !env.document.documentElement.dataset.hud);
+        t.eq('the levels the extras need', JSON.stringify([J.lockOf({ kind: 'tesseract' }), J.lockOf({ kind: 'particles', arg: { shape: 'avengers' } }), J.lockOf({ kind: 'particles', arg: { shape: 'heart' } }), J.lockOf({ kind: 'galaxy' })]), '[3,4,0,0]');
+        const lockedKeys = J.CAPABILITIES.filter((c) => c.lock).map((c) => c.key).join();
+        t.eq('only four things are locked: the new extras', lockedKeys, 'hud,tesseract,avengers,iron-man');
+        t.ok('and none of their IDs existed before Session 11', J.CAPABILITIES.filter((c) => c.lock).every((c) => c.ids.every((id) => !EVENT_IDS_BEFORE_S11.includes(id))));
+        t.ok('no protocol step needs a level', Object.values(J.STEPS).every((s) => { const it = J.intent(s.text); return !it || J.lockOf(it) === 0; }));
+        const newCmds = new Set(J.CAPABILITIES.filter((c) => c.lock).flatMap((c) => c.cmds).map((c) => c.toLowerCase()));
+        const older = J.chipCmds().filter((c) => !newCmds.has(c.toLowerCase()) && !/^show me the tesseract$/i.test(c));
+        const gated = [];
+        for (const c of older) { const r = await J.answer(c); if (typeof r === 'string' && /above your clearance/.test(r)) gated.push(c); }
+        t.eq(`none of the other ${older.length} link commands is gated at level 1`, gated.join(', '), '');
+    } finally { env.close(); }
+    {
+        // The same commands answer the same way at level 1 and at level 5.
+        const deterministic = ['what is seven times eight', 'show me the galaxy', 'suit up', 'list my protocols', 'make the orb blue', 'speak faster', 'switch to matrix', 'back to jarvis', 'scan the room', 'house party'];
+        const answers = async (e) => { const out = []; for (const q of deterministic) out.push(await e.window.__jarvis.answer(q)); return out; };
+        const a1 = await answers(env = await openDom(page.html, URL_, quiet)); env.close();
+        const idb = await profile({ events: daysBack(60, (k) => (k < 5 ? [{ id: SCENES5[k], day: today - 1 - k, n: 1 }] : [])), totals: J.CAPABILITIES.filter((c) => (c.lock || 0) < 5).flatMap((c) => c.ids).map((id) => ({ id, n: 3 })) });
+        env = await openDom(page.html, URL_, { ...quiet, idb });
+        t.eq('(that profile is level 5)', env.window.__jarvis.levelNow(), 5);
+        const a5 = await answers(env); env.close();
+        t.eq('the same commands get the same answers at level 1 and level 5', JSON.stringify(a5), JSON.stringify(a1));
+    }
+
+    t.section('He remembers you: favourites (Session 11)');
+    {
+        const idb = await profile({ events: [ev('app:visit', 1), ev('scene:globe', 1, 31), ev('scene:galaxy', 2, 5), ev('cmd:house-party', 3, 4), ev('scene:suit', 4, 2)] });
+        env = await openDom(page.html, URL_, { ...quiet, idb }); J = env.window.__jarvis;
+        try {
+            t.eq('"what\'s my favourite?"', await J.answer("what's my favourite?"), 'The Earth, by a distance. Opened 31 times.');
+            for (const q of ['whats my favourite', 'what is my favorite', "what's my favourite scene", 'what do i use most', 'jarvis whats my favourite please', 'which is my favourite'])
+                t.eq(`"${q}"`, await J.answer(q), 'The Earth, by a distance. Opened 31 times.');
+            await J.answer('my favourite colour is green');
+            t.eq('"what\'s my favourite colour" is still short-term memory', await J.answer("what's my favourite colour"), 'Your favourite colour is green.');
+            t.ok('"what\'s my favourite protocol": counted only as protocol runs, so no name', /^I count how often your protocols run, not which one ran, so I can't name a favourite\. You haven't run one of your own yet\. House party: 4 times\.$/.test(await J.answer('whats my favourite protocol')));
+            t.ok('"why" says why', /never a name you chose/.test(await J.answer('why')));
+            const lead = J.favLead();
+            t.eq('the top three, used at least three times, go first in the links', lead, 'Your favourites first: ⟦the Earth|show me earth⟧, ⟦the galaxy|show me the galaxy⟧ and ⟦house party⟧. ');
+            t.ok('at the front of the help', J.brainKnown('help').startsWith(lead));
+            t.ok('and of the "didn\'t understand" list', (await J.answer('blorp the snorkel')).includes(lead + "Here's what I can do"));
+            await J.answer('no');
+            const help = await typeIn(env, 'help');
+            const links = [...env.document.querySelectorAll('#log .msg.ai')].pop().querySelectorAll('button.cmd');
+            t.eq('they are real links in the bubble', [...links].slice(0, 3).map((b) => b.textContent).join(' | '), 'the Earth | the galaxy | house party');
+            for (let i = 0; i < 39; i++) J.track('scene:suit');
+            await typeIn(env, 'show me the suit'); // a real turn, which is when anything worked out after a turn would change
+            t.eq('the order doesn\'t move mid-visit, even when the counts change', J.favLead(), lead);
+            t.ok('nor do the links in the help', J.brainKnown('help').startsWith(lead));
+            t.eq('though "what\'s my favourite" answers from the counts as they are', await J.answer('whats my favourite'), 'The suit schematic, just ahead of the Earth. Opened 42 times.');
+            t.eq('favourites glow brighter in the memory core', J.capabilityStars().filter((s) => s.state === 'favourite').map((s) => s.key).sort().join(), 'galaxy,globe,suit');
+            void help;
+        } finally { env.close(); }
+        env = await openDom(page.html, URL_, { ...quiet, idb }); J = env.window.__jarvis;
+        try {
+            t.eq('the next load reorders them', J.favLead(), 'Your favourites first: ⟦the suit schematic|show me the suit⟧, ⟦the Earth|show me earth⟧ and ⟦the galaxy|show me the galaxy⟧. ');
+            t.eq('"stop putting my favourites first"', await J.answer('stop putting my favourites first'), "From your next visit, I'll keep my command links in their usual order. I'll remember that on this device.");
+            t.eq('saved as a setting, through store()', JSON.parse((await dbDump(env.idb)).kept['jarvis-settings']).chips, 'off');
+            t.ok('still first for the rest of this visit', J.favLead().startsWith('Your favourites first'));
+            t.ok('it can\'t go in a protocol', /favourites first is a setting for my next visit/i.test(await J.answer('create links protocol: stop putting my favourites first, then tell me a joke')));
+            await J.answer('no');
+        } finally { env.close(); }
+        env = await openDom(page.html, URL_, { ...quiet, idb }); J = env.window.__jarvis;
+        try {
+            t.eq('off: the next load keeps the usual order', J.favLead(), '');
+            t.ok('and help starts as it always did', J.brainKnown('help').startsWith('Ask me'));
+            t.ok('"what do you save" lists it', /my command links in their usual order/.test(await J.answer('what do you save')));
+            t.ok('the memory core shows it as a setting star', J.memoryStars().some((s) => s.type === 'setting' && s.label === 'Favourites first: off'));
+            for (const q of ['keep the links in their usual order', "don't put my favourites first", 'turn off adaptive chips', 'stop adapting the chips', 'stop moving the links'])
+                t.eq(`"${q}" turns it off`, J.settingsIntent(q)?.value, 'off');
+            for (const q of ['put my favourites first', 'adapt the chips', 'turn on adaptive links'])
+                t.eq(`"${q}" turns it on`, JSON.stringify(J.settingsIntent(q)), '{"key":"chips","value":null}');
+            t.eq('"put my favourites first"', await J.answer('put my favourites first'), "From your next visit, I'll put your favourites first in my command links. I'll remember that on this device.");
+            t.ok('which removes it from the saved settings', !('chips' in JSON.parse((await dbDump(env.idb)).kept['jarvis-settings'] || '{}')));
+            t.eq('cleanSettings() keeps only "off"', JSON.stringify([J.cleanSettings({ chips: 'off' }), J.cleanSettings({ chips: 'on' }), J.cleanSettings({ chips: true })]), '[{"chips":"off"},{},{}]');
+            t.eq('store() takes it', J.store('jarvis-settings', '{"chips":"off"}'), true);
+            t.ok('a backup carries it', /chips/.test(J.backupData().kept['jarvis-settings']));
+        } finally { env.close(); }
+        // An occasional nudge: a scene used at least three times, not in the last 14 days, when there's nothing to recap.
+        const idb2 = await profile({ events: [ev('scene:suit', 20, 5), ev('app:visit', 20), ev('app:visit', 1), ev('cmd:joke', 1)] });
+        env = await openDom(page.html, URL_, { ...quiet, idb: idb2 }); J = env.window.__jarvis;
+        try {
+            t.ok('"You haven\'t opened the suit schematic in a while."', /You haven't opened the suit schematic in a while\.$/.test(await greet(env)));
+            t.eq('not for a scene used in the last 14 days', J.nudgeOf(J.usageOf([ev('scene:suit', 10, 5)], [], 0, today), today), '');
+            t.eq('nor one used twice', J.nudgeOf(J.usageOf([ev('scene:suit', 30, 2)], [], 0, today), today), '');
+            t.eq('older than the kept days counts as a while', J.nudgeOf(J.usageOf([], [{ id: 'scene:globe', n: 9 }], 0, today), today), "You haven't opened the Earth in a while.");
+        } finally { env.close(); }
+    }
+
+    t.section('He remembers you: the discovery log (Session 11)');
+    env = await openDom(page.html, URL_, quiet); J = env.window.__jarvis;
+    try {
+        const ids = J.CAPABILITIES.flatMap((c) => c.ids);
+        t.eq('every capability ID is a usage ID', ids.filter((id) => !J.EVENT_IDS.includes(id)).join(), '');
+        t.eq('and none is in two capabilities', ids.length, new Set(ids).size);
+        t.eq('every usage ID is a capability, or listed with a reason why not', J.EVENT_IDS.filter((id) => !ids.includes(id) && !J.NOT_CAPABILITIES[id]).join(), '');
+        t.ok('and those two are the only ones', Object.keys(J.NOT_CAPABILITIES).sort().join() === 'app:visit,skin:jarvis' && Object.values(J.NOT_CAPABILITIES).every((x) => x.length > 10));
+        t.eq('every key is different', new Set(J.CAPABILITIES.map((c) => c.key)).size, J.CAPABILITIES.length);
+        t.ok('the Session 8 transfer commands are there', ['cmd:backup', 'cmd:restore', 'cmd:qr', 'cmd:qr-scan'].every((id) => ids.includes(id)) && ['back up my settings', 'restore my settings', 'send my settings to my phone', 'scan settings'].every((c) => J.CAPABILITIES.some((x) => x.cmds.includes(c))));
+        // A command with no entry fails here, so a later session can't forget to add one.
+        const homes = new Set([...J.CAPABILITIES.flatMap((c) => c.cmds), ...Object.keys(J.NOT_COUNTED)].map((c) => c.toLowerCase()));
+        t.eq('every command link belongs to a capability, or is listed as not one', J.chipCmds().filter((c) => !homes.has(c.toLowerCase())).join(', '), '');
+        const counted = [...page.html.matchAll(/\btrack\('([^']+)'/g)].map((m) => m[1]).filter((id) => !id.endsWith(':')); // 'skin:'+k is built from the skin list
+        t.eq('everything the page counts by name is on the list', counted.filter((id) => !J.EVENT_IDS.includes(id)).join(), '');
+        t.ok('every capability has a hint, and every hint\'s links are real command links', J.CAPABILITIES.every((c) => c.hint.length > 20 && [...c.hint.matchAll(/⟦([^⟦⟧|]+)(?:\|([^⟦⟧|]+))?⟧/g)].every((m) => J.chipCmds().includes(m[2] || m[1]))));
+        // What a level-1 newcomer sees in this browser (jsdom: no WebGL, camera, mic or voices).
+        const d = J.discovery(J.usageNow());
+        t.ok('the count leaves out what this browser can\'t do', !J.CAPABILITIES.filter((c) => c.can).some((c) => d.missing.includes(c)));
+        t.eq('and what\'s locked', d.locked, 4);
+        const first = await J.answer('what haven\'t I tried');
+        const d2 = J.discovery(J.usageNow());
+        t.ok('"what haven\'t I tried?"', new RegExp(`^You've discovered ${d2.found} of ${d2.reach}\\. Here's a hint: .+ Four more are behind a higher clearance\\.$`).test(first), first);
+        const hints = [first];
+        for (let i = 1; i < d2.missing.length; i++) hints.push(await J.answer('what havent i tried'));
+        const given = hints.map((h) => h.replace(/^.*Here's a hint: /, '').replace(/ Four more.*$/, ''));
+        t.eq('the hints don\'t repeat until every one has been given', new Set(given).size, d2.missing.length);
+        t.ok('then they start again', given.includes((await J.answer('what have i not tried')).replace(/^.*Here's a hint: /, '').replace(/ Four more.*$/, '')));
+        for (const q of ['what havent i tried', 'what have i not tried yet', 'jarvis what haven\'t i tried', 'give me a hint', "what's left to discover", 'what else can i try'])
+            t.ok(`"${q}" asks it`, /^You've discovered/.test(await J.answer(q)));
+        t.ok('no hint is for something locked or unavailable', !J.CAPABILITIES.filter((c) => c.lock || c.can).some((c) => given.includes(c.hint)));
+        t.ok('a newcomer at level 1 hears no "new capability" lines', !/New capability/.test(await typeIn(env, 'tell me a joke')));
+        const stars = J.capabilityStars();
+        t.eq('the memory core\'s locked stars: the four extras', stars.filter((s) => s.state === 'locked').map((s) => s.key).join(), 'hud,tesseract,avengers,iron-man');
+        t.ok('undiscovered ones are dim and unlabelled; found ones are bright', stars.some((s) => s.state === 'unfound') && stars.some((s) => s.state === 'found') && stars.every((s) => !('label' in s)));
+        t.ok('a locked star says what opens it', stars.find((s) => s.key === 'tesseract').text === 'Locked. Clearance level three, Engineer, opens it.');
+        t.ok('none of them is in the labelled, forgettable list', !J.memoryStars().some((s) => /capability/i.test(s.type)));
+    } finally { env.close(); }
+    {
+        const idb = await profile({ events: daysBack(3) });
+        env = await openDom(page.html, URL_, { ...quiet, idb }); J = env.window.__jarvis;
+        try {
+            await greet(env);
+            t.eq('"New capability logged: jokes." the first time, from level 2', (await typeIn(env, 'tell me a joke')).match(/New capability logged: .*$/)?.[0], 'New capability logged: jokes.');
+            t.ok('not the second time', !/New capability/.test(await typeIn(env, 'tell me a joke')));
+            J.track('feature:voice');
+            t.ok('something found outside a turn (the voice menu, the mic) is logged with the next answer', /New capability logged: voices\.$/.test(await typeIn(env, 'tell me a joke')));
+            t.ok('the memory core has a clearance star from level 2, which can\'t be forgotten', J.memoryStars().some((s) => s.type === 'level' && s.label === 'Clearance 2: Associate') && /nothing to forget/.test(J.forgetStar({ type: 'level' })));
+        } finally { env.close(); }
+    }
+    // Every capability's command counts it, at level 5 (so the extras are open), except where jsdom lacks what it needs.
+    {
+        const idb = await profile({ events: daysBack(60, (k) => (k < 5 ? [{ id: SCENES5[k], day: today - 1 - k, n: 1 }] : [])), totals: J.CAPABILITIES.filter((c) => (c.lock || 0) < 5).flatMap((c) => c.ids).filter((id) => id !== 'cmd:joke').map((id) => ({ id, n: 3 })) });
+        env = await openDom(page.html, URL_, { ...quiet, idb }); J = env.window.__jarvis;
+        try {
+            const NEEDS = { mic: 'a microphone', 'wake-word': 'speech recognition', voice: 'voices', restore: 'a file', 'qr-scan': 'a camera', 'house-party': 'WebGL', backup: 'a file download', teach: 'two turns', remember: 'no link: tested elsewhere', 'iron-man': 'level 5 (tested above)' };
+            J.restoreBackup(JSON.stringify({ app: 'jarvis', backup: 1, kept: { 'jarvis-settings': '{"color":"blue"}' } })); // so there's something to put in a settings code
+            await J.answer('create movie night protocol: make the orb purple, then open the galaxy');
+            J.setPace(0.002);
+            const silent = [];
+            for (const c of J.CAPABILITIES) {
+                if (NEEDS[c.key]) continue;
+                const was = c.ids.map((id) => J.usageNow().n[id] || 0).reduce((a, b) => a + b, 0);
+                await J.answer(c.cmds[0]); await J.protocolDone();
+                const now = c.ids.map((id) => J.usageNow().n[id] || 0).reduce((a, b) => a + b, 0);
+                if (now <= was) silent.push(`${c.key} (${c.cmds[0]})`);
+            }
+            t.eq(`each capability's first command counts it (${J.CAPABILITIES.length - Object.keys(NEEDS).length} checked here)`, silent.join(', '), '');
+        } finally { env.close(); }
+    }
+
+    t.section('He remembers you: nothing new is saved (Session 11)');
+    {
+        const idb = await profile({ events: daysBack(12, (k) => (k < 4 ? [{ id: SCENES5[k], day: today - 1 - k, n: 1 }] : [])) });
+        env = await openDom(page.html, URL_, { ...quiet, idb }); J = env.window.__jarvis;
+        try {
+            await greet(env);
+            t.ok('(a level-up happens in this visit)', /Access level three/.test(await typeIn(env, 'show me the suit')));
+            for (const q of ['how well do you know me', 'whats my favourite', 'what havent i tried', 'gold and red hud', 'show me the tesseract', 'yes', 'stop putting my favourites first']) await typeIn(env, q);
+            const db = await dbDump(env.idb);
+            t.eq('the database has only its five tables', Object.keys(db).sort().join(), 'events,kept,meta,protocols,totals');
+            t.ok('kept: only the listed settings keys', Object.keys(db.kept).every((k) => J.STORE_KEYS.includes(k)));
+            t.eq('meta: only the three bookkeeping numbers', Object.keys(db.meta).filter((k) => !['copied', 'rolled', 'carry'].includes(k)).join(), '');
+            t.ok('no level, favourite, hint or HUD anywhere in it', !/clearance|Engineer|Associate|favourite|hint|hotrod|hud|level|announced/i.test(JSON.stringify(db.kept) + JSON.stringify(db.meta)));
+            t.eq('fits() refuses settings with anything but the fixed choices in them', JSON.stringify([J.fits('kept', 'jarvis-settings', '{"color":"blue","level":3}'), J.fits('kept', 'jarvis-settings', '{"color":"teal"}'), J.fits('kept', 'jarvis-settings', '[1]'), J.fits('kept', 'jarvis-settings', '{"speed":"slow","color":"blue","chips":"off"}')]), '[false,false,false,true]');
+            t.ok('every count is a listed ID', Object.values(db.events).every((e) => J.EVENT_IDS.includes(e.id)));
+            t.eq('the one new setting is "favourites first"', JSON.parse(db.kept['jarvis-settings'] ?? '{}').chips, 'off');
+        } finally { env.close(); }
+    }
 }
 
 // A factory whose databases open only when the test says so, to see what the page does while it waits.
@@ -1906,7 +2321,8 @@ async function memoryChecks(t, page) {
         t.eq('carried over as one visit count for each of the 3 days, today included', ev.filter((e) => e.id === 'app:visit').map((e) => dayOf() - e.day).sort().join(), '0,1,2');
         t.eq('the old key is left where it was, for jarvis.html', JSON.parse(window.localStorage.getItem('jarvis-streak')).days, 2);
         J.finishBoot();
-        t.ok('and the greeting says so', /Third day in a row!$/.test([...document.querySelectorAll('#log .msg.ai')].pop().textContent));
+        // Three days is also clearance level 2 (Session 11), so the streak line is followed by the level-up.
+        t.ok('and the greeting says so', /Third day in a row! Access level two granted: Associate\./.test([...document.querySelectorAll('#log .msg.ai')].pop().textContent));
         t.ok('"what do you save" says where the streak comes from', /Your visit streak, 3 days, is worked out from those counts\./.test(await J.answer('what do you save')));
     } finally { env.close(); }
     env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-streak': JSON.stringify({ days: 9, ...daysAgo(2) }) }));
@@ -2049,7 +2465,7 @@ async function memoryChecks(t, page) {
         t.ok('without WebGL, "show me your memory" says so', /needs WebGL/.test(await J.answer('show me your memory')));
         t.ok('"forget that" with nothing from this visit', /nothing from this visit to forget/.test(await J.answer('forget that')));
         t.ok('the scene removes its labels in dispose(), per CLAUDE.md', /id='mem-labels'[\s\S]{0,9000}dispose\(\)\{root\.remove\(\)\}/.test(page.html));
-        t.ok('and lays them out with layoutCallouts', /boxes=layoutCallouts\(pts,bounds,sides\)[\s\S]{0,1500}MEMORY CORE/.test(page.html));
+        t.ok('and lays them out with layoutCallouts', /boxes=layoutCallouts\(pts,bounds,sides\)[\s\S]{0,2500}MEMORY CORE/.test(page.html));
         t.eq('no console errors', env.errors.length, 0);
     } finally { env.close(); }
 
