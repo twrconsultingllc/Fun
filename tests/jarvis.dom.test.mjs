@@ -32,7 +32,9 @@ const HAND_FILES = {
     'vision_bundle.js': 'e77f281f9619150d937023c355bae170e9120e3b9e43f1e23a2a7bee07197669',
     'vision_wasm_internal.js': '9440cf0cc0cea21800e31581ec32aeedcc5fbf9df4509796bbc7d3f99e52ab9c',
     'vision_wasm_internal.wasm': 'f82a8e6c05e08a44cc9f9e7ec5f845935bcbb1b1500ebe8c2f4812fb4e2917dc',
-    'hand_landmarker.task': 'fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1'
+    'hand_landmarker.task': 'fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1',
+    // the threat scan's face detector (Session 5), next to the hand tracker
+    'blaze_face_short_range.tflite': 'b4578f35940bf5a1a655214a1cce5cab13eba73c1297cd78e1a04c2380b0152f'
 };
 
 export const name = 'J.A.R.V.I.S. Demo (jarvis.html)';
@@ -123,7 +125,7 @@ export default async function run(t, page) {
         t.eq('store() refuses a key that isn\'t on the list', store('jarvis-name', 'Tony'), false);
         t.eq('and personal text even under a listed key', store('jarvis-learned', JSON.stringify({ 'my phone': '239 555 0142' })), false);
         t.eq('nothing was written', window.localStorage.getItem('jarvis-name'), null);
-        t.eq('only four keys can ever be saved', JSON.stringify(STORE_KEYS), '["jarvis-skin","jarvis-voices","jarvis-learned","jarvis-mic-note"]');
+        t.eq('only six keys can ever be saved (settings and the streak added in Session 7)', JSON.stringify(STORE_KEYS), '["jarvis-skin","jarvis-voices","jarvis-learned","jarvis-mic-note","jarvis-settings","jarvis-streak"]');
         t.eq('the page calls localStorage.setItem in exactly one place (store)', (page.html.match(/localStorage\.setItem\(/g) || []).length, 1);
         t.ok('and never reads or writes a saved name', !/jarvis-name/.test(page.html));
         t.ok('"what do you save" lists what is kept and says nothing personal is', /No names, no personal details/.test(await window.__jarvis.answer('what do you save')));
@@ -451,6 +453,85 @@ export default async function run(t, page) {
         t.ok('the cursor follows the thumb and index tips', cur.hands === 1 && Math.abs(cur.x - 0.23) < 0.005 && Math.abs(cur.y - 0.135) < 0.005);
         t.eq('no hands: the cursor hides', JSON.stringify(g([], 1).find((a) => a.type === 'cursor')), '{"type":"cursor","hands":0}');
 
+        t.section('Gesture thresholds, pinned (Session 6)');
+
+        // Session 6 tunes gestures from what misfired on the user's devices. On 2026-10-09 the user
+        // reported nothing misfiring and asked to keep the thresholds, so these pin them exactly,
+        // and any later change has to move a check here on purpose.
+        const pinchAt = (r, x = 0.5) => { const lm = hand('pinch', x); lm[4] = { x: lm[8].x - r * 0.15, y: lm[8].y, z: 0 }; return lm; };
+        t.ok('the pinch helper gives the ratio asked for', Math.abs(classifyHand(pinchAt(0.3)).pinchR - 0.3) < 1e-9);
+        const pinchedAfter = (rs) => { g = createGestures(); let on = false; rs.forEach((r, i) => { on = g([{ key: 'h', lm: pinchAt(r) }], i * 0.05).find((a) => a.type === 'grab').on; }); return on; };
+        t.ok('a pinch closes below 0.26 of palm size', pinchedAfter([0.25]) && !pinchedAfter([0.27]));
+        t.ok('a held pinch stays closed up to 0.42, so it doesn\'t flicker', pinchedAfter([0.2, 0.41]) && !pinchedAfter([0.2, 0.43]));
+        const swipeOf = (dx, dt) => { g = createGestures(); return run([[0, [hand('open', 0.6)]], [dt, [hand('open', 0.6 - dx)]]]).some((a) => a.type === 'swipe'); };
+        t.ok('a swipe needs over 22% of the frame', swipeOf(0.23, 0.3) && !swipeOf(0.21, 0.3));
+        t.ok('within 0.4 s', !swipeOf(0.3, 0.45));
+        g = createGestures();
+        acts = run([[0, [hand('open', 0.8)]], [0.1, [hand('open', 0.5)]], [0.3, [hand('open', 0.8)]], [0.4, [hand('open', 0.5)]]]);
+        t.eq('swipes are at least 0.9 s apart, so waving back doesn\'t undo one', acts.filter((a) => a.type === 'swipe').length, 1);
+        g = createGestures();
+        t.ok('a fist under 150 ms is not a squeeze', !run([[0, [hand('fist')]], [0.14, [hand('fist')]]]).some((a) => a.type === 'squeeze'));
+
+        t.section('Threat scan (Session 5)');
+
+        t.eq('"scan the room"', JSON.stringify(intent('Scan the room.')), '{"kind":"scan"}');
+        for (const q of ['threat scan', 'run a threat assessment', 'jarvis, scan me', 'scan for threats', 'start a scan', 'face lock', 'security scan please'])
+            t.eq(`"${q}" opens the scan`, kind(q), 'scan');
+        for (const q of ['stop the scan', 'stop scanning', 'close the scanner', 'end threat scan'])
+            t.eq(`"${q}" closes it`, kind(q), 'close');
+        for (const q of ['scan this barcode', 'what is a cat scan', 'show me the suit'])
+            t.ok(`"${q}" is not a threat scan`, kind(q) !== 'scan');
+        t.ok('help mentions the threat scan', /scan the room/.test(brain('help')));
+
+        const { scanReadout, coverMap, createFaceTracker, READOUTS } = window.__jarvis;
+        let seed = 1;
+        const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+        const readouts = Array.from({ length: 300 }, () => scanReadout(rnd));
+        const label = (l) => l.split(': ')[0];
+        t.ok('every readout has three lines, threat level first', readouts.every((r) => r.length === 3 && label(r[0]) === 'THREAT LEVEL'));
+        t.ok('and never the same kind of line twice', readouts.every((r) => new Set(r.map(label)).size === 3));
+        t.ok('every value comes from the list', readouts.every((r) => r.every((l) => READOUTS.some(([k, v]) => l === `${k}: ${v.find((x) => l.endsWith(': ' + x)) ?? '?'}`))));
+        t.eq('over many scans, every kind of line turns up', new Set(readouts.flat().map(label)).size, READOUTS.length);
+        t.ok('a random number of exactly 1 can\'t index past a list', scanReadout(() => 0.9999999999).length === 3 && scanReadout(() => 0.9999999999).every((l) => !/undefined/.test(l)));
+        t.ok('readouts are made up, not read from a face: scanReadout takes no picture', scanReadout.length <= 1);
+
+        // A 640x480 camera frame filling a 1280x800 screen: scale 2, 80 px cropped top and bottom, mirrored.
+        // Video x 100..150 scales to 200..300, and mirrored that's 1280-300 = 980 to 1080.
+        let m = coverMap(640, 480, 1280, 800);
+        t.ok('desktop: the frame is scaled to cover the screen', m.s === 2 && m.ox === 0 && m.oy === -80);
+        t.eq('a face on the left of the camera shows on the right (mirrored)', JSON.stringify(m.box({ originX: 100, originY: 100, width: 50, height: 60 })), '{"x":980,"y":120,"w":100,"h":120}');
+        // On an upright phone, 390x844: scale 844/480, the sides are cropped.
+        m = coverMap(640, 480, 390, 844);
+        const mid = m.box({ originX: 300, originY: 220, width: 40, height: 40 });
+        t.ok('phone: the middle of the camera is the middle of the screen', Math.abs(mid.x + mid.w / 2 - 195) < 1e-9 && Math.abs(mid.y + mid.h / 2 - 422) < 1e-9);
+
+        let tr = createFaceTracker(rnd);
+        let ks = tr([{ x: 100, y: 100, w: 80, h: 80 }], 0);
+        t.ok('a new face becomes target 1, with a readout', ks.length === 1 && ks[0].id === 1 && ks[0].fresh && ks[0].lines.length === 3);
+        const firstLines = ks[0].lines.join('|');
+        ks = tr([{ x: 110, y: 104, w: 82, h: 80 }], 0.05);
+        t.ok('moving a little, it stays target 1 with the same readout', ks.length === 1 && ks[0].id === 1 && ks[0].lines.join('|') === firstLines && !ks[0].fresh);
+        t.ok('and its brackets ease halfway to the new spot, so they don\'t jitter', ks[0].x === 105 && ks[0].y === 102);
+        ks = tr([{ x: 105, y: 102, w: 80, h: 80 }, { x: 600, y: 120, w: 70, h: 70 }], 0.1);
+        t.eq('a second face far away becomes target 2', JSON.stringify(ks.map((k) => k.id)), '[1,2]');
+        ks = tr([{ x: 600, y: 120, w: 70, h: 70 }], 0.4);
+        t.eq('a face missing for a moment is kept', ks.length, 2);
+        ks = tr([{ x: 600, y: 120, w: 70, h: 70 }], 0.7);
+        t.eq('gone for over half a second, it is dropped', JSON.stringify(ks.map((k) => k.id)), '[2]');
+        ks = tr([{ x: 100, y: 100, w: 80, h: 80 }, { x: 600, y: 120, w: 70, h: 70 }], 0.75);
+        t.eq('a face coming back is a new target, not an old number reused', JSON.stringify(ks.map((k) => k.id).sort()), '[2,3]');
+        tr = createFaceTracker(rnd);
+        tr([{ x: 100, y: 100, w: 80, h: 80 }, { x: 200, y: 100, w: 80, h: 80 }], 0);
+        ks = tr([{ x: 205, y: 100, w: 80, h: 80 }, { x: 95, y: 100, w: 80, h: 80 }], 0.03);
+        t.ok('two faces side by side keep their own numbers, whatever order the detector lists them', ks.find((k) => k.id === 1).x < 100 && ks.find((k) => k.id === 2).x > 200);
+
+        t.ok('without a camera, the scan says so', /needs a camera/.test(await window.__jarvis.project({ kind: 'scan' })));
+        t.ok('and the projector stays closed', document.getElementById('holo').hidden && !document.body.classList.contains('scan-on'));
+        t.ok('the scan has no way to save a picture: no toDataURL, toBlob, MediaRecorder or download link', !/toDataURL|toBlob|MediaRecorder|\.download\s*=/.test(src));
+        t.ok('the scan closes itself when the tab is hidden', /visibilitychange',\(\)=>\{if\(document\.hidden&&H&&H\.kind==='scan'\)closeHolo\(\)\}/.test(src));
+        t.ok('the scan asks the camera for video only, never audio', (src.match(/getUserMedia\(/g) || []).length === 2 && (src.match(/getUserMedia\(\{video:\{facingMode:'user',width:\{ideal:640\},height:\{ideal:480\}\},audio:false\}\)/g) || []).length === 2);
+        t.ok('the face detector loads from jarvis/hands/ on this site', /modelAssetPath:url\('blaze_face_short_range\.tflite'\)/.test(src));
+
         t.section('Self-hosted hand tracker');
 
         if (page.url.startsWith('file:')) {
@@ -509,10 +590,14 @@ export default async function run(t, page) {
 
     await voiceWiring(t, page);
     await micErrors(t, page);
+    await wakeWiring(t, page);
+    await briefingChecks(t, page);
     await speechWiring(t, page);
     await skinsAndMemory(t, page);
     await voicePicker(t, page);
     await androidVoices(t, page);
+    await memoryChecks(t, page);
+    await commandLinks(t, page);
 }
 
 /* A second window with a fake SpeechRecognition, getUserMedia and AudioContext. */
@@ -617,8 +702,9 @@ async function speechWiring(t, page) {
 
     // Chrome stops speaking a single utterance after about 15 seconds, which cut the help answer off
     // before its last features (2026-10-09). Long answers now go out a sentence or two at a time.
-    const { speechChunks, brain } = (await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ })).window.__jarvis;
-    const help = brain('what can you do');
+    const { speechChunks, brain, plainText } = (await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ })).window.__jarvis;
+    // say() speaks the help answer without its link markers (see "Command links"), so that's what is chunked.
+    const help = plainText(brain('what can you do'));
     const parts = speechChunks(help);
     t.ok('the help answer is split into several pieces', parts.length >= 3);
     t.ok('none is longer than 160 characters (about 10 s of speech)', parts.every((p) => p.length <= 160));
@@ -627,8 +713,8 @@ async function speechWiring(t, page) {
     t.eq('a short answer stays in one piece', JSON.stringify(speechChunks('Anytime. You\'re welcome.')), JSON.stringify(['Anytime. You\'re welcome.']));
     t.eq('one sentence longer than the limit is kept whole', speechChunks('a'.repeat(200) + '.').length, 1);
     for (const q of ['what can you do', 'Hey Jarvis, what can you do?', 'what else can you do', 'tell me what you can do', 'what are your features', 'list your commands', 'what can I say'])
-        t.eq(`"${q}" gets the help answer`, brain(q), help);
-    t.ok('"hello" is still a greeting', /online|help/.test(brain('hello')) && brain('hello') !== help);
+        t.eq(`"${q}" gets the help answer`, plainText(brain(q)), help);
+    t.ok('"hello" is still a greeting', /online|help/.test(brain('hello')) && plainText(brain('hello')) !== help);
 
     const fake = fakeSpeech();
     const env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse: fake.beforeParse });
@@ -636,9 +722,10 @@ async function speechWiring(t, page) {
         const { document } = env, state = () => document.getElementById('state').textContent;
         const ask = (text) => { document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new env.window.Event('submit', { cancelable: true })); };
         ask('what can you do'); await wait(600);
-        t.eq('the whole help answer is queued, piece by piece', fake.log.queue.map((u) => u.text).join(' '), help.replace(/\s+/g, ' ').trim());
+        const plain = help;
+        t.eq('the whole help answer is queued, piece by piece, without the link markers', fake.log.queue.map((u) => u.text).join(' '), plain.replace(/\s+/g, ' ').trim());
         t.ok('as more than one utterance', fake.log.queue.length >= 3);
-        t.eq('and the chat log shows it in full, as one message', [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent, help);
+        t.eq('and the chat log shows it in full, as one message', [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent, plain);
         fake.start(); t.eq('the first piece starting shows SPEAKING', state(), 'SPEAKING');
         fake.finish(); t.eq('the orb keeps SPEAKING between pieces', state(), 'SPEAKING');
         fake.start();
@@ -739,6 +826,34 @@ async function skinsAndMemory(t, page) {
     } finally {
         env.close();
     }
+    // One memory, whatever the skin: the user asked on 2026-10-10 for the name and learned phrases to carry
+    // across skins seamlessly. Morpheus and Stanley used to greet without the name, and nothing answered
+    // "what's my name". Later the same day the name stopped being saved at all (privacy scrub), so it
+    // carries across skins for one visit, and taught phrases across visits.
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ...opts, beforeParse(w) { opts.beforeParse(w); w.localStorage.setItem('jarvis-skin', 'matrix'); w.localStorage.setItem('jarvis-learned', JSON.stringify({ 'beam me up': 'roll a die' })); } });
+    try {
+        const { document, window } = env, J = window.__jarvis;
+        const lastAi = () => [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? '';
+        J.brain('my name is tony');
+        J.finishBoot();
+        t.ok('as Morpheus, the greeting uses the name told this visit', /^Welcome to the real world, Tony\./.test(lastAi()));
+        for (const k of ['matrix', 'panther', 'jarvis']) {
+            J.setSkin(k === 'matrix' ? 'jarvis' : 'matrix');
+            const hi = J.setSkin(k);
+            t.ok(`switching to ${k}, the hello uses the name`, /Tony/.test(hi));
+            t.ok(`as ${k}, "what's my name" is answered`, /Your name is Tony\./.test(await J.answer("what's my name?")));
+            t.ok(`as ${k}, a learned phrase still works`, /You rolled a [1-6]\./.test(await J.answer('beam me up')));
+        }
+        J.setSkin('panther');
+        t.ok('"who am I" and "do you remember me" work too', /Tony/.test(await J.answer('who am I')) && /Tony/.test(await J.answer('do you remember me')));
+        t.ok('"what is your name" is still about him, not you', !/Your name is/.test(await J.answer('what is your name')));
+        t.ok('"forget my name" forgets it', /forgotten your name/.test(await J.answer('forget my name')) && window.localStorage.getItem('jarvis-name') === null);
+        t.ok('then no skin knows it', /haven't told me your name/.test(await J.answer('what is my name')) && !/Tony/.test(J.setSkin('matrix')));
+        t.ok('a name told to one skin is known to the next', /Nice to meet you, Pepper/.test(await J.answer('my name is pepper')) && /Pepper/.test(J.setSkin('jarvis')) && /Your name is Pepper/.test(await J.answer('what is my name')));
+        t.eq('no console errors', env.errors.length, 0);
+    } finally {
+        env.close();
+    }
     // An older version saved the name, and a taught phrase may hold personal details: both go on the next visit.
     t.section('Privacy scrub: cleaning up what older versions saved');
     env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ...opts, beforeParse(w) { opts.beforeParse(w);
@@ -753,7 +868,7 @@ async function skinsAndMemory(t, page) {
         t.eq('taught phrases with personal details are dropped, the rest kept', ls.getItem('jarvis-learned'), '{"beam me up":"roll a die"}');
         t.eq('settings stay', ls.getItem('jarvis-skin'), 'matrix');
         t.ok('the deleted name is not used to greet you', (J.finishBoot(), !/Tony/.test([...env.document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? '')));
-        t.ok('"what do you save" reads back exactly what is there', /your skin \(Morpheus\) and one phrase you taught me\./.test(await J.answer('what do you save')));
+        t.ok('"what do you save" reads back exactly what is there', /your skin \(Morpheus\), one phrase you taught me and your visit streak \(one day, and the date of your last visit\)\./.test(await J.answer('what do you save')));
         J.brain('my name is pat');
         t.ok('a name told this visit is mentioned as memory-only', /Your name, Pat, is only in memory for this visit\./.test(await J.answer('what do you know about me')));
         t.eq('and still not stored', ls.getItem('jarvis-name'), null);
@@ -853,6 +968,565 @@ async function androidVoices(t, page) {
     } finally {
         env.close();
     }
+}
+
+/* Session 6: "Hey Jarvis". A fake SpeechRecognition that behaves like the real one: start() throws
+ * InvalidStateError while it's already running, and onstart/onend arrive later, not inside the call
+ * (see CLAUDE.md, "A fake speech recognizer must behave like the real one"). */
+function fakeRecognizer({ chromium = true, speaking = () => false } = {}) {
+    const log = { recs: [], starts: 0 };
+    return {
+        log,
+        beforeParse(window) {
+            window.SpeechRecognition = class {
+                constructor() { this.running = false; this.continuous = false; log.recs.push(this); }
+                start() {
+                    if (this.running) throw new window.DOMException('already started', 'InvalidStateError');
+                    this.running = true; log.starts++; setTimeout(() => this.onstart?.(), 0);
+                }
+                stop() { if (!this.running) return; this.running = false; setTimeout(() => this.onend?.(), 0); }
+                // what Chrome does when a continuous session ends by itself (a silence, a network blip)
+                drop() { this.running = false; this.onend?.(); }
+                hear(text, final = true) { this.onresult?.({ resultIndex: 0, results: [Object.assign([{ transcript: text }], { isFinal: final })] }); }
+            };
+            if (chromium) Object.defineProperty(window.navigator, 'userAgentData', { configurable: true, value: { brands: [{ brand: 'Chromium', version: '130' }, { brand: 'Google Chrome', version: '130' }] } });
+            window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+            window.speechSynthesis = { getVoices: () => [], onvoiceschanged: null, get speaking() { return speaking(); }, speak() {}, cancel() {} };
+        }
+    };
+}
+
+async function wakeWiring(t, page) {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const open = async (opts) => {
+        const fake = fakeRecognizer(opts);
+        const env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse: fake.beforeParse });
+        return { ...env, log: fake.log };
+    };
+    t.section('"Hey Jarvis" (Session 6)');
+
+    const { wakeCommand, wakeIntent } = (await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ })).window.__jarvis;
+    t.eq('"Jarvis, what time is it" is for Jarvis', wakeCommand('Jarvis, what time is it?'), 'what time is it?');
+    t.eq('"hey Jarvis tell me a joke"', wakeCommand('hey Jarvis tell me a joke'), 'tell me a joke');
+    t.eq('"OK Jarvis" alone wakes him with nothing to do yet', wakeCommand('OK Jarvis'), '');
+    t.eq('a phrase that doesn\'t start with the name is ignored', wakeCommand('what time is it Jarvis'), null);
+    t.eq('"Jarvisville" is not the name', wakeCommand('Jarvisville is a town'), null);
+    t.eq('the current skin\'s name works too', wakeCommand('Morpheus, take the red pill', 'jarvis|morpheus'), 'take the red pill');
+    t.eq('"always listen" turns it on', wakeIntent('always listen'), true);
+    t.eq('"turn on the wake word"', wakeIntent('turn on the wake word'), true);
+    t.eq('"stop always listening" turns it off', wakeIntent('stop always listening'), false);
+    t.eq('"wake word off"', wakeIntent('wake word off'), false);
+    t.eq('"listen to this" is not the switch', wakeIntent('listen to this'), null);
+
+    let env = await open({ chromium: false });
+    try {
+        t.ok('outside Chrome and Edge, the switch is hidden', env.document.getElementById('wake').hidden);
+        t.ok('and asking for it says why', /Chrome and Edge only/.test(await env.window.__jarvis.answer('always listen')));
+        t.eq('and nothing starts listening', env.log.starts, 0);
+    } finally { env.close(); }
+
+    let speaking = false;
+    env = await open({ speaking: () => speaking });
+    try {
+        const { window, document, log } = env;
+        const rec = log.recs[0], btn = document.getElementById('wake'), note = document.getElementById('wake-note');
+        const said = () => [...document.querySelectorAll('#log .msg.me')].map((m) => m.textContent);
+        const last = () => [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? '';
+        t.eq('the page has no console errors with the switch', env.errors.length, 0);
+        t.ok('in Chrome, the switch shows, off', !btn.hidden && btn.getAttribute('aria-pressed') === 'false' && /OFF/.test(btn.textContent));
+        t.ok('off by default: nothing is listening', !rec.running && note.hidden);
+        btn.click();
+        await wait(5);
+        t.ok('switching it on starts continuous recognition', rec.running && rec.continuous === true);
+        t.ok('the button shows it is on', btn.getAttribute('aria-pressed') === 'true' && /ON/.test(btn.textContent));
+        t.ok('a note says plainly where the audio goes, and that it is Chrome and Edge only', !note.hidden && /online speech service/.test(note.textContent) && /Chrome and Edge only/.test(note.textContent));
+        t.ok('Jarvis says it too', /online speech service/.test(last()));
+        t.ok('the mic is ringed, so it shows over the projector too', document.getElementById('mic').classList.contains('wake'));
+        t.eq('waiting for the name is not LISTENING', document.getElementById('state').textContent !== 'LISTENING', true);
+        t.ok('nothing about it is saved', !Object.keys(window.localStorage).some((k) => /wake|listen/.test(k)));
+
+        rec.hear('what is two plus two');
+        t.ok('talk without the name is ignored', !said().includes('what is two plus two'));
+        rec.hear('Jarvis, what is three plus three');
+        t.ok('"Jarvis, …" is handled, without the name', said().includes('what is three plus three'));
+        rec.hear('Jarvis');
+        t.eq('the name alone: LISTENING for the next phrase', document.getElementById('state').textContent, 'LISTENING');
+        rec.hear('tell me a joke');
+        t.ok('and that next phrase is handled', said().includes('tell me a joke'));
+        rec.hear('tell me a fact');
+        t.ok('only that one phrase', !said().includes('tell me a fact'));
+        rec.hear('Jarvis, maybe', false);
+        t.ok('a result that isn\'t final yet is ignored', !said().includes('maybe'));
+
+        speaking = true;
+        rec.hear('Jarvis, flip a coin');
+        t.ok('while Jarvis is speaking, nothing is acted on (not even his own voice)', !said().includes('flip a coin'));
+        speaking = false;
+
+        let starts = log.starts;
+        document.getElementById('mic').click();
+        t.eq('tapping the mic while it is on doesn\'t restart recognition (which would throw)', log.starts, starts);
+        rec.hear('roll a die');
+        t.ok('the tap means the next phrase is for Jarvis, no name needed', said().includes('roll a die'));
+
+        rec.drop();
+        await wait(350);
+        t.ok('when Chrome ends the session by itself, it starts again', rec.running && log.starts === starts + 1);
+
+        rec.onerror({ error: 'not-allowed' }); rec.running = false;
+        await wait(5);
+        t.ok('if the mic is refused, it turns itself off', btn.getAttribute('aria-pressed') === 'false' && note.hidden && /wouldn't let me use the microphone/.test(last()));
+        await wait(350);
+        starts = log.starts;
+        t.ok('and does not keep trying', !rec.running);
+
+        btn.click(); await wait(5);
+        for (let i = 0; i < 6; i++) { rec.drop(); await wait(320); }
+        t.ok('if recognition keeps ending, it stops trying rather than loop', btn.getAttribute('aria-pressed') === 'false' && /kept ending/.test(last()));
+
+        btn.click(); await wait(5);
+        window.__jarvis.setSkin('matrix');
+        t.ok('the switch follows the skin\'s name', /HEY MORPHEUS: ON/.test(btn.textContent));
+        rec.hear('Morpheus, what is four plus four');
+        t.ok('and so does the wake word', said().includes('what is four plus four'));
+        window.__jarvis.setSkin('panther');
+        t.ok('as Stanley, the switch says HEY STANLEY, not his full name', /HEY STANLEY: ON/.test(btn.textContent));
+        rec.hear('Stanley, what is five plus five');
+        t.ok('and "Stanley, …" wakes him', said().includes('what is five plus five'));
+        window.__jarvis.setSkin('jarvis');
+
+        Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+        document.dispatchEvent(new window.Event('visibilitychange'));
+        await wait(5);
+        t.ok('leaving the page turns it off', btn.getAttribute('aria-pressed') === 'false' && !rec.running);
+        Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+
+        t.ok('typing "always listen" turns it on', /is on/.test(await window.__jarvis.answer('always listen')) && rec.running);
+        t.ok('and "stop always listening" off', /is off/.test(await window.__jarvis.answer('stop always listening')) && btn.getAttribute('aria-pressed') === 'false');
+        await wait(5);
+        t.ok('switching off stops recognition', !rec.running);
+        t.eq('no console errors through all that', env.errors.length, 0);
+    } finally { env.close(); }
+}
+
+async function briefingChecks(t, page) {
+    t.section('"Brief me" (Session 6)');
+    const env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ });
+    try {
+        const { briefingText, answer } = env.window.__jarvis;
+        const now = new Date('2026-10-09T20:00:00Z');
+        const item = (category, title, date, source = 'Some Wire') => ({ category, title, date, source });
+        const data = { generatedAt: '2026-10-09T18:00:00Z', items: [
+            item('news', 'Older story', '2026-10-09T10:00:00Z'),
+            item('news', 'Newest story!', '2026-10-09T17:00:00Z', 'BBC News'),
+            item('swfl', 'Bridge reopens on Estero Boulevard - Naples Daily News', '2026-10-09T16:00:00Z', 'Google News: Naples'),
+            item('tech', 'Chip maker ships new chip', '2026-10-09T15:00:00Z', 'The Verge'),
+            item('live', 'M 4.1 - somewhere', '2026-10-09T19:00:00Z', 'USGS Earthquakes'),
+            item('science', '', '2026-10-09T19:00:00Z'),
+            item('science', 'Probe reaches Jupiter', 'not a date', 'NASA')
+        ] };
+        const b = briefingText(data, now);
+        t.ok('starts with the time and date', /^It's .+ on .+\./.test(b));
+        t.ok('the newest news headline, with its source', /In the news: Newest story, from BBC News\./.test(b));
+        t.ok('a Google News headline names the publisher, not the search', /In Southwest Florida: Bridge reopens on Estero Boulevard, from Naples Daily News\./.test(b));
+        t.ok('tech and science follow, in that order', b.indexOf('In tech') > b.indexOf('Southwest Florida') && b.indexOf('In science and space: Probe reaches Jupiter') > b.indexOf('In tech'));
+        t.ok('live data (earthquakes) is left out, and an empty title is skipped', !/USGS|M 4\.1/.test(b));
+        const spam = { generatedAt: data.generatedAt, items: [
+            item('swfl', '⊕[ＷＡＴＣＨ ＬＩＶＥ ＮＯＷ]⊕ Marco Island vs Leonard 𝐋𝐈𝐕𝐄 Streams - Узнай Москву', '2026-10-09T19:00:00Z', 'Google News: Marco Island'),
+            item('swfl', 'Lely vs Naples Live Stream HD - Some Site', '2026-10-09T18:30:00Z', 'Google News: Naples'),
+            item('swfl', 'County opens new library branch - Fort Myers News-Press', '2026-10-09T12:00:00Z', 'Google News: Fort Myers')] };
+        t.ok('live-stream spam is skipped for the next real headline', /In Southwest Florida: County opens new library branch, from Fort Myers News-Press\./.test(briefingText(spam, now)) && !/Stream|ＷＡＴＣＨ/.test(briefingText(spam, now)));
+        t.ok('ordinary headlines are not spam', !env.window.__jarvis.briefSpam(item('news', 'Watch: the eclipse in pictures', '', 'BBC News')) && !env.window.__jarvis.briefSpam(item('tech', 'Streaming prices rise again', '', 'The Verge')));
+        t.ok('fresh headlines get no age warning', !/old\./.test(b));
+        t.ok('headlines over a day old say so', /These headlines are 3 days old\./.test(briefingText({ ...data, generatedAt: '2026-10-06T18:00:00Z' }, now)));
+        t.ok('no headlines: says so, after the time', /^It's .+ I couldn't find any headlines right now\.$/.test(briefingText({ items: [] }, now)));
+        t.ok('a very long headline is cut at a word', briefingText({ generatedAt: data.generatedAt, items: [item('news', 'word '.repeat(60), data.generatedAt)] }, now).length < 260);
+        t.ok('no weather: the briefing never asks for a location', !/geolocation/.test(page.html));
+        t.ok('"brief me" opens the briefing (here, without fetch, it says it couldn\'t load)', /^It's .+ I couldn't load the headlines just now\.$/.test(await answer('brief me')));
+        for (const q of ['Jarvis, brief me', 'give me my morning briefing', "what's in the news", 'read me the headlines', 'news please'])
+            t.ok(`"${q}" is the briefing`, /^It's .+ on /.test(await answer(q)));
+        t.ok('"the news is boring" is not', !/^It's .+ on /.test(await answer('the news is boring')));
+        t.ok('help mentions the briefing and always listening', /brief me/.test(env.window.__jarvis.brain('help')) && /always listening/.test(env.window.__jarvis.brain('help')));
+        t.ok('it reads daily-wire/feeds.json from this site', /fetch\('daily-wire\/feeds\.json'/.test(page.html));
+        if (page.url.startsWith('file:')) {
+            const real = JSON.parse(await readFile(fileURLToPath(new URL('daily-wire/feeds.json', page.url)), 'utf8'));
+            const rb = briefingText(real, new Date(real.generatedAt));
+            t.ok('the real feeds.json gives a headline for all four categories', ['In the news', 'In Southwest Florida', 'In tech', 'In science and space'].every((l) => rb.includes(l + ': ')));
+            t.note(rb);
+        }
+    } finally { env.close(); }
+}
+
+// Session 7 of jarvis/build-plan.html: settings memory, short-term memory, the memory core, dreaming,
+// keeping settings from being wiped, and streaks. Nothing personal may reach storage (review 53).
+async function memoryChecks(t, page) {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const ymd = (d) => ({ y: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate() });
+    const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return ymd(d); };
+    const allStored = (w) => { const o = {}; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); o[k] = w.localStorage.getItem(k); } return o; };
+    const seed = (entries, extra) => ({ ignore: /getContext|HTMLCanvasElement/, beforeParse(w) { extra?.(w); for (const [k, v] of Object.entries(entries)) w.localStorage.setItem(k, v); } });
+    const typeIn = async (env, text) => { const { document, window } = env; document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(520); return [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? ''; };
+
+    t.section('Settings memory (Session 7)');
+    const fake = fakeSpeech();
+    let persistCalls = 0;
+    let env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse(w) {
+        fake.beforeParse(w);
+        Object.defineProperty(w.navigator, 'storage', { configurable: true, value: { persisted: () => Promise.resolve(false), persist: () => { persistCalls++; return Promise.resolve(true); } } });
+        Object.defineProperty(w.navigator, 'userAgentData', { configurable: true, value: { brands: [{ brand: 'Google Chrome', version: '130' }] } });
+    } });
+    let saved;
+    try {
+        const { window } = env, J = window.__jarvis, ls = window.localStorage;
+        for (const [q, key, value] of [['make the orb blue', 'color', 'blue'], ['turn yourself purple', 'color', 'purple'], ['change your colour to red', 'color', 'red'], ['gold orb please', 'color', 'gold'], ['set your color to grey', 'color', 'white'],
+            ['default colour', 'color', null], ['speak faster', 'speed', '+'], ['talk a bit slower', 'speed', '-'], ['slow down', 'speed', '-'], ['normal speed', 'speed', null],
+            ['use imperial units', 'units', 'imperial'], ['I prefer miles', 'units', 'imperial'], ['switch to metric', 'units', 'metric'], ['open with the galaxy', 'scene', 'galaxy'],
+            ['always start with the solar system', 'scene', 'solar'], ['open with earth', 'scene', 'globe'], ['start with your brain', 'scene', 'neural'], ["don't open with anything", 'scene', null], ['reset my settings', 'all', null]]) {
+            const it = J.settingsIntent(q);
+            t.ok(`"${q}" sets ${key} to ${value}`, !!it && it.key === key && it.value === value);
+        }
+        for (const q of ['what time is it', 'make a heart', 'show me the galaxy', 'switch to the matrix', 'make the orb', 'write blue', 'my favourite colour is blue', 'speak to me', 'open the pod bay doors'])
+            t.eq(`"${q}" is not a settings command`, J.settingsIntent(q), null);
+        // Every value a setting can take must pass personal(), or store() would silently refuse to save it.
+        const combos = [];
+        for (const color of J.SETTING_CHOICES.color) for (const units of J.SETTING_CHOICES.units) for (const scene of J.SETTING_CHOICES.scene) combos.push({ color, speed: 'slow', units, scene });
+        t.eq('every combination of settings passes personal()', combos.filter((c) => J.personal(JSON.stringify(c))).length, 0);
+        t.ok('"make the orb blue" is understood', /My orb is blue now\. I'll remember that on this device\./.test(await typeIn(env, 'make the orb blue')));
+        t.eq('the orb takes the colour', J.ring(), J.ORB_COLOURS.blue[0]);
+        t.eq('and it is saved as one jarvis-settings key', ls.getItem('jarvis-settings'), '{"color":"blue"}');
+        J.setSkin('panther');
+        t.eq('a skin change keeps the chosen orb colour', J.ring(), J.ORB_COLOURS.blue[0]);
+        J.setSkin('jarvis');
+        await typeIn(env, 'speak faster');
+        fake.log.queue.length = 0; await typeIn(env, 'tell me a joke');
+        t.eq('"speak faster" speeds the voice up', Math.round(fake.log.queue[0].rate * 1000), Math.round(1.02 * J.SPEEDS.fast * 1000));
+        t.ok('and there is a top speed', /as fast as I go/.test(await typeIn(env, 'talk faster')));
+        t.ok('"slower" steps back to normal, which is not saved', /normal speed/i.test(await typeIn(env, 'speak slower')) && !('speed' in J.settings()));
+        await typeIn(env, 'speak slower');
+        t.eq('then slow', J.settings().speed, 'slow');
+        t.ok('"use imperial units"', /I'll use imperial units\./.test(await typeIn(env, 'use imperial units')));
+        t.ok('then distances are said in miles', /about 240,000 miles away/.test(await typeIn(env, 'how far is the moon')));
+        t.eq('600 km an hour', J.inUnits('steady at 600 kilometres an hour.'), 'steady at about 370 miles an hour.');
+        t.eq('15 centimeters', J.inUnits('about 15 centimeters taller'), 'about 6 inches taller');
+        t.eq('8,849 metres', J.inUnits('Everest is 8,849 metres tall'), 'Everest is about 29,000 feet tall');
+        t.eq('150 million kilometres', J.inUnits('about 150 million kilometres away'), 'about 93 million miles away');
+        t.eq('2,000 kilometers an hour', J.inUnits('over 2,000 kilometers an hour'), 'over 1,200 miles an hour');
+        t.eq('metric leaves the text alone', J.inUnits('600 kilometres', 'metric'), '600 kilometres');
+        t.eq('"5 metric tons" is not a distance', J.inUnits('5 metric tons'), '5 metric tons');
+        t.ok('"open with the galaxy"', /I'll open with the galaxy next time/.test(await typeIn(env, 'open with the galaxy')));
+        t.eq('all four settings are in the one key', ls.getItem('jarvis-settings'), '{"color":"blue","speed":"slow","units":"imperial","scene":"galaxy"}');
+        t.ok('"what do you save" lists the settings', /your settings \(a blue orb, speaking slowly, imperial units, opening with the galaxy\)/.test(await typeIn(env, 'what do you save')));
+        t.ok('and mentions Safari\'s 7-day rule', /after 7 days without a visit/.test(await typeIn(env, 'what do you save')));
+        t.eq('the browser was asked to keep storage, once', persistCalls, 1);
+        await wait(10);
+        t.eq('and its answer is remembered', J.persisted(), true);
+        const help = J.brain('help');
+        t.ok('help mentions settings, short-term memory, the memory core, dreaming and the 7-day rule', /make the orb blue/.test(help) && /my dog is Rex/.test(help) && /show me your memory/.test(help) && /dream/.test(help) && /7 days/.test(help));
+        saved = allStored(window);
+        t.eq('no console errors', env.errors.length, 0);
+    } finally { env.close(); }
+
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed(saved));
+    try {
+        const { window, document } = env, J = window.__jarvis;
+        t.eq('after a reload the settings are back', JSON.stringify(J.settings()), '{"color":"blue","speed":"slow","units":"imperial","scene":"galaxy"}');
+        t.eq('and the orb is blue straight away', J.ring(), J.ORB_COLOURS.blue[0]);
+        J.finishBoot();
+        await wait(1400);
+        t.ok('the favourite scene is opened after the greeting (no WebGL here, so it says so)', /needs WebGL/.test(document.getElementById('log').textContent));
+        t.ok('"reset my settings" clears them', /back to normal/.test(await typeIn(env, 'reset my settings')) && window.localStorage.getItem('jarvis-settings') === null);
+    } finally { env.close(); }
+
+    t.section('Settings and streak: the scrub (Session 7)');
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({
+        'jarvis-settings': JSON.stringify({ color: 'blue', name: 'Tony', scene: '<img src=x onerror=alert(1)>', speed: 'ludicrous', __proto__: 'x' }),
+        'jarvis-skin': 'matrix'
+    }));
+    try {
+        const ls = env.window.localStorage;
+        t.eq('a setting outside the fixed choices is dropped, and so is any extra field', ls.getItem('jarvis-settings'), '{"color":"blue"}');
+    } finally { env.close(); }
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-settings': '{"units":"furlongs"}', 'jarvis-streak': '{"days":"3","y":2026,"m":10,"d":10}' }));
+    try {
+        const ls = env.window.localStorage;
+        t.eq('settings with nothing valid are deleted', ls.getItem('jarvis-settings'), null);
+        t.eq('a malformed streak is replaced by a fresh one', JSON.parse(ls.getItem('jarvis-streak')).days, 1);
+    } finally { env.close(); }
+    {
+        const y = daysAgo(1), clean = JSON.stringify({ days: 4, ...y });
+        env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-settings': '{"color":"gold","units":"imperial"}', 'jarvis-streak': JSON.stringify({ days: 4, ...y, extra: 'my phone 239 555 0142' }) }));
+        try {
+            const { window } = env, J = window.__jarvis, ls = window.localStorage;
+            t.eq('clean settings are left exactly as they were', ls.getItem('jarvis-settings'), '{"color":"gold","units":"imperial"}');
+            t.eq('an extra field in the streak is dropped, the count kept and today added', ls.getItem('jarvis-streak'), JSON.stringify({ days: 5, ...ymd(new Date()) }));
+            ls.setItem('jarvis-streak', clean); J.scrubStore();
+            t.eq('the scrub leaves a clean streak alone', ls.getItem('jarvis-streak'), clean);
+            J.scrubStore();
+            t.eq('and clean settings, run again', ls.getItem('jarvis-settings'), '{"color":"gold","units":"imperial"}');
+        } finally { env.close(); }
+    }
+
+    t.section('Streaks (Session 7)');
+    {
+        const J = (env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ })).window.__jarvis;
+        const s = (days, y, m, d) => ({ days, y, m, d });
+        t.eq('a first visit starts at 1', J.streakNext(null, { y: 2026, m: 10, d: 10 }).days, 1);
+        t.eq('the same day keeps the count', J.streakNext(s(3, 2026, 10, 10), { y: 2026, m: 10, d: 10 }).days, 3);
+        t.eq('the next day adds one', J.streakNext(s(3, 2026, 10, 9), { y: 2026, m: 10, d: 10 }).days, 4);
+        t.eq('a missed day starts again at 1', J.streakNext(s(3, 2026, 10, 8), { y: 2026, m: 10, d: 10 }).days, 1);
+        t.eq('across a month end', J.streakNext(s(6, 2026, 10, 31), { y: 2026, m: 11, d: 1 }).days, 7);
+        t.eq('across a year end', J.streakNext(s(6, 2026, 12, 31), { y: 2027, m: 1, d: 1 }).days, 7);
+        t.eq('across Feb 29', J.streakNext(s(2, 2028, 2, 29), { y: 2028, m: 3, d: 1 }).days, 3);
+        t.eq('a clock set backwards starts again', J.streakNext(s(5, 2026, 10, 11), { y: 2026, m: 10, d: 10 }).days, 1);
+        t.eq('the count stops at 9999 (five digits would read as personal)', J.streakNext(s(9999, 2026, 10, 9), { y: 2026, m: 10, d: 10 }).days, 9999);
+        t.eq('day 1 says nothing', J.streakLine(1), '');
+        t.eq('day 3', J.streakLine(3), 'Third day in a row!');
+        t.eq('day 14', J.streakLine(14), 'Day 14 in a row!');
+        // The decision (2026-10-10): personal() stays strict and the date is stored as separate numbers.
+        t.ok('an ISO date would be refused by personal()', J.personal('{"days":3,"last":"2026-10-10"}') !== null);
+        let bad = 0;
+        for (let i = 0; i < 800; i++) { const d = new Date(2026, 0, 1 + i); if (J.personal(JSON.stringify({ days: 1 + (i * 37) % 9999, ...ymd(d) }))) bad++; }
+        for (const days of [1, 99, 999, 9999]) if (J.personal(JSON.stringify({ days, y: 2026, m: 12, d: 31 }))) bad++;
+        t.eq('the stored form passes personal() for every day of 2026–2028', bad, 0);
+        env.close();
+    }
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-streak': JSON.stringify({ days: 2, ...daysAgo(1) }) }));
+    try {
+        const { window, document } = env, J = window.__jarvis;
+        t.eq('visiting the day after day 2 makes it 3', JSON.parse(window.localStorage.getItem('jarvis-streak')).days, 3);
+        J.finishBoot();
+        t.ok('and the greeting says so', /Third day in a row!$/.test([...document.querySelectorAll('#log .msg.ai')].pop().textContent));
+        t.ok('"what do you save" mentions the streak', /your visit streak \(3 days, and the date of your last visit\)/.test(await J.answer('what do you save')));
+        J.showBoot ? J.showBoot() : null;
+    } finally { env.close(); }
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-streak': JSON.stringify({ days: 9, ...daysAgo(2) }) }));
+    try {
+        const { window, document } = env, J = window.__jarvis;
+        t.eq('after a missed day it starts again at 1', JSON.parse(window.localStorage.getItem('jarvis-streak')).days, 1);
+        J.finishBoot();
+        t.ok('with no streak line', !/in a row/.test(document.getElementById('log').textContent));
+    } finally { env.close(); }
+
+    t.section('First time on this device (Session 7)');
+    persistCalls = 0;
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse(w) {
+        Object.defineProperty(w.navigator, 'storage', { configurable: true, value: { persisted: () => Promise.resolve(true), persist: () => { persistCalls++; return Promise.resolve(true); } } });
+        Object.defineProperty(w.navigator, 'userAgentData', { configurable: true, value: { brands: [{ brand: 'Microsoft Edge', version: '130' }] } });
+    } });
+    try {
+        const { window, document } = env, J = window.__jarvis;
+        t.eq('nothing stored: a first visit', J.firstTime, true);
+        J.finishBoot();
+        t.ok('he says it looks like his first time on this device', /This looks like my first time on this device\.$/.test(document.getElementById('log').textContent));
+        t.eq('the default skin is not saved just by loading', window.localStorage.getItem('jarvis-skin'), null);
+        t.eq('persist() isn\'t asked again when storage is already persisted', persistCalls, 0);
+        await wait(10);
+        t.eq('and that is remembered', J.persisted(), true);
+    } finally { env.close(); }
+    persistCalls = 0;
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse(w) {
+        Object.defineProperty(w.navigator, 'storage', { configurable: true, value: { persisted: () => Promise.resolve(false), persist: () => { persistCalls++; return Promise.resolve(true); } } });
+    } });
+    try {
+        await env.window.__jarvis.answer('make the orb gold'); await wait(10);
+        t.eq('outside Chrome and Edge (Firefox would prompt for it), persist() is never asked', persistCalls, 0);
+    } finally { env.close(); }
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-skin': 'jarvis' }));
+    try {
+        const { document, window } = env;
+        t.eq('something stored: not a first visit', window.__jarvis.firstTime, false);
+        window.__jarvis.finishBoot();
+        t.ok('and no first-time line', !/first time/.test(document.getElementById('log').textContent));
+        t.eq('without navigator.storage nothing breaks', env.errors.length, 0);
+    } finally { env.close(); }
+
+    t.section('Short-term memory (Session 7)');
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ });
+    let afterTelling;
+    try {
+        const { window } = env, J = window.__jarvis;
+        for (const [q, key, text] of [['my dog is Rex', 'dog', 'your dog is Rex'], ["My dog's name is Rex.", 'dog', "your dog's name is Rex"], ['my favorite color is blue', 'favourite colour', 'your favorite color is blue'],
+            ["I'm going to the beach", 'plan', "you're going to the beach"], ['remember that the game is at seven', 'note:game is at seven', 'the game is at seven'], ['I love pizza', 'love:pizza', 'you love pizza'],
+            ['remember that I parked on level 3', 'note:i parked on level 3', 'you parked on level 3'], ['my sisters are Amy and Jo', 'sisters', 'your sisters are Amy and Jo']]) {
+            const m = J.memoryTell(q);
+            t.ok(`"${q}" is remembered as ${key}`, !!m && m.key === key && m.text === text);
+        }
+        for (const q of ['my name is tony', 'remember my name is tony', 'what is my dog', 'show me mars', 'I love you', 'my dog is not here', 'tell me a joke', 'I am fine'])
+            t.eq(`"${q}" is not a short-term memory`, J.memoryTell(q), null);
+        t.ok('telling him something', /Got it: your dog is Rex\. I'll remember that until you close this page/.test(await typeIn(env, 'my dog is Rex')));
+        t.ok('"what\'s my dog\'s name?"', /^Your dog is Rex\.$/.test(await typeIn(env, "what's my dog's name?")));
+        await typeIn(env, "I'm going to the beach"); await typeIn(env, 'my favourite colour is green'); await typeIn(env, 'I like hockey');
+        t.eq('"where am I going?"', await typeIn(env, 'where am I going?'), "You're going to the beach.");
+        t.eq('"what is my favorite color" finds the British spelling', await typeIn(env, 'what is my favorite color'), 'Your favourite colour is green.');
+        t.eq('"what do I like"', await typeIn(env, 'what do I like'), 'You like hockey.');
+        t.ok('something never told', /haven't told me about your cat/.test(await typeIn(env, "what's my cat's name")));
+        J.setSkin('matrix');
+        t.ok('Morpheus knows it too', /^Your dog is Rex\.$/.test(await J.answer('who is my dog')));
+        J.setSkin('panther');
+        t.ok('and so does Stanley', /beach/.test(await J.answer('where am I going')));
+        J.setSkin('jarvis');
+        t.ok('"my name is" still goes to the name', /Nice to meet you, Tony/.test(await typeIn(env, 'my name is Tony')) && !J.memory().some((m) => /tony/i.test(m.text)));
+        const about = await typeIn(env, 'what do you know about me');
+        t.ok('"what do you know about me" lists them, marked this visit only', /^This visit only, and never saved: your dog is Rex, you're going to the beach, your favourite colour is green and you like hockey\./.test(about));
+        t.ok('then says what is stored, and the name', /Your name, Tony, is only in memory for this visit\./.test(about) && /4 things you told me are only in memory for this visit too/.test(about));
+        t.ok('teaching him a memory statement: he remembers it', /What were you trying to say\?$/.test(await typeIn(env, 'blorp')) && /Got it: your cat is Tom/.test(await typeIn(env, 'I meant my cat is Tom')));
+        t.ok('but never learns the phrase, which would save it', !('blorp' in J.learned()));
+        const stored = Object.values(allStored(window)).join(' ');
+        t.ok('nothing told this visit is anywhere in storage', !/Rex|beach|green|hockey|Tom|Tony|blorp/i.test(stored));
+        t.ok('the memory code never calls store()', !/\b(?:store|unstore|saveLearned|saveSettings)\([^)]/.test(page.html.slice(page.html.indexOf('/* ---------- Short-term memory'), page.html.indexOf('/* ---------- Learned phrases'))));
+        afterTelling = allStored(window);
+        t.ok('"forget that" forgets the last thing', /forgotten that your cat is Tom/.test(await typeIn(env, 'forget that')));
+        t.ok('"forget my dog"', /forgotten your dog/.test(await typeIn(env, 'forget my dog')) && /haven't told me about your dog/.test(await typeIn(env, "what's my dog's name")));
+        t.ok('"forget everything I told you"', /forgotten everything you told me/.test(await typeIn(env, 'forget everything I told you')) && J.memory().length === 0);
+        t.ok('which includes the name', /haven't told me your name/.test(await typeIn(env, 'what is my name')));
+        t.eq('no console errors', env.errors.length, 0);
+    } finally { env.close(); }
+    // A reload is a new page given exactly what the old one left in storage.
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed(afterTelling));
+    try {
+        const J = env.window.__jarvis;
+        t.eq('after a reload, short-term memory is empty', J.memory().length, 0);
+        t.ok('"what\'s my dog\'s name" no longer knows', /haven't told me about your dog/.test(await J.answer("what's my dog's name")));
+        t.ok('"what do you know about me" says nothing was told', /^You haven't told me anything about you this visit\./.test(await J.answer('what do you know about me')));
+    } finally { env.close(); }
+
+    t.section('Memory core (Session 7, no three.js needed)');
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-skin': 'matrix', 'jarvis-settings': '{"color":"blue","units":"imperial"}', 'jarvis-learned': '{"beam me up":"roll a die","lights":"make a star"}', 'jarvis-voices': '{"matrix":"Ralph"}' }));
+    try {
+        const { window } = env, J = window.__jarvis, ls = window.localStorage;
+        for (const q of ['show me your memory', 'memory core', 'open your memories', 'show me the jarvis memory', 'memory'])
+            t.eq(`"${q}" opens the memory core`, J.intent(q)?.kind, 'memory');
+        for (const q of ['what do you remember', 'forget your memory', 'show me the galaxy'])
+            t.ok(`"${q}" does not`, J.intent(q)?.kind !== 'memory');
+        await J.answer('my dog is Rex'); J.brain('my name is pepper');
+        const stars = J.memoryStars();
+        t.eq('one star per setting, the skin, this visit\'s name and memories, each taught phrase, the voice pick, the streak',
+            stars.map((s) => s.type).join(','), 'setting,setting,skin,name,visit,phrase,phrase,voice,streak');
+        t.eq('this visit\'s stars are marked, the rest are saved', stars.filter((s) => s.visit).length, 2);
+        t.ok('labels say what each is', stars[0].label === 'Orb colour: blue' && stars[2].label === 'Skin: Morpheus' && stars[5].label === '"lights"');
+        t.ok('a phrase star reads out what it means', stars[5].text === 'A phrase you taught me: "lights" means "make a star".');
+        t.ok('a visit star says it is this visit only', /^This visit only: your dog is Rex\.$/.test(stars[4].text));
+        t.ok('forgetting a setting star removes it from storage', /Forgotten\. My orb is back/.test(J.forgetStar(stars[0])) && ls.getItem('jarvis-settings') === '{"units":"imperial"}');
+        t.ok('a phrase star', /"lights" doesn't mean anything/.test(J.forgetStar(stars[5])) && ls.getItem('jarvis-learned') === '{"beam me up":"roll a die"}');
+        t.ok('a visit star', /I no longer know that your dog is Rex/.test(J.forgetStar(stars[4])) && J.memory().length === 0);
+        t.ok('the name star', /don't know your name/.test(J.forgetStar(stars[3])) && /haven't told me your name/.test(await J.answer('what is my name')));
+        t.ok('the voice star', /automatic voice/.test(J.forgetStar(stars[7])) && ls.getItem('jarvis-voices') === null);
+        t.ok('the skin star', /I'm Jarvis again/.test(J.forgetStar(stars[2])) && ls.getItem('jarvis-skin') === null && J.skin() === 'jarvis');
+        t.ok('the streak star', /starts again/.test(J.forgetStar(stars[8])) && ls.getItem('jarvis-streak') === null);
+        t.eq('what is left', J.memoryStars().map((s) => s.label).join(' | '), 'Units: imperial | "beam me up"');
+        for (const n of [0, 1, 2, 7, 40, 200]) {
+            const pts = J.constellation(n, 8), links = J.constellationLinks(pts);
+            const r = pts.map((p) => Math.hypot(...p));
+            t.ok(`${n} stars: ${n} points within the shell, ${Math.max(0, n - 1)} links back to earlier stars`,
+                pts.length === n && r.every((x) => x <= 8 * 1.19) && links.length === Math.max(0, n - 1) && links.every(([a, b]) => a < b && b < n)
+                && new Set(pts.map((p) => p.map((v) => v.toFixed(3)).join())).size === n);
+        }
+        t.eq('the same count gives the same layout', JSON.stringify(J.constellation(9)), JSON.stringify(J.constellation(9)));
+        t.ok('without WebGL, "show me your memory" says so', /needs WebGL/.test(await J.answer('show me your memory')));
+        t.ok('"forget that" with nothing from this visit', /nothing from this visit to forget/.test(await J.answer('forget that')));
+        t.ok('the scene removes its labels in dispose(), per CLAUDE.md', /id='mem-labels'[\s\S]{0,9000}dispose\(\)\{root\.remove\(\)\}/.test(page.html));
+        t.ok('and lays them out with layoutCallouts', /boxes=layoutCallouts\(pts,bounds,sides\)[\s\S]{0,1500}MEMORY CORE/.test(page.html));
+        t.eq('no console errors', env.errors.length, 0);
+    } finally { env.close(); }
+
+    t.section('Dreaming (Session 7)');
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ });
+    try {
+        const { window, document } = env, J = window.__jarvis, A = J.DREAM_AFTER;
+        const st = (o) => ({ dreaming: false, mode: 'idle', holo: false, booting: false, hidden: false, speaking: false, lastActive: 0, ...o });
+        t.ok('a few minutes, not seconds', A >= 120000 && A <= 600000);
+        t.eq('idle long enough: dream', J.dreamDue(A, st()), true);
+        t.eq('not a moment before', J.dreamDue(A - 1, st()), false);
+        for (const [why, o] of [['while something is on the projector', { holo: true }], ['while booting', { booting: true }], ['in a hidden tab', { hidden: true }], ['while speaking', { speaking: true }], ['while listening', { mode: 'listen' }], ['while thinking', { mode: 'think' }]])
+            t.eq(`never ${why}`, J.dreamDue(A * 10, st(o)), false);
+        t.eq('never during the boot screen', J.idleFor(A + 1), false);
+        J.finishBoot(); await wait(700);
+        const state = () => document.getElementById('state').textContent;
+        t.eq('after the boot, idle for a few minutes: he dreams', J.idleFor(A + 1), true);
+        t.eq('the state reads PROCESSING MEMORIES', state(), 'PROCESSING MEMORIES');
+        t.ok('and the page is marked as dreaming', document.body.classList.contains('dreaming'));
+        window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'a' }));
+        t.ok('a key wakes him', !J.dreaming() && state() === 'STANDBY' && !document.body.classList.contains('dreaming'));
+        t.eq('and the idle clock starts again', J.idleFor(A - 5000), false);
+        J.idleFor(A + 1);
+        document.getElementById('orb').dispatchEvent(new window.Event('pointerdown', { bubbles: true }));
+        t.eq('a tap wakes him', J.dreaming(), false);
+        J.idleFor(A + 1);
+        document.getElementById('q').value = 'what time is it'; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true }));
+        t.eq('a message wakes him', J.dreaming(), false);
+        await wait(520);
+        Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+        t.eq('nothing runs while the tab is hidden', J.idleFor(A + 1), false);
+        t.ok('reduced motion skips the drifting phrases and pulses', /if\(dreamK>\.01&&!reduce\)drawDream/.test(page.html));
+        t.eq('no console errors', env.errors.length, 0);
+    } finally { env.close(); }
+    {
+        const fv = fakeVoice({ noted: true });
+        env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse: fv.beforeParse });
+        try {
+            const J = env.window.__jarvis;
+            J.finishBoot(); await wait(700);
+            J.idleFor(J.DREAM_AFTER + 1);
+            fv.log.recs[0].onspeechstart?.();
+            t.eq('a word heard by speech recognition wakes him', J.dreaming(), false);
+        } finally { env.close(); }
+    }
+}
+
+// "What can you do" answers with command links in the Infinity Stones' colours: click one and it's sent as if typed.
+async function commandLinks(t, page) {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    t.section('Command links in the help answer');
+    const fake = fakeSpeech();
+    let env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse: fake.beforeParse });
+    try {
+        const { window, document } = env, J = window.__jarvis;
+        const lastAi = () => [...document.querySelectorAll('#log .msg.ai')].pop();
+        const ask = async (text) => { document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(520); };
+        J.finishBoot(); await wait(700);
+        const help = J.brain('what can you do'), marks = [...help.matchAll(/⟦/g)].length;
+        t.ok('the help answer marks its commands', marks >= 25);
+        await ask('what can you do');
+        const links = [...lastAi().querySelectorAll('button.cmd')];
+        t.eq('every marked command is a link in the chat bubble', links.length, marks);
+        t.eq('the bubble reads as plain text, with no markers', lastAi().textContent, J.plainText(help));
+        t.ok('and no marker is left anywhere in it', !/[⟦⟧|]/.test(lastAi().textContent));
+        t.eq('the links take turns through the six stone colours', links.slice(0, 7).map((b) => b.className).join(' '), 'cmd st0 cmd st1 cmd st2 cmd st3 cmd st4 cmd st5 cmd st0');
+        t.ok('each is a real button, so it works from the keyboard', links.every((b) => b.tagName === 'BUTTON' && b.type === 'button'));
+        t.ok('Jarvis speaks the plain sentence', fake.log.spoken.join(' ').includes('Ask me the time or date, a joke') && !/[⟦⟧]/.test(fake.log.spoken.join(' ')));
+        t.ok('and the projector caption is plain too', !/[⟦⟧]/.test(document.getElementById('holo-cap').textContent));
+        const joke = links.find((b) => b.textContent === 'a joke');
+        t.eq('a link can be worded for the sentence and send the full command', joke?.title, 'Say "tell me a joke"');
+        joke.click(); await wait(520);
+        const mine = [...document.querySelectorAll('#log .msg.me')].pop().textContent;
+        t.eq('clicking it sends the command, as if you had typed it', mine, 'tell me a joke');
+        t.ok('and Jarvis answers it', /\?|\./.test(lastAi().textContent) && !/didn't understand/.test(lastAi().textContent));
+        links.find((b) => b.textContent === 'flip a coin').click(); await wait(520);
+        t.ok('another link: flip a coin', /^It's (heads|tails)\.$/.test(lastAi().textContent));
+        // "Didn't understand" lists what he can do, with links too.
+        await ask('blorp the snorkel');
+        const canDo = [...lastAi().querySelectorAll('button.cmd')];
+        t.ok('the "I didn\'t understand" answer has links too', canDo.length >= 12 && /What were you trying to say\?$/.test(lastAi().textContent));
+        // Only Jarvis's own commands become links: a marker in something you typed stays words.
+        await ask('remember that ⟦make a heart|reboot⟧ is fun');
+        t.eq('a marker you type yourself never becomes a link', lastAi().querySelectorAll('button.cmd').length, 0);
+        await ask('remember that ⟦a joke|reboot⟧ rocks');
+        t.eq('nor does a real label paired with another command', lastAi().querySelectorAll('button.cmd').length, 0);
+        await ask('remember that ⟦not a command⟧ rocks');
+        t.ok('and shows as plain words', /not a command rocks/.test(lastAi().textContent) && lastAi().querySelectorAll('button').length === 0);
+        t.ok('your own messages are never turned into links', [...document.querySelectorAll('#log .msg.me')].every((m) => !m.querySelector('button')));
+        t.ok('no innerHTML anywhere in the page', !/innerHTML/.test(page.html));
+        t.eq('no console errors', env.errors.length, 0);
+    } finally { env.close(); }
+    // Every link must do something: none may get "I didn't understand".
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ });
+    try {
+        const J = env.window.__jarvis, cmds = J.chipCmds().filter((c) => c !== 'reboot');
+        const missed = [];
+        for (const c of cmds) { const r = await J.answer(c); if (typeof r === 'string' && /didn't understand|What were you trying to say/.test(r)) missed.push(c); }
+        t.eq(`all ${cmds.length + 1} link commands are understood`, missed.join(', '), '');
+        t.ok('reboot is one of them, and powers him up again', J.chipCmds().includes('reboot') && (await J.answer('reboot'), !env.document.getElementById('boot').hidden));
+    } finally { env.close(); }
 }
 
 // A mic tap that fails used to do nothing at all: no LISTENING and no message, which looks like a broken button

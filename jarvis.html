@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<meta name="description" content="J.A.R.V.I.S. Demo: a talking assistant that runs in your browser, with a boot-up sequence, an animated orb with a face, voice in and out, three skins (Jarvis, Morpheus from The Matrix and Stanley C. Panther of the Florida Panthers), phrases it learns from you, and a holo-projector that shows a 3D galaxy, the solar system, the Earth, a suit schematic and its own neural network, which you can steer with hand gestures.">
+<meta name="description" content="J.A.R.V.I.S. Demo: a talking assistant that runs in your browser, with a boot-up sequence, an animated orb with a face, voice in and out, three skins (Jarvis, Morpheus from The Matrix and Stanley C. Panther of the Florida Panthers), phrases it learns from you, settings it remembers on your device, things you tell it remembered for one visit only, and a holo-projector that shows a 3D galaxy, the solar system, the Earth, a suit schematic, its own neural network and its memory core, which you can steer with hand gestures.">
 <title>J.A.R.V.I.S. Demo</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%23020a06'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%2339ff88' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%2339ff88'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,10 +37,18 @@ header a:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 #core{flex:1;display:grid;place-items:center;min-height:0;position:relative}
 #orb{width:min(78vw,52vh,420px);aspect-ratio:1;display:block}
 #state{position:absolute;bottom:4%;font-size:.85rem;color:var(--phos);opacity:.8;letter-spacing:.2em}
+body.dreaming #state{color:var(--label);opacity:1}
 #log{height:26vh;overflow-y:auto;padding:0 18px;display:flex;flex-direction:column;gap:8px;max-width:640px;width:100%;margin:0 auto;scroll-behavior:smooth}
 .msg{max-width:85%;padding:8px 12px;border:1px solid var(--phos-dim);background:var(--glass);font-size:1rem;line-height:1.4;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
 .me{align-self:flex-end;border-color:var(--amber);color:#ffe6b0;background:rgba(255,194,74,.06)}
 .ai{align-self:flex-start}
+/* Command links in Jarvis's bubbles, in the Infinity Stones' colours: space, mind, reality, power, time, soul */
+.cmd{display:inline;font:inherit;font-weight:700;padding:0 2px;margin:0;border:0;border-radius:3px;background:none;cursor:pointer;
+  color:var(--stone);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;text-shadow:0 0 9px var(--stone)}
+.cmd-wrap{white-space:nowrap}
+.cmd::before{content:"◆";font-size:.6em;vertical-align:.25em;margin-right:3px;opacity:.85}
+.cmd:hover{background:color-mix(in srgb,var(--stone) 10%,transparent);text-decoration-thickness:2px}
+.cmd.st0{--stone:#70abff}.cmd.st1{--stone:#ffd84a}.cmd.st2{--stone:#ff7a7a}.cmd.st3{--stone:#c98fff}.cmd.st4{--stone:#3dff8a}.cmd.st5{--stone:#ff9f45}
 form{display:flex;gap:10px;padding:14px 18px 18px;max-width:640px;width:100%;margin:0 auto}
 input{flex:1;min-width:0;background:var(--glass);border:1px solid var(--phos-dim);color:var(--text);font:inherit;font-size:1rem;padding:12px 14px;outline:none}
 input::placeholder{color:var(--label);opacity:1}
@@ -49,9 +57,14 @@ button{font:inherit;cursor:pointer;border:1px solid var(--phos);background:trans
 button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 #mic{width:52px;border-radius:50%;font-size:1.3rem;padding:0}
 #mic.on{background:var(--phos);color:var(--void)}
+#mic.wake{box-shadow:0 0 0 3px var(--amber)} /* always listening is on: shown on the mic, which stays visible over the projector */
 #clock-box{text-align:right}
 #mic-note{max-width:640px;width:100%;margin:-8px auto 0;padding:0 18px 12px;font-size:.75rem;line-height:1.35;color:var(--label)}
 body.holo-on #mic-note{display:none}
+#wake{padding:3px 8px;font-size:.7rem;letter-spacing:.12em;font-weight:500}
+#wake[aria-pressed="true"]{background:var(--phos);color:var(--void)}
+#wake-note{max-width:640px;width:100%;margin:-8px auto 0;padding:0 18px 12px;font-size:.75rem;line-height:1.35;color:var(--amber)}
+body.holo-on #wake-note{display:none}
 
 /* ---------- Skins ---------- */
 :root[data-skin="matrix"]{--void:#000300;--deep:#001a06;--phos:#00ff41;--phos-dim:#0b6e26;--label:#2ec95a;--glass:rgba(0,255,65,.06);--text:#d4ffdc}
@@ -106,6 +119,8 @@ body.holo-on #mic-note{display:none}
 #holo-hands[aria-pressed="true"]{background:var(--phos);color:var(--void)}
 #hand-cam{position:absolute;top:100px;right:16px;width:160px;height:120px;border:1px solid var(--phos-dim);background:#000;display:none;pointer-events:none}
 body.hands-on #hand-cam{display:block}
+body.scan-on #holo-hands,body.scan-on #hand-cam,body.scan-on #reticle{display:none}
+body.scan-on #stage{cursor:crosshair}
 #reticle{width:34px;height:34px;margin:-17px 0 0 -17px;border:2px solid var(--phos);border-radius:50%;left:0;top:0;display:none;
   box-shadow:0 0 12px rgba(57,255,136,.6);transition:width .12s,height .12s,margin .12s,background .12s}
 #reticle.on{display:block}
@@ -127,11 +142,15 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
   padding-bottom:max(18px,env(safe-area-inset-bottom,0px))}
 
 /* Suit schematic callouts: labels down each side, joined to the suit by leader lines */
-#suit-labels{inset:0;visibility:hidden}
-#suit-labels.ready{visibility:visible}
-#suit-labels svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-#suit-labels line{stroke:var(--phos);stroke-width:1;opacity:.75}
-#suit-labels circle{fill:var(--phos)}
+#suit-labels,#mem-labels{inset:0;visibility:hidden}
+#suit-labels.ready,#mem-labels.ready{visibility:visible}
+#suit-labels svg,#mem-labels svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#suit-labels line,#mem-labels line{stroke:var(--phos);stroke-width:1;opacity:.75}
+#suit-labels circle,#mem-labels circle{fill:var(--phos)}
+#mem-labels line.visit{stroke:var(--amber);stroke-dasharray:3 3}
+#mem-labels circle.visit{fill:var(--amber)}
+.suit-label.mem-visit{border-style:dashed;border-color:var(--amber);color:var(--amber)}
+.suit-label.mem-visit.on{background:rgba(60,44,6,.92)}
 #suit-labels line.back,#suit-labels circle.back{opacity:.3}
 .suit-label{position:absolute;left:0;top:0;pointer-events:auto;max-width:130px;padding:5px 8px;background:rgba(2,10,6,.85);
   border:1px solid var(--phos-dim);color:var(--phos);font-size:.72rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;line-height:1.25;text-align:left}
@@ -151,7 +170,7 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
 <canvas id="rain" aria-hidden="true" hidden></canvas>
 <header>
   <div><b><span id="who">J.A.R.V.I.S.</span></b>Demo build · no internet brain · <a href="index.html">← Fun</a>
-    <span class="skin-row"><button type="button" id="skin" aria-label="Change skin">SKIN: JARVIS</button><select id="voice" aria-label="Voice" hidden></select></span></div>
+    <span class="skin-row"><button type="button" id="skin" aria-label="Change skin">SKIN: JARVIS</button><select id="voice" aria-label="Voice" hidden></select><button type="button" id="wake" aria-pressed="false" hidden>👂 HEY JARVIS: OFF</button></span></div>
   <div id="clock-box"><b id="clock">--:--</b><span id="date"></span></div>
 </header>
 
@@ -164,6 +183,7 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
   <input id="q" placeholder="Ask me something…" autocomplete="off" aria-label="Message">
   <button type="submit">Send</button>
 </form>
+<p id="wake-note" hidden>👂 Always listening is on. Everything the mic hears goes to your browser's online speech service until you turn it off. Start what you say with my name. Works in Chrome and Edge only.</p>
 <p id="mic-note" hidden>🎙 The mic uses your browser's online speech service. Typing stays on this device.</p>
 
 <div id="holo" role="region" aria-label="Holo-projector" hidden>
@@ -195,8 +215,38 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
    phrases you taught him. Every save goes through store(), which refuses any other key and any text that
    looks personal. scrubStore() runs on every visit and deletes whatever an older version saved that
    doesn't pass, such as a saved name or a taught phrase with a phone number in it. Your name is kept in
-   memory for this visit only. Only jarvis-* keys are touched: other pages on this site share the storage. */
-const STORE_KEYS=['jarvis-skin','jarvis-voices','jarvis-learned','jarvis-mic-note'];
+   memory for this visit only. Only jarvis-* keys are touched: other pages on this site share the storage.
+   Settings (Session 7) are fixed choices from SETTING_CHOICES, never free text, and the visit streak is a
+   day count and a date kept as separate numbers, so personal() itself doesn't need an exception for it. */
+const STORE_KEYS=['jarvis-skin','jarvis-voices','jarvis-learned','jarvis-mic-note','jarvis-settings','jarvis-streak'];
+// Every value a setting can take. Anything else is dropped on load and never saved.
+const SETTING_CHOICES={
+  color:['green','blue','cyan','purple','pink','red','orange','gold','white'],
+  speed:['slow','fast'],
+  units:['metric','imperial'],
+  scene:['galaxy','solar','globe','neural','suit','particles']
+};
+function cleanSettings(o){
+  const out={};if(!o||typeof o!=='object'||Array.isArray(o))return out;
+  for(const k of Object.keys(SETTING_CHOICES))if(Object.hasOwn(o,k)&&SETTING_CHOICES[k].includes(o[k]))out[k]=o[k];
+  return out;
+}
+// The streak: {days, y, m, d}. Kept as separate small numbers: an ISO date like 2026-10-10 reads to personal()
+// as a phone number, and that filter stays strict rather than learning an exception.
+function cleanStreak(o){
+  if(!o||typeof o!=='object')return null;
+  const {days,y,m,d}=o,int=(v,a,b)=>Number.isInteger(v)&&v>=a&&v<=b;
+  return int(days,1,9999)&&int(y,2000,2999)&&int(m,1,12)&&int(d,1,31)?{days,y,m,d}:null;
+}
+// The next streak for a visit on `today` ({y,m,d}, local): the same day keeps the count, the next day adds one,
+// and a missed day (or a clock that went backwards) starts again at 1.
+function streakNext(prev,today){
+  const p=cleanStreak(prev),day=x=>Date.UTC(x.y,x.m-1,x.d)/864e5,gap=p?day(today)-day(p):NaN;
+  const days=gap===0?p.days:gap===1?Math.min(9999,p.days+1):1;
+  return {days,y:today.y,m:today.m,d:today.d};
+}
+const ORDINALS=['','First','Second','Third','Fourth','Fifth','Sixth','Seventh','Eighth','Ninth','Tenth'];
+const streakLine=n=>n<2?'':n<ORDINALS.length?`${ORDINALS[n]} day in a row!`:`Day ${n} in a row!`;
 const PERSONAL=[
   ['an email address',/[^\s@]+@[^\s@]+\.[a-z]{2,}/i],
   ['a phone or ID number',/(?:\+?\d[\s().-]*){7,}/],
@@ -210,7 +260,19 @@ const PERSONAL=[
 function personal(text){const s=String(text);for(const [why,re] of PERSONAL)if(re.test(s))return why;return null}
 function store(key,value){
   if(!STORE_KEYS.includes(key)||personal(value))return false;
-  try{localStorage.setItem(key,value);return true}catch(e){return false}
+  try{localStorage.setItem(key,value)}catch(e){return false}
+  keepStorage();return true;
+}
+// Forgetting a setting: only a listed key, and only removal.
+function unstore(key){if(!STORE_KEYS.includes(key))return false;try{localStorage.removeItem(key);return true}catch(e){return false}}
+// Once something is saved, ask the browser not to clear it when space runs low. Only in Chrome and Edge, which
+// decide quietly: Firefox would pop up a permission prompt for it. Safari on iPhone still deletes a site's
+// storage after 7 days without a visit, whatever the page asks.
+let persistAsked=false,persisted=false;
+function keepStorage(){
+  if(persistAsked)return;persistAsked=true;
+  const chromium=!!(navigator.userAgentData&&Array.isArray(navigator.userAgentData.brands)&&navigator.userAgentData.brands.some(b=>/Chrom|Edge/.test(b.brand)));
+  try{const s=navigator.storage;if(chromium&&s&&typeof s.persist==='function')Promise.resolve(s.persisted?s.persisted():false).then(p=>p||s.persist()).then(p=>{persisted=!!p}).catch(()=>{})}catch(e){}
 }
 function scrubStore(){
   let ls;try{ls=localStorage;ls.length}catch(e){return}
@@ -224,9 +286,25 @@ function scrubStore(){
       const out=JSON.stringify(keep);if(out!==raw)ls.setItem('jarvis-learned',out);
     }
     for(const k of ['jarvis-skin','jarvis-voices','jarvis-mic-note']){const v=ls.getItem(k);if(v!==null&&(v.length>4000||personal(v)))ls.removeItem(k)}
+    // Settings and the streak are rewritten from their fixed shapes, so nothing else can ride along in them.
+    const rs=ls.getItem('jarvis-settings');
+    if(rs!==null){let o=null;try{o=JSON.parse(rs)}catch(e){}const c=cleanSettings(o),out=JSON.stringify(c);
+      if(!Object.keys(c).length)ls.removeItem('jarvis-settings');else if(out!==rs)ls.setItem('jarvis-settings',out)}
+    const rk=ls.getItem('jarvis-streak');
+    if(rk!==null){let o=null;try{o=JSON.parse(rk)}catch(e){}const c=cleanStreak(o);
+      if(!c)ls.removeItem('jarvis-streak');else if(JSON.stringify(c)!==rk)ls.setItem('jarvis-streak',JSON.stringify(c))}
   }catch(e){}
 }
 scrubStore();
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+// Nothing kept at all: a first visit, or Safari cleared it after 7 days away. A page can't tell which.
+const firstTime=!STORE_KEYS.some(k=>lsGet(k)!==null);
+let settings={};try{settings=cleanSettings(JSON.parse(lsGet('jarvis-settings')||'{}'))}catch(e){}
+function saveSettings(){if(Object.keys(settings).length)store('jarvis-settings',JSON.stringify(settings));else unstore('jarvis-settings')}
+// Count today's visit: only a number of days and today's date.
+const streak=(()=>{let prev=null;try{prev=JSON.parse(lsGet('jarvis-streak')||'null')}catch(e){}
+  const d=new Date(),s=streakNext(prev,{y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate()});
+  store('jarvis-streak',JSON.stringify(s));return s})();
 // "What do you save?": exactly what's in this browser, read back from storage rather than from memory.
 function storedSummary(){
   let ls=null;try{ls=localStorage}catch(e){}
@@ -236,9 +314,24 @@ function storedSummary(){
   let v={};try{v=JSON.parse(get('jarvis-voices')||'{}')||{}}catch(e){}const nv=Object.keys(v).length;if(nv)parts.push(`your voice pick for ${nv===1?'one skin':nv+' skins'}`);
   let l={};try{l=JSON.parse(get('jarvis-learned')||'{}')||{}}catch(e){}const nl=Object.keys(l).length;if(nl)parts.push(`${nl===1?'one phrase':nl+' phrases'} you taught me`);
   if(get('jarvis-mic-note'))parts.push("that you've seen the mic note");
+  let st={};try{st=cleanSettings(JSON.parse(get('jarvis-settings')||'{}'))}catch(e){}
+  if(Object.keys(st).length)parts.push(`your settings (${settingsWords(st).join(', ')})`);
+  let sk2=null;try{sk2=cleanStreak(JSON.parse(get('jarvis-streak')||'null'))}catch(e){}
+  if(sk2)parts.push(`your visit streak (${sk2.days===1?'one day':sk2.days+' days'}, and the date of your last visit)`);
   const list=parts.length?`Here's everything I keep in this browser: ${parts.length>1?parts.slice(0,-1).join(', ')+' and '+parts[parts.length-1]:parts[0]}.`:"I'm not keeping anything in this browser right now.";
   const now=typeof userName==='string'&&userName?` Your name, ${userName}, is only in memory for this visit.`:'';
-  return `${list}${now} No names, no personal details, nothing from the camera and no chat history. Anything that looks personal is never saved.`;
+  const told=typeof memory==='object'&&memory.length?` ${memory.length===1?'One thing':memory.length+' things'} you told me ${memory.length===1?'is':'are'} only in memory for this visit too.`:'';
+  return `${list}${now}${told} No names, no personal details, nothing from the camera and no chat history. Anything that looks personal is never saved. On an iPhone, Safari clears what I keep after 7 days without a visit.`;
+}
+// Settings in words, for "what do you save" and the memory core.
+const SCENE_NAMES={galaxy:'the galaxy',solar:'the solar system',globe:'the Earth',neural:'my neural network',suit:'the suit',particles:'the particles'};
+function settingsWords(st){
+  const w=[];
+  if(st.color)w.push(`a ${st.color} orb`);
+  if(st.speed)w.push(`speaking ${st.speed==='slow'?'slowly':'fast'}`);
+  if(st.units)w.push(`${st.units} units`);
+  if(st.scene)w.push(`opening with ${SCENE_NAMES[st.scene]}`);
+  return w;
 }
 
 /* ---------- Clock ---------- */
@@ -253,7 +346,29 @@ let ringRGB='57,255,136',coreRGB='180,255,210'; // the orb's colours, set by the
 const reduce=!!window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 const amb=reduce?.15:1; // ambient motion: slow everything right down when reduced motion is asked for
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-function setMode(m){mode=m;stateEl.textContent={idle:'STANDBY',listen:'LISTENING',think:'PROCESSING',speak:'SPEAKING'}[m]}
+const MODE_TEXT={idle:'STANDBY',listen:'LISTENING',think:'PROCESSING',speak:'SPEAKING'};
+function setMode(m){if(m!=='idle')wakeUp();mode=m;stateEl.textContent=dreaming?'PROCESSING MEMORIES':MODE_TEXT[m]}
+/* ---------- Dreaming (Session 7) ----------
+   After a few minutes with nothing happening, nothing on the projector and the page in view, the orb dims, the
+   state reads PROCESSING MEMORIES, and taught phrases drift across it as light, with pulses running through a
+   small neural network (the same pulse logic as "show me your brain"). Any tap, key or word wakes him.
+   Nothing runs while the tab is hidden, and under reduced motion it's a still, dimmed orb. */
+const DREAM_AFTER=180000;
+let dreaming=false,lastActive=performance.now();
+// Whether it's time to dream: st is {dreaming, mode, holo, booting, hidden, speaking, lastActive}.
+function dreamDue(now,st){return !st.dreaming&&st.mode==='idle'&&!st.holo&&!st.booting&&!st.hidden&&!st.speaking&&now-st.lastActive>=DREAM_AFTER}
+function setDream(on){
+  if(on===dreaming)return;dreaming=on;document.body.classList.toggle('dreaming',on);
+  stateEl.textContent=on?'PROCESSING MEMORIES':MODE_TEXT[mode];
+}
+function wakeUp(){lastActive=performance.now();if(dreaming)setDream(false)}
+function dreamCheck(now=performance.now()){
+  if(dreamDue(now,{dreaming,mode,holo:!!H,booting:booting||!boot.hidden,hidden:document.hidden,speaking:!!(synth&&synth.speaking),lastActive}))setDream(true);
+  return dreaming;
+}
+setInterval(dreamCheck,2000);
+addEventListener('pointerdown',wakeUp,true);addEventListener('keydown',wakeUp,true);addEventListener('input',wakeUp,true);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)wakeUp()}); // and the clock starts again when you come back
 // How hard the orb pulses this frame. hearing: speech recognition says it can hear someone talking.
 // sinceWord: seconds since Jarvis started the last spoken word, or null when the voice doesn't report words.
 function orbPulse({mode,energy,t,hearing=false,sinceWord=null,still=false}){
@@ -486,6 +601,7 @@ function draw(t){
   requestAnimationFrame(draw);
   if(document.body.classList.contains('holo-on'))return; // hidden behind the hologram
   const W=cv.width,c=W/2,bp=bootP;cx.clearRect(0,0,W,W);
+  dreamK+=((dreaming?1:0)-dreamK)*(reduce?1:.03);const dimD=1-.6*dreamK;cx.globalAlpha=dimD;
   const heard=mode==='listen'&&hearing;
   const target=heard?.95:{idle:.15,listen:.45,think:.45,speak:.9}[mode];
   energy+=(target-energy)*(heard?.25:.06); // jump up as soon as it hears you
@@ -510,7 +626,29 @@ function draw(t){
   // the skin's face fades in once the orb has assembled; its mouth follows the voice's word pulses
   const fade=clamp(bp*2-1,0,1);
   if(fade>0){cx.save();cx.translate(c,c);cx.scale(1+pulse*.02,1+pulse*.02);cx.beginPath();cx.arc(0,0,W*.148,0,7);cx.clip();
-    orbFace(cx,W*.13,t,skin,mode==='speak'?clamp(pulse*1.3,0,1):0,fade);cx.restore()}
+    orbFace(cx,W*.13,t,skin,mode==='speak'?clamp(pulse*1.3,0,1):0,fade*dimD);cx.restore()}
+  cx.globalAlpha=1;
+  if(dreamK>.01&&!reduce)drawDream(t,W,c,dreamK);else dreamLast=0;
+}
+let dreamK=0,dreamLast=0,dreamBurst=0,dreamNext=0;
+let dreamNet=null,dreamSim=null;const drifts=[];
+// What drifts across while dreaming: taught phrases, or if there are none, whatever else is in the memory core.
+function dreamWords(){const k=Object.keys(learned);return k.length?k:memoryStars().map(s=>s.label)}
+function drawDream(t,W,c,k){
+  if(!dreamNet){dreamNet=neuralLayout([3,5,6,5,3]);dreamSim=createNeuralSim(dreamNet,Math.random,120)}
+  const dt=Math.min(.05,dreamLast?(t-dreamLast)/1000:0);dreamLast=t;
+  dreamBurst-=dt;if(dreamBurst<=0){dreamSim.burst();dreamBurst=.8}
+  dreamSim.step(dt*.7);
+  const sx=W*.32/dreamNet.halfW,sy=W*.22/dreamNet.halfH,P=n=>[c+n.x*sx,c-n.y*sy];
+  cx.save();cx.globalAlpha=k;
+  dreamNet.nodes.forEach((n,i)=>{const [x,y]=P(n),g=dreamSim.glow[i];cx.fillStyle=`rgba(${ringRGB},${.1+.55*g})`;cx.beginPath();cx.arc(x,y,4+7*g,0,7);cx.fill()});
+  cx.fillStyle=`rgba(${coreRGB},.85)`;
+  for(const q of dreamSim.pulses){const [a,b]=dreamNet.edges[q.e],[x1,y1]=P(dreamNet.nodes[a]),[x2,y2]=P(dreamNet.nodes[b]);cx.beginPath();cx.arc(x1+(x2-x1)*q.p,y1+(y2-y1)*q.p,4.5,0,7);cx.fill()}
+  if(t>dreamNext){const w=dreamWords();if(w.length){const i=drifts.length%2;drifts.push({text:String(pick(w)).toUpperCase().slice(0,28),t0:t,y:c+(i?1:-1)*W*(.08+.14*Math.random()),dir:Math.random()<.5?1:-1})}dreamNext=t+3200}
+  cx.font=`500 ${W*.034|0}px "Chakra Petch", monospace`;cx.textAlign='center';cx.textBaseline='middle';cx.shadowColor=`rgba(${ringRGB},.9)`;cx.shadowBlur=18;
+  for(let i=drifts.length-1;i>=0;i--){const d=drifts[i],u=(t-d.t0)/7000;if(u>=1){drifts.splice(i,1);continue}
+    cx.fillStyle=`rgba(${coreRGB},${Math.sin(Math.PI*u)*.9})`;cx.fillText(d.text,c+d.dir*(u-.5)*W*.8,d.y)}
+  cx.restore();
 }
 if(cx)requestAnimationFrame(draw); // no 2D canvas (e.g. jsdom): skip the orb, the chat still works
 
@@ -532,11 +670,11 @@ const SKINS={
   jarvis:{name:'J.A.R.V.I.S.',short:'Jarvis',label:'JARVIS',ring:'57,255,136',core:'180,255,210',lang:/en-GB/i,voice:/male|daniel|arthur|george/i,rate:1.02,pitch:.9,tunedRate:1,tunedPitch:.95,
     prefer:['daniel','microsoft ryan','microsoft thomas','microsoft george','google uk english male','arthur','oliver'],
     sample:"This is my voice now. How do I sound?",
-    hello:"Jarvis here. Back to my usual self.",open:[],close:[]},
+    hello:n=>`Jarvis here${n}. Back to my usual self.`,open:[],close:[]},
   matrix:{name:'MORPHEUS',short:'Morpheus',label:'MATRIX',ring:'0,255,65',core:'200,255,210',lang:/en-(US|GB)/i,voice:/male|david|guy|mark|fred|alex|daniel|george/i,rate:.86,pitch:.55,tunedRate:.9,tunedPitch:.82,
     prefer:['ralph','microsoft guy','microsoft davis','microsoft christopher','microsoft roger','fred','microsoft david','google uk english male'],
     sample:"This is my voice now. Do you hear the difference?",
-    hello:"Welcome to the real world. I am Morpheus. Ask, and I will show you how deep the rabbit hole goes.",
+    hello:n=>`Welcome to the real world${n}. I am Morpheus. Ask, and I will show you how deep the rabbit hole goes.`,
     who:"I am Morpheus. I can only show you the door. You're the one who has to walk through it.",
     miss:"I don't understand that, and I won't pretend to.",
     open:["Listen carefully.","What I'm about to tell you is the truth. Nothing more.","Free your mind."],
@@ -544,7 +682,7 @@ const SKINS={
   panther:{name:'STANLEY C. PANTHER',short:'Stanley C. Panther',label:'PANTHERS',ring:'200,16,46',core:'255,214,150',lang:/en-US/i,voice:/male|david|guy|mark|fred|alex/i,rate:1.12,pitch:1.2,tunedRate:1.08,tunedPitch:1.08,
     prefer:['microsoft andrew','microsoft brian','junior','superstar','microsoft eric','google us english'],
     sample:"How's this sound? Let's go, Cats!",
-    hello:"Let's go, Cats! Stanley C. Panther here, the Florida Panthers' number one fan. What do you need?",
+    hello:n=>`Let's go, Cats! Stanley C. Panther here, the Florida Panthers' number one fan. What do you need${n}?`,
     who:"I'm Stanley C. Panther, mascot of the Florida Panthers. My name comes from the Stanley Cup. Go Cats!",
     miss:"Whoa, that one went wide of the net.",
     open:["Let's go, Cats!","Puck drop!","Hold onto your rat!"],
@@ -604,14 +742,15 @@ function speechChunks(text,max=160){
 }
 let sayGen=0; // which answer is being spoken, so a cancelled one can't switch the orb back to idle
 function say(text){
+  text=inUnits(text);wakeUp();
   add(text,'ai');
   if(H&&H.onAnswer)H.onAnswer(); // the neural network lights its output layer for each answer
   if(!synth){setMode('idle');return}
-  const gen=++sayGen,parts=speechChunks(text);
+  const gen=++sayGen,parts=speechChunks(plainText(text));
   synth.cancel();
   parts.forEach((p,i)=>{
     const u=new SpeechSynthesisUtterance(p);if(voice){u.voice=voice;u.lang=voice.lang} // Android Chrome ignores the voice unless the language matches it
-    u.rate=tuned?SKINS[skin].tunedRate:SKINS[skin].rate;u.pitch=tuned?SKINS[skin].tunedPitch:SKINS[skin].pitch;
+    u.rate=(tuned?SKINS[skin].tunedRate:SKINS[skin].rate)*SPEEDS[settings.speed||'normal'];u.pitch=tuned?SKINS[skin].tunedPitch:SKINS[skin].pitch;
     u.onstart=()=>{if(gen!==sayGen)return;lastWord=null;setMode('speak')};
     u.onend=u.onerror=()=>{if(gen!==sayGen||i<parts.length-1)return;lastWord=null;setMode('idle')};
     // There's no audio tap on speech synthesis, so pulse on each word where the voice reports them.
@@ -622,11 +761,83 @@ function say(text){
   setTimeout(()=>{if(mode==='think')setMode('idle')},1500);
 }
 
+/* ---------- Settings memory (Session 7): fixed choices only, saved as one jarvis-settings key ---------- */
+const SPEEDS={slow:.82,normal:1,fast:1.22};
+const ORB_COLOURS={green:['57,255,136','180,255,210'],blue:['70,150,255','190,220,255'],cyan:['60,230,255','200,250,255'],purple:['170,100,255','225,200,255'],
+  pink:['255,100,200','255,205,235'],red:['255,70,70','255,200,190'],orange:['255,150,50','255,220,170'],gold:['255,205,70','255,240,190'],white:['225,235,245','255,255,255']};
+function orbColours(){const c=settings.color&&ORB_COLOURS[settings.color];[ringRGB,coreRGB]=c||[SKINS[skin].ring,SKINS[skin].core]}
+// Metric facts said in imperial when that's the setting: "600 kilometres an hour" becomes "about 370 miles an hour".
+const UNIT_TO={kilomet:['mile',.621371],centimet:['inch',.393701],met:['foot',3.28084],kilogram:['pound',2.20462]};
+function roughly(v){if(v>=10){const p=Math.pow(10,Math.floor(Math.log10(v))-1);return Math.round(v/p)*p}return v>=3?Math.round(v):Math.round(v*10)/10}
+function inUnits(text,units=settings.units){
+  if(units!=='imperial')return String(text);
+  return String(text).replace(/(\b(?:about|over|nearly|almost|around|roughly|just) )?(\d[\d,]*(?:\.\d+)?)( (?:million|billion))? (kilomet|centimet|met|kilogram)(?:er|re)?s?\b/gi,(all,lead,num,big,unit)=>{
+    const [to,k]=UNIT_TO[unit.toLowerCase()],v=roughly(parseFloat(num.replace(/,/g,''))*k),n=v.toLocaleString('en-US');
+    const name=v===1?to:to==='inch'?'inches':to==='foot'?'feet':to+'s';
+    return `${lead||'about '}${n}${big||''} ${name}`;
+  });
+}
+const COLOUR_RE=Object.keys(ORB_COLOURS).join('|')+'|grey|gray|yellow|violet';
+const SCENE_RE=[['galaxy','galaxy|milky way|stars'],['solar','solar system|planets'],['globe','earth|globe|world'],['neural','neural network|brain|network'],['suit','suit|armou?r'],['particles','particles|sphere']];
+// A settings command, as {key, value}. value null puts that setting back to its default.
+function settingsIntent(raw){
+  const s=normPhrase(raw);let m;
+  if(/^(?:reset|clear|forget|delete) (?:all )?(?:my |your |the )?settings$/.test(s))return {key:'all',value:null};
+  if(m=s.match(new RegExp(`\\b(?:make|turn|set|change|paint|colou?r)\\b.*\\b(?:orb|you|yourself|your colou?r|the colou?r)\\b.*\\b(${COLOUR_RE})$|\\b(?:orb|your) colou?r (?:to )?(${COLOUR_RE})$|^(?:a )?(${COLOUR_RE}) orb(?: please)?$`))){
+    const c=m[1]||m[2]||m[3];return {key:'color',value:{grey:'white',gray:'white',yellow:'gold',violet:'purple'}[c]||c};
+  }
+  if(/\b(?:default|normal|usual|original|skin's|regular) (?:orb )?colou?rs?\b|\breset (?:the |your )?(?:orb )?colou?rs?\b/.test(s))return {key:'color',value:null};
+  if(/\b(?:speak|talk|say it|go)(?: a (?:bit|little)| much)? (?:faster|quicker|more quickly)\b|\b(?:speak|talk) (?:fast|quickly)\b|\bspeed (?:it )?up\b/.test(s))return {key:'speed',value:'+'};
+  if(/\b(?:speak|talk|say it|go)(?: a (?:bit|little)| much)? (?:slower|more slowly)\b|\b(?:speak|talk) slowly\b|\bslow (?:it )?down\b/.test(s))return {key:'speed',value:'-'};
+  if(/\b(?:normal|regular|default|usual) (?:speaking )?(?:speed|pace)\b|\b(?:speak|talk) normally\b/.test(s))return {key:'speed',value:null};
+  if(/\b(?:use|switch to|change to|set|i want|i prefer|give me)\b.*\b(?:metric|kilometres|kilometers|centimetres|centimeters|meters|metres)\b|^metric(?: units)?(?: please)?$/.test(s))return {key:'units',value:'metric'};
+  if(/\b(?:use|switch to|change to|set|i want|i prefer|give me)\b.*\b(?:imperial|miles|feet|inches|pounds)\b|^imperial(?: units)?(?: please)?$/.test(s))return {key:'units',value:'imperial'};
+  if(/^(?:don't|do not|stop|never) (?:open|start|begin)(?:ing)? with\b|^(?:open|start) with nothing\b|^no (?:favou?rite )?(?:opening )?scene\b/.test(s))return {key:'scene',value:null};
+  if(m=s.match(/^(?:(?:always )?(?:open|start|begin|boot up) with|(?:my )?favou?rite scene is|(?:always )?open on) (?:the |my |your )?(.+?)(?: please| every time| first)?$/)){
+    for(const [k,re] of SCENE_RE)if(new RegExp(`^(?:${re})$`).test(m[1]))return {key:'scene',value:k};
+  }
+  return null;
+}
+function applySetting({key,value}){
+  if(key==='all'){const had=Object.keys(settings).length;settings={};saveSettings();orbColours();return had?"Done. My settings are back to normal.":"My settings are already the defaults."}
+  if(key==='speed'&&(value==='+'||value==='-')){const order=['slow','normal','fast'],i=order.indexOf(settings.speed||'normal'),j=clamp(i+(value==='+'?1:-1),0,2);
+    if(i===j)return value==='+'?"That's as fast as I go.":"That's as slow as I go.";value=order[j]==='normal'?null:order[j]}
+  if(value===null)delete settings[key];else settings[key]=value;
+  saveSettings();if(key==='color')orbColours();
+  const words={color:value?`My orb is ${value} now.`:"My orb is back to my skin's own colour.",speed:value?`I'll speak ${value==='slow'?'more slowly':'faster'}.`:"Back to my normal speed.",
+    units:`I'll use ${value} units.`,scene:value?`I'll open with ${SCENE_NAMES[value]} next time you start me up.`:"I won't open a scene when I start up."}[key];
+  return `${words} I'll remember that on this device.`;
+}
+
 /* ---------- Chat log ---------- */
 const log=document.getElementById('log'),holoCap=document.getElementById('holo-cap');
+/* Command links: an answer marks a command as ⟦label⟧ or ⟦label|what to say⟧. In Jarvis's bubbles each one becomes a
+   link in one of the six Infinity Stone colours, and a click sends that command as if you'd typed it. Only commands
+   from his own help lists (CHIP_CMDS, as exact label-and-command pairs) become links: anything else marked, such as
+   text you typed, shows as plain words, so a link can't say one thing and do another. Everything is built with textContent, never as HTML, and speech and the projector caption get plain text. */
+const CHIP_RE=/⟦([^⟦⟧|]{1,60})(?:\|([^⟦⟧|]{1,80}))?⟧/g;
+const plainText=t=>String(t).replace(CHIP_RE,'$1');
+let CHIP_CMDS=new Set(); // filled once the help lists exist, further down
+const chipKey=m=>m[1]+'|'+(m[2]||m[1]);
+function chipCommands(...texts){const set=new Set();for(const t of texts)for(const m of t.matchAll(CHIP_RE))set.add(chipKey(m));return set}
 function add(text,who){
-  const d=document.createElement('div');d.className='msg '+who;d.textContent=text;log.appendChild(d);log.scrollTop=log.scrollHeight;
-  if(who==='ai')holoCap.textContent=text;
+  const d=document.createElement('div');d.className='msg '+who;
+  if(who==='ai'){
+    let at=0,n=0;
+    for(const m of String(text).matchAll(CHIP_RE)){
+      d.append(text.slice(at,m.index));at=m.index+m[0].length;
+      const cmd=m[2]||m[1];
+      if(!CHIP_CMDS.has(chipKey(m))){d.append(m[1]);continue}
+      const b=document.createElement('button');b.type='button';b.className='cmd st'+(n++%6);b.textContent=m[1];
+      b.title=`Say "${cmd}"`;b.addEventListener('click',()=>{blip(1200,.05,.03);handle(cmd)});
+      // a comma or full stop straight after a link stays on its line
+      const p=String(text).slice(at).match(/^[,.;:!?]+/);
+      if(p){const w=document.createElement('span');w.className='cmd-wrap';w.append(b,p[0]);at+=p[0].length;d.append(w)}else d.append(b);
+    }
+    d.append(String(text).slice(at));
+    holoCap.textContent=plainText(text);
+  }else d.textContent=text;
+  log.appendChild(d);log.scrollTop=log.scrollHeight;
 }
 
 /* ---------- Built-in brain (no internet, kid-safe) ---------- */
@@ -648,7 +859,9 @@ function brainKnown(raw){
   const s=raw.toLowerCase().trim(),name=userName?`, ${userName}`:'';
   let m;
   if((m=s.match(/\b(?:my name is|call me|i am|i'm) ([a-z]+)/))&&!notNames.has(m[1])){userName=m[1][0].toUpperCase()+m[1].slice(1);return `Nice to meet you, ${userName}. I'll remember that until you close this page. I never save names.`}
-  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say show me your brain to watch me think, or suit up to build a suit of armour. Say show me Earth for the globe, or show me any country, US state or big city, like Florida or Tokyo. Say hand control to steer it with your hands through the camera. Say close to turn it off, or reboot to watch me power up again. Say switch to Matrix to talk to Morpheus, switch to Panthers for Stanley C. Panther, or back to Jarvis. Ask what do you save to see what I keep, and I never keep anything personal. If I don't understand you, tell me what you meant and I'll remember it on this device.";
+  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧, or some math like ⟦seven times eight|what is seven times eight⟧. I can ⟦flip a coin⟧, ⟦roll a die⟧ or start a ⟦launch countdown⟧. For the holo-projector, say ⟦show me the galaxy⟧, ⟦show me the planets⟧, ⟦take me to Mars⟧, ⟦make a heart⟧, ⟦make a rocket⟧, or ⟦write your name|write my name⟧. Say ⟦show me your brain⟧ to watch me think, or ⟦suit up⟧ to build a suit of armour. Say ⟦show me Earth⟧ for the globe, or show me any country, US state or big city, like ⟦Florida|show me Florida⟧ or ⟦Tokyo|show me Tokyo⟧. Say ⟦hand control⟧ to steer it with your hands through the camera, or ⟦scan the room⟧ for a threat scan. Say ⟦brief me⟧ for the time and the top headlines. In Chrome or Edge, turn on ⟦always listening|always listen⟧ with the HEY JARVIS switch, then start what you say with my name. Say ⟦close⟧ to turn it off, or ⟦reboot⟧ to watch me power up again. Say ⟦switch to Matrix⟧ to talk to Morpheus, ⟦switch to Panthers⟧ for Stanley C. Panther, or ⟦back to Jarvis⟧. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit, whichever skin I'm in. Ask ⟦what do you know about me⟧ to hear them back. I can also remember settings on this device: say ⟦make the orb blue⟧, ⟦speak faster⟧, ⟦use imperial units⟧, or ⟦open with the galaxy⟧. Say ⟦show me your memory⟧ to see everything I keep as stars, and tap one to hear it or say forget that. Leave me alone for a few minutes and I'll dream. Ask ⟦what do you save⟧ to see what I keep, and I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, and a settings backup file is coming. If I don't understand you, tell me what you meant and I'll remember it on this device.";
+  if(/^(?:please )?(?:forget|clear|delete|erase) my name\b/.test(s)){const had=userName;userName=null;return had?"Done. I've forgotten your name.":"I don't know your name yet, so there's nothing to forget."}
+  if(/\bwhat(?:'s| is) my name\b|\bwho am i\b|\bdo you (?:know|remember) (?:my name|me|who i am)\b|\bsay my name\b/.test(s))return userName?`Your name is ${userName}. I'll remember it whichever skin I'm wearing, until you close this page. I never save it.`:"You haven't told me your name yet. Say my name is, then your name, and I'll remember it until you close this page.";
   if(/\b(hello|hi|hey|good (morning|afternoon|evening))\b/.test(s))return pick([`Hello${name}. All systems are online.`,`Good to see you${name}. How can I help?`]);
   if(/what.*\btime\b/.test(s))return `It's ${new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}${name}.`;
   if(/what.*(date|day)/.test(s))return `Today is ${new Date().toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'})}.`;
@@ -660,6 +873,10 @@ function brainKnown(raw){
   if(/launch|countdown|blast ?off/.test(s))return "Initiating launch sequence. Five. Four. Three. Two. One. Liftoff!";
   if(/suit up|iron man|armor/.test(s))return "Suit diagnostics complete. Repulsors charged, flight stabilizers online. Try not to hit any buildings.";
   if(/how are you/.test(s))return "Running at peak efficiency, thank you for asking.";
+  if(/how far (?:away )?is the moon|distance to the moon/.test(s))return "The Moon is about 384,000 kilometres away. Light gets there in just over a second.";
+  if(/how far (?:away )?is the sun|distance to the sun/.test(s))return "The Sun is about 150 million kilometres away. Its light takes about 8 minutes to reach us.";
+  if(/how (?:big|wide) is (?:the )?earth|size of (?:the )?earth/.test(s))return "Earth is about 12,700 kilometres wide.";
+  if(/how (?:tall|high) is (?:mount )?everest/.test(s))return "Mount Everest is 8,849 metres tall, the highest mountain on Earth.";
   if(/thank/.test(s))return pick(["Always a pleasure.","Anytime.","You're welcome."]);
   const math=mathAnswer(s);if(math)return math;
   return null;
@@ -679,11 +896,14 @@ function intent(raw){
   if(/\b(hand|hands|gesture|gestures) (control|tracking|mode)\b|\buse my hands?\b|\b(enable|start|turn on)( the)? (hand|gesture)/.test(s))return {kind:'hands',arg:true};
   if(/^(close|exit|stop|dismiss|hide|go back|back)( (it|that|this|the (hologram|projector|scene)))?$/.test(s)||/\b(close|turn off|shut down) the (hologram|projector|holo-projector)\b/.test(s))return {kind:'close'};
   if(/\b(reboot|restart|boot (up|sequence)|power (up|cycle))\b/.test(s))return {kind:'boot'};
+  if(/\b(?:stop|end|cancel|close|exit)(?: the)? (?:scan|scanning|scanner|threat scan|face scan)\b/.test(s))return {kind:'close'};
+  if(/\b(?:threat|security|face) (?:scan|scanner|assessment|analysis|check|lock|detection)\b|\bscan (?:the |this )?(?:room|area|me|us|my face|faces|everyone|for threats)\b|\b(?:run|start|do|begin) (?:a |the )?scan\b/.test(s))return {kind:'scan'};
   if(/\bsuit (?:me )?up\b|\biron ?man (?:suit|armou?r)\b|\bsuit schematic\b|\b(?:show|see|open|display|look at|make|build)\b.*\b(?:suit|armou?r)s?\b/.test(s))return {kind:'suit',arg:/\bsuit (?:me )?up\b/.test(s)?'assemble':null};
   if(/\b(?:show(?: me)?|open|display|spin|see|look at)(?: the)? (?:earth|world|globe|planet earth|earth globe|world map)$|^(?:the )?(?:earth globe|globe)$/.test(s))return {kind:'globe',arg:null};
   if(m=s.replace(/\?/g,'').match(/\b(?:show me|take me to|fly (?:me )?to|go to|where(?:'s| is)|find|zoom (?:in )?(?:on|to)|visit|focus on|point to)(?: the)? ([a-z .'-]+?)(?: please| now| on the (?:map|globe))?$/)){
     const k=m[1].replace(/[.'-]/g,' ').replace(/\s+/g,' ').trim();if(PLACES[k])return {kind:'globe',arg:k};
   }
+  if(/\bmemory core\b|\b(?:show|see|open|display|look at|visit|enter)(?: me)?(?: in(?:side)?(?: to)?)? (?:your|the jarvis) memor(?:y|ies)\b|^(?:your )?memor(?:y|ies)$/.test(s))return {kind:'memory'};
   if(/\bneural (?:network|net)s?\b|\b(?:show|see|open|display|look at)\b.*\byour brain\b/.test(s))return {kind:'neural'};
   if(m=s.match(new RegExp(`\\b(?:take me to|go to|fly to|show me|zoom (?:in )?(?:on|to)|visit|focus on)(?: the)? (${PLANETS})\\b`)))return {kind:'solar',arg:m[1]};
   if(/\b(solar system|planets)\b/.test(s))return {kind:'solar',arg:null};
@@ -1390,8 +1610,152 @@ function buildGlobe(T){
     }};
 }
 
-const BUILDERS={galaxy:buildGalaxy,solar:buildSolar,particles:buildParticles,neural:buildNeural,suit:buildSuit,globe:buildGlobe};
-function resizeHolo(){if(!H)return;H.renderer.setSize(innerWidth,innerHeight,false);H.camera.aspect=innerWidth/innerHeight;H.camera.updateProjectionMatrix()}
+/* Scene 7: the memory core (Session 7). One star for each thing kept in this browser (settings, taught phrases),
+   and this visit's short-term memories in amber on an outer shell. The star list, the layout and forgetting
+   are plain data and functions, so they're tested without WebGL. */
+const SETTING_LABEL={color:'Orb colour',speed:'Speaking speed',units:'Units',scene:'Opens with'};
+const SETTING_RESET={color:"My orb is back to my skin's own colour.",speed:"I'm back to my normal speed.",units:"I'm back to metric units.",scene:"I won't open a scene when I start up."};
+function memoryStars(){
+  const out=[];
+  for(const k of Object.keys(SETTING_CHOICES))if(settings[k])
+    out.push({type:'setting',key:k,label:`${SETTING_LABEL[k]}: ${k==='scene'?SCENE_NAMES[settings[k]].replace(/^(?:the|my) /,''):settings[k]}`,text:`A saved setting: ${settingsWords({[k]:settings[k]})[0]}.`});
+  const sk=lsGet('jarvis-skin');
+  if(sk&&Object.hasOwn(SKINS,sk))out.push({type:'skin',label:`Skin: ${SKINS[sk].short}`,text:`A saved setting: your skin, ${SKINS[sk].short}.`});
+  if(userName)out.push({type:'name',visit:true,label:`Name: ${userName}`,text:`This visit only: your name is ${userName}.`});
+  for(const f of memory.slice().reverse())out.push({type:'visit',visit:true,key:f.key,label:f.label,text:`This visit only: ${f.text}.`});
+  for(const k of Object.keys(learned).reverse())out.push({type:'phrase',key:k,label:`"${k}"`,text:`A phrase you taught me: "${k}" means "${learned[k]}".`});
+  for(const k of Object.keys(voicePicks))if(Object.hasOwn(SKINS,k))
+    out.push({type:'voice',skin:k,label:`Voice for ${wakeName(k)}`,text:`A saved setting: ${shortName(voicePicks[k])} is the voice for ${SKINS[k].short}.`});
+  let st=null;try{st=cleanStreak(JSON.parse(lsGet('jarvis-streak')||'null'))}catch(e){}
+  if(st)out.push({type:'streak',label:`Streak: ${st.days} day${st.days===1?'':'s'}`,text:`Your visit streak: ${st.days===1?'one day':st.days+' days in a row'}. I keep only the count and the date of your last visit.`});
+  if(lsGet('jarvis-mic-note'))out.push({type:'micnote',label:'Mic note seen',text:"A saved setting: you've seen the note about the mic, so I don't show it again."});
+  return out;
+}
+// Forget one star's memory for real, and say what went.
+function forgetStar(st){
+  switch(st&&st.type){
+    case 'setting':delete settings[st.key];saveSettings();orbColours();return `Forgotten. ${SETTING_RESET[st.key]}`;
+    case 'skin':unstore('jarvis-skin');setSkin('jarvis',false);return "Forgotten. I'm Jarvis again, and I'll start as Jarvis next time.";
+    case 'name':userName=null;return "Forgotten. I don't know your name any more.";
+    case 'visit':memory=memory.filter(x=>x.key!==st.key);return `Forgotten. ${st.text.replace(/^This visit only: /,'I no longer know that ').replace(/\.$/,'')}.`;
+    case 'phrase':delete learned[st.key];saveLearned();return `Forgotten. "${st.key}" doesn't mean anything to me now.`;
+    case 'voice':delete voicePicks[st.skin];if(Object.keys(voicePicks).length)store('jarvis-voices',JSON.stringify(voicePicks));else unstore('jarvis-voices');if(synth)pickVoice();
+      return `Forgotten. ${SKINS[st.skin].short} goes back to the automatic voice.`;
+    case 'streak':unstore('jarvis-streak');return "Forgotten. Your streak starts again next visit.";
+    case 'micnote':unstore('jarvis-mic-note');return "Forgotten. I'll show the mic note again next visit.";
+  }
+  return "There's nothing there to forget.";
+}
+// n stars spread round a loose shell of radius r0 (golden-angle spiral, a little flattened), always the same for the same n.
+function constellation(n,r0=8,seed=0){
+  const out=[];
+  for(let i=0;i<n;i++){
+    const y=n<2?0:1-2*(i+.5)/n,r=Math.sqrt(Math.max(0,1-y*y)),th=(i+seed)*2.39996,rad=r0*(1+.36*((((i+seed)*.618034)%1)-.5));
+    out.push([Math.cos(th)*r*rad,y*rad*.75,Math.sin(th)*r*rad]);
+  }
+  return out;
+}
+// The lines of a constellation: each star joined to the nearest star before it.
+function constellationLinks(pts){
+  const out=[];
+  for(let i=1;i<pts.length;i++){let best=0,bd=Infinity;
+    for(let j=0;j<i;j++){const d=Math.hypot(pts[i][0]-pts[j][0],pts[i][1]-pts[j][1],pts[i][2]-pts[j][2]);if(d<bd){bd=d;best=j}}
+    out.push([best,i])}
+  return out;
+}
+const MEM_HINT='Drag to rotate · tap a star to hear it · say "forget that" to delete it · amber stars are this visit only';
+function buildMemory(T){
+  const scene=new T.Scene(),camera=makeCamera(T),group=new T.Group(),dot=dotTexture(T),v=new T.Vector3();
+  scene.add(group,starfield(T,1500));
+  const small=innerWidth<600,labelW=small?84:130,MAXL=small?8:12,EXT=14;
+  // The labels sit at the screen's edges, so the stars can use most of the width between them.
+  const frac=clamp(1-(small?1.2:2)*labelW/innerWidth,.45,.75),vfrac=clamp((innerHeight-330)/innerHeight,.45,.78);
+  // Framed to the stars actually there (they turn about the vertical axis), so a few stars still fill the view.
+  const fit=pts=>{let r=4,y=3;for(const p of pts){r=Math.max(r,Math.hypot(p[0],p[2]));y=Math.max(y,Math.abs(p[1]))}return fitDist((r+1.5)/frac,(y+1.5)/vfrac)};
+  const dist=fitDist(EXT/frac,EXT*.8/vfrac);
+  const rig=makeRig(T,camera,{dist:dist*2,goal:dist,el:.5,elGoal:.22,min:10,max:dist*3,spin:.12});
+  const css=getComputedStyle(document.documentElement),col=(n,d)=>css.getPropertyValue(n).trim()||d;
+  const SVG='http://www.w3.org/2000/svg',root=document.createElement('div');root.className='hud';root.id='mem-labels';
+  const svg=document.createElementNS(SVG,'svg');svg.setAttribute('aria-hidden','true');root.appendChild(svg);stage.after(root);
+  let stars=[],sprites=[],objs=[],tags=[],scr=[],focus=-1,boxes=[],sides=[],bounds=null,frame=0;
+  const sprite=(c,o,s)=>{const m=new T.Sprite(new T.SpriteMaterial({map:dot,color:c,transparent:true,opacity:o,depthWrite:false,blending:T.AdditiveBlending}));m.scale.set(s,s,1);return m};
+  const short=t=>t.length>26?t.slice(0,25).trimEnd()+'…':t;
+  function build(){
+    objs.forEach(o=>{group.remove(o);if(o.isLineSegments)o.geometry.dispose();o.material.dispose()});objs=[];
+    tags.forEach(t=>{t.b.remove();t.ln.remove();t.pt.remove()});tags=[];sides=[];bounds=null;
+    stars=memoryStars();
+    const saved=[],visit=[];stars.forEach((st,i)=>(st.visit?visit:saved).push(i));
+    const pos=[],ps=constellation(saved.length,8),pv=constellation(visit.length,12.5,3);
+    saved.forEach((i,k)=>{pos[i]=ps[k]});visit.forEach((i,k)=>{pos[i]=pv[k]});
+    rig.goal=clamp(fit(pos),rig.min,rig.max);
+    const phos=new T.Color(col('--phos','#39ff88')),amber=new T.Color(col('--amber','#ffc24a'));
+    const core=sprite(phos,.95,stars.length?4.5:3);objs.push(core);
+    sprites=stars.map((st,i)=>{const m=sprite(st.visit?amber:phos,st.visit?.8:.95,st.visit?2.2:2.6);m.position.set(...pos[i]);m.userData.star=i;objs.push(m);return m});
+    const seg=[];
+    for(const set of [saved,visit])constellationLinks(set.map(i=>pos[i])).forEach(([a,b])=>seg.push(...pos[set[a]],...pos[set[b]]));
+    saved.slice(0,6).forEach(i=>seg.push(0,0,0,...pos[i])); // the core feeds the nearest settings
+    if(seg.length){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(seg,3));
+      objs.push(new T.LineSegments(g,new T.LineBasicMaterial({color:phos,transparent:true,opacity:.22,depthWrite:false})))}
+    group.add(...objs);
+    tags=stars.slice(0,MAXL).map((st,i)=>{
+      const b=document.createElement('button');b.type='button';b.className='suit-label'+(st.visit?' mem-visit':'');b.textContent=short(st.label);
+      b.addEventListener('click',()=>{focus=i;blip(1200,.06,.03);say(st.text)});root.appendChild(b);
+      const ln=document.createElementNS(SVG,'line'),pt=document.createElementNS(SVG,'circle');pt.setAttribute('r','3');
+      if(st.visit){ln.classList.add('visit');pt.classList.add('visit')}svg.append(ln,pt);
+      return {b,ln,pt};
+    });
+    setStat(stars.length?`${saved.length} SAVED · ${visit.length} THIS VISIT`:'EMPTY');
+  }
+  const readBounds=()=>{
+    const bot=[document.getElementById('f'),holoCap].map(e=>e.getBoundingClientRect()).filter(r=>r.height).map(r=>r.top);
+    const top=['holo-top','holo-close','holo-hands'].concat(HC?['hand-cam']:[]).map(id=>document.getElementById(id).getBoundingClientRect().bottom);
+    return {left:12,right:innerWidth-12,top:Math.max(...top)+8,bottom:Math.min(innerHeight-12,...bot)-8};
+  };
+  function place(){
+    if(!bounds||++frame%20===0)bounds=readBounds();
+    group.updateMatrixWorld();camera.updateMatrixWorld();
+    // Before the camera's first move, a star can sit exactly at the camera and project to Infinity: wait a frame.
+    scr=sprites.map(m=>{v.copy(m.position).applyMatrix4(group.matrixWorld).project(camera);return {x:(v.x+1)/2*innerWidth,y:(1-v.y)/2*innerHeight,behind:v.z>1}});
+    if(scr.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.y))){scr=[];return}
+    const pts=tags.map((t,i)=>({x:scr[i].x,y:scr[i].y,w:t.b.offsetWidth||labelW,h:t.b.offsetHeight||28}));
+    boxes=layoutCallouts(pts,bounds,sides);sides=boxes.map(o=>o.side);
+    boxes.forEach((o,i)=>{const t=tags[i],ex=o.side==='L'?o.x+o.w:o.x,ey=o.y+o.h/2;
+      t.b.style.transform=`translate(${Math.round(o.x)}px,${Math.round(o.y)}px)`;t.b.classList.toggle('on',i===focus);
+      t.ln.setAttribute('x1',o.ax.toFixed(1));t.ln.setAttribute('y1',o.ay.toFixed(1));t.ln.setAttribute('x2',ex.toFixed(1));t.ln.setAttribute('y2',ey.toFixed(1));
+      t.pt.setAttribute('cx',o.ax.toFixed(1));t.pt.setAttribute('cy',o.ay.toFixed(1))});
+    root.classList.add('ready');
+  }
+  // The star nearest a point on screen, within px, or -1.
+  const nearest=(x,y,px)=>{let best=-1,bd=px;scr.forEach((p,i)=>{if(p.behind)return;const d=Math.hypot(p.x-x,p.y-y);if(d<bd){bd=d;best=i}});return best};
+  function crush(i){const text=forgetStar(stars[i]);focus=-1;blip(160,.35,.035,'sawtooth');blip(90,.4,.03,'square',.08);build();place();return text}
+  build();
+  const intro=stars.length?"This is my memory core. Each bright star is something saved in this browser, and the amber ones are what you told me this visit. They fade when you close the page. Tap a star to hear it, or say forget that.":
+    "My memory core is empty. Nothing is saved in this browser, and you haven't told me anything this visit.";
+  return {scene,camera,rig,title:'MEMORY CORE',stat:holoStat.textContent,hint:MEM_HINT,intro,
+    pick(ndc){
+      const x=(ndc.x+1)/2*innerWidth,y=(1-ndc.y)/2*innerHeight;
+      let i=boxes.findIndex(o=>x>=o.x&&x<=o.x+o.w&&y>=o.y&&y<=o.y+o.h);if(i<0)i=nearest(x,y,44);
+      if(i<0)return null;focus=i;return stars[i].text;
+    },
+    next(dir){if(!stars.length)return null;focus=(focus+dir+stars.length*2)%stars.length;return stars[focus].text},
+    squeeze(on){if(!on||!handPos)return;const i=nearest(handPos.x,handPos.y,70);say(i>=0?crush(i):"Point the reticle at a star, then make a fist to forget it.")},
+    forget(){
+      let i=HC&&handPos?nearest(handPos.x,handPos.y,70):-1;if(i<0)i=focus;
+      if(i<0||!stars[i])return "Tap a star first, or point at one with hand control, then say forget that.";
+      return crush(i);
+    },
+    stars:()=>stars.map(s=>s.label),
+    dispose(){root.remove()},
+    update(dt,t){
+      sprites.forEach((m,i)=>{const st=stars[i];if(!st)return;
+        m.material.opacity=st.visit?(reduce?.7:.45+.4*(.5+.5*Math.sin(t*1.7+i*1.3))):(i===focus?1:.85);
+        const s=(st.visit?2.2:2.6)*(i===focus?1.6:1);m.scale.set(s,s,1)});
+      if(objs[0])objs[0].material.opacity=.75+.2*Math.sin(t*1.1*amb);
+      place();
+    }};
+}
+const BUILDERS={galaxy:buildGalaxy,solar:buildSolar,particles:buildParticles,neural:buildNeural,suit:buildSuit,globe:buildGlobe,memory:buildMemory};
+function resizeHolo(){if(!H||!H.renderer)return;H.renderer.setSize(innerWidth,innerHeight,false);H.camera.aspect=innerWidth/innerHeight;H.camera.updateProjectionMatrix()}
 function loop(now){
   if(!H)return;
   const dt=Math.min(.05,H.last?(now-H.last)/1000:0);H.last=now;H.t+=dt;
@@ -1415,19 +1779,20 @@ function closeHolo(keepHands){
   if(!H)return false;
   if(!keepHands)stopHands();
   const h=H;H=null;cancelAnimationFrame(h.raf);if(h.dispose)h.dispose();
-  h.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(o.material.map)o.material.map.dispose();o.material.dispose()}});
-  h.renderer.dispose();try{h.renderer.forceContextLoss()}catch(e){}
-  h.renderer.domElement.remove();
+  if(h.scene)h.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(o.material.map)o.material.map.dispose();o.material.dispose()}});
+  if(h.renderer){h.renderer.dispose();try{h.renderer.forceContextLoss()}catch(e){}h.renderer.domElement.remove()}
   holo.classList.remove('open');document.body.classList.remove('holo-on');
   closeTimer=setTimeout(()=>{if(!H)holo.hidden=true},reduce?0:600);
   return true;
 }
 async function project(it){
   if(it.kind==='hands')return it.arg?startHands():stopHands()?"Hand control off. The camera is off too.":"Hand control is already off.";
-  if(it.kind==='close')return closeHolo()?pick(["Projector off.","Closing the hologram."]):"The projector's already off.";
+  if(it.kind==='close'){const k=H&&H.kind;return closeHolo()?(k==='scan'?SCAN_OFF:pick(["Projector off.","Closing the hologram."])):"The projector's already off."}
   if(it.kind==='boot'){closeHolo();showBoot();runBoot();return null}
+  if(it.kind==='scan')return startScan();
   if(it.kind==='zoom'){
     if(!H)return "Nothing on the projector yet. Try asking for the galaxy.";
+    if(H.kind==='scan')return "The scanner doesn't zoom. Step closer instead.";
     const r=H.rig;r.goal=clamp(r.goal*(it.arg==='in'?.3:2.5),r.min,r.max);return it.arg==='in'?"Taking us in.":"Pulling back.";
   }
   if(!hasWebGL())return "My holo-projector needs WebGL, and this browser doesn't have it turned on.";
@@ -1437,7 +1802,7 @@ async function project(it){
   closeHolo(true);
   return startHolo(T,it.kind,it.arg);
 }
-document.getElementById('holo-close').addEventListener('click',()=>{closeHolo();say("Projector off.")});
+document.getElementById('holo-close').addEventListener('click',()=>{const k=H&&H.kind;closeHolo();say(k==='scan'?SCAN_OFF:"Projector off.")});
 addEventListener('resize',resizeHolo);
 
 /* Drag to orbit, pinch or scroll to zoom, tap to pick. */
@@ -1519,7 +1884,7 @@ function createGestures(){
 }
 const HAND_LINKS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
 const handsBtn=document.getElementById('holo-hands'),handCam=document.getElementById('hand-cam'),reticle=document.getElementById('reticle');
-let HC=null,landmarkerP=null;
+let HC=null,landmarkerP=null,handPos=null; // handPos: the reticle on screen, in px, while a hand is seen
 const toScreen=v=>clamp((v-.15)/.7,0,1); // the middle 70% of the camera's view covers the whole screen
 function loadLandmarker(){
   if(landmarkerP)return landmarkerP;
@@ -1537,7 +1902,7 @@ function loadLandmarker(){
 async function startHands(){
   if(HC)return "Hand control is already on.";
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return "Hand control needs a camera, and this browser can't use one here.";
-  if(!H){const r=await project({kind:'particles',arg:{shape:'sphere'}});if(!H)return r}
+  if(!H||H.kind==='scan'){const r=await project({kind:'particles',arg:{shape:'sphere'}});if(!H||H.kind==='scan')return r}
   holoHint.textContent='Starting hand tracking…';handsBtn.disabled=true;
   let stream=null,lm=null;
   try{
@@ -1564,7 +1929,7 @@ async function startHands(){
 }
 function stopHands(){
   if(!HC)return false;
-  cancelAnimationFrame(HC.raf);HC.stream.getTracks().forEach(t=>t.stop());HC.video.srcObject=null;HC=null;
+  cancelAnimationFrame(HC.raf);HC.stream.getTracks().forEach(t=>t.stop());HC.video.srcObject=null;HC=null;handPos=null;
   document.body.classList.remove('hands-on');handsBtn.setAttribute('aria-pressed','false');reticle.className='hud';
   if(H){H.rig.dragging=false;if(H.squeeze)H.squeeze(false);holoHint.textContent=H.hint}
   return true;
@@ -1591,6 +1956,7 @@ function applyGesture(a){
     case 'squeeze':if(H.squeeze)H.squeeze(a.on);break;
     case 'cursor':
       reticle.className='hud'+(a.hands?' on':'')+(a.pinch?' pinch':'');
+      handPos=a.hands?{x:toScreen(a.x)*innerWidth,y:toScreen(a.y)*innerHeight}:null;
       if(a.hands){reticle.style.left=toScreen(a.x)*innerWidth+'px';reticle.style.top=toScreen(a.y)*innerHeight+'px'}
       break;
   }
@@ -1613,12 +1979,160 @@ function handLoop(){
 }
 handsBtn.addEventListener('click',async()=>{const r=HC?(stopHands(),"Hand control off. The camera is off too."):await startHands();if(r)say(r)});
 
+/* ---------- Threat scan (MediaPipe face detector, self-hosted next to the hand tracker) ----------
+   The camera, mirrored, with brackets that lock onto each face and made-up readouts. The detector only
+   finds where faces are: it can't tell who anyone is, and the readouts are random, not read from the face.
+   Like hand control: the camera is on only while the scan is open, and nothing is saved or recorded. */
+const SCAN_OFF="Scan complete. The camera is off.";
+const SCAN_HINT='Camera stays on this device. Nothing is saved or recorded · tap a target to rescan it · say close to stop';
+const READOUTS=[
+  ['THREAT LEVEL',['MINIMAL','NEGLIGIBLE','MOSTLY HARMLESS','FLUFFY']],
+  ['SNACK LEVEL',['CRITICAL','DANGEROUSLY LOW','NEEDS PIZZA','ADEQUATE']],
+  ['COOLNESS',['OFF THE CHARTS','11 OUT OF 10','MAXIMUM','CLASSIFIED']],
+  ['HUMOR CIRCUITS',['FULLY CHARGED','DAD-JOKE READY','GIGGLING']],
+  ['SUPERHERO POTENTIAL',['97%','RISING FAST','CONFIRMED']],
+  ['DANCE MOVES',['LEGENDARY','UNSTOPPABLE','PENDING REVIEW']],
+  ['SLEEPINESS',['WIDE AWAKE','YAWN IMMINENT','MODERATE']]
+];
+// Three made-up readout lines: always the threat level first, then two other different ones.
+function scanReadout(rnd=Math.random){
+  const p=a=>a[Math.floor(rnd()*a.length)%a.length],rest=READOUTS.slice(1),a=Math.floor(rnd()*rest.length)%rest.length;
+  const b=(a+1+Math.floor(rnd()*(rest.length-1))%(rest.length-1))%rest.length;
+  return [READOUTS[0],rest[a],rest[b]].map(([k,v])=>`${k}: ${p(v)}`);
+}
+// How a video frame of vw×vh fills a W×Hh screen without stretching ("cover"), mirrored like a selfie.
+// Takes a box in video pixels and returns it in screen pixels.
+function coverMap(vw,vh,W,Hh){
+  const s=Math.max(W/vw,Hh/vh),ox=(W-vw*s)/2,oy=(Hh-vh*s)/2;
+  return {s,ox,oy,box:b=>({x:W-(ox+(b.originX+b.width)*s),y:oy+b.originY*s,w:b.width*s,h:b.height*s})};
+}
+// Follows faces from frame to frame, so each keeps its number and readout while it moves.
+// step(boxes, t) takes screen boxes and returns the targets, each {id, x, y, w, h, seen, born, lines, fresh}.
+function createFaceTracker(rnd=Math.random){
+  let tracks=[],nextId=1;
+  return function step(boxes,t){
+    const free=new Set(tracks);
+    for(const b of boxes){
+      const cx=b.x+b.w/2,cy=b.y+b.h/2;let best=null,bd=Infinity;
+      for(const k of free){const d=Math.hypot(k.x+k.w/2-cx,k.y+k.h/2-cy);if(d<bd&&d<Math.max(k.w,b.w)*.75){bd=d;best=k}}
+      if(best){free.delete(best);for(const q of ['x','y','w','h'])best[q]+=(b[q]-best[q])*.5;best.seen=t;best.fresh=false}
+      else tracks.push({id:nextId++,...b,seen:t,born:t,lines:scanReadout(rnd),fresh:true});
+    }
+    tracks=tracks.filter(k=>t-k.seen<=.5); // a face that's gone for half a second is dropped
+    return tracks;
+  };
+}
+let detectorP=null;
+function loadFaceDetector(){
+  if(detectorP)return detectorP;
+  const url=f=>new URL('jarvis/hands/'+f,location.href).href;
+  detectorP=(async()=>{
+    const {FaceDetector}=await import(url('vision_bundle.js'));
+    const files={wasmLoaderPath:url('vision_wasm_internal.js'),wasmBinaryPath:url('vision_wasm_internal.wasm')};
+    const opts=delegate=>({baseOptions:{modelAssetPath:url('blaze_face_short_range.tflite'),delegate},runningMode:'VIDEO',minDetectionConfidence:.6});
+    try{return await FaceDetector.createFromOptions(files,opts('GPU'))}catch(e){return await FaceDetector.createFromOptions(files,opts('CPU'))}
+  })();
+  detectorP.catch(()=>{detectorP=null});
+  return detectorP;
+}
+const NO_RIG={az:0,el:0,elGoal:0,dist:1,goal:1,min:1,max:1,dragging:false,kick:0,update(){}};
+async function startScan(){
+  if(H&&H.kind==='scan')return "I'm already scanning.";
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return "The threat scan needs a camera, and this browser can't use one here.";
+  closeHolo(); // also turns hand control off, since the scan needs the camera
+  const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
+  const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim();
+  const S={kind:'scan',rig:NO_RIG,raf:0,ctx,stream:null,video:null,det:null,track:createFaceTracker(),targets:[],lastVT:-1,announced:0,lastSaid:-9,t0:performance.now(),
+    colors:{phos:col('--phos')||'#39ff88',amber:col('--amber')||'#ffc24a',text:col('--text')||'#c9ffe0'},
+    hint:SCAN_HINT,
+    pick(ndc){
+      const x=(ndc.x+1)/2*innerWidth,y=(1-ndc.y)/2*innerHeight;
+      const k=S.targets.find(k=>x>=k.x&&x<=k.x+k.w&&y>=k.y&&y<=k.y+k.h);
+      if(!k)return null;k.lines=scanReadout();return `Rescanning target ${k.id}. ${k.lines.map(sentence).join(' ')}`;
+    },
+    dispose(){
+      cancelAnimationFrame(S.raf);if(S.stream)S.stream.getTracks().forEach(t=>t.stop());if(S.video)S.video.srcObject=null;
+      S.stream=S.video=null;canvas.remove();document.body.classList.remove('scan-on');
+    }};
+  H=S;
+  stage.appendChild(canvas);document.body.classList.add('scan-on');
+  holoTitle.textContent='THREAT SCAN // FACE LOCK';setStat('STARTING CAMERA…');holoHint.textContent=SCAN_HINT;holoCap.textContent='';
+  clearTimeout(closeTimer);holo.hidden=false;document.body.classList.add('holo-on');void holo.offsetWidth;holo.classList.add('open');
+  blip(220,.3,.03,'sawtooth');blip(440,.3,.025,'square',.15);
+  const fail=msg=>{if(H===S)closeHolo();else S.dispose();return msg};
+  try{S.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false})}
+  catch(e){
+    if(/NotAllowed|Security/.test(e.name))return fail("I need permission to use the camera for the threat scan. The video never leaves this device.");
+    if(/NotFound|Overconstrained/.test(e.name))return fail("I couldn't find a camera for the threat scan.");
+    if(/NotReadable/.test(e.name))return fail("Your camera seems to be busy in another app. Close it and try again.");
+    return fail("I couldn't start the camera for the threat scan.");
+  }
+  if(H!==S){S.stream.getTracks().forEach(t=>t.stop());return null} // closed while the camera was starting
+  setStat('LOADING FACE DETECTOR…');
+  try{S.det=await loadFaceDetector()}catch(e){return fail("The threat scan couldn't start in this browser.")}
+  if(H!==S){S.dispose();return null}
+  const video=S.video=document.createElement('video');video.playsInline=true;video.muted=true;video.srcObject=S.stream;
+  try{await video.play()}catch(e){}
+  if(H!==S){S.dispose();return null}
+  setStat('SCANNING… NO TARGETS');
+  S.raf=requestAnimationFrame(scanLoop);
+  return "Threat scan online. The camera stays on this device, and nothing is saved.";
+}
+const sentence=l=>{const [k,v]=l.split(': ');return `${k[0]+k.slice(1).toLowerCase()}: ${v.toLowerCase()}.`};
+function scanLoop(now){
+  const S=H;if(!S||S.kind!=='scan')return;S.raf=requestAnimationFrame(scanLoop);
+  const c=S.ctx;if(!c)return;const cvs=c.canvas;
+  const dpr=Math.min(window.devicePixelRatio||1,2),W=innerWidth,Hh=innerHeight;
+  if(cvs.width!==Math.round(W*dpr)||cvs.height!==Math.round(Hh*dpr)){cvs.width=Math.round(W*dpr);cvs.height=Math.round(Hh*dpr)}
+  c.setTransform(dpr,0,0,dpr,0,0);
+  const v=S.video,t=(now-S.t0)/1000;if(!v||v.readyState<2||!v.videoWidth){c.fillStyle='#000';c.fillRect(0,0,W,Hh);return}
+  const map=coverMap(v.videoWidth,v.videoHeight,W,Hh);
+  if(v.currentTime!==S.lastVT){
+    S.lastVT=v.currentTime;let res=null;
+    try{res=S.det.detectForVideo(v,now)}catch(e){}
+    if(res)S.targets=S.track((res.detections||[]).map(d=>map.box(d.boundingBox)),t);
+    const n=S.targets.length;setStat(n?`${n} TARGET${n>1?'S':''} LOCKED`:'SCANNING… NO TARGETS');
+    if(n>S.announced&&t-S.lastSaid>4){
+      const k=S.targets.find(k=>k.fresh)||S.targets[n-1];S.lastSaid=t;
+      say(n===1?`Target acquired. ${k.lines.slice(0,2).map(sentence).join(' ')}`:`${n} targets acquired. ${sentence(k.lines[0])}`);
+    }
+    S.announced=n;
+  }
+  c.save();c.translate(W,0);c.scale(-1,1);c.drawImage(v,map.ox,map.oy,v.videoWidth*map.s,v.videoHeight*map.s);c.restore();
+  c.fillStyle='rgba(2,20,10,.35)';c.fillRect(0,0,W,Hh);
+  const {phos,amber,text}=S.colors;
+  if(!reduce){ // a scan line sweeping down the picture
+    const y=(t*.35%1)*Hh,g=c.createLinearGradient(0,y-60,0,y);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,phos);
+    c.globalAlpha=.25;c.fillStyle=g;c.fillRect(0,y-60,W,60);c.globalAlpha=.9;c.fillStyle=phos;c.fillRect(0,y-1,W,2);c.globalAlpha=1;
+  }
+  const top=document.getElementById('holo-top').getBoundingClientRect().bottom+8;
+  const bottom=Math.min(holoCap.textContent?holoCap.getBoundingClientRect().top:Hh,f.getBoundingClientRect().top)-8;
+  const fs=W<600?11:13;c.font=`500 ${fs}px "Chakra Petch", sans-serif`;c.textBaseline='top';
+  for(const k of S.targets){
+    const age=t-k.born,lock=reduce?1:clamp(age/.35,0,1),grow=1+(1-lock)*.6;
+    const w=k.w*grow,h=k.h*grow,x=k.x+k.w/2-w/2,y=k.y+k.h/2-h/2,arm=Math.min(w,h)*.22;
+    c.strokeStyle=lock>=1?amber:phos;c.lineWidth=3;c.shadowColor=c.strokeStyle;c.shadowBlur=10;c.beginPath();
+    for(const [px,py,sx,sy] of [[x,y,1,1],[x+w,y,-1,1],[x,y+h,1,-1],[x+w,y+h,-1,-1]]){c.moveTo(px+sx*arm,py);c.lineTo(px,py);c.lineTo(px,py+sy*arm)}
+    c.stroke();c.shadowBlur=0;
+    if(lock<1)continue;
+    // the readout: beside the face where there's room, kept on screen and between the top HUD and the caption
+    const lines=[`TARGET ${String(k.id).padStart(2,'0')}`,...k.lines],lh=fs*1.45,pad=7;
+    const bw=Math.min(W-16,Math.max(...lines.map(l=>c.measureText(l).width))+pad*2),bh=lines.length*lh+pad*2-(lh-fs);
+    let bx=x+w+12;if(bx+bw>W-8)bx=x-12-bw;if(bx<8)bx=clamp(x+w/2-bw/2,8,W-8-bw);
+    let by=clamp(y,top,Math.max(top,bottom-bh));
+    if(bx<x+w&&bx+bw>x&&by<y+h&&by+bh>y)by=y+h+10<=bottom-bh?y+h+10:Math.max(top,y-10-bh); // no room beside it: above or below
+    c.fillStyle='rgba(2,10,6,.85)';c.fillRect(bx,by,bw,bh);c.strokeStyle=phos;c.lineWidth=1;c.strokeRect(bx+.5,by+.5,bw-1,bh-1);
+    lines.forEach((l,i)=>{c.fillStyle=i?text:amber;c.fillText(l,bx+pad,by+pad+i*lh)});
+  }
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&H&&H.kind==='scan')closeHolo()}); // never leave the camera on in a hidden tab
+
 /* ---------- Boot sequence ---------- */
 const boot=document.getElementById('boot'),bootGo=document.getElementById('boot-go'),bootLog=document.getElementById('boot-log');
 let booting=false,bootTimers=[];
 function placeBootButton(){const r=cv.getBoundingClientRect();if(r.height)bootGo.style.top=(r.top+r.height/2)+'px'}
 function greeting(){
-  if(skin!=='jarvis')return SKINS[skin].hello;
+  if(skin!=='jarvis')return SKINS[skin].hello(userName?', '+userName:'');
   const h=new Date().getHours(),part=h<12?'morning':h<18?'afternoon':'evening';
   return `Good ${part}${userName?', '+userName:''}. All systems online. Tap the mic or type to talk to me.`;
 }
@@ -1638,19 +2152,24 @@ function runBoot(){
   bootTimers.push(setTimeout(finishBoot,dur+350));
   (function grow(){if(!booting)return;bootP=Math.min(1,(performance.now()-t0)/dur);if(bootP<1)requestAnimationFrame(grow)})();
 }
+let greeted=false; // the first-visit and streak lines are said once per visit, not on every reboot
 function finishBoot(){
   if(boot.hidden)return;
   bootTimers.forEach(clearTimeout);bootTimers=[];booting=false;bootP=1;
   boot.classList.add('fade');bootTimers.push(setTimeout(()=>{boot.hidden=true},reduce?0:600));
   blip(440,.18,.03,'sine');blip(880,.3,.03,'sine',.1);
-  say(greeting());q.focus();
+  let g=greeting();
+  if(!greeted){greeted=true;g+=firstTime?" This looks like my first time on this device.":streak.days>1?' '+streakLine(streak.days):''}
+  say(g);q.focus();
+  // A favourite scene opens after the greeting; its intro goes in the log rather than cutting the greeting off.
+  if(settings.scene)setTimeout(async()=>{if(H||booting)return;const r=await project({kind:settings.scene});if(r)add(r,'ai')},1200);
 }
 bootGo.addEventListener('click',runBoot);
 document.getElementById('boot-skip').addEventListener('click',finishBoot);
 addEventListener('resize',placeBootButton);
 addEventListener('keydown',e=>{
   if(e.key!=='Escape')return;
-  if(!boot.hidden)finishBoot();else if(closeHolo())say("Projector off.");
+  const k=H&&H.kind;if(!boot.hidden)finishBoot();else if(closeHolo())say(k==='scan'?SCAN_OFF:"Projector off.");
 });
 
 /* ---------- Skin switching ---------- */
@@ -1665,15 +2184,16 @@ function skinIntent(raw){
   return null;
 }
 let rainTimer=0;
-function setSkin(k){
+function setSkin(k,save=true){
   if(!Object.hasOwn(SKINS,k))k='jarvis';
   const was=skin;skin=k;const S=SKINS[k];
   document.documentElement.dataset.skin=k;whoEl.textContent=S.name;skinBtn.textContent='SKIN: '+S.label;
-  ringRGB=S.ring;coreRGB=S.core;
-  store('jarvis-skin',k);
+  orbColours();
+  if(save)store('jarvis-skin',k);
   if(synth)pickVoice();
   rain(k==='matrix');
-  return was===k?`I'm already ${S.short}.`:S.hello;
+  if(wakeBtn)wakeBtn.textContent=`👂 HEY ${wakeName(k).toUpperCase()}: ${wakeOn?'ON':'OFF'}`;
+  return was===k?`I'm already ${S.short}.`:S.hello(userName?', '+userName:'');
 }
 skinBtn.addEventListener('click',()=>{const ks=Object.keys(SKINS);say(setSkin(ks[(ks.indexOf(skin)+1)%ks.length]))});
 // Matrix digital rain behind everything, only for the Matrix skin, and still when reduced motion is asked for.
@@ -1699,6 +2219,110 @@ function flair(text){
   return n%3===0?`${S.open[(n/3|0)%S.open.length]} ${text}`:n%3===1?`${text} ${S.close[(n/3|0)%S.close.length]}`:text;
 }
 
+
+/* ---------- "Brief me": the time, then the newest headline from a few of My Daily Wire's categories ----------
+   daily-wire/feeds.json is a file on this site, refreshed every 6 hours, so connect-src 'self' already allows it.
+   No weather: that would need an outside service and your location, which the user decided against. */
+const BRIEF_CATS=[['news','In the news'],['swfl','In Southwest Florida'],['tech','In tech'],['science','In science and space']];
+// Live-stream spam slips into the local news searches: styled letters (fullwidth, maths bold), a
+// foreign-script publisher on an English headline, or "watch live" bait. Skip it and read the next one.
+function briefSpam(i){
+  const t=String(i.title)+' '+String(i.source||'');
+  return /[\uFF01-\uFF5E\u0400-\u04FF\u2295]|\uD835[\uDC00-\uDFFF]/.test(t)||/\b(?:watch|stream(?:ing|s)?) (?:live|online|free)\b|\blive ?streams?\b|\bhd live\b/i.test(t);
+}
+function briefingText(data,now=new Date()){
+  const parts=[`It's ${now.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})} on ${now.toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'})}.`];
+  const items=data&&Array.isArray(data.items)?data.items:[];
+  const time=i=>{const v=Date.parse(i.date);return isNaN(v)?0:v};
+  let n=0;
+  for(const [cat,lead] of BRIEF_CATS){
+    const top=items.filter(i=>i&&i.category===cat&&typeof i.title==='string'&&i.title.trim()&&!briefSpam(i)).sort((a,b)=>time(b)-time(a))[0];
+    if(!top)continue;
+    let title=top.title.replace(/\s+/g,' ').trim(),source=String(top.source||'');
+    // Google News titles end with " - Publisher": say the publisher, not the search it came from
+    if(/^Google News\b/.test(source)){const m=title.match(/^(.{12,}) [-–—] (.{2,60})$/);source='';if(m){title=m[1];source=m[2].trim()}}
+    if(title.length>180)title=title.slice(0,177).replace(/\s+\S*$/,'')+'…';
+    parts.push(`${lead}: ${title.replace(/[.!?…]*$/,'')}${source?`, from ${source}`:''}.`);n++;
+  }
+  if(!n)return parts[0]+" I couldn't find any headlines right now.";
+  const age=(now-Date.parse(data.generatedAt))/36e5;
+  if(age>=24)parts.push(`These headlines are ${Math.round(age/24)===1?'a day':Math.round(age/24)+' days'} old.`);
+  return parts.join(' ');
+}
+async function briefing(){
+  try{
+    const r=await fetch('daily-wire/feeds.json',{cache:'no-cache'});if(!r.ok)throw new Error(r.status);
+    return briefingText(await r.json());
+  }catch(e){return briefingText(null).replace(" I couldn't find any headlines right now."," I couldn't load the headlines just now.")}
+}
+const BRIEF_RE=/^(?:please )?(?:brief me|(?:give me |read me |start )?(?:my |the |a |your )?(?:morning |daily |evening |news )?briefing|(?:what's|what is|whats) (?:in )?the (?:news|headlines)|(?:give me |read me |tell me )?(?:the |today's )?(?:news|headlines)(?: today| please)?)$/;
+
+/* ---------- Short-term memory (Session 7): what you tell him, for this visit only ----------
+   "My dog is Rex", "I'm going to the beach", "remember that the game is at seven". Kept in this array, shared by
+   every skin, and gone when the page closes. Nothing here is ever passed to store(). */
+const MEMORY_MAX=30;
+let memory=[]; // [{key, label, text}], newest last
+const keyOf=t=>normPhrase(t).replace(/\bfavorite\b/g,'favourite').replace(/\bcolor\b/g,'colour').replace(/^(?:the|a|an) /,'');
+const cap=t=>t.charAt(0).toUpperCase()+t.slice(1);
+const YOU={"i'm":"you're",'i am':'you are','i was':'you were',i:'you',me:'you',my:'your',mine:'yours',myself:'yourself',am:'are',"i've":"you've","i'll":"you'll","i'd":"you'd"};
+const youForm=t=>t.replace(/\b(?:i'm|i am|i was|i've|i'll|i'd|i|me|my|mine|myself|am)\b/gi,w=>YOU[w.toLowerCase()]);
+// Something to remember, as {key, label, text} (text says it back to you), or null.
+function memoryTell(raw){
+  const t=String(raw).trim().replace(/[.!]+$/,'').replace(/\s+/g,' ');let m;
+  if(t.length>120||/^(?:remember (?:that )?)?my (?:full |first |last |real )?name\b/i.test(t))return null; // names: see brainKnown
+  if(m=t.match(/^(?:(?:please )?remember (?:that )?)?my ([a-z][a-z' ]{0,30}?) (?:is|are)(?: called| named)? (.{1,60})$/i)){
+    let thing=m[1].trim(),named=false;const v=m[2].trim();
+    if(/(?:'s|s'|) name$/i.test(thing)){thing=thing.replace(/(?:'s|s')? name$/i,'');named=true}
+    if(!thing||/^(?:name|favourite|favorite)$/i.test(thing)||/^(?:not|so|very|really|too)\b/i.test(v))return null;
+    return {key:keyOf(thing),label:`${thing}: ${v}`,text:`your ${thing.toLowerCase()}${named?"'s name":''} ${/s$/i.test(thing)&&!named?'are':'is'} ${v}`};
+  }
+  if(m=t.match(/^(?:(?:please )?remember (?:that )?)?i(?:'m| am) (going|heading|off) (to|on|for) (.{2,60})$/i))
+    return {key:'plan',label:`${m[1]} ${m[2]} ${m[3]}`,text:`you're ${m[1].toLowerCase()} ${m[2].toLowerCase()} ${youForm(m[3])}`};
+  if((m=t.match(/^(?:(?:please )?remember (?:that )?)?i (really )?(like|love|hate) (.{2,60})$/i))&&!/^(?:you|it|this|that|them)$/i.test(m[3]))
+    return {key:`${m[2].toLowerCase()}:${keyOf(m[3])}`,label:`${m[2]}s ${m[3]}`,text:`you ${m[1]?'really ':''}${m[2].toLowerCase()} ${youForm(m[3])}`};
+  if(m=t.match(/^(?:please )?remember (?:that )?(.{3,80})$/i)){
+    if(/^(?:me|this|that|it|everything)$/i.test(m[1]))return null;
+    return {key:'note:'+keyOf(m[1]),label:m[1],text:youForm(m[1])};
+  }
+  return null;
+}
+function remember(f){
+  memory=memory.filter(x=>x.key!==f.key);memory.push(f);if(memory.length>MEMORY_MAX)memory.shift();
+  return `Got it: ${f.text}. I'll remember that until you close this page, whichever skin I'm in. I never save it.`;
+}
+const listWords=a=>a.length>1?a.slice(0,-1).join(', ')+' and '+a[a.length-1]:a[0]||'';
+// An answer from short-term memory, or null when the question isn't one for it.
+function memoryAsk(raw){
+  const s=normPhrase(raw);let m;
+  if(/^(?:what (?:did|have) i (?:told|tell) you|what do you remember|what have you remembered|what did i ask you to remember)\b/.test(s))
+    return memory.length?`This visit only: ${listWords(memory.map(x=>x.text))}.`:"You haven't told me anything to remember this visit.";
+  if(/^(?:where am i (?:going|heading|off to)|what am i doing (?:today|later|tonight)|what are my plans|what was i going to do|where was i going)\b/.test(s)){
+    const f=memory.find(x=>x.key==='plan');return f?cap(f.text)+'.':"You haven't told me where you're going.";
+  }
+  if(m=s.match(/^what (?:do|did) i (like|love|hate)\b/)){
+    const fs=memory.filter(x=>x.key.startsWith(m[1]+':'));return fs.length?cap(listWords(fs.map(x=>x.text)))+'.':`You haven't told me what you ${m[1]} this visit.`;
+  }
+  if(m=s.match(/^(?:what(?:'s| is| are| was| were)|who(?:'s| is| are)|do you (?:know|remember)) my ([a-z][a-z' ]{0,30}?)(?:'s name|s' name| name| called)?$/)){
+    if(/^(?:full |first |last )?name$/.test(m[1]))return null;
+    const f=memory.find(x=>x.key===keyOf(m[1]));
+    return f?cap(f.text)+'.':`You haven't told me about your ${m[1]} this visit.`;
+  }
+  return null;
+}
+// "Forget my dog", "forget what I told you": a short-term memory goes, or all of them.
+function memoryForget(raw){
+  const s=normPhrase(raw);let m;
+  if(/^(?:please )?(?:forget|erase|delete|clear) (?:everything i (?:told|said to) you|what i told you|all (?:of )?that|everything about me|what you know about me)$/.test(s)){
+    const n=memory.length+(userName?1:0);memory=[];userName=null;
+    return n?"Done. I've forgotten everything you told me this visit.":"You haven't told me anything this visit.";
+  }
+  if((m=s.match(/^(?:please )?(?:forget|erase|delete) (?:about )?my ([a-z][a-z' ]{0,30})$/))&&!/^(?:full |first |last )?name$|^settings$/.test(m[1])){
+    const k=keyOf(m[1].replace(/(?:'s|s')? name$/,'')),had=memory.some(x=>x.key===k);memory=memory.filter(x=>x.key!==k);
+    return had?`Done. I've forgotten your ${m[1]}.`:`You haven't told me about your ${m[1]}.`;
+  }
+  return null;
+}
+
 /* ---------- Learned phrases (this browser only) ---------- */
 // When Jarvis doesn't understand something, he asks what you meant. If that turns out to be something he
 // knows, the phrase is saved here, so saying it again just works. Stored in localStorage, nowhere else.
@@ -1716,11 +2340,16 @@ function learn(said,meant){
 }
 let pendingTeach=null; // the phrase Jarvis just didn't understand, while he waits to hear what it meant
 const NOPE=Symbol('not understood');
-const CAN_DO="Here's what I can do: tell the time or date, a joke, a fun fact or some math, flip a coin or roll a die, show you things on the holo-projector like Mars, Earth or your name, suit up, show my brain, or switch to the Matrix or Panthers skin.";
+const CAN_DO="Here's what I can do: tell ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧ or some math, ⟦flip a coin⟧ or ⟦roll a die⟧, show you things on the holo-projector like ⟦Mars|take me to Mars⟧, ⟦Earth|show me Earth⟧ or ⟦your name|write my name⟧, ⟦suit up⟧, show ⟦my brain|show me your brain⟧ or ⟦my memory|show me your memory⟧, run a ⟦threat scan|scan the room⟧, give you a ⟦briefing|brief me⟧, remember what you tell me this visit, change my settings, or switch to the ⟦Matrix|switch to Matrix⟧ or ⟦Panthers|switch to Panthers⟧ skin.";
+CHIP_CMDS=chipCommands(brainKnown('help'),CAN_DO);
 // One answer, or NOPE when nothing understood it. A learned phrase stands in for what it means.
 async function respond(text){
   const p=normPhrase(text);if(learned[p])text=learned[p];
+  const mt=memoryTell(text);if(mt)return remember(mt);
+  const ma=memoryAsk(text);if(ma!==null)return ma;
+  const se=settingsIntent(text);if(se)return applySetting(se);
   const sk=skinIntent(text);if(sk)return setSkin(sk);
+  if(BRIEF_RE.test(normPhrase(text).replace(/^(?:jarvis )/,'')))return await briefing();
   const it=intent(text);if(it)return await project(it);
   if(skin!=='jarvis'&&/who are you|your name|what are you/.test(normPhrase(text)))return SKINS[skin].who;
   const b=brainKnown(text);return b===null?NOPE:flair(b);
@@ -1728,7 +2357,16 @@ async function respond(text){
 const MEANT=/^(?:what\s+)?i\s+(?:was\s+(?:trying|going)\s+to\s+(?:say|ask)|tried\s+to\s+(?:say|ask)|wanted\s+to\s+(?:say|ask)|meant\s+to\s+(?:say|ask)|wanted\s+(?:you\s+)?to|want\s+(?:you\s+)?to|meant|mean)(?:\s+(?:was|is))?[\s,:]*/i;
 async function answer(text){
   const p=normPhrase(text);
-  if(/^(?:jarvis )?(?:what (?:do|did|will) you (?:save|store|keep|remember|know about me)|what (?:have you|do you have) (?:saved|stored)|what(?:'s| is) (?:saved|stored)|privacy check|what do you know about me)\b/.test(p))return storedSummary();
+  if(/^(?:jarvis )?(?:what do you know about me|what (?:do|did) you (?:know|remember) about me)\b/.test(p))
+    return `${memory.length?`This visit only, and never saved: ${listWords(memory.map(x=>x.text))}.`:"You haven't told me anything about you this visit."} ${storedSummary()}`;
+  if(/^(?:jarvis )?(?:what (?:do|did|will) you (?:save|store|keep)|what (?:have you|do you have) (?:saved|stored)|what(?:'s| is) (?:saved|stored)|privacy check)\b/.test(p))return storedSummary();
+  if(pendingTeach===null&&/^(?:please )?forget (?:that|this|it|that one)$/.test(p)){
+    if(H&&H.kind==='memory')return H.forget();
+    const f=memory.pop();return f?`Done. I've forgotten that ${f.text}.`:"There's nothing from this visit to forget.";
+  }
+  const mf=memoryForget(text);if(mf)return mf;
+  const se=settingsIntent(text);if(se&&se.key==='all')return applySetting(se);
+  const w=wakeIntent(text);if(w!==null)return setWake(w);
   if(/^(?:forget|clear|erase|wipe|reset|delete)\b.*\b(?:learned|learnt|taught|memory|phrases)\b/.test(p)){
     pendingTeach=null;const n=Object.keys(learned).length;learned=Object.create(null);saveLearned();
     return n?`Done. I've forgotten the ${n===1?'phrase':n+' phrases'} you taught me.`:"You haven't taught me anything yet.";
@@ -1746,6 +2384,7 @@ async function answer(text){
     if(r===NOPE)return "I don't understand that either, so we'll have to move on. I'm not programmed for this.";
     const why=personal(said)||personal(meant);
     if(why)return `I did it this time, but I won't save that phrase, because it has ${why} in it.${r?' '+r:''}`;
+    if(memoryTell(meant)||memoryAsk(meant)!==null)return r; // short-term memory is never saved, not even as a taught phrase
     if(normPhrase(meant)!==said)learn(said,meant);
     const got=`Got it. Next time you say "${said}", I'll know you mean "${meant}".`;
     return r?`${got} ${r}`:got;
@@ -1776,22 +2415,86 @@ function micTrouble(err){
     'no-speech':"I didn't hear anything. Tap the mic and try again.",
     'language-not-supported':"Speech recognition doesn't support English on this device. You can type instead."}[err]||null;
 }
+// "Hey Jarvis": with always listening on, recognition keeps running and only acts on what starts with the
+// wake word (Jarvis, or the current skin's name). Off by default, never saved, and off when the tab is hidden.
+const wakeBtn=document.getElementById('wake'),wakeNote=document.getElementById('wake-note');
+// Chrome and Edge (Chromium, which has userAgentData) are the browsers where continuous recognition works.
+const wakeOK=!!SR&&!!(navigator.userAgentData&&Array.isArray(navigator.userAgentData.brands)&&navigator.userAgentData.brands.some(b=>/Chrom|Edge/.test(b.brand)));
+let wakeOn=false,armedUntil=0,wakeRestarts=[];
+// What follows the wake word, '' for the wake word alone, or null when the phrase doesn't start with it.
+function wakeCommand(text,names='jarvis'){
+  const m=String(text).trim().match(new RegExp(`^(?:(?:hey|hi|hello|ok|okay|yo)[\\s,]+)?(?:${names})\\b[\\s,.:;!?-]*(.*)$`,'i'));
+  return m?m[1].trim():null;
+}
+const wakeName=k=>SKINS[k].short.split(' ')[0]; // the first name: "Stanley", not "Stanley C. Panther"
+const wakeNames=()=>['jarvis',wakeName(skin).toLowerCase()].filter((v,i,a)=>a.indexOf(v)===i).join('|');
+function wakeIntent(raw){
+  const s=normPhrase(raw);
+  if(/\b(?:stop|turn off|disable|end|no more|quit)\b.*\b(?:always listening|listening all the time|wake word|hey jarvis)\b|\b(?:always listening|wake word|hey jarvis)(?: mode)? off\b/.test(s))return false;
+  if(/\b(?:always listen(?:ing)?|listen all the time|keep listening|wake word|hey jarvis mode)\b/.test(s))return true;
+  return null;
+}
+let setWake=()=>"Always listening works in Chrome and Edge only, with a microphone.";
 if(SR){
   // Shown until the mic has been used once on this device.
   let noted=false;try{noted=!!localStorage.getItem('jarvis-mic-note')}catch(e){}
   if(!noted)micNote.hidden=false;
   const rec=new SR();rec.lang='en-US';rec.interimResults=false;
-  rec.onstart=()=>{hearing=false;mic.classList.add('on');setMode('listen');store('jarvis-mic-note','1');};
+  const armed=()=>performance.now()<armedUntil;
+  rec.onstart=()=>{hearing=false;store('jarvis-mic-note','1');if(wakeOn&&!armed())return;mic.classList.add('on');setMode('listen')};
   // The orb reacts to your voice through recognition's own events, so it never competes for the mic.
-  rec.onspeechstart=()=>{hearing=true};rec.onspeechend=()=>{hearing=false};
-  rec.onend=()=>{hearing=false;mic.classList.remove('on');if(mode==='listen')setMode('idle')};
-  rec.onerror=e=>{hearing=false;mic.classList.remove('on');setMode('idle');const why=micTrouble(e&&e.error);if(why)add(why,'ai')};
-  rec.onresult=e=>handle(e.results[0][0].transcript);
-  mic.addEventListener('click',()=>{if(synth)synth.cancel();try{rec.start()}catch(e){if(e&&e.name==='InvalidStateError')rec.stop();else add("I couldn't start listening. Try again, or type instead.",'ai')}});
+  rec.onspeechstart=()=>{hearing=true;wakeUp()};rec.onspeechend=()=>{hearing=false};
+  rec.onend=()=>{
+    hearing=false;mic.classList.remove('on');if(mode==='listen')setMode('idle');
+    if(!wakeOn)return;
+    // Chrome ends a continuous session after a silence or a network hiccup: start again, but not in a tight loop.
+    const now=performance.now();wakeRestarts=wakeRestarts.filter(x=>now-x<10000);wakeRestarts.push(now);
+    if(wakeRestarts.length>5){add(setWake(false,"Always listening stopped, because speech recognition kept ending. Tap the switch to try again."),'ai');return}
+    setTimeout(()=>{if(wakeOn)try{rec.start()}catch(e){}},300);
+  };
+  rec.onerror=e=>{
+    hearing=false;mic.classList.remove('on');if(mode==='listen')setMode('idle');
+    if(wakeOn&&/not-allowed|service-not-allowed|audio-capture/.test(e&&e.error))add(setWake(false,"Always listening is off: the browser wouldn't let me use the microphone."),'ai');
+    else if(!wakeOn){const why=micTrouble(e&&e.error);if(why)add(why,'ai')}
+  };
+  function heard(text){
+    if(synth&&synth.speaking)return; // don't act on Jarvis's own voice
+    const cmd=wakeCommand(text,wakeNames());
+    if(cmd===null){if(armed()){armedUntil=0;mic.classList.remove('on');handle(text)}return}
+    if(!cmd){armedUntil=performance.now()+8000;mic.classList.add('on');setMode('listen');blip(880,.08,.03);return} // "Jarvis" alone: listen for the next phrase
+    armedUntil=0;mic.classList.remove('on');handle(cmd);
+  }
+  rec.onresult=e=>{
+    if(!wakeOn){handle(e.results[0][0].transcript);return}
+    for(let i=e.resultIndex||0;i<e.results.length;i++)if(e.results[i].isFinal!==false)heard(e.results[i][0].transcript);
+  };
+  mic.addEventListener('click',()=>{
+    if(synth)synth.cancel();
+    // With always listening on, recognition is already running: a tap means "the next thing I say is for you".
+    if(wakeOn){armedUntil=performance.now()+8000;mic.classList.add('on');setMode('listen');return}
+    try{rec.start()}catch(e){if(e&&e.name==='InvalidStateError')rec.stop();else add("I couldn't start listening. Try again, or type instead.",'ai')}
+  });
+  if(wakeOK){
+    wakeBtn.hidden=false;
+    setWake=(on,why)=>{
+      if(on===wakeOn)return on?"Always listening is already on.":"Always listening is already off.";
+      wakeOn=on;armedUntil=0;wakeRestarts=[];rec.continuous=on;
+      wakeBtn.setAttribute('aria-pressed',String(on));wakeBtn.textContent=`👂 HEY ${wakeName(skin).toUpperCase()}: ${on?'ON':'OFF'}`;
+      wakeNote.hidden=!on;mic.classList.toggle('wake',on);
+      if(on){try{rec.start()}catch(e){}return `Always listening is on. Everything the mic hears goes to your browser's online speech service until you turn it off. Start with my name, like: Jarvis, what time is it?`}
+      try{rec.stop()}catch(e){}
+      return why||"Always listening is off.";
+    };
+    wakeBtn.addEventListener('click',()=>say(setWake(!wakeOn)));
+    document.addEventListener('visibilitychange',()=>{if(document.hidden&&wakeOn)add(setWake(false,"Always listening turned off when you left the page."),'ai')});
+  }
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={micTrouble,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,orbPulse,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing};
-setSkin(skin);
+window.__jarvis={micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
+  SETTING_CHOICES,cleanSettings,cleanStreak,streakNext,streakLine,settingsIntent,applySetting,settings:()=>({...settings}),inUnits,ORB_COLOURS,ring:()=>ringRGB,SPEEDS,
+  memoryTell,memoryAsk,memoryForget,memory:()=>memory.map(x=>({...x})),memoryStars,forgetStar,constellation,constellationLinks,firstTime,streak:()=>({...streak}),persisted:()=>persisted,
+  applyGesture,dreamDue,dreamCheck,setDream,dreaming:()=>dreaming,DREAM_AFTER,idleFor:ms=>{lastActive=performance.now()-ms;return dreamCheck()},mode:()=>mode};
+setSkin(skin,false); // the skin on load is only saved once you pick one
 showBoot();
 </script>
 </body>
