@@ -140,7 +140,11 @@ const oneLine = (s) => s.replace(/\s+/g, ' ').trim();
 export function tableRows(html) {
     const rows = [];
     for (const tr of String(html).matchAll(/<tr\b[^>]*>([\s\S]*?)(?=<tr\b|<\/table>|$)/gi)) {
-        const cells = [...tr[1].matchAll(/<t([dh])\b[^>]*>([\s\S]*?)(?=<t[dh]\b|<\/tr>|$)/gi)].map((c) => oneLine(plain(c[2].replace(/<\/t[dh]>/gi, ''))));
+        // A cell with colspan="3" counts as three, so a header lines up with rows that give each value its own ± and reference cells.
+        const cells = [...tr[1].matchAll(/<t([dh])\b([^>]*)>([\s\S]*?)(?=<t[dh]\b|<\/tr>|$)/gi)].flatMap((c) => {
+            const text = oneLine(plain(c[3].replace(/<\/t[dh]>/gi, ''))), span = Math.min(12, Math.max(1, parseInt((c[2].match(/colspan\s*=\s*["']?(\d+)/i) || [])[1] || '1', 10)));
+            return Array(span).fill(text);
+        });
         if (cells.length) rows.push(cells);
     }
     for (const pre of String(html).matchAll(/<pre\b[^>]*>([\s\S]*?)<\/pre>/gi))
@@ -202,7 +206,15 @@ export function parseMoons(html) {
         if (head) {
             // Line the row up with the header by its name column: a planet named only on its first moon's row shifts the rest.
             const hn = head.findIndex((c) => /sat|name|moon/i.test(c)), off = at - (hn < 0 ? 0 : hn);
-            radius = num(row[head.findIndex((c) => /radius/i.test(c)) + off]); density = num(row[head.findIndex((c) => /density/i.test(c)) + off]);
+            const ri = head.findIndex((c) => /radius/i.test(c)), di = head.findIndex((c) => /density/i.test(c));
+            radius = num(row[ri + off]); density = num(row[di + off]);
+            // JPL's table gives each value three cells (the value, ±, a reference) under one header cell. If the header
+            // didn't say so with colspan, the value columns are spread evenly over the extra cells.
+            const gi = head.findIndex((c) => /^GM\b/i.test(c));
+            if (!(Math.abs(radius - about) <= about * 0.15) && gi > hn && ri > gi && di > ri) {
+                const cols = head.length - gi, w = (row.length - off - gi) / cols;
+                if (Number.isInteger(w) && w > 1) { radius = num(row[off + gi + (ri - gi) * w]); density = num(row[off + gi + (di - gi) * w]); }
+            }
         }
         if (!(Math.abs(radius - about) <= about * 0.15)) { const n = row.slice(at + 1).map(num).filter(Number.isFinite); radius = n[1]; density = n[2]; } // GM, radius, density
         if (!(Math.abs(radius - about) <= about * 0.15)) throw new Error(`moons: ${name} radius ${radius}, expected about ${about}. The table's header row: ${JSON.stringify(head)}; ${name}'s row: ${JSON.stringify(row)}`);
@@ -275,8 +287,8 @@ export const MISSIONS = [
 ];
 export const missionUrl = (id) => `https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=${id}`;
 export function parseMission(html, [name, id, must, target, agency]) {
-    const t = oneLine(plain(html));
-    if (!t.toLowerCase().includes(must.toLowerCase())) throw new Error(`missions: the page for ${id} doesn't mention ${must}`);
+    const t = oneLine(plain(html)), loose = (x) => x.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    if (!loose(t).includes(loose(must))) throw new Error(`missions: the page for ${id} doesn't mention ${must}. It begins: ${JSON.stringify(t.slice(0, 300))}`);
     if (!t.includes(id)) throw new Error(`missions: the page for ${name} doesn't show its ID ${id}`);
     const m = t.match(/Launch Date:?\s*(\d{4})-(\d{2})-(\d{2})/i);
     if (!m) throw new Error(`missions: no launch date for ${name} (${id})`);
@@ -392,7 +404,11 @@ export async function buildPack(get, suitsJson) {
         await part('planets', async () => parsePlanets(await get(SOURCES[0].url))),
         await part('moons', async () => parseMoons(await get(SOURCES[1].url))),
         await part('stars', async () => parseStars(await get(SOURCES[2].url, { binary: true }))),
-        await part('missions', async () => Promise.all(MISSIONS.map(async (m) => parseMission(await get(missionUrl(m[1])), m)))),
+        await part('missions', async () => {
+            const got = await Promise.allSettled(MISSIONS.map(async (m) => parseMission(await get(missionUrl(m[1])), m))), bad = got.filter((g) => g.status === 'rejected');
+            if (bad.length) throw new Error(bad.map((g) => g.reason.message).join('\n'));
+            return got.map((g) => g.value);
+        }),
         await part('elements', async () => parseElements(await get(SOURCES[4].url))),
         await part('countries', async () => Promise.all(COUNTRIES.map(async (c) => parseCountry(await get(factbookUrl(c[1])), c)))),
         await part('suits', async () => parseSuits(suitsJson))
