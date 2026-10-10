@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #65 — J.A.R.V.I.S. Session 13: knowledge pack</title>
+<meta name="description" content="Review of Session 13 of the J.A.R.V.I.S. build plan in the test copy: a knowledge pack of stable public facts built by jarvis/knowledge/build.mjs, copied into IndexedDB version 3 on first use through save() and fits(), answers that open the globe, the solar system or the suit, and the meaning module re-checked against the real model.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #65 — J.A.R.V.I.S. Session 13: knowledge pack</h1>
+    <p class="sub">Ask the test copy "tell me about Peru" and it spins the globe to Peru and reads stable public facts. "How far is Mars" opens the solar system near Mars, and "tell me about the Mark 42" opens the suit schematic, with the line marked as fan knowledge. The facts come from a pack built by a script in the repo from NASA, JPL, the Yale Bright Star Catalogue, PubChem and the CIA World Factbook. The page copies the pack into its own database the first time you ask.</p>
+    <div class="meta">Review performed 2026-10-10 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>jarvis/knowledge/</code>, <code>.github/workflows/jarvis-knowledge.yml</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>tests/jarvis-test.chromium.mjs</code>, <code>tests/fixtures/jarvis-knowledge/</code>, <code>jarvis/build-plan.html</code> · suites run: <code>jarvis-test-dom</code> (1566 checks) and <code>tests/jarvis-test.chromium.mjs</code> (168 checks), one after the other</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 86%;"></div></div>
+    <div class="progress-label">21 items: 18 verified clean or fixed, 3 open.</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Security and privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Head block and CSP unchanged</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>git diff</code> of <code>jarvis-test.html</code> touches no <code>&lt;meta&gt;</code> line except the description. The suite still pins the whole CSP string to what it was before Session 8, so <code>connect-src 'self'</code> stands. The pack is fetched from <code>jarvis/knowledge/pack.json</code> on this site. In Chromium, the request log showed exactly one request for it, from the page's own origin, and nothing from <code>jarvis/knowledge/</code> before the first question.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Every record goes in through save(), checked by fits()</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The one-place-that-saves checks pass unchanged: no <code>localStorage</code> write anywhere in the page, exactly one <code>'readwrite'</code> transaction, in <code>flush()</code>, only <code>save()</code> queues a write, and <code>save()</code> calls <code>fits()</code> before queueing. <code>installPack()</code> writes the records with <code>save('pack', key, record)</code> and the version with <code>save('meta', 'pack', n)</code>. Nothing else writes the table.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The pack table can hold only pack records</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>fits('pack', …)</code> takes a record only if it has exactly its kind's fields (one of seven kinds), each of the right type, under its own key (<code>country:peru</code>), with a suit only when <code>fan</code> is <code>true</code>, and at most 2,000 records. The suite tries a setting, a usage count, a protocol, a record under the wrong key, an extra field holding a phone number, an unmarked suit line, an unknown kind, markup, personal text, a phone number, a missing field and text where a number belongs. All are refused. The scrub drops a stale field, a stray note and a record under the wrong key from a seeded database on load. <code>meta</code> takes the pack version only as a whole number.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No markup and no link markers in a fact</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Fact text reaches the chat through the same <code>add()</code> path as every answer, which builds text nodes, and the page still has no <code>innerHTML</code>. A command link (⟦label|command⟧) only becomes a button for a command the page already lists. Even so, a fact has no reason to carry the markers. A pack file that did could have put a link to a listed command, such as "forget my name", inside a fact.</p></div>
+      <div class="fix-note"><b>Fix:</b> Both the page's <code>packText()</code> and the build's <code>textOk()</code> now refuse <code>&lt;</code>, <code>&gt;</code>, ⟦ and ⟧, and the suite tries a marker in a flag description.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Nothing personal; counted by kind, never by name</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Every text field passes the same <code>personal()</code> test as settings. The build carries a copy of <code>PERSONAL</code>, and the suite checks that the two lists are identical. A question counts once under one of seven fixed IDs (<code>cmd:know-country</code> … <code>cmd:know-suit</code>), from <code>KNOW_IDS</code>. No usage ID or saved count contains the name asked about. The suite checks Peru, and one of the deliberate breaks (counting by name) failed four checks.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not in a backup or a settings code; "what do you save" says it's there</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>backupData()</code> reads only the kept settings, the protocols and the counts. The suite confirms that a backup made after the pack is loaded has no <code>pack</code> key and none of its text. Before the pack is loaded, "what do you save" says it will be copied in when first asked. After that, it gives the number of public facts kept and says none of them is about you. Without IndexedDB it says the pack is in memory for this visit only.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The build script</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>jarvis/knowledge/build.mjs</code> has no dependencies (Node 22's own <code>fetch</code> and <code>zlib</code>). It fetches only a fixed list of https sources, with the Factbook archive pinned to commit <code>144d6977b2b01ac1cbd220de754c0a005616760b</code>. It writes only <code>pack.json</code> beside itself, or the <code>--out</code> path given on the command line, and only when the version changes. Every parser cross-checks its source: a star's catalogue name must match its HR number, a mission page must name the craft and its ID with a launch year matching the ID, a country file's own short name must match, a moon's radius must be within 15% of a rough value, and every number is range-checked. A pack with fewer records of a kind than expected is refused, so a half-built pack is never written.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The workflow</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>.github/workflows/jarvis-knowledge.yml</code> runs only by hand (<code>workflow_dispatch</code>), uses the same SHA-pinned <code>actions/checkout</code> and <code>actions/setup-node</code> as the Daily Wire workflow, keeps no token in git config while the build runs (<code>persist-credentials: false</code>), and hands <code>GITHUB_TOKEN</code> only to the final commit step. No event data is interpolated into a shell line. It builds from the samples first, then from the real sources, checks the result, and commits only <code>jarvis/knowledge/pack.json</code>.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A new kind of bot commit</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>The workflow commits as <code>github-actions[bot] &lt;41898282+github-actions[bot]@users.noreply.github.com&gt;</code>, the identity <code>CLAUDE.md</code> already allows, but only for the Daily Wire's "refresh feeds" commits. A Full Monty review should treat "J.A.R.V.I.S.: build the knowledge pack" commits by the same identity as expected. Open until <code>CLAUDE.md</code> says so. That's for the user to approve, so it wasn't added unasked.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The fixtures are public, like everything under tests/</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>tests/fixtures/jarvis-knowledge/</code> (180 KB) is served by GitHub Pages like the rest of <code>tests/</code>. It holds trimmed copies of public-domain Factbook profiles, real Bright Star Catalogue lines for 25 stars, PubChem's table, and stand-ins laid out like NASA and JPL pages. A grep for email addresses, tokens and personal names found nothing.</p></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The real pack isn't committed: its sources are blocked here</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>The container's proxy refuses NASA, JPL, CDS and PubChem (CONNECT 403, the same as the Daily Wire's feed hosts). As asked, no pack built from anything else was committed. Until the workflow runs, the live test copy answers a fact question with "My knowledge pack isn't on this site yet", which the suite pins, and every other answer is unchanged. To fix: run "J.A.R.V.I.S. knowledge pack" from the Actions tab, or <code>node build.mjs</code> in the Codespace. Only the Factbook archive was reachable from here.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">NASA and JPL page layouts are reconstructed, not copied</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>The planet and moon samples use the real values (from a dataset scraped from those pages) in the layout those pages are known to use, and the mission pages are minimal stand-ins. The parsers read tables by their header and row labels, not by fixed positions, and fall back to positions for the moon table. If the real layout differs, the build stops and names the page; it never writes a half-built pack. Open until the first real run passes.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Stable facts only, enforced on both sides</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>STALE_KEY</code> (field names) and <code>STALE_TEXT</code> (words such as population, GDP, president, currency, "est.", "currently", "number of moons") are the same in the page and the build, and the suite compares them. A record with a population, GDP, moon-count or leader field, population in words, an estimate, or "currently" in a suit line is refused by both. A pack carrying one fails <code>checkPack()</code>. No field in <code>PACK_FIELDS</code> has such a name. The build lists its sources, and none is Wikipedia.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A parallax read as 375 instead of 0.375</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The star catalogue writes parallax as <code>+.375</code>, and the number reader needed a digit before the point, so it read 375 and put Sirius at 0.0 light years. It was caught by reading the dry-run output, not by a check, which is the reason for the fix below.</p></div>
+      <div class="fix-note"><b>Fix:</b> <code>num()</code> reads a leading-point number, the build range-checks each distance (4 to 55 light years), and the suite pins Sirius at 8.7 and Betelgeuse at none.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">"est." could never match</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>In <code>\b(?:…|est\.|…)\b</code>, the closing word boundary needs a letter after the full stop, so "(2024 est.)" passed. The suite's "an estimate is refused" check caught it on the first run.</p></div>
+      <div class="fix-note"><b>Fix:</b> <code>est\.</code> now sits outside the word-bounded group in both copies.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A fact sentence longer than speech allows</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p><code>speechChunks()</code> joined whole sentences up to 160 characters, but left a single longer sentence whole. A flag description can be 240 characters, which is over the roughly 15 seconds after which Chrome silently stops speaking.</p></div>
+      <div class="fix-note"><b>Fix:</b> A sentence over 160 characters is now broken at semicolons, then commas, then spaces. Peru's answer is spoken in three parts. Shorter answers are unchanged, and the existing speech checks pass.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A missing answer spoken as "null"</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The suite's existing check that "how far is the moon" is said in miles failed. The Moon's record deliberately hands that question back to the older chat answer by returning <code>null</code>, but <code>inUnits(null)</code> turned it into the text "null".</p></div>
+      <div class="fix-note"><b>Fix:</b> The answer is checked before units are applied.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Every country is one the globe can find</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>All 76 countries in the pack are <code>PLACES</code> keys. Every country on the globe is in the pack apart from England and Scotland, which the Factbook covers as the UK. Each one opens the globe on itself (checked for Peru, the United States, DR Congo and Australia). In Chromium, the globe's stat line read <code>PERU · 9.2°S 75.0°W</code> at both sizes.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The meaning module's bands, re-checked against the real model</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Five fact questions were added to <code>MEANINGS</code>, which moves the mean every score is measured from. "Show me the planet we live on" now scores 0.813 (0.821 before), still above 0.80. Of eight rewordings that name another thing, five were done (0.91 to 1.0) and three asked (0.66 to 0.77). "Paint my kitchen japan red", "is jupiter a good name for a dog" and "i ate gold leaf once" matched nothing. A fact question is never chosen for a sentence that names nothing of its kind. The bands are unchanged, and the patterns-win check passes.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The version 3 upgrade keeps older data</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>A version 2 database seeded with a skin, counts, a total and a protocol opens at version 3 with all of them intact and an empty <code>pack</code> table. In real IndexedDB, a profile with a protocol and a colour saved goes to version 3 on the first fact question with its settings, protocols and totals byte-for-byte the same, and counts only added to.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The suite fails when the page is broken</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Seventeen copies of the page, each with one deliberate bug, were run against the Session 13 checks. Fifteen failed: <code>fits()</code> accepting anything (20 failures), no stale-text check (3), extra fields allowed (7), counting by name (4), fetching on every question (2), checking every turn (1), no version 3 step (2), facts after the chat answers (31), no fan-knowledge label (4), no scrub (1), the meaning module ignoring the kind (2), the Moon's distance answered from the pack (1), "what do you save" not mentioning the pack (2), no "jarvis … please" stripping (14), and long sentences left whole (1). The other two make no difference to what the page does: <code>installPack()</code> skipping its own check (<code>save()</code> still refuses every record that doesn't fit), and a stale-name check on field names that <code>PACK_FIELDS</code> can't contain (the suite checks that list separately).</p></div>
+    </div>
+  </section>
+  <footer>Previous review: <a href="64.html">#64</a> (Session 12, meaning module). The build plan's Session 13 notes record the same findings.</footer>
+</div>
+</body>
+</html>

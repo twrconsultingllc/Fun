@@ -1,0 +1,39 @@
+{
+ "Geography": {
+  "Map references": {
+   "text": "Europe"
+  },
+  "Area": {
+   "total ": {
+    "text": "41,277 sq km"
+   },
+   "land": {
+    "text": "39,997 sq km"
+   },
+   "water": {
+    "text": "1,280 sq km"
+   }
+  },
+  "Elevation": {
+   "highest point": {
+    "text": "Dufourspitze on Monte Rosa 4,634 m"
+   }
+  }
+ },
+ "Government": {
+  "Country name": {
+   "conventional short form": {
+    "text": "Switzerland"
+   }
+  },
+  "Capital": {
+   "name": {
+    "text": "Bern"
+   }
+  },
+  "Flag": {
+   "text": "<strong>description:</strong> red square with an equal-armed white cross in the center that does not extend to the edges of the flag<br><br><strong>history: </strong>the origin of the flag is unclear, but a white cross was used to identify Swiss Confederation troops at the Battle of Laupen (1339)",
+   "note": "<strong>note:</strong> in 1863, the newly formed International Red Cross chose the inverse of the Swiss flag -- a red cross on a white field -- as its symbol"
+  }
+ }
+}

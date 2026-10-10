@@ -1,0 +1,40 @@
+{
+ "Geography": {
+  "Map references": {
+   "text": "South America"
+  },
+  "Area": {
+   "total ": {
+    "text": "756,102 sq km"
+   },
+   "land": {
+    "text": "743,812 sq km"
+   },
+   "water": {
+    "text": "12,290 sq km"
+   },
+   "note": "<strong>note:</strong> includes Easter Island (Isla de Pascua) and Isla Sala y Gomez"
+  },
+  "Elevation": {
+   "highest point": {
+    "text": "Nevado Ojos del Salado 6,893 m (highest volcano in the world)"
+   }
+  }
+ },
+ "Government": {
+  "Country name": {
+   "conventional short form": {
+    "text": "Chile"
+   }
+  },
+  "Capital": {
+   "name": {
+    "text": "Santiago; note - Valparaiso is the seat of the national legislature"
+   }
+  },
+  "Flag": {
+   "text": "<strong>description:</strong> two equal horizontal bands of white (top) and red; a blue square sits in the top left corner of the flag, the same height as the white band; the square has a five-pointed white star in the center<br><br><strong>meaning:</strong> the star represents a guide to progress and honor; blue stands for the sky, white for the Andes Mountains, and red for the blood spilled to achieve independence",
+   "note": "<strong>note:</strong> design influenced by the US flag"
+  }
+ }
+}

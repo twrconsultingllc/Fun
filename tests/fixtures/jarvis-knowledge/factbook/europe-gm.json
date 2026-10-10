@@ -1,0 +1,38 @@
+{
+ "Geography": {
+  "Map references": {
+   "text": "Europe"
+  },
+  "Area": {
+   "total ": {
+    "text": "357,022 sq km"
+   },
+   "land": {
+    "text": "348,672 sq km"
+   },
+   "water": {
+    "text": "8,350 sq km"
+   }
+  },
+  "Elevation": {
+   "highest point": {
+    "text": "Zugspitze 2,963 m"
+   }
+  }
+ },
+ "Government": {
+  "Country name": {
+   "conventional short form": {
+    "text": "Germany"
+   }
+  },
+  "Capital": {
+   "name": {
+    "text": "Berlin"
+   }
+  },
+  "Flag": {
+   "text": "<strong>description:</strong> three equal horizontal bands of black (top), red, and gold<br><br><strong>history:</strong> the colors can be traced back to the medieval banner of the Holy Roman Emperor -- a black eagle with red claws and beak on a gold field"
+  }
+ }
+}

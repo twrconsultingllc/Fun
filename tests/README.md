@@ -39,6 +39,11 @@ Each suite names the page it drives, and `--base` decides where that page is
 read from. That is what lets the identical assertions run against the working
 copy and against the deploy.
 
+`fixtures/jarvis-knowledge/` holds sample documents for
+`jarvis/knowledge/build.mjs` (see its README): `jarvis-test.dom.test.mjs`
+builds the knowledge pack from them with the build script itself and serves
+it to every window, so the page is tested without a committed `pack.json`.
+
 `fake-indexeddb` is there for `jarvis-test.dom.test.mjs` only. jsdom has no
 IndexedDB, and since Session 9 of `jarvis/build-plan.html` the J.A.R.V.I.S.
 test copy saves into it. The package implements the IndexedDB spec, so its
@@ -83,7 +88,16 @@ plays the upgrade while it downloads, "show me the planet we live on" ranks
 closest to the globe and opens it, and "make me smile" asks "Did you mean a
 joke?", which "yes" answers. The real database gains nothing but usage
 counts and the Cache API stays empty. The model works out its example
-sentences on the CPU, so under SwiftShader this step takes a few minutes.
+sentences on the CPU, so under SwiftShader this step takes a few minutes. It
+also prints how rewordings of the fact questions score, so the bands can be
+re-checked whenever `MEANINGS` changes.
+Since Session 13 it also checks the knowledge pack, in a fresh profile at each
+size: "jarvis tell me about peru please" spins the real globe to Peru,
+"how far is mars" opens the solar system near Mars and "tell me about the
+mark 42" opens the suit, with screenshots of each, and the pack lands in
+real IndexedDB at version 3 with the older tables unchanged. No `pack.json`
+is committed until the real build runs, so its server hands out the pack
+built from `fixtures/jarvis-knowledge/`.
 Run it after the jsdom suite, not alongside it: its timing waits fail when
 the two compete for the CPU.
 

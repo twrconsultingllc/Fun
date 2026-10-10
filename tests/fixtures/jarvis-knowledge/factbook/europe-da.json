@@ -1,0 +1,40 @@
+{
+ "Geography": {
+  "Map references": {
+   "text": "Europe"
+  },
+  "Area": {
+   "total ": {
+    "text": "43,094 sq km"
+   },
+   "land": {
+    "text": "42,434 sq km"
+   },
+   "water": {
+    "text": "660 sq km"
+   },
+   "note": "<strong>note:</strong> includes the island of Bornholm in the Baltic Sea and the rest of metropolitan Denmark (the Jutland Peninsula, and the major islands of Sjaelland and Fyn) but excludes the Faroe Islands and Greenland"
+  },
+  "Elevation": {
+   "highest point": {
+    "text": "Store Mollehoj 171 m"
+   }
+  }
+ },
+ "Government": {
+  "Country name": {
+   "conventional short form": {
+    "text": "Denmark"
+   }
+  },
+  "Capital": {
+   "name": {
+    "text": "Copenhagen"
+   }
+  },
+  "Flag": {
+   "text": "<strong>description:</strong> red field with a white cross that extends to the edges of the flag; the vertical part of the cross is shifted to the left<br><br><strong>history: </strong>referred to as the Dannebrog (Danish flag) and is one of the oldest national flags in the world; the origin of the design is unclear; one legend says that the banner fell from the sky during an early-13th-century battle and inspired the royal army to victory; in actuality, the flag may derive from a crusade banner",
+   "note": "<strong>note:</strong> Finland, Iceland, Norway, Sweden, and the Faroe Islands subsequently adopted the shifted-cross design"
+  }
+ }
+}

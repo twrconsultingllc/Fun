@@ -1,0 +1,39 @@
+{
+ "Geography": {
+  "Map references": {
+   "text": "Africa"
+  },
+  "Area": {
+   "total ": {
+    "text": "947,300 sq km"
+   },
+   "land": {
+    "text": "885,800 sq km"
+   },
+   "water": {
+    "text": "61,500 sq km"
+   },
+   "note": "<strong>note:</strong> includes the islands of Mafia, Pemba, and Zanzibar"
+  },
+  "Elevation": {
+   "highest point": {
+    "text": "Kilimanjaro (highest point in Africa) 5,895 m"
+   }
+  }
+ },
+ "Government": {
+  "Country name": {
+   "conventional short form": {
+    "text": "Tanzania"
+   }
+  },
+  "Capital": {
+   "name": {
+    "text": "Dodoma"
+   }
+  },
+  "Flag": {
+   "text": "<strong>description:</strong> divided diagonally by a yellow-edged black band, from the lower left corner to the upper right corner; the upper triangle (left side) is green, and the lower is blue<br><br><strong>meaning:</strong> colors come from the flags of Tanganyika and Zanzibar; green stands for natural vegetation, gold for rich mineral deposits, black for the Swahili people, and blue for lakes and rivers, as well as the Indian Ocean"
+  }
+ }
+}

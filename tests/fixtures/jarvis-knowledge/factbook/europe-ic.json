@@ -1,0 +1,38 @@
+{
+ "Geography": {
+  "Map references": {
+   "text": "Arctic Region"
+  },
+  "Area": {
+   "total ": {
+    "text": "103,000 sq km"
+   },
+   "land": {
+    "text": "100,250 sq km"
+   },
+   "water": {
+    "text": "2,750 sq km"
+   }
+  },
+  "Elevation": {
+   "highest point": {
+    "text": "Hvannadalshnukur (at Vatnajokull Glacier) 2,110 m"
+   }
+  }
+ },
+ "Government": {
+  "Country name": {
+   "conventional short form": {
+    "text": "Iceland"
+   }
+  },
+  "Capital": {
+   "name": {
+    "text": "Reykjavik"
+   }
+  },
+  "Flag": {
+   "text": "<strong>description:</strong> blue with a red cross outlined in white extending to the edges of the flag; the cross is shifted to the left in the style of the Dannebrog (Danish flag)<br><br><strong>meaning:</strong> red stands for the island's volcanic fires, white for the snow and ice fields, and blue for the ocean"
+  }
+ }
+}

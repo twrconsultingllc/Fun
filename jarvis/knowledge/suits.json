@@ -1,0 +1,18 @@
+{
+  "about": "Iron Man suits from the Marvel films, a line or two each. Hand-written for this site from watching the films: fan knowledge, not an official source. build.mjs marks every one with fan: true, and Jarvis says so when he reads one.",
+  "suits": [
+    { "name": "Mark 1", "aka": ["mark i", "mark one", "the first suit", "the cave suit"], "film": "Iron Man (2008)", "line": "Built from scrap in a cave in Afghanistan so Tony Stark could escape his captors. Grey, riveted and armed with flamethrowers, it was the first suit of all." },
+    { "name": "Mark 2", "aka": ["mark ii", "mark two", "the silver suit"], "film": "Iron Man (2008)", "line": "The silver prototype, built in the Malibu workshop. Its first climb to high altitude ended with the suit icing up." },
+    { "name": "Mark 3", "aka": ["mark iii", "mark three"], "film": "Iron Man (2008)", "line": "The first red and gold suit. A gold-titanium alloy solved the icing problem, and it fought Iron Monger." },
+    { "name": "Mark 5", "aka": ["mark v", "mark five", "the suitcase suit", "the briefcase suit"], "film": "Iron Man 2 (2010)", "line": "The suitcase suit. It unfolds from a briefcase, and Tony wore it against Whiplash on the race track in Monaco." },
+    { "name": "Mark 6", "aka": ["mark vi", "mark six"], "film": "Iron Man 2 (2010)", "line": "Powered by the triangular arc reactor and the new element Tony made for it. It fought the drones at the Stark Expo." },
+    { "name": "Mark 7", "aka": ["mark vii", "mark seven"], "film": "The Avengers (2012)", "line": "Fired from Stark Tower in a pod, it wraps itself round Tony as he falls. He wore it in the Battle of New York." },
+    { "name": "Mark 42", "aka": ["mark xlii", "mark forty two", "mark forty-two"], "film": "Iron Man 3 (2013)", "line": "Its pieces fly to Tony on their own, steered by implants in his arms, so it can put itself on him from across a room." },
+    { "name": "Mark 43", "aka": ["mark xliii", "mark forty three", "mark forty-three"], "film": "Avengers: Age of Ultron (2015)", "line": "The suit from the opening raid on the Hydra base in Sokovia, and the fight with Ultron that followed." },
+    { "name": "Hulkbuster", "aka": ["mark 44", "mark xliv", "mark forty four", "mark forty-four", "the hulk buster", "hulk buster", "veronica"], "film": "Avengers: Age of Ultron (2015)", "line": "A giant armour that fits over another suit, sent down in pieces by a support system called Veronica. It was built to stop the Hulk, and fought him in Johannesburg." },
+    { "name": "Mark 46", "aka": ["mark xlvi", "mark forty six", "mark forty-six"], "film": "Captain America: Civil War (2016)", "line": "The suit Tony wore in the fight at the airport in Germany, against Captain America and his side." },
+    { "name": "Mark 47", "aka": ["mark xlvii", "mark forty seven", "mark forty-seven"], "film": "Spider-Man: Homecoming (2017)", "line": "A red and silver suit that Tony often flew by remote control, keeping an eye on Peter Parker." },
+    { "name": "Mark 50", "aka": ["mark l", "mark fifty", "the nanotech suit", "the bleeding edge suit"], "film": "Avengers: Infinity War (2018)", "line": "Nanotech. It lives in a housing on Tony's chest and flows over him, forming shields, blades and thrusters as he needs them. He fought Thanos in it on Titan." },
+    { "name": "Mark 85", "aka": ["mark lxxxv", "mark eighty five", "mark eighty-five", "the last suit", "the final suit"], "film": "Avengers: Endgame (2019)", "line": "Tony's last suit. In it he took the Infinity Stones from Thanos and snapped his fingers." }
+  ]
+}

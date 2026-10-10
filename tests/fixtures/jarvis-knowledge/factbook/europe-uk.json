@@ -1,0 +1,39 @@
+{
+ "Geography": {
+  "Map references": {
+   "text": "Europe"
+  },
+  "Area": {
+   "total ": {
+    "text": "243,610 sq km"
+   },
+   "land": {
+    "text": "241,930 sq km"
+   },
+   "water": {
+    "text": "1,680 sq km"
+   },
+   "note": "<strong>note 1:</strong> England covers 53% of the area, Scotland 32%, Wales 9%, and Northern Ireland 6%<br><br><strong>note 2:</strong> includes Rockall and the Shetland Islands, which are part of Scotland"
+  },
+  "Elevation": {
+   "highest point": {
+    "text": "Ben Nevis 1,345 m"
+   }
+  }
+ },
+ "Government": {
+  "Country name": {
+   "conventional short form": {
+    "text": "United Kingdom"
+   }
+  },
+  "Capital": {
+   "name": {
+    "text": "London"
+   }
+  },
+  "Flag": {
+   "text": "<strong>description:</strong> blue field with the red cross of Saint George (patron saint of England) edged in white on top of the diagonal red cross of Saint Patrick (patron saint of Ireland), which is on top of the diagonal white cross of Saint Andrew (patron saint of Scotland)<br><br><strong>history:</strong> the official name is the Union Flag, but commonly called the Union Jack; the design and colors have been the basis for a number of other flags"
+  }
+ }
+}

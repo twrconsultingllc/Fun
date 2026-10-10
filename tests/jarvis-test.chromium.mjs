@@ -79,8 +79,13 @@ async function threeJs() {
 // Serves the working copy, read only, and nothing outside it.
 const TYPES = { '.html': 'text/html', '.js': 'application/javascript', '.mjs': 'application/javascript', '.json': 'application/json',
     '.wasm': 'application/wasm', '.y4m': 'application/octet-stream', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' };
+// Session 13: no pack.json is committed until the real build runs (jarvis/knowledge/README.md), so the server hands
+// out the pack built from the sample documents at jarvis/knowledge/pack.json, the way the page will fetch the real one.
+const KB = await import('../jarvis/knowledge/build.mjs');
+const PACK = await KB.buildPack(await KB.fixtureGetter(join(ROOT, 'tests/fixtures/jarvis-knowledge/')), await readFile(join(ROOT, 'jarvis/knowledge/suits.json'), 'utf8'));
 function serve() {
     const server = createServer(async (req, res) => {
+        if (new URL(req.url, 'http://x').pathname === '/jarvis/knowledge/pack.json') { res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(PACK)); return; }
         let path;
         try { path = resolve(ROOT, '.' + decodeURIComponent(new URL(req.url, 'http://x').pathname)); } catch { res.writeHead(400).end(); return; }
         if (path !== ROOT && !path.startsWith(ROOT + sep)) { res.writeHead(403).end(); return; }
@@ -192,7 +197,7 @@ try {
             await test.click('#boot-skip'); await test.waitForTimeout(800);
             const pdb = await dbOf(test);
             ok('it is kept across a reload, in real IndexedDB, as fixed IDs only', JSON.stringify(pdb.protocols) === '{"\\"movie night\\"":{"steps":["orb:purple","speed:slow","scene:galaxy"]}}', JSON.stringify(pdb.protocols));
-            ok('the real database is at version 2', await test.evaluate(async () => (await indexedDB.databases()).find((d) => d.name === 'jarvis-test')?.version === 2));
+            ok('the real database is at version 3 (Session 13 added the pack table)', await test.evaluate(async () => (await indexedDB.databases()).find((d) => d.name === 'jarvis-test')?.version === 3));
             ok('and the context was forgotten by the reload', await test.evaluate(() => window.__jarvis.context().lastCmd === null && window.__jarvis.context().scenes.length === 0));
         }
         // The HUD line: slowed down so the run can be caught on its last step, with the galaxy up.
@@ -463,6 +468,16 @@ try {
                 const rank = await p.evaluate(() => { const m = window.__jarvis.meaningOf('show me the planet we live on'); return m && { key: m.c.key, score: m.score, sure: m.sure }; });
                 ok('"show me the planet we live on" ranks closest to the globe, close enough to do it', rank && rank.key === 'cmd:show me earth' && rank.sure, JSON.stringify(rank));
                 results.push({ pass: true, line: `     (its score: ${rank && rank.score.toFixed(3)})` });
+                // Session 13 added fact questions to MEANINGS, which moves the mean every score is measured from. The bands
+                // (0.80 do, 0.60 ask) are re-checked here against the real model: rewordings of a fact question naming
+                // another thing, and unrelated sentences that must stay below 0.60.
+                await p.evaluate(() => window.__jarvis.knowAnswer({ q: 'about', x: 'peru' })); // the pack, so names can be found
+                const probe = await p.evaluate(() => ['give me the lowdown on japan', 'what can you tell me about brazil', "i'd like to learn about kenya", 'how many kilometres is it to jupiter', 'what is the distance from here to saturn',
+                    'fill me in on the hulkbuster', 'teach me about the element iron', 'what sort of element is copper', 'paint my kitchen japan red', 'is jupiter a good name for a dog', 'i ate gold leaf once'].map((q) => { const m = window.__jarvis.meaningOf(q); return [q, m ? m.c.key : null, m ? +m.score.toFixed(3) : null, m ? m.sure : false]; }));
+                for (const [q, key, score, sure] of probe) results.push({ pass: true, line: `     ${JSON.stringify(q)} -> ${key} ${score ?? ''}${sure ? ' (does it)' : key ? ' (asks)' : ''}` });
+                const unrelated = probe.slice(8);
+                ok('unrelated sentences naming a country, a planet or an element are not taken for fact questions', unrelated.every(([, key, , sure]) => !sure && !(key && /about|how far/.test(key) && sure)), JSON.stringify(unrelated));
+                ok('most rewordings of a fact question are understood (does it or asks)', probe.slice(0, 8).filter(([, key]) => key && /tell me about|how far/.test(key)).length >= 6, JSON.stringify(probe.slice(0, 8)));
             }
             const globeBefore = await p.evaluate(() => window.__jarvis.usageNow().n['scene:globe'] || 0);
             await type('show me the planet we live on'); await p.waitForTimeout(2500);
@@ -476,15 +491,62 @@ try {
             const y = await type('yes');
             ok('and "yes" tells one, counted as cmd:joke', !/Did you mean|Yes to what/.test(y) && await p.evaluate(() => window.__jarvis.usageNow().n['cmd:joke'] || 0) === jokes + 1, y);
             await p.waitForTimeout(300);
-            const dbAfter = await dbOf(p), strip = (d) => JSON.stringify({ ...d, events: null, names: null });
+            // The knowledge pack (Session 13) may be copied in here: public facts read for the meaning module, not something it stored.
+            const dbAfter = await dbOf(p), strip = (d) => JSON.stringify({ ...d, events: null, names: null, pack: null, meta: Object.fromEntries(Object.entries(d.meta || {}).filter(([k]) => k !== '"pack"')) });
             ok(`the real database: nothing new but usage counts at ${w}×${h}`, strip(dbAfter) === strip(dbBefore) && Object.values(dbAfter.events || {}).every((e) => Object.keys(e).sort().join() === 'day,id,n'), strip(dbAfter).slice(0, 300));
-            ok('still version 2, and no fingerprint in it', await p.evaluate(() => new Promise((res) => { const rq = indexedDB.open('jarvis-test'); rq.onsuccess = () => { const v = rq.result.version; rq.result.close(); res(v); }; })) === 2 && !/\[(?:-?\d+(?:\.\d+)?(?:e-?\d+)?,){6,}/.test(JSON.stringify(dbAfter)));
+            ok('still version 3, and no fingerprint in it', await p.evaluate(() => new Promise((res) => { const rq = indexedDB.open('jarvis-test'); rq.onsuccess = () => { const v = rq.result.version; rq.result.close(); res(v); }; })) === 3 && !/\[(?:-?\d+(?:\.\d+)?(?:e-?\d+)?,){6,}/.test(JSON.stringify({ ...dbAfter, pack: null })));
             ok('no Cache API storage and no localStorage', (await p.evaluate(() => caches.keys())).length === 0 && Object.keys(await lsOf(p)).length === 0);
             ok(`no sideways scroll at ${w}×${h}`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
             await p.reload(); await p.waitForFunction(() => window.__jarvis); await p.evaluate(() => window.__jarvis.ready);
             ok(`a reload starts without the module at ${w}×${h}`, await p.evaluate(() => window.__jarvis.mind()).then((m) => m.state === 'off' && m.fingerprints === 0));
             await p.close();
         } finally { await ctxM.close(); await rm(join(work, `profile-m-${w}`), { recursive: true, force: true }); }
+    }
+    // 8. Session 13: the knowledge pack, in a fresh profile at each size, typed unpunctuated with "jarvis" and "please".
+    // A protocol and a setting are saved first, so the version 3 upgrade can be seen to keep the older tables. "Tell me
+    // about Peru" spins the real globe to Peru and reads the facts (a screenshot); "how far is Mars" opens the solar
+    // system near Mars; "tell me about the Mark 42" opens the suit schematic. The pack lands in real IndexedDB.
+    if (three) for (const [w, h] of [[1280, 800], [390, 844]]) {
+        const ctxK = await chromium.launchPersistentContext(join(work, `profile-k-${w}`), { executablePath, headless: true,
+            args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: w, height: h } });
+        await ctxK.route('https://cdnjs.cloudflare.com/**', (r) => r.fulfill({ path: three, contentType: 'application/javascript', headers: { 'access-control-allow-origin': '*' } }));
+        await ctxK.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
+        const asked = []; ctxK.on('request', (rq) => asked.push(rq.url()));
+        try {
+            const p = await open('jarvis-test.html', { width: w, height: h }, ctxK);
+            await p.click('#boot-skip'); await p.waitForTimeout(800);
+            const lastAi = () => p.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent || '');
+            const type = async (q, ms = 2500) => { await p.fill('#q', q); await p.press('#q', 'Enter'); await p.waitForTimeout(ms); return lastAi(); };
+            await type('create movie night protocol make the orb purple then open the galaxy', 900);
+            await type('close', 600);
+            ok(`nothing from the pack is fetched at start-up at ${w}×${h}`, !asked.some((u) => u.includes('/jarvis/knowledge/')));
+            const before = await dbOf(p);
+            const peru = await type('jarvis tell me about peru please', 4000);
+            ok(`"jarvis tell me about peru please" reads Peru's facts at ${w}×${h}`, /^Peru\. Its capital is Lima\. It's in South America, covering 1,285,216 square kilometres, and its highest point is Nevado Huascaran, at 6,746 metres\. The flag of Peru: /.test(peru), peru.slice(0, 120));
+            const globe = await p.evaluate(() => ({ title: document.getElementById('holo-title').textContent, kind: window.__jarvis.holoKind(), stat: window.__jarvis.holoStat() }));
+            ok(`and spins the globe to Peru at ${w}×${h}`, globe.kind === 'globe' && /EARTH/.test(globe.title) && /^PERU · 9\.2°S 75\.0°W/.test(globe.stat), JSON.stringify(globe));
+            await p.screenshot({ path: join(OUT, `knowledge-peru-${w}.png`) });
+            ok('the pack was fetched once, from this site', asked.filter((u) => u.includes('/jarvis/knowledge/pack.json')).length === 1 && asked.filter((u) => u.includes('/jarvis/knowledge/')).every((u) => u.startsWith(BASE)));
+            await p.waitForTimeout(300);
+            const after = await dbOf(p);
+            ok(`the real database is at version 3 at ${w}×${h}`, await p.evaluate(async () => (await indexedDB.databases()).find((d) => d.name === 'jarvis-test')?.version) === 3);
+            ok('the pack is in its own table, every record, exactly as built', Object.keys(after.pack || {}).length === PACK.records.length && JSON.stringify(after.pack['"country:peru"']) === JSON.stringify(PACK.records.find((r) => r.name === 'Peru')) && after.meta['"pack"'] === PACK.version);
+            ok('the older tables are unchanged: settings and protocols as they were, counts only added to', JSON.stringify(after.kept) === JSON.stringify(before.kept) && JSON.stringify(after.protocols) === JSON.stringify(before.protocols) && JSON.stringify(after.totals) === JSON.stringify(before.totals)
+                && Object.entries(before.events).every(([k, e]) => after.events[k] && after.events[k].n >= e.n), JSON.stringify(after.protocols));
+            ok('counted as cmd:know-country, never by name', await p.evaluate(() => window.__jarvis.usageNow().n['cmd:know-country']) === 1 && !JSON.stringify(after.events).includes('peru'));
+            const mars = await type('jarvis how far is mars please', 4000);
+            const solar = await p.evaluate(() => ({ title: document.getElementById('holo-title').textContent, kind: window.__jarvis.holoKind() }));
+            ok(`"jarvis how far is mars please" opens the solar system near Mars and answers at ${w}×${h}`, solar.kind === 'solar' && /^Mars is 227\.9 million kilometres from the Sun/.test(mars), JSON.stringify(solar) + ' ' + mars.slice(0, 80));
+            await p.screenshot({ path: join(OUT, `knowledge-mars-${w}.png`) });
+            const suit = await type('jarvis tell me about the mark 42 please', 4000);
+            ok(`"jarvis tell me about the mark 42 please" opens the suit schematic, as fan knowledge, at ${w}×${h}`, await p.evaluate(() => window.__jarvis.holoKind()) === 'suit' && /^Fan knowledge, not an official source: the Mark 42/.test(suit), suit.slice(0, 80));
+            await p.screenshot({ path: join(OUT, `knowledge-suit-${w}.png`) });
+            ok(`no sideways scroll at ${w}×${h}`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+            ok('no localStorage written', Object.keys(await lsOf(p)).length === 0);
+            await p.reload(); await p.waitForFunction(() => window.__jarvis); await p.evaluate(() => window.__jarvis.ready);
+            ok(`after a reload the pack is read from IndexedDB at ${w}×${h}`, await p.evaluate(() => Object.keys(window.__jarvis.pack()).length) === PACK.records.length);
+            await p.close();
+        } finally { await ctxK.close(); await rm(join(work, `profile-k-${w}`), { recursive: true, force: true }); }
     }
 } finally {
     await ctx.close();

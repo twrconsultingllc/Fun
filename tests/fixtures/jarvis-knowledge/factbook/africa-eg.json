@@ -1,0 +1,39 @@
+{
+ "Geography": {
+  "Map references": {
+   "text": "Africa"
+  },
+  "Area": {
+   "total ": {
+    "text": "1,001,450 sq km"
+   },
+   "land": {
+    "text": "995,450 sq km"
+   },
+   "water": {
+    "text": "6,000 sq km"
+   }
+  },
+  "Elevation": {
+   "highest point": {
+    "text": "Mount Catherine 2,629 m"
+   }
+  }
+ },
+ "Government": {
+  "Country name": {
+   "conventional short form": {
+    "text": "Egypt"
+   }
+  },
+  "Capital": {
+   "name": {
+    "text": "Cairo"
+   }
+  },
+  "Flag": {
+   "text": "<strong>description:</strong> three equal horizontal bands of red (top), white, and black; centered in the white band is the national emblem, a gold Eagle of Saladin; it faces the left side, with a shield on its chest, above a scroll with the country's name in Arabic<br><br><strong>meaning:</strong> the band colors derive from the Arab Liberation flag and represent oppression (black) overcome through bloody struggle (red), to be replaced by a bright future (white)",
+   "note": "<strong>note:</strong> similar to the flags of Syria (two green stars in the white band), Iraq (an Arabic inscription centered in the white band), and Yemen (plain white band)"
+  }
+ }
+}

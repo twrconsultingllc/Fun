@@ -1,0 +1,39 @@
+{
+ "Geography": {
+  "Map references": {
+   "text": "Europe"
+  },
+  "Area": {
+   "total ": {
+    "text": "505,370 sq km"
+   },
+   "land": {
+    "text": "498,980 sq km"
+   },
+   "water": {
+    "text": "6,390 sq km"
+   },
+   "note": "<strong>note:</strong> includes two autonomous cities (Ceuta and Melilla), 17 autonomous communities (including Balearic Islands and Canary Islands), and three small Spanish possessions off the coast of Morocco -- Islas Chafarinas, Penon de Alhucemas, and Penon de Velez de la Gomera"
+  },
+  "Elevation": {
+   "highest point": {
+    "text": "Pico de Teide (Tenerife) on Canary Islands 3,718 m"
+   }
+  }
+ },
+ "Government": {
+  "Country name": {
+   "conventional short form": {
+    "text": "Spain"
+   }
+  },
+  "Capital": {
+   "name": {
+    "text": "Madrid"
+   }
+  },
+  "Flag": {
+   "text": "<strong>description:</strong> three horizontal bands of red (top), yellow (double-width), and red, with the national coat of arms on the left side of the yellow band; the coat of arms shows the emblems of the area's former kingdoms (clockwise from upper left: Castile, Leon, Navarre, and Aragon), which also used red and yellow as their colors; the stylized pomegranate at the bottom of the shield represents Granada; the two columns represent the Pillars of Hercules, which are promontories (Gibraltar and Ceuta) on the Strait of Gibraltar; a red scroll bears the imperial motto of \"Plus Ultra\" (further beyond), referring to Spanish lands outside Europe"
+  }
+ }
+}
