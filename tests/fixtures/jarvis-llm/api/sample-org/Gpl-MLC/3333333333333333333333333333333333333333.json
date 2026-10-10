@@ -1,0 +1,34 @@
+{
+  "id": "sample-org/Gpl-MLC",
+  "sha": "3333333333333333333333333333333333333333",
+  "tags": [
+    "mlc-llm",
+    "license:gpl-3.0"
+  ],
+  "cardData": {
+    "license": "gpl-3.0"
+  },
+  "siblings": [
+    {
+      "rfilename": ".gitattributes"
+    },
+    {
+      "rfilename": "mlc-chat-config.json"
+    },
+    {
+      "rfilename": "ndarray-cache.json"
+    },
+    {
+      "rfilename": "params_shard_0.bin"
+    },
+    {
+      "rfilename": "params_shard_1.bin"
+    },
+    {
+      "rfilename": "tokenizer.json"
+    },
+    {
+      "rfilename": "README.md"
+    }
+  ]
+}

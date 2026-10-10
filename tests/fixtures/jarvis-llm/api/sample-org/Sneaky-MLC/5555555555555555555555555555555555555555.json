@@ -1,0 +1,37 @@
+{
+  "id": "sample-org/Sneaky-MLC",
+  "sha": "5555555555555555555555555555555555555555",
+  "tags": [
+    "mlc-llm",
+    "license:apache-2.0"
+  ],
+  "cardData": {
+    "license": "apache-2.0"
+  },
+  "siblings": [
+    {
+      "rfilename": ".gitattributes"
+    },
+    {
+      "rfilename": "mlc-chat-config.json"
+    },
+    {
+      "rfilename": "ndarray-cache.json"
+    },
+    {
+      "rfilename": "params_shard_0.bin"
+    },
+    {
+      "rfilename": "params_shard_1.bin"
+    },
+    {
+      "rfilename": "tokenizer.json"
+    },
+    {
+      "rfilename": "README.md"
+    },
+    {
+      "rfilename": "../escape.bin"
+    }
+  ]
+}
