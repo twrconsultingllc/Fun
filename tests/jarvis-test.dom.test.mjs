@@ -141,7 +141,7 @@ export default async function run(t, page) {
         t.eq('store() refuses a key that isn\'t on the list', store('jarvis-name', 'Tony'), false);
         t.eq('and personal text even under a listed key', store('jarvis-learned', JSON.stringify({ 'my phone': '239 555 0142' })), false);
         t.eq('nothing was written', window.localStorage.getItem('jarvis-name'), null);
-        t.eq('only four keys can ever be saved', JSON.stringify(STORE_KEYS), '["jarvis-skin","jarvis-voices","jarvis-learned","jarvis-mic-note"]');
+        t.eq('only six keys can ever be saved (settings and the streak added in Session 7)', JSON.stringify(STORE_KEYS), '["jarvis-skin","jarvis-voices","jarvis-learned","jarvis-mic-note","jarvis-settings","jarvis-streak"]');
         t.eq('the page calls localStorage.setItem in exactly one place (store)', (page.html.match(/localStorage\.setItem\(/g) || []).length, 1);
         t.ok('and never reads or writes a saved name', !/jarvis-name/.test(page.html));
         t.ok('"what do you save" lists what is kept and says nothing personal is', /No names, no personal details/.test(await window.__jarvis.answer('what do you save')));
@@ -611,6 +611,7 @@ export default async function run(t, page) {
     await skinsAndMemory(t, page);
     await voicePicker(t, page);
     await androidVoices(t, page);
+    await memoryChecks(t, page);
 }
 
 /* A second window with a fake SpeechRecognition, getUserMedia and AudioContext. */
@@ -879,7 +880,7 @@ async function skinsAndMemory(t, page) {
         t.eq('taught phrases with personal details are dropped, the rest kept', ls.getItem('jarvis-learned'), '{"beam me up":"roll a die"}');
         t.eq('settings stay', ls.getItem('jarvis-skin'), 'matrix');
         t.ok('the deleted name is not used to greet you', (J.finishBoot(), !/Tony/.test([...env.document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? '')));
-        t.ok('"what do you save" reads back exactly what is there', /your skin \(Morpheus\) and one phrase you taught me\./.test(await J.answer('what do you save')));
+        t.ok('"what do you save" reads back exactly what is there', /your skin \(Morpheus\), one phrase you taught me and your visit streak \(one day, and the date of your last visit\)\./.test(await J.answer('what do you save')));
         J.brain('my name is pat');
         t.ok('a name told this visit is mentioned as memory-only', /Your name, Pat, is only in memory for this visit\./.test(await J.answer('what do you know about me')));
         t.eq('and still not stored', ls.getItem('jarvis-name'), null);
@@ -1166,4 +1167,320 @@ async function briefingChecks(t, page) {
             t.note(rb);
         }
     } finally { env.close(); }
+}
+
+// Session 7 of jarvis/build-plan.html: settings memory, short-term memory, the memory core, dreaming,
+// keeping settings from being wiped, and streaks. Nothing personal may reach storage (review 53).
+async function memoryChecks(t, page) {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const ymd = (d) => ({ y: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate() });
+    const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return ymd(d); };
+    const allStored = (w) => { const o = {}; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); o[k] = w.localStorage.getItem(k); } return o; };
+    const seed = (entries, extra) => ({ ignore: /getContext|HTMLCanvasElement/, beforeParse(w) { extra?.(w); for (const [k, v] of Object.entries(entries)) w.localStorage.setItem(k, v); } });
+    const typeIn = async (env, text) => { const { document, window } = env; document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(520); return [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? ''; };
+
+    t.section('Settings memory (Session 7)');
+    const fake = fakeSpeech();
+    let persistCalls = 0;
+    let env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse(w) {
+        fake.beforeParse(w);
+        Object.defineProperty(w.navigator, 'storage', { configurable: true, value: { persisted: () => Promise.resolve(false), persist: () => { persistCalls++; return Promise.resolve(true); } } });
+        Object.defineProperty(w.navigator, 'userAgentData', { configurable: true, value: { brands: [{ brand: 'Google Chrome', version: '130' }] } });
+    } });
+    let saved;
+    try {
+        const { window } = env, J = window.__jarvis, ls = window.localStorage;
+        for (const [q, key, value] of [['make the orb blue', 'color', 'blue'], ['turn yourself purple', 'color', 'purple'], ['change your colour to red', 'color', 'red'], ['gold orb please', 'color', 'gold'], ['set your color to grey', 'color', 'white'],
+            ['default colour', 'color', null], ['speak faster', 'speed', '+'], ['talk a bit slower', 'speed', '-'], ['slow down', 'speed', '-'], ['normal speed', 'speed', null],
+            ['use imperial units', 'units', 'imperial'], ['I prefer miles', 'units', 'imperial'], ['switch to metric', 'units', 'metric'], ['open with the galaxy', 'scene', 'galaxy'],
+            ['always start with the solar system', 'scene', 'solar'], ['open with earth', 'scene', 'globe'], ['start with your brain', 'scene', 'neural'], ["don't open with anything", 'scene', null], ['reset my settings', 'all', null]]) {
+            const it = J.settingsIntent(q);
+            t.ok(`"${q}" sets ${key} to ${value}`, !!it && it.key === key && it.value === value);
+        }
+        for (const q of ['what time is it', 'make a heart', 'show me the galaxy', 'switch to the matrix', 'make the orb', 'write blue', 'my favourite colour is blue', 'speak to me', 'open the pod bay doors'])
+            t.eq(`"${q}" is not a settings command`, J.settingsIntent(q), null);
+        // Every value a setting can take must pass personal(), or store() would silently refuse to save it.
+        const combos = [];
+        for (const color of J.SETTING_CHOICES.color) for (const units of J.SETTING_CHOICES.units) for (const scene of J.SETTING_CHOICES.scene) combos.push({ color, speed: 'slow', units, scene });
+        t.eq('every combination of settings passes personal()', combos.filter((c) => J.personal(JSON.stringify(c))).length, 0);
+        t.ok('"make the orb blue" is understood', /My orb is blue now\. I'll remember that on this device\./.test(await typeIn(env, 'make the orb blue')));
+        t.eq('the orb takes the colour', J.ring(), J.ORB_COLOURS.blue[0]);
+        t.eq('and it is saved as one jarvis-settings key', ls.getItem('jarvis-settings'), '{"color":"blue"}');
+        J.setSkin('panther');
+        t.eq('a skin change keeps the chosen orb colour', J.ring(), J.ORB_COLOURS.blue[0]);
+        J.setSkin('jarvis');
+        await typeIn(env, 'speak faster');
+        fake.log.queue.length = 0; await typeIn(env, 'tell me a joke');
+        t.eq('"speak faster" speeds the voice up', Math.round(fake.log.queue[0].rate * 1000), Math.round(1.02 * J.SPEEDS.fast * 1000));
+        t.ok('and there is a top speed', /as fast as I go/.test(await typeIn(env, 'talk faster')));
+        t.ok('"slower" steps back to normal, which is not saved', /normal speed/i.test(await typeIn(env, 'speak slower')) && !('speed' in J.settings()));
+        await typeIn(env, 'speak slower');
+        t.eq('then slow', J.settings().speed, 'slow');
+        t.ok('"use imperial units"', /I'll use imperial units\./.test(await typeIn(env, 'use imperial units')));
+        t.ok('then distances are said in miles', /about 240,000 miles away/.test(await typeIn(env, 'how far is the moon')));
+        t.eq('600 km an hour', J.inUnits('steady at 600 kilometres an hour.'), 'steady at about 370 miles an hour.');
+        t.eq('15 centimeters', J.inUnits('about 15 centimeters taller'), 'about 6 inches taller');
+        t.eq('8,849 metres', J.inUnits('Everest is 8,849 metres tall'), 'Everest is about 29,000 feet tall');
+        t.eq('150 million kilometres', J.inUnits('about 150 million kilometres away'), 'about 93 million miles away');
+        t.eq('2,000 kilometers an hour', J.inUnits('over 2,000 kilometers an hour'), 'over 1,200 miles an hour');
+        t.eq('metric leaves the text alone', J.inUnits('600 kilometres', 'metric'), '600 kilometres');
+        t.eq('"5 metric tons" is not a distance', J.inUnits('5 metric tons'), '5 metric tons');
+        t.ok('"open with the galaxy"', /I'll open with the galaxy next time/.test(await typeIn(env, 'open with the galaxy')));
+        t.eq('all four settings are in the one key', ls.getItem('jarvis-settings'), '{"color":"blue","speed":"slow","units":"imperial","scene":"galaxy"}');
+        t.ok('"what do you save" lists the settings', /your settings \(a blue orb, speaking slowly, imperial units, opening with the galaxy\)/.test(await typeIn(env, 'what do you save')));
+        t.ok('and mentions Safari\'s 7-day rule', /after 7 days without a visit/.test(await typeIn(env, 'what do you save')));
+        t.eq('the browser was asked to keep storage, once', persistCalls, 1);
+        await wait(10);
+        t.eq('and its answer is remembered', J.persisted(), true);
+        const help = J.brain('help');
+        t.ok('help mentions settings, short-term memory, the memory core, dreaming and the 7-day rule', /make the orb blue/.test(help) && /my dog is Rex/.test(help) && /show me your memory/.test(help) && /dream/.test(help) && /7 days/.test(help));
+        saved = allStored(window);
+        t.eq('no console errors', env.errors.length, 0);
+    } finally { env.close(); }
+
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed(saved));
+    try {
+        const { window, document } = env, J = window.__jarvis;
+        t.eq('after a reload the settings are back', JSON.stringify(J.settings()), '{"color":"blue","speed":"slow","units":"imperial","scene":"galaxy"}');
+        t.eq('and the orb is blue straight away', J.ring(), J.ORB_COLOURS.blue[0]);
+        J.finishBoot();
+        await wait(1400);
+        t.ok('the favourite scene is opened after the greeting (no WebGL here, so it says so)', /needs WebGL/.test(document.getElementById('log').textContent));
+        t.ok('"reset my settings" clears them', /back to normal/.test(await typeIn(env, 'reset my settings')) && window.localStorage.getItem('jarvis-settings') === null);
+    } finally { env.close(); }
+
+    t.section('Settings and streak: the scrub (Session 7)');
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({
+        'jarvis-settings': JSON.stringify({ color: 'blue', name: 'Tony', scene: '<img src=x onerror=alert(1)>', speed: 'ludicrous', __proto__: 'x' }),
+        'jarvis-skin': 'matrix'
+    }));
+    try {
+        const ls = env.window.localStorage;
+        t.eq('a setting outside the fixed choices is dropped, and so is any extra field', ls.getItem('jarvis-settings'), '{"color":"blue"}');
+    } finally { env.close(); }
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-settings': '{"units":"furlongs"}', 'jarvis-streak': '{"days":"3","y":2026,"m":10,"d":10}' }));
+    try {
+        const ls = env.window.localStorage;
+        t.eq('settings with nothing valid are deleted', ls.getItem('jarvis-settings'), null);
+        t.eq('a malformed streak is replaced by a fresh one', JSON.parse(ls.getItem('jarvis-streak')).days, 1);
+    } finally { env.close(); }
+    {
+        const y = daysAgo(1), clean = JSON.stringify({ days: 4, ...y });
+        env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-settings': '{"color":"gold","units":"imperial"}', 'jarvis-streak': JSON.stringify({ days: 4, ...y, extra: 'my phone 239 555 0142' }) }));
+        try {
+            const { window } = env, J = window.__jarvis, ls = window.localStorage;
+            t.eq('clean settings are left exactly as they were', ls.getItem('jarvis-settings'), '{"color":"gold","units":"imperial"}');
+            t.eq('an extra field in the streak is dropped, the count kept and today added', ls.getItem('jarvis-streak'), JSON.stringify({ days: 5, ...ymd(new Date()) }));
+            ls.setItem('jarvis-streak', clean); J.scrubStore();
+            t.eq('the scrub leaves a clean streak alone', ls.getItem('jarvis-streak'), clean);
+            J.scrubStore();
+            t.eq('and clean settings, run again', ls.getItem('jarvis-settings'), '{"color":"gold","units":"imperial"}');
+        } finally { env.close(); }
+    }
+
+    t.section('Streaks (Session 7)');
+    {
+        const J = (env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ })).window.__jarvis;
+        const s = (days, y, m, d) => ({ days, y, m, d });
+        t.eq('a first visit starts at 1', J.streakNext(null, { y: 2026, m: 10, d: 10 }).days, 1);
+        t.eq('the same day keeps the count', J.streakNext(s(3, 2026, 10, 10), { y: 2026, m: 10, d: 10 }).days, 3);
+        t.eq('the next day adds one', J.streakNext(s(3, 2026, 10, 9), { y: 2026, m: 10, d: 10 }).days, 4);
+        t.eq('a missed day starts again at 1', J.streakNext(s(3, 2026, 10, 8), { y: 2026, m: 10, d: 10 }).days, 1);
+        t.eq('across a month end', J.streakNext(s(6, 2026, 10, 31), { y: 2026, m: 11, d: 1 }).days, 7);
+        t.eq('across a year end', J.streakNext(s(6, 2026, 12, 31), { y: 2027, m: 1, d: 1 }).days, 7);
+        t.eq('across Feb 29', J.streakNext(s(2, 2028, 2, 29), { y: 2028, m: 3, d: 1 }).days, 3);
+        t.eq('a clock set backwards starts again', J.streakNext(s(5, 2026, 10, 11), { y: 2026, m: 10, d: 10 }).days, 1);
+        t.eq('the count stops at 9999 (five digits would read as personal)', J.streakNext(s(9999, 2026, 10, 9), { y: 2026, m: 10, d: 10 }).days, 9999);
+        t.eq('day 1 says nothing', J.streakLine(1), '');
+        t.eq('day 3', J.streakLine(3), 'Third day in a row!');
+        t.eq('day 14', J.streakLine(14), 'Day 14 in a row!');
+        // The decision (2026-10-10): personal() stays strict and the date is stored as separate numbers.
+        t.ok('an ISO date would be refused by personal()', J.personal('{"days":3,"last":"2026-10-10"}') !== null);
+        let bad = 0;
+        for (let i = 0; i < 800; i++) { const d = new Date(2026, 0, 1 + i); if (J.personal(JSON.stringify({ days: 1 + (i * 37) % 9999, ...ymd(d) }))) bad++; }
+        for (const days of [1, 99, 999, 9999]) if (J.personal(JSON.stringify({ days, y: 2026, m: 12, d: 31 }))) bad++;
+        t.eq('the stored form passes personal() for every day of 2026–2028', bad, 0);
+        env.close();
+    }
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-streak': JSON.stringify({ days: 2, ...daysAgo(1) }) }));
+    try {
+        const { window, document } = env, J = window.__jarvis;
+        t.eq('visiting the day after day 2 makes it 3', JSON.parse(window.localStorage.getItem('jarvis-streak')).days, 3);
+        J.finishBoot();
+        t.ok('and the greeting says so', /Third day in a row!$/.test([...document.querySelectorAll('#log .msg.ai')].pop().textContent));
+        t.ok('"what do you save" mentions the streak', /your visit streak \(3 days, and the date of your last visit\)/.test(await J.answer('what do you save')));
+        J.showBoot ? J.showBoot() : null;
+    } finally { env.close(); }
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-streak': JSON.stringify({ days: 9, ...daysAgo(2) }) }));
+    try {
+        const { window, document } = env, J = window.__jarvis;
+        t.eq('after a missed day it starts again at 1', JSON.parse(window.localStorage.getItem('jarvis-streak')).days, 1);
+        J.finishBoot();
+        t.ok('with no streak line', !/in a row/.test(document.getElementById('log').textContent));
+    } finally { env.close(); }
+
+    t.section('First time on this device (Session 7)');
+    persistCalls = 0;
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse(w) {
+        Object.defineProperty(w.navigator, 'storage', { configurable: true, value: { persisted: () => Promise.resolve(true), persist: () => { persistCalls++; return Promise.resolve(true); } } });
+        Object.defineProperty(w.navigator, 'userAgentData', { configurable: true, value: { brands: [{ brand: 'Microsoft Edge', version: '130' }] } });
+    } });
+    try {
+        const { window, document } = env, J = window.__jarvis;
+        t.eq('nothing stored: a first visit', J.firstTime, true);
+        J.finishBoot();
+        t.ok('he says it looks like his first time on this device', /This looks like my first time on this device\.$/.test(document.getElementById('log').textContent));
+        t.eq('the default skin is not saved just by loading', window.localStorage.getItem('jarvis-skin'), null);
+        t.eq('persist() isn\'t asked again when storage is already persisted', persistCalls, 0);
+        await wait(10);
+        t.eq('and that is remembered', J.persisted(), true);
+    } finally { env.close(); }
+    persistCalls = 0;
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse(w) {
+        Object.defineProperty(w.navigator, 'storage', { configurable: true, value: { persisted: () => Promise.resolve(false), persist: () => { persistCalls++; return Promise.resolve(true); } } });
+    } });
+    try {
+        await env.window.__jarvis.answer('make the orb gold'); await wait(10);
+        t.eq('outside Chrome and Edge (Firefox would prompt for it), persist() is never asked', persistCalls, 0);
+    } finally { env.close(); }
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-skin': 'jarvis' }));
+    try {
+        const { document, window } = env;
+        t.eq('something stored: not a first visit', window.__jarvis.firstTime, false);
+        window.__jarvis.finishBoot();
+        t.ok('and no first-time line', !/first time/.test(document.getElementById('log').textContent));
+        t.eq('without navigator.storage nothing breaks', env.errors.length, 0);
+    } finally { env.close(); }
+
+    t.section('Short-term memory (Session 7)');
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ });
+    let afterTelling;
+    try {
+        const { window } = env, J = window.__jarvis;
+        for (const [q, key, text] of [['my dog is Rex', 'dog', 'your dog is Rex'], ["My dog's name is Rex.", 'dog', "your dog's name is Rex"], ['my favorite color is blue', 'favourite colour', 'your favorite color is blue'],
+            ["I'm going to the beach", 'plan', "you're going to the beach"], ['remember that the game is at seven', 'note:game is at seven', 'the game is at seven'], ['I love pizza', 'love:pizza', 'you love pizza'],
+            ['remember that I parked on level 3', 'note:i parked on level 3', 'you parked on level 3'], ['my sisters are Amy and Jo', 'sisters', 'your sisters are Amy and Jo']]) {
+            const m = J.memoryTell(q);
+            t.ok(`"${q}" is remembered as ${key}`, !!m && m.key === key && m.text === text);
+        }
+        for (const q of ['my name is tony', 'remember my name is tony', 'what is my dog', 'show me mars', 'I love you', 'my dog is not here', 'tell me a joke', 'I am fine'])
+            t.eq(`"${q}" is not a short-term memory`, J.memoryTell(q), null);
+        t.ok('telling him something', /Got it: your dog is Rex\. I'll remember that until you close this page/.test(await typeIn(env, 'my dog is Rex')));
+        t.ok('"what\'s my dog\'s name?"', /^Your dog is Rex\.$/.test(await typeIn(env, "what's my dog's name?")));
+        await typeIn(env, "I'm going to the beach"); await typeIn(env, 'my favourite colour is green'); await typeIn(env, 'I like hockey');
+        t.eq('"where am I going?"', await typeIn(env, 'where am I going?'), "You're going to the beach.");
+        t.eq('"what is my favorite color" finds the British spelling', await typeIn(env, 'what is my favorite color'), 'Your favourite colour is green.');
+        t.eq('"what do I like"', await typeIn(env, 'what do I like'), 'You like hockey.');
+        t.ok('something never told', /haven't told me about your cat/.test(await typeIn(env, "what's my cat's name")));
+        J.setSkin('matrix');
+        t.ok('Morpheus knows it too', /^Your dog is Rex\.$/.test(await J.answer('who is my dog')));
+        J.setSkin('panther');
+        t.ok('and so does Stanley', /beach/.test(await J.answer('where am I going')));
+        J.setSkin('jarvis');
+        t.ok('"my name is" still goes to the name', /Nice to meet you, Tony/.test(await typeIn(env, 'my name is Tony')) && !J.memory().some((m) => /tony/i.test(m.text)));
+        const about = await typeIn(env, 'what do you know about me');
+        t.ok('"what do you know about me" lists them, marked this visit only', /^This visit only, and never saved: your dog is Rex, you're going to the beach, your favourite colour is green and you like hockey\./.test(about));
+        t.ok('then says what is stored, and the name', /Your name, Tony, is only in memory for this visit\./.test(about) && /4 things you told me are only in memory for this visit too/.test(about));
+        t.ok('teaching him a memory statement: he remembers it', /What were you trying to say\?$/.test(await typeIn(env, 'blorp')) && /Got it: your cat is Tom/.test(await typeIn(env, 'I meant my cat is Tom')));
+        t.ok('but never learns the phrase, which would save it', !('blorp' in J.learned()));
+        const stored = Object.values(allStored(window)).join(' ');
+        t.ok('nothing told this visit is anywhere in storage', !/Rex|beach|green|hockey|Tom|Tony|blorp/i.test(stored));
+        t.ok('the memory code never calls store()', !/\b(?:store|unstore|saveLearned|saveSettings)\([^)]/.test(page.html.slice(page.html.indexOf('/* ---------- Short-term memory'), page.html.indexOf('/* ---------- Learned phrases'))));
+        afterTelling = allStored(window);
+        t.ok('"forget that" forgets the last thing', /forgotten that your cat is Tom/.test(await typeIn(env, 'forget that')));
+        t.ok('"forget my dog"', /forgotten your dog/.test(await typeIn(env, 'forget my dog')) && /haven't told me about your dog/.test(await typeIn(env, "what's my dog's name")));
+        t.ok('"forget everything I told you"', /forgotten everything you told me/.test(await typeIn(env, 'forget everything I told you')) && J.memory().length === 0);
+        t.ok('which includes the name', /haven't told me your name/.test(await typeIn(env, 'what is my name')));
+        t.eq('no console errors', env.errors.length, 0);
+    } finally { env.close(); }
+    // A reload is a new page given exactly what the old one left in storage.
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed(afterTelling));
+    try {
+        const J = env.window.__jarvis;
+        t.eq('after a reload, short-term memory is empty', J.memory().length, 0);
+        t.ok('"what\'s my dog\'s name" no longer knows', /haven't told me about your dog/.test(await J.answer("what's my dog's name")));
+        t.ok('"what do you know about me" says nothing was told', /^You haven't told me anything about you this visit\./.test(await J.answer('what do you know about me')));
+    } finally { env.close(); }
+
+    t.section('Memory core (Session 7, no three.js needed)');
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', seed({ 'jarvis-skin': 'matrix', 'jarvis-settings': '{"color":"blue","units":"imperial"}', 'jarvis-learned': '{"beam me up":"roll a die","lights":"make a star"}', 'jarvis-voices': '{"matrix":"Ralph"}' }));
+    try {
+        const { window } = env, J = window.__jarvis, ls = window.localStorage;
+        for (const q of ['show me your memory', 'memory core', 'open your memories', 'show me the jarvis memory', 'memory'])
+            t.eq(`"${q}" opens the memory core`, J.intent(q)?.kind, 'memory');
+        for (const q of ['what do you remember', 'forget your memory', 'show me the galaxy'])
+            t.ok(`"${q}" does not`, J.intent(q)?.kind !== 'memory');
+        await J.answer('my dog is Rex'); J.brain('my name is pepper');
+        const stars = J.memoryStars();
+        t.eq('one star per setting, the skin, this visit\'s name and memories, each taught phrase, the voice pick, the streak',
+            stars.map((s) => s.type).join(','), 'setting,setting,skin,name,visit,phrase,phrase,voice,streak');
+        t.eq('this visit\'s stars are marked, the rest are saved', stars.filter((s) => s.visit).length, 2);
+        t.ok('labels say what each is', stars[0].label === 'Orb colour: blue' && stars[2].label === 'Skin: Morpheus' && stars[5].label === '"lights"');
+        t.ok('a phrase star reads out what it means', stars[5].text === 'A phrase you taught me: "lights" means "make a star".');
+        t.ok('a visit star says it is this visit only', /^This visit only: your dog is Rex\.$/.test(stars[4].text));
+        t.ok('forgetting a setting star removes it from storage', /Forgotten\. My orb is back/.test(J.forgetStar(stars[0])) && ls.getItem('jarvis-settings') === '{"units":"imperial"}');
+        t.ok('a phrase star', /"lights" doesn't mean anything/.test(J.forgetStar(stars[5])) && ls.getItem('jarvis-learned') === '{"beam me up":"roll a die"}');
+        t.ok('a visit star', /I no longer know that your dog is Rex/.test(J.forgetStar(stars[4])) && J.memory().length === 0);
+        t.ok('the name star', /don't know your name/.test(J.forgetStar(stars[3])) && /haven't told me your name/.test(await J.answer('what is my name')));
+        t.ok('the voice star', /automatic voice/.test(J.forgetStar(stars[7])) && ls.getItem('jarvis-voices') === null);
+        t.ok('the skin star', /I'm Jarvis again/.test(J.forgetStar(stars[2])) && ls.getItem('jarvis-skin') === null && J.skin() === 'jarvis');
+        t.ok('the streak star', /starts again/.test(J.forgetStar(stars[8])) && ls.getItem('jarvis-streak') === null);
+        t.eq('what is left', J.memoryStars().map((s) => s.label).join(' | '), 'Units: imperial | "beam me up"');
+        for (const n of [0, 1, 2, 7, 40, 200]) {
+            const pts = J.constellation(n, 8), links = J.constellationLinks(pts);
+            const r = pts.map((p) => Math.hypot(...p));
+            t.ok(`${n} stars: ${n} points within the shell, ${Math.max(0, n - 1)} links back to earlier stars`,
+                pts.length === n && r.every((x) => x <= 8 * 1.19) && links.length === Math.max(0, n - 1) && links.every(([a, b]) => a < b && b < n)
+                && new Set(pts.map((p) => p.map((v) => v.toFixed(3)).join())).size === n);
+        }
+        t.eq('the same count gives the same layout', JSON.stringify(J.constellation(9)), JSON.stringify(J.constellation(9)));
+        t.ok('without WebGL, "show me your memory" says so', /needs WebGL/.test(await J.answer('show me your memory')));
+        t.ok('"forget that" with nothing from this visit', /nothing from this visit to forget/.test(await J.answer('forget that')));
+        t.ok('the scene removes its labels in dispose(), per CLAUDE.md', /id='mem-labels'[\s\S]{0,9000}dispose\(\)\{root\.remove\(\)\}/.test(page.html));
+        t.ok('and lays them out with layoutCallouts', /boxes=layoutCallouts\(pts,bounds,sides\)[\s\S]{0,1500}MEMORY CORE/.test(page.html));
+        t.eq('no console errors', env.errors.length, 0);
+    } finally { env.close(); }
+
+    t.section('Dreaming (Session 7)');
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ });
+    try {
+        const { window, document } = env, J = window.__jarvis, A = J.DREAM_AFTER;
+        const st = (o) => ({ dreaming: false, mode: 'idle', holo: false, booting: false, hidden: false, speaking: false, lastActive: 0, ...o });
+        t.ok('a few minutes, not seconds', A >= 120000 && A <= 600000);
+        t.eq('idle long enough: dream', J.dreamDue(A, st()), true);
+        t.eq('not a moment before', J.dreamDue(A - 1, st()), false);
+        for (const [why, o] of [['while something is on the projector', { holo: true }], ['while booting', { booting: true }], ['in a hidden tab', { hidden: true }], ['while speaking', { speaking: true }], ['while listening', { mode: 'listen' }], ['while thinking', { mode: 'think' }]])
+            t.eq(`never ${why}`, J.dreamDue(A * 10, st(o)), false);
+        t.eq('never during the boot screen', J.idleFor(A + 1), false);
+        J.finishBoot(); await wait(700);
+        const state = () => document.getElementById('state').textContent;
+        t.eq('after the boot, idle for a few minutes: he dreams', J.idleFor(A + 1), true);
+        t.eq('the state reads PROCESSING MEMORIES', state(), 'PROCESSING MEMORIES');
+        t.ok('and the page is marked as dreaming', document.body.classList.contains('dreaming'));
+        window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'a' }));
+        t.ok('a key wakes him', !J.dreaming() && state() === 'STANDBY' && !document.body.classList.contains('dreaming'));
+        t.eq('and the idle clock starts again', J.idleFor(A - 5000), false);
+        J.idleFor(A + 1);
+        document.getElementById('orb').dispatchEvent(new window.Event('pointerdown', { bubbles: true }));
+        t.eq('a tap wakes him', J.dreaming(), false);
+        J.idleFor(A + 1);
+        document.getElementById('q').value = 'what time is it'; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true }));
+        t.eq('a message wakes him', J.dreaming(), false);
+        await wait(520);
+        Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+        t.eq('nothing runs while the tab is hidden', J.idleFor(A + 1), false);
+        t.ok('reduced motion skips the drifting phrases and pulses', /if\(dreamK>\.01&&!reduce\)drawDream/.test(page.html));
+        t.eq('no console errors', env.errors.length, 0);
+    } finally { env.close(); }
+    {
+        const fv = fakeVoice({ noted: true });
+        env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse: fv.beforeParse });
+        try {
+            const J = env.window.__jarvis;
+            J.finishBoot(); await wait(700);
+            J.idleFor(J.DREAM_AFTER + 1);
+            fv.log.recs[0].onspeechstart?.();
+            t.eq('a word heard by speech recognition wakes him', J.dreaming(), false);
+        } finally { env.close(); }
+    }
 }

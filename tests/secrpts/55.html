@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #55 — J.A.R.V.I.S. Test: Session 7, memory without the personal</title>
+<meta name="description" content="Review of Session 7 in jarvis-test.html: settings memory, short-term memory, the memory core scene, dreaming, persistent storage and visit streaks, checked against the rule that nothing personal is ever stored.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #55 — J.A.R.V.I.S. Test: Session 7, memory without the personal</h1>
+    <p class="sub">Session 7 of <code>jarvis/build-plan.html</code>, built in <code>jarvis-test.html</code> only. It adds settings memory, short-term memory for one visit, a memory core scene on the holo-projector, dreaming, a request to keep storage, and visit streaks. Everything was checked against review 53's rule that nothing personal is ever stored.</p>
+    <div class="meta">Review performed 2026-10-10 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>tests/jarvis-test.dom.test.mjs</code> (commit <code>c12594f</code>), <code>jarvis/build-plan.html</code> · suites run: <code>jarvis-test</code> (730 passed) · follows: <a href="54.html">54.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 92%;"></div></div>
+    <div class="progress-label">13 items: 12 fixed or verified clean, 1 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security &amp; privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Short-term memory never reaches storage</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>What you tell Jarvis ("my dog is Rex", "I'm going to the beach") lives in one in-memory array. The memory section of the script has no call to <code>store()</code>, <code>unstore()</code>, <code>saveLearned()</code> or <code>saveSettings()</code>, and the suite checks that by slicing the source. After telling five things and a name, every <code>localStorage</code> value is searched for them, and none is there. A reload (a new page given exactly what the old one left in storage) answers "what's my dog's name" with "you haven't told me".</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A taught phrase could have smuggled a memory into storage</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Found while building. If Jarvis didn't understand "blorp" and you answered "I meant my cat is Tom", the old teach flow would have saved <code>"blorp" → "my cat is Tom"</code> in <code>jarvis-learned</code>, which is stored. A memory statement or question is now never learned: Jarvis remembers it for the visit and says so, and the suite checks that <code>blorp</code> isn't learned and <code>Tom</code> isn't stored.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">New keys: fixed choices only, rebuilt on every load</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>STORE_KEYS</code> grows from four to six: <code>jarvis-settings</code> and <code>jarvis-streak</code>. Settings are four fields, each one of a fixed list in <code>SETTING_CHOICES</code>, so there is no free text in them. The scrub rebuilds both keys from their fixed shape, so a hostile value (<code>{"color":"blue","name":"Tony","scene":"&lt;img src=x onerror=…&gt;","speed":"ludicrous"}</code>) comes back as <code>{"color":"blue"}</code>, a key with nothing valid is deleted, and a clean key is left byte for byte. All 108 combinations of colour, units and scene (with a speed) were run through <code>personal()</code>, and none is refused. <code>localStorage.setItem</code> still appears once, in <code>store()</code>.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The streak date and personal()</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Review 54 left this open. Decided: <code>personal()</code> stays strict, and the date is stored as separate numbers, <code>{"days":3,"y":2026,"m":10,"d":10}</code>. An ISO date was checked first: <code>2026-10-10</code> reads to the phone-number rule as eight digits with separators, so it would be refused. The separate-numbers form passed <code>personal()</code> for 800 consecutive days from 2026-01-01, and at counts of 1, 99, 999 and 9999. The count stops at 9999, since five digits would trip the long-number rule.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Labels and drifting phrases are text, not markup</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Memory core labels show what you typed ("remember that …", taught phrases). They're set with <code>textContent</code>, and the page has no <code>innerHTML</code> at all (grep: 0). While dreaming, phrases are drawn on the orb's canvas with <code>fillText</code>. The memory core is the suit's callout pattern: buttons in a <code>#mem-labels</code> layer, laid out by <code>layoutCallouts()</code> and removed in <code>dispose()</code>. In Chromium, nothing of <code>#mem-labels</code> was left after "close".</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">persist() could have shown Firefox users a prompt</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Found in review. <code>navigator.storage.persist()</code> is silent in Chrome and Edge, but Firefox asks the user with a permission prompt. The plan called for it in Chrome and Edge only, so the call is limited to Chromium (<code>navigator.userAgentData</code> with a Chrome or Edge brand), the same test the wake word uses. It's asked once per visit, only after something is saved, and skipped when storage is already persisted. Each of those cases has a check.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The build plan update</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>jarvis/build-plan.html</code> gets Session 7's badge in the session and in the index, its notes, a link to this review, and two corrections to the map (the suite's count, <code>buildMemory</code> in the scenes list). It uses existing classes only, with no script and no inline colour. A parser pass found the tags balanced and every <code>#</code> anchor and file link resolving.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No new host, no new permission</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The CSP meta tag is unchanged and still <code>connect-src 'self'</code>. Nothing new asks for the camera, mic or location. Crushing a star with a fist uses hand control's existing camera, which follows its existing rules.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; behaviour</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Every new piece has checks</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>jarvis-test</code> suite: 730 checks, up from 544, all passing. Ran: <code>node run.mjs --page=jarvis-test.html</code> only, since <code>jarvis.html</code> and <code>tests/lib/</code> weren't touched. Covered: 28 settings phrasings, unit conversions, speed on the utterance, the opening scene after a reload, the scrub on hostile and clean values, the streak across a missed day, month end, year end and 29 February, the first-visit line, short-term memory in every skin, reload forgetting, each kind of memory-core star being forgotten for real, the constellation layout, and the dreaming rules (when it starts, and that a key, tap, message or heard word ends it).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Chromium: memory core and dreaming at both sizes</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Rendered in headless Chromium with three.js r128 served from the npm package (its SHA-512 matched the page's SRI hash). At 1280×800: 11 labels, 0 overlapping, all between the top HUD (93 px) and the text box (721 px). At 390×844: 8 labels, 0 overlapping, all inside (118–765 px). Tapping a label read it out. "Forget that" deleted it and the stat line updated. A fist over the "beam me up" star (driven through the gesture handler, since SwiftShader is too slow for real gestures) removed it from <code>jarvis-learned</code>. Dreaming showed PROCESSING MEMORIES, a dimmed orb, pulses and drifting phrases, and a tap woke him. Under reduced motion it was a still, dimmed orb. There was no sideways scroll and no page errors or CSP violations.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Labels pointed at Infinity on the first frame</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The first Chromium run logged four SVG errors (<code>x1: Expected length, "Infinity"</code>). Before the camera's first move, the core star sits exactly at the camera and projects to infinity. <code>place()</code> now skips a frame whose positions aren't finite. The rerun had no errors.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Contrast</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Computed: amber visit labels on their panel are 12.55:1 over black and 8.55:1 even over pure white. Focused, they're 6.59:1. In the Panthers skin (gold): 10.19, 6.94 and 5.35:1. The dreaming state text (each skin's label colour) on the page background ranges from 6.07:1 to 10.13:1.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What can't be checked here</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Whether short-term memory feels useful when it forgets on close, and whether 3 minutes is too soon to dream, are for you to judge on the live test copy. Whether Chrome grants <code>persist()</code> depends on how much you use the site, so a test can only confirm that it was asked. Safari's 7-day wipe can't be detected: Jarvis says "this looks like my first time on this device" whenever nothing is stored. Units only change the few facts that give measures (the Moon, the Sun, Earth, Everest, the suit, Neptune).</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: the jarvis-test suite in jsdom; headless Chromium at 1280×800 and 390×844, and at 390×844 with reduced motion; a source grep for <code>innerHTML</code> and <code>localStorage.setItem</code>; <code>personal()</code> run over every stored shape; and WCAG contrast computed from the CSS values. See <a href="54.html">54.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>
