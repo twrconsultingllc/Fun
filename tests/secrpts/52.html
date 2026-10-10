@@ -184,7 +184,7 @@
     <h2><span class="num">01</span>Security &amp; privacy</h2>
     <div class="item">
       <div class="item-head"><div class="item-title">Same storage, nothing new saved</div><span class="badge fixed">Confirmed clean</span></div>
-      <div class="item-body"><p>The name still lives only in <code>localStorage['jarvis-name']</code> on the device. Nothing new is stored, and nothing is sent anywhere. The CSP meta tag is unchanged in both pages. New: "forget my name" removes that key, so the name can be cleared the same way learned phrases can. The suite checks the key is gone afterwards. Answers containing the name go through <code>textContent</code> and speech, as before.</p></div>
+      <div class="item-body"><p><strong>Status note, 2026-10-10:</strong> later the same day the user asked that no personal data be stored at all, so the name is no longer saved. It's kept in memory for one visit, and the privacy scrub deletes <code>jarvis-name</code> on load. See <a href="53.html">53.html</a>. What follows is the review as written.</p><p>The name still lives only in <code>localStorage['jarvis-name']</code> on the device. Nothing new is stored, and nothing is sent anywhere. The CSP meta tag is unchanged in both pages. New: "forget my name" removes that key, so the name can be cleared the same way learned phrases can. The suite checks the key is gone afterwards. Answers containing the name go through <code>textContent</code> and speech, as before.</p></div>
     </div>
   </section>
 

@@ -100,12 +100,33 @@ export default async function run(t, page) {
         window.localStorage.removeItem('jarvis-name');
         t.ok('"I\'m fine" is not taken as a name', !/Nice to meet you/.test(brain("I'm fine")));
         t.ok('"I am hungry" is not taken as a name', !/Nice to meet you/.test(brain('I am hungry')));
-        t.eq('"my name is tony" is', brain('my name is tony'), "Nice to meet you, Tony. I'll remember that on this device.");
-        t.eq('the name is remembered on this device', window.localStorage.getItem('jarvis-name'), 'Tony');
+        t.eq('"my name is tony" is', brain('my name is tony'), "Nice to meet you, Tony. I'll remember that until you close this page. I never save names.");
+        t.eq('the name is never saved in the browser', window.localStorage.getItem('jarvis-name'), null);
         t.ok('the name is used in greetings', /Tony/.test(brain('hello')));
         t.ok('help lists what it can do', /flip a coin/.test(brain('what can you do')));
         t.ok('help mentions the holo-projector', /show me the galaxy/.test(brain('help')));
         t.ok('unknown questions get a fallback', /demo|databanks|brain/.test(brain('what is the capital of peru')));
+
+
+        t.section('Privacy scrub: nothing personal is stored');
+
+        // The user asked on 2026-10-10 that Jarvis never store personal data in the browser. Every save goes
+        // through store(), which refuses other keys and anything that looks personal, and scrubStore()
+        // clears whatever older versions saved.
+        const { personal, store, STORE_KEYS } = window.__jarvis;
+        for (const [q, why] of [['email me at pat@example.com', 'an email address'], ['my number is 239 555 0142', 'a phone or ID number'], ['ssn 123-45-6789', 'a phone or ID number'],
+            ['zip 34102', 'a long number'], ['born 03/04/2011', 'a date'], ['I live at 42 Gulf Shore Blvd', 'a street address'], ['go to www.example.com', 'a web address'],
+            ['my birthday', 'something about you'], ['my password is fish', 'something about you'], ["I'm 12 years old", 'something about you'], ['call me Pat', 'something about you'], ['my doctor said rest', 'something about you'], ['my mom', 'something about you']])
+            t.eq(`"${q}" is personal (${why})`, personal(q), why);
+        for (const q of ['beam me up', 'tell me a joke', 'make it rain tacos', 'show me mars', 'what is 7 times 8', 'flip a coin', 'switch to the matrix', 'make 3 hearts'])
+            t.eq(`"${q}" is not personal`, personal(q), null);
+        t.eq('store() refuses a key that isn\'t on the list', store('jarvis-name', 'Tony'), false);
+        t.eq('and personal text even under a listed key', store('jarvis-learned', JSON.stringify({ 'my phone': '239 555 0142' })), false);
+        t.eq('nothing was written', window.localStorage.getItem('jarvis-name'), null);
+        t.eq('only four keys can ever be saved', JSON.stringify(STORE_KEYS), '["jarvis-skin","jarvis-voices","jarvis-learned","jarvis-mic-note"]');
+        t.eq('the page calls localStorage.setItem in exactly one place (store)', (page.html.match(/localStorage\.setItem\(/g) || []).length, 1);
+        t.ok('and never reads or writes a saved name', !/jarvis-name/.test(page.html));
+        t.ok('"what do you save" lists what is kept and says nothing personal is', /No names, no personal details/.test(await window.__jarvis.answer('what do you save')));
 
         t.section('Holo-projector commands');
 
@@ -714,6 +735,32 @@ async function skinsAndMemory(t, page) {
         t.ok('and anything that isn\'t a phrase is dropped', !('bad' in J.learned()));
         document.getElementById('q').value = 'forget what you learned'; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(520);
         t.eq('"forget what you learned" clears them', window.localStorage.getItem('jarvis-learned'), '{}');
+    } finally {
+        env.close();
+    }
+    // An older version saved the name, and a taught phrase may hold personal details: both go on the next visit.
+    t.section('Privacy scrub: cleaning up what older versions saved');
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ...opts, beforeParse(w) { opts.beforeParse(w);
+        w.localStorage.setItem('jarvis-name', 'Tony'); w.localStorage.setItem('jarvis-secret', 'x'); w.localStorage.setItem('other-page', 'keep me');
+        w.localStorage.setItem('jarvis-skin', 'matrix');
+        w.localStorage.setItem('jarvis-learned', JSON.stringify({ 'beam me up': 'roll a die', 'my number': 'call 239 555 0142', 'ring pat': 'email pat@example.com' })); } });
+    try {
+        const { window } = env, J = window.__jarvis, ls = window.localStorage;
+        t.eq('a saved name is deleted on load', ls.getItem('jarvis-name'), null);
+        t.eq('so is any other jarvis-* key that isn\'t a setting', ls.getItem('jarvis-secret'), null);
+        t.eq('other pages\' storage on this site is left alone', ls.getItem('other-page'), 'keep me');
+        t.eq('taught phrases with personal details are dropped, the rest kept', ls.getItem('jarvis-learned'), '{"beam me up":"roll a die"}');
+        t.eq('settings stay', ls.getItem('jarvis-skin'), 'matrix');
+        t.ok('the deleted name is not used to greet you', (J.finishBoot(), !/Tony/.test([...env.document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? '')));
+        t.ok('"what do you save" reads back exactly what is there', /your skin \(Morpheus\) and one phrase you taught me\./.test(await J.answer('what do you save')));
+        J.brain('my name is pat');
+        t.ok('a name told this visit is mentioned as memory-only', /Your name, Pat, is only in memory for this visit\./.test(await J.answer('what do you know about me')));
+        t.eq('and still not stored', ls.getItem('jarvis-name'), null);
+        t.ok('an unknown phrase gets the "what were you trying to say" question', /What were you trying to say\?$/.test(await J.answer('ring my dentist')));
+        const taught = await J.answer('I meant what is 239 times 5550142');
+        t.ok('it says why it won\'t save it', /won't save that phrase, because it has a phone or ID number in it/.test(taught));
+        t.ok('and the phrase is not in storage', !/dentist|5550142/.test(ls.getItem('jarvis-learned')));
+        t.eq('no console errors', env.errors.length, 0);
     } finally {
         env.close();
     }

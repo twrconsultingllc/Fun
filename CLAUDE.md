@@ -474,6 +474,21 @@ A fake voice list added with `addInitScript` makes the menu render, but
 Chrome then logs "Failed to set the 'voice' property" for each utterance,
 because a plain object isn't a real voice. That's the fake, not a page bug.
 
+Jarvis never stores personal data in the browser. The user set this on
+2026-10-10: browser storage is too easy to read. Every `localStorage` write in
+`jarvis.html` and `jarvis-test.html` goes through `store()`, which only takes
+the four keys in `STORE_KEYS` (skin, voice picks, taught phrases, mic note)
+and refuses any text that `personal()` flags: emails, phone and ID numbers,
+long numbers, dates, street and web addresses, and "my name / my birthday /
+I live…" disclosures. `scrubStore()` runs on every load and deletes anything
+an older version saved that doesn't pass, touching only `jarvis-*` keys,
+since other pages on the site share the storage. The user's name lives in
+memory for one visit only. A new feature that wants to remember something
+must go through `store()`, add its key to `STORE_KEYS` only if it can never
+hold personal data, and pass the suites' "exactly one `localStorage.setItem`"
+check. Facts about the user (birthdays, family, a diary) aren't stored at
+all. "What do you save" makes Jarvis read back what's actually stored.
+
 The interim session on 2026-10-09 (skins, faces, voices, learned phrases)
 is written up in `jarvis/build-plan.html` under "Interim", with what was
 picked and what was decided against. Read it before changing any of those.

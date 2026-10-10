@@ -199,6 +199,57 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
 </div>
 
 <script>
+/* ---------- Privacy scrub: nothing personal is ever stored in this browser ----------
+   Jarvis saves only settings: the skin, voice picks per skin, whether the mic note has been seen, and
+   phrases you taught him. Every save goes through store(), which refuses any other key and any text that
+   looks personal. scrubStore() runs on every visit and deletes whatever an older version saved that
+   doesn't pass, such as a saved name or a taught phrase with a phone number in it. Your name is kept in
+   memory for this visit only. Only jarvis-* keys are touched: other pages on this site share the storage. */
+const STORE_KEYS=['jarvis-skin','jarvis-voices','jarvis-learned','jarvis-mic-note'];
+const PERSONAL=[
+  ['an email address',/[^\s@]+@[^\s@]+\.[a-z]{2,}/i],
+  ['a phone or ID number',/(?:\+?\d[\s().-]*){7,}/],
+  ['a long number',/\d{5,}/],
+  ['a date',/\b\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}\b/],
+  ['a street address',/\b\d{1,6}(?:\s+[a-z0-9.'-]+){1,4}\s+(?:street|st|avenue|ave|road|rd|drive|dr|lane|ln|boulevard|blvd|court|ct|way|circle|cir|parkway|pkwy|place|pl|terrace|ter|highway|hwy|trail|trl)\b/i],
+  ['a web address',/https?:\/\/|\bwww\.|\b[a-z0-9-]+\.(?:com|org|net|edu|gov|io|co|us|uk)\b/i],
+  ['something about you',/\bmy (?:name|full name|first name|last name|surname|nickname|address|street|zip|post ?code|town|city|phone|cell|mobile|number|email|e-?mail|birthday|birth ?date|date of birth|dob|age|password|passcode|pin|login|username|social security|ssn|credit card|debit card|card|account|bank|routing|licen[cs]e|passport|doctor|diagnosis|medication|medicine|condition|allerg(?:y|ies)|school|teacher|class|wife|husband|partner|girlfriend|boyfriend|son|daughter|kids?|children|mom|mum|mother|dad|father|brother|sister|boss|work|workplace|job|employer|salary|religion|church)\b|\bi(?:'m| am) \d{1,3}(?: years old)?\b|\bi live\b|\bi was born\b|\bcall me\b|\b(?:password|passcode|pin code|social security|credit card|ssn)\b/i]
+];
+// Why a piece of text looks personal ("an email address", …), or null when it doesn't.
+function personal(text){const s=String(text);for(const [why,re] of PERSONAL)if(re.test(s))return why;return null}
+function store(key,value){
+  if(!STORE_KEYS.includes(key)||personal(value))return false;
+  try{localStorage.setItem(key,value);return true}catch(e){return false}
+}
+function scrubStore(){
+  let ls;try{ls=localStorage;ls.length}catch(e){return}
+  try{
+    for(let i=ls.length-1;i>=0;i--){const k=ls.key(i);if(k&&k.startsWith('jarvis-')&&!STORE_KEYS.includes(k))ls.removeItem(k)}
+    const raw=ls.getItem('jarvis-learned');
+    if(raw!==null){
+      let o=null;try{o=JSON.parse(raw)}catch(e){}
+      const keep=Object.create(null);
+      if(o&&typeof o==='object'&&!Array.isArray(o))for(const [k,v] of Object.entries(o))if(typeof v==='string'&&!personal(k)&&!personal(v))keep[k]=v;
+      const out=JSON.stringify(keep);if(out!==raw)ls.setItem('jarvis-learned',out);
+    }
+    for(const k of ['jarvis-skin','jarvis-voices','jarvis-mic-note']){const v=ls.getItem(k);if(v!==null&&(v.length>4000||personal(v)))ls.removeItem(k)}
+  }catch(e){}
+}
+scrubStore();
+// "What do you save?": exactly what's in this browser, read back from storage rather than from memory.
+function storedSummary(){
+  let ls=null;try{ls=localStorage}catch(e){}
+  const get=k=>{try{return ls&&ls.getItem(k)}catch(e){return null}};
+  const parts=[];
+  const sk=get('jarvis-skin');if(sk&&typeof SKINS==='object'&&Object.hasOwn(SKINS,sk))parts.push(`your skin (${SKINS[sk].short})`);
+  let v={};try{v=JSON.parse(get('jarvis-voices')||'{}')||{}}catch(e){}const nv=Object.keys(v).length;if(nv)parts.push(`your voice pick for ${nv===1?'one skin':nv+' skins'}`);
+  let l={};try{l=JSON.parse(get('jarvis-learned')||'{}')||{}}catch(e){}const nl=Object.keys(l).length;if(nl)parts.push(`${nl===1?'one phrase':nl+' phrases'} you taught me`);
+  if(get('jarvis-mic-note'))parts.push("that you've seen the mic note");
+  const list=parts.length?`Here's everything I keep in this browser: ${parts.length>1?parts.slice(0,-1).join(', ')+' and '+parts[parts.length-1]:parts[0]}.`:"I'm not keeping anything in this browser right now.";
+  const now=typeof userName==='string'&&userName?` Your name, ${userName}, is only in memory for this visit.`:'';
+  return `${list}${now} No names, no personal details, nothing from the camera and no chat history. Anything that looks personal is never saved.`;
+}
+
 /* ---------- Clock ---------- */
 const clock=document.getElementById('clock'),dateEl=document.getElementById('date');
 function tick(){const d=new Date();clock.textContent=d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});dateEl.textContent=d.toLocaleDateString([], {weekday:'long',month:'short',day:'numeric'})}
@@ -548,7 +599,7 @@ function fillVoices(){
 if(synth){pickVoice();synth.onvoiceschanged=pickVoice;
   voiceSel.addEventListener('change',()=>{
     if(voiceSel.value)voicePicks[skin]=voiceSel.value;else delete voicePicks[skin];
-    try{localStorage.setItem('jarvis-voices',JSON.stringify(voicePicks))}catch(e){}
+    store('jarvis-voices',JSON.stringify(voicePicks));
     pickVoice();say(SKINS[skin].sample);
   });
 }
@@ -588,7 +639,7 @@ function add(text,who){
 }
 
 /* ---------- Built-in brain (no internet, kid-safe) ---------- */
-let userName=null;try{userName=localStorage.getItem('jarvis-name')}catch(e){}
+let userName=null; // this visit only: names are never saved (see the privacy scrub)
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const jokes=["Why did the robot go on vacation? It needed to recharge its batteries.","What do you call a computer that sings? A Dell.","Why was the math book sad? It had too many problems.","How does the moon cut its hair? Eclipse it.","Why don't skeletons fight each other? They don't have the guts."];
 const facts=["Octopuses have three hearts.","A day on Venus is longer than a year on Venus.","Honey never spoils. Archaeologists have found edible honey in ancient Egyptian tombs.","Sharks existed before trees did.","The Eiffel Tower grows about 15 centimeters taller in summer because the metal expands."];
@@ -605,10 +656,10 @@ function mathAnswer(s){
 function brainKnown(raw){
   const s=raw.toLowerCase().trim(),name=userName?`, ${userName}`:'';
   let m;
-  if((m=s.match(/\b(?:my name is|call me|i am|i'm) ([a-z]+)/))&&!notNames.has(m[1])){userName=m[1][0].toUpperCase()+m[1].slice(1);try{localStorage.setItem('jarvis-name',userName)}catch(e){}return `Nice to meet you, ${userName}. I'll remember that on this device.`}
-  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say show me your brain to watch me think, or suit up to build a suit of armour. Say show me Earth for the globe, or show me any country, US state or big city, like Florida or Tokyo. Say hand control to steer it with your hands through the camera, or scan the room for a threat scan. Say brief me for the time and the top headlines. In Chrome or Edge, turn on always listening with the HEY JARVIS switch, then start what you say with my name. Say close to turn it off, or reboot to watch me power up again. Say switch to Matrix to talk to Morpheus, switch to Panthers for Stanley C. Panther, or back to Jarvis. Tell me your name and I'll remember it, whichever skin I'm in. If I don't understand you, tell me what you meant and I'll remember it on this device.";
-  if(/^(?:please )?(?:forget|clear|delete|erase) my name\b/.test(s)){const had=userName;userName=null;try{localStorage.removeItem('jarvis-name')}catch(e){}return had?`Done. I've forgotten your name on this device.`:"I don't know your name yet, so there's nothing to forget."}
-  if(/\bwhat(?:'s| is) my name\b|\bwho am i\b|\bdo you (?:know|remember) (?:my name|me|who i am)\b|\bsay my name\b/.test(s))return userName?`Your name is ${userName}. I remember it on this device, whichever skin I'm wearing.`:"You haven't told me your name yet. Say my name is, then your name, and I'll remember it on this device.";
+  if((m=s.match(/\b(?:my name is|call me|i am|i'm) ([a-z]+)/))&&!notNames.has(m[1])){userName=m[1][0].toUpperCase()+m[1].slice(1);return `Nice to meet you, ${userName}. I'll remember that until you close this page. I never save names.`}
+  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say show me your brain to watch me think, or suit up to build a suit of armour. Say show me Earth for the globe, or show me any country, US state or big city, like Florida or Tokyo. Say hand control to steer it with your hands through the camera, or scan the room for a threat scan. Say brief me for the time and the top headlines. In Chrome or Edge, turn on always listening with the HEY JARVIS switch, then start what you say with my name. Say close to turn it off, or reboot to watch me power up again. Say switch to Matrix to talk to Morpheus, switch to Panthers for Stanley C. Panther, or back to Jarvis. Tell me your name and I'll remember it for this visit, whichever skin I'm in. Ask what do you save to see what I keep, and I never keep anything personal. If I don't understand you, tell me what you meant and I'll remember it on this device.";
+  if(/^(?:please )?(?:forget|clear|delete|erase) my name\b/.test(s)){const had=userName;userName=null;return had?"Done. I've forgotten your name.":"I don't know your name yet, so there's nothing to forget."}
+  if(/\bwhat(?:'s| is) my name\b|\bwho am i\b|\bdo you (?:know|remember) (?:my name|me|who i am)\b|\bsay my name\b/.test(s))return userName?`Your name is ${userName}. I'll remember it whichever skin I'm wearing, until you close this page. I never save it.`:"You haven't told me your name yet. Say my name is, then your name, and I'll remember it until you close this page.";
   if(/\b(hello|hi|hey|good (morning|afternoon|evening))\b/.test(s))return pick([`Hello${name}. All systems are online.`,`Good to see you${name}. How can I help?`]);
   if(/what.*\btime\b/.test(s))return `It's ${new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}${name}.`;
   if(/what.*(date|day)/.test(s))return `Today is ${new Date().toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'})}.`;
@@ -1781,10 +1832,10 @@ function setSkin(k){
   const was=skin;skin=k;const S=SKINS[k];
   document.documentElement.dataset.skin=k;whoEl.textContent=S.name;skinBtn.textContent='SKIN: '+S.label;
   ringRGB=S.ring;coreRGB=S.core;
-  try{localStorage.setItem('jarvis-skin',k)}catch(e){}
+  store('jarvis-skin',k);
   if(synth)pickVoice();
   rain(k==='matrix');
-  if(wakeBtn)wakeBtn.textContent=`👂 HEY ${S.short.toUpperCase()}: ${wakeOn?'ON':'OFF'}`;
+  if(wakeBtn)wakeBtn.textContent=`👂 HEY ${wakeName(k).toUpperCase()}: ${wakeOn?'ON':'OFF'}`;
   return was===k?`I'm already ${S.short}.`:S.hello(userName?', '+userName:'');
 }
 skinBtn.addEventListener('click',()=>{const ks=Object.keys(SKINS);say(setSkin(ks[(ks.indexOf(skin)+1)%ks.length]))});
@@ -1857,11 +1908,12 @@ const LEARN_MAX=200;
 let learned=Object.create(null);
 try{const o=JSON.parse(localStorage.getItem('jarvis-learned')||'{}');if(o&&typeof o==='object'&&!Array.isArray(o))
   for(const [k,v] of Object.entries(o))if(typeof v==='string'&&k.length<=120&&v.length<=200)learned[k]=v}catch(e){}
-function saveLearned(){try{localStorage.setItem('jarvis-learned',JSON.stringify(learned))}catch(e){}}
+function saveLearned(){store('jarvis-learned',JSON.stringify(learned))}
 function learn(said,meant){
+  if(personal(said)||personal(meant))return false; // never saved: see the privacy scrub
   delete learned[said];learned[said]=meant; // newest last
   const ks=Object.keys(learned);ks.slice(0,Math.max(0,ks.length-LEARN_MAX)).forEach(k=>delete learned[k]);
-  saveLearned();
+  saveLearned();return true;
 }
 let pendingTeach=null; // the phrase Jarvis just didn't understand, while he waits to hear what it meant
 const NOPE=Symbol('not understood');
@@ -1878,6 +1930,7 @@ async function respond(text){
 const MEANT=/^(?:what\s+)?i\s+(?:was\s+(?:trying|going)\s+to\s+(?:say|ask)|tried\s+to\s+(?:say|ask)|wanted\s+to\s+(?:say|ask)|meant\s+to\s+(?:say|ask)|wanted\s+(?:you\s+)?to|want\s+(?:you\s+)?to|meant|mean)(?:\s+(?:was|is))?[\s,:]*/i;
 async function answer(text){
   const p=normPhrase(text);
+  if(/^(?:jarvis )?(?:what (?:do|did|will) you (?:save|store|keep|remember|know about me)|what (?:have you|do you have) (?:saved|stored)|what(?:'s| is) (?:saved|stored)|privacy check|what do you know about me)\b/.test(p))return storedSummary();
   const w=wakeIntent(text);if(w!==null)return setWake(w);
   if(/^(?:forget|clear|erase|wipe|reset|delete)\b.*\b(?:learned|learnt|taught|memory|phrases)\b/.test(p)){
     pendingTeach=null;const n=Object.keys(learned).length;learned=Object.create(null);saveLearned();
@@ -1894,6 +1947,8 @@ async function answer(text){
     const meant=text.trim().replace(MEANT,'').replace(/[.!]+$/,'').trim();
     const r=meant?await respond(meant):NOPE;
     if(r===NOPE)return "I don't understand that either, so we'll have to move on. I'm not programmed for this.";
+    const why=personal(said)||personal(meant);
+    if(why)return `I did it this time, but I won't save that phrase, because it has ${why} in it.${r?' '+r:''}`;
     if(normPhrase(meant)!==said)learn(said,meant);
     const got=`Got it. Next time you say "${said}", I'll know you mean "${meant}".`;
     return r?`${got} ${r}`:got;
@@ -1925,7 +1980,8 @@ function wakeCommand(text,names='jarvis'){
   const m=String(text).trim().match(new RegExp(`^(?:(?:hey|hi|hello|ok|okay|yo)[\\s,]+)?(?:${names})\\b[\\s,.:;!?-]*(.*)$`,'i'));
   return m?m[1].trim():null;
 }
-const wakeNames=()=>['jarvis',SKINS[skin].short.toLowerCase()].filter((v,i,a)=>a.indexOf(v)===i).join('|');
+const wakeName=k=>SKINS[k].short.split(' ')[0]; // the first name: "Stanley", not "Stanley C. Panther"
+const wakeNames=()=>['jarvis',wakeName(skin).toLowerCase()].filter((v,i,a)=>a.indexOf(v)===i).join('|');
 function wakeIntent(raw){
   const s=normPhrase(raw);
   if(/\b(?:stop|turn off|disable|end|no more|quit)\b.*\b(?:always listening|listening all the time|wake word|hey jarvis)\b|\b(?:always listening|wake word|hey jarvis)(?: mode)? off\b/.test(s))return false;
@@ -1939,7 +1995,7 @@ if(SR){
   if(!noted)micNote.hidden=false;
   const rec=new SR();rec.lang='en-US';rec.interimResults=false;
   const armed=()=>performance.now()<armedUntil;
-  rec.onstart=()=>{hearing=false;try{localStorage.setItem('jarvis-mic-note','1')}catch(e){}if(wakeOn&&!armed())return;mic.classList.add('on');setMode('listen')};
+  rec.onstart=()=>{hearing=false;store('jarvis-mic-note','1');if(wakeOn&&!armed())return;mic.classList.add('on');setMode('listen')};
   // The orb reacts to your voice through recognition's own events, so it never competes for the mic.
   rec.onspeechstart=()=>{hearing=true};rec.onspeechend=()=>{hearing=false};
   rec.onend=()=>{
@@ -1976,7 +2032,7 @@ if(SR){
     setWake=(on,why)=>{
       if(on===wakeOn)return on?"Always listening is already on.":"Always listening is already off.";
       wakeOn=on;armedUntil=0;wakeRestarts=[];rec.continuous=on;
-      wakeBtn.setAttribute('aria-pressed',String(on));wakeBtn.textContent=`👂 HEY ${SKINS[skin].short.toUpperCase()}: ${on?'ON':'OFF'}`;
+      wakeBtn.setAttribute('aria-pressed',String(on));wakeBtn.textContent=`👂 HEY ${wakeName(skin).toUpperCase()}: ${on?'ON':'OFF'}`;
       wakeNote.hidden=!on;mic.classList.toggle('wake',on);
       if(on){try{rec.start()}catch(e){}return `Always listening is on. Everything the mic hears goes to your browser's online speech service until you turn it off. Start with my name, like: Jarvis, what time is it?`}
       try{rec.stop()}catch(e){}
@@ -1987,7 +2043,7 @@ if(SR){
   }
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing};
+window.__jarvis={personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing};
 setSkin(skin);
 showBoot();
 </script>
