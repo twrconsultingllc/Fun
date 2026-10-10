@@ -139,6 +139,19 @@ changing it. Do not "fix" a failure by pasting in whatever the page now prints â
 during the TriCalc 4.0 rewrite three failures turned out to be wrong
 expectations in the test, but the fourth would have papered over a real bug.
 
+A test has to go through the path the user takes, not around it. Setting
+state directly (calling `track()` to fill usage counts, say) is fine for
+setting up a case, but the check itself must then take a real turn, such as
+typing into the input, whenever the behaviour under test runs as part of a
+turn. On 2026-10-10 (Session 11 of `jarvis/build-plan.html`, review 63), a
+check that the favourites order "doesn't move mid-visit" filled the counts
+and read the order straight back without a turn in between. It passed even
+with the page recomputing the order after every turn, because that code
+never ran. Breaking the page on purpose and re-running the suite caught it.
+Do that for a new feature's checks: change the page the way a bug would and
+confirm the suite fails. Put the changed copy in the repo root (the pinned
+file-hash checks look for files next to the page) and keep it out of git.
+
 ### Testing a multi-file app (battle-bots-V2)
 
 `battle-bots-V2` is not a single-file page â€” it's `public/*.js` ES modules
