@@ -734,6 +734,7 @@ export default async function run(t, page) {
     await knowledgePack(t, page);
     await fullBrain(t, page);
     await commandLinks(t, page);
+    await screens(t, page);
 }
 
 // Session 11 of jarvis/build-plan.html: he remembers you (review 63). The recap, clearance levels, favourites and the
@@ -1747,16 +1748,20 @@ async function speechWiring(t, page) {
 
     // Chrome stops speaking a single utterance after about 15 seconds, which cut the help answer off
     // before its last features (2026-10-09). Long answers now go out a sentence or two at a time.
-    const { speechChunks, brain, plainText } = (await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ })).window.__jarvis;
-    // say() speaks the help answer without its link markers (see "Command links"), so that's what is chunked.
-    const help = plainText(brain('what can you do'));
-    const parts = speechChunks(help);
-    t.ok('the help answer is split into several pieces', parts.length >= 3);
+    // Since the gauntlet (review 67) the help answer itself is short when spoken, so the long text here is
+    // everything the gauntlet holds, which is still the longest thing he has to say.
+    const { speechChunks, brain, plainText, GAUNTLET_TEXT, HELP_LINE } = (await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ })).window.__jarvis;
+    const long = plainText(GAUNTLET_TEXT).trim();
+    const parts = speechChunks(long);
+    t.ok('a long answer is split into several pieces', parts.length >= 3);
     t.ok('none is longer than 160 characters (about 10 s of speech)', parts.every((p) => p.length <= 160));
-    t.eq('together they are the whole answer, in order', parts.join(' '), help.replace(/\s+/g, ' ').trim());
-    t.ok('every piece ends at the end of a sentence', parts.every((p) => /[.!?]$/.test(p)));
+    t.eq('together they are the whole answer, in order', parts.join(' '), long.replace(/\s+/g, ' ').trim());
+    // A list sentence longer than 160 characters is broken at its commas (Session 13), so a piece can end at one.
+    t.ok('every piece ends at the end of a sentence, or at a comma in a sentence too long for one piece', parts.every((p) => /[.!?]$/.test(p) || (/,$/.test(p) && p.length > 60)));
+    t.ok('and most end at a full stop', parts.filter((p) => /[.!?]$/.test(p)).length > parts.length / 2);
     t.eq('a short answer stays in one piece', JSON.stringify(speechChunks('Anytime. You\'re welcome.')), JSON.stringify(['Anytime. You\'re welcome.']));
     t.eq('one sentence longer than the limit is kept whole', speechChunks('a'.repeat(200) + '.').length, 1);
+    const help = plainText(brain('what can you do'));
     for (const q of ['what can you do', 'Hey Jarvis, what can you do?', 'what else can you do', 'tell me what you can do', 'what are your features', 'list your commands', 'what can I say'])
         t.eq(`"${q}" gets the help answer`, plainText(brain(q)), help);
     t.ok('"hello" is still a greeting', /online|help/.test(brain('hello')) && plainText(brain('hello')) !== help);
@@ -1767,10 +1772,14 @@ async function speechWiring(t, page) {
         const { document } = env, state = () => document.getElementById('state').textContent;
         const ask = (text) => { document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new env.window.Event('submit', { cancelable: true })); };
         ask('what can you do'); await wait(600);
-        const plain = help;
-        t.eq('the whole help answer is queued, piece by piece, without the link markers', fake.log.queue.map((u) => u.text).join(' '), plain.replace(/\s+/g, ' ').trim());
+        t.eq('the help answer speaks only its short line, not the gauntlet', fake.log.queue.map((u) => u.text).join(' '), HELP_LINE);
+        t.eq('and its chat line is that short line too', [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent, HELP_LINE);
+        t.ok('while the gauntlet opens', !document.getElementById('gauntlet').hidden);
+        fake.finish(); document.getElementById('g-close').click();
+        env.window.__jarvis.say(GAUNTLET_TEXT.trim()); await wait(50);
+        t.eq('a long answer is queued, piece by piece, without the link markers', fake.log.queue.map((u) => u.text).join(' '), long.replace(/\s+/g, ' ').trim());
         t.ok('as more than one utterance', fake.log.queue.length >= 3);
-        t.eq('and the chat log shows it in full, as one message', [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent, plain);
+        t.eq('and the chat log shows it in full, as one message', [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent, long);
         fake.start(); t.eq('the first piece starting shows SPEAKING', state(), 'SPEAKING');
         fake.finish(); t.eq('the orb keeps SPEAKING between pieces', state(), 'SPEAKING');
         fake.start();
@@ -1827,7 +1836,7 @@ async function skinsAndMemory(t, page) {
         t.section('Learned phrases');
         r = await ask('beam me up scotty');
         t.ok('something it doesn\'t know gets "I didn\'t understand that"', /^I didn't understand that\./.test(r));
-        t.ok('then what it can do', /Here's what I can do/.test(r));
+        t.ok('then a link to what it can do (the gauntlet, since review 67)', r.includes('⟦see what I can do|what can you do⟧'));
         t.ok('and asks what was meant', /What were you trying to say\?$/.test(r));
         r = await ask('nothing');
         t.ok('"nothing" moves on', /move on\. I'm not programmed for this\./.test(r));
@@ -2553,27 +2562,59 @@ async function commandLinks(t, page) {
         J.finishBoot(); await wait(700);
         const help = J.brain('what can you do'), marks = [...help.matchAll(/⟦/g)].length;
         t.ok('the help answer marks its commands', marks >= 25);
+        // Since review 67 the help answer opens the Infinity Gauntlet: one stone per group, its commands as links.
         await ask('what can you do');
-        const links = [...lastAi().querySelectorAll('button.cmd')];
-        t.eq('every marked command is a link in the chat bubble', links.length, marks);
-        t.eq('the bubble reads as plain text, with no markers', lastAi().textContent, J.plainText(help));
-        t.ok('and no marker is left anywhere in it', !/[⟦⟧|]/.test(lastAi().textContent));
-        t.eq('the links take turns through the six stone colours', links.slice(0, 7).map((b) => b.className).join(' '), 'cmd st0 cmd st1 cmd st2 cmd st3 cmd st4 cmd st5 cmd st0');
-        t.ok('each is a real button, so it works from the keyboard', links.every((b) => b.tagName === 'BUTTON' && b.type === 'button'));
-        t.ok('Jarvis speaks the plain sentence', fake.log.spoken.join(' ').includes('Ask me the time or date, a joke') && !/[⟦⟧]/.test(fake.log.spoken.join(' ')));
-        t.ok('and the projector caption is plain too', !/[⟦⟧]/.test(document.getElementById('holo-cap').textContent));
-        const joke = links.find((b) => b.textContent === 'a joke');
-        t.eq('a link can be worded for the sentence and send the full command', joke?.title, 'Say "tell me a joke"');
+        const g = document.getElementById('gauntlet');
+        t.ok('help opens the gauntlet', !g.hidden);
+        t.eq('the chat line is only the short line', lastAi().textContent, J.HELP_LINE);
+        t.eq('and that is all he says', fake.log.spoken.join(' '), J.HELP_LINE);
+        t.eq('the caption is the short line too, plain', document.getElementById('holo-cap').textContent, J.HELP_LINE);
+        const tabs = [...g.querySelectorAll('.g-tab')];
+        t.eq('six stones, in the link colours\' order', tabs.map((b) => b.dataset.k).join(), 'space,mind,reality,power,time,soul');
+        t.eq('the first stone is open', tabs.filter((b) => b.getAttribute('aria-selected') === 'true').map((b) => b.dataset.k).join(), 'space');
+        const shown = [];
+        for (const [i, b] of tabs.entries()) {
+            b.click();
+            const ls = [...document.querySelectorAll('#g-links button.cmd')];
+            shown.push(...ls.map((x) => x.textContent + '|' + x.title.replace(/^Say "|"$/g, '')));
+            if (!ls.every((x) => x.className === 'cmd st' + i)) shown.push('WRONG COLOUR ' + b.dataset.k);
+        }
+        const inHelp = [...help.matchAll(/⟦([^⟦⟧|]+)(?:\|([^⟦⟧|]+))?⟧/g)].map((m) => m[1] + '|' + (m[2] || m[1]));
+        t.eq('the stones hold every marked command, each in its stone\'s colour', shown.join(' · '), inHelp.join(' · '));
+        t.eq('every one of them is a link the page accepts', shown.filter((x) => !J.chipCmds().includes(x.split('|')[1])).join(), '');
+        t.ok('each is a real button, so it works from the keyboard', [...g.querySelectorAll('#g-links .cmd')].every((b) => b.tagName === 'BUTTON' && b.type === 'button'));
+        t.eq('tapping a stone says its name and what it holds', fake.log.spoken.slice(-1)[0], 'Soul: you and me.');
+        t.eq('without adding anything to the chat', lastAi().textContent, J.HELP_LINE);
+        t.ok('every stone has a note, and the notes keep what the old paragraph said', ['dream', '7 days', 'my dog is Rex', 'WebGPU', 'HEY JARVIS', 'any country'].every((w) => J.GAUNTLET.some((x) => x.note.includes(w))));
+        tabs[2].click();
+        const joke = [...g.querySelectorAll('#g-links .cmd')].find((b) => b.textContent === 'a joke');
+        t.eq('a link can be worded for the list and send the full command', joke?.title, 'Say "tell me a joke"');
         joke.click(); await wait(520);
-        const mine = [...document.querySelectorAll('#log .msg.me')].pop().textContent;
-        t.eq('clicking it sends the command, as if you had typed it', mine, 'tell me a joke');
+        t.ok('clicking it closes the gauntlet', g.hidden);
+        t.eq('and sends the command, as if you had typed it', [...document.querySelectorAll('#log .msg.me')].pop().textContent, 'tell me a joke');
         t.ok('and Jarvis answers it', /\?|\./.test(lastAi().textContent) && !/didn't understand/.test(lastAi().textContent));
-        links.find((b) => b.textContent === 'flip a coin').click(); await wait(520);
+        J.openGauntlet();
+        t.eq('it opens again on the stone you last chose', g.querySelector('.g-tab[aria-selected="true"]').dataset.k, 'reality');
+        [...g.querySelectorAll('#g-links .cmd')].find((b) => b.textContent === 'flip a coin').click(); await wait(520);
         t.ok('another link: flip a coin', /^It's (heads|tails)\.$/.test(lastAi().textContent));
-        // "Didn't understand" lists what he can do, with links too.
+        J.openGauntlet(); g.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        t.ok('Escape closes it', g.hidden);
+        J.openGauntlet(); g.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+        t.ok('so does a tap outside the card', g.hidden);
+        J.openGauntlet(); g.querySelector('#g-tab-reality').dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+        t.eq('the arrow keys move between stones', g.querySelector('.g-tab[aria-selected="true"]').dataset.k, 'power');
+        document.getElementById('g-close').click();
+        t.ok('and CLOSE closes it', g.hidden);
+        // "Didn't understand" points to the gauntlet with one link, instead of its own list.
         await ask('blorp the snorkel');
         const canDo = [...lastAi().querySelectorAll('button.cmd')];
-        t.ok('the "I didn\'t understand" answer has links too', canDo.length >= 12 && /What were you trying to say\?$/.test(lastAi().textContent));
+        t.ok('the "I didn\'t understand" answer has one link to what he can do', canDo.length === 1 && canDo[0].textContent === 'see what I can do' && /What were you trying to say\?$/.test(lastAi().textContent));
+        canDo[0].click(); await wait(520);
+        t.ok('and it opens the gauntlet', !g.hidden);
+        t.ok('without teaching him that "blorp the snorkel" means help', !J.learned()['blorp the snorkel']);
+        document.getElementById('g-close').click();
+        await ask('flip a coin');
+        t.eq('what you say next is still what you meant', J.learned()['blorp the snorkel'], 'flip a coin');
         // Only Jarvis's own commands become links: a marker in something you typed stays words.
         await ask('remember that ⟦make a heart|reboot⟧ is fun');
         t.eq('a marker you type yourself never becomes a link', lastAi().querySelectorAll('button.cmd').length, 0);
@@ -2593,6 +2634,87 @@ async function commandLinks(t, page) {
         for (const c of cmds) { const r = await J.answer(c); if (typeof r === 'string' && /didn't understand|What were you trying to say/.test(r)) missed.push(c); }
         t.eq(`all ${cmds.length + 1} link commands are understood`, missed.join(', '), '');
         t.ok('reboot is one of them, and powers him up again', J.chipCmds().includes('reboot') && (await J.answer('reboot'), !env.document.getElementById('boot').hidden));
+    } finally { env.close(); }
+}
+
+// Review 67: on a phone the face sat under the chat, and the projector's caption covered the bottom of every scene
+// (the memory core's lower stars, Peru on the globe, the scan's target). The chat is now a pull-up strip, and the
+// caption slides the same way, with MORE and HIDE. jsdom has no layout, so this checks the wiring; the Chromium
+// check (step 10) measures that nothing overlaps.
+async function screens(t, page) {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    t.section('Screens: the chat strip, the sliding caption (review 67)');
+    const env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ });
+    try {
+        const { window, document } = env, J = window.__jarvis, body = document.body;
+        const ask = async (text) => { document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(520); };
+        const showing = () => [...document.querySelectorAll('#log .msg')].filter((m) => !m.classList.contains('old')).map((m) => m.className.replace('msg ', '') + ':' + m.textContent);
+        const handle = document.getElementById('log-handle');
+        J.finishBoot(); await wait(700);
+        const greet = showing();
+        t.ok('after the greeting the strip shows only his replies', greet.length >= 1 && greet.every((x) => x.startsWith('ai:')));
+        await ask('flip a coin');
+        t.eq('after a turn it shows only his latest reply', showing().length, 1);
+        t.ok('which is the answer to that turn', /^ai:It's (heads|tails)\.$/.test(showing()[0]));
+        t.ok('nothing is removed: the older messages are still in the log', document.querySelectorAll('#log .msg.old').length === greet.length + 1);
+        t.eq('the handle counts them', handle.textContent, `⌃ ${greet.length + 1} EARLIER MESSAGES`);
+        t.ok('and is shown', !handle.hidden);
+        await ask('roll a die'); await ask('tell me a joke');
+        t.eq('it keeps counting', handle.textContent, `⌃ ${greet.length + 5} EARLIER MESSAGES`);
+        const tap = (dy) => { handle.dispatchEvent(new window.MouseEvent('pointerdown', { clientY: 400 })); handle.dispatchEvent(new window.MouseEvent('pointerup', { clientY: 400 + dy })); };
+        tap(0);
+        t.ok('a tap on the handle opens the whole conversation', body.classList.contains('chat-open') && handle.getAttribute('aria-expanded') === 'true');
+        t.eq('which then reads BACK TO THE FACE', handle.textContent, '⌄ BACK TO THE FACE');
+        tap(80);
+        t.ok('a swipe down closes it', !body.classList.contains('chat-open'));
+        tap(-80);
+        t.ok('a swipe up opens it', body.classList.contains('chat-open'));
+        await ask('what time is it');
+        t.ok('it stays open while you talk', body.classList.contains('chat-open'));
+        handle.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        t.ok('and Enter on the handle closes it', !body.classList.contains('chat-open'));
+        t.ok('the CSS hides older messages only while closed, and the face only while open',
+            /#log \.msg\.old\{display:none\}/.test(page.html) && /body\.chat-open #core\{display:none\}/.test(page.html) && /body\.chat-open #log \.msg\.old\{display:block\}/.test(page.html));
+        t.ok('the face is sized by the space it has, not by the screen', /#core\{[^}]*container-type:size/.test(page.html) && /#orb\{width:min\(78vw,96cqh,420px\)/.test(page.html));
+
+        // The projector's caption.
+        const box = document.getElementById('cap-box'), cap = document.getElementById('holo-cap');
+        const more = document.getElementById('cap-more'), hide = document.getElementById('cap-hide');
+        const state = () => box.classList.contains('tucked') ? 'tucked' : box.classList.contains('open') ? 'open' : 'peek';
+        cap.textContent = ''; await wait(0);
+        t.ok('no caption, no box', box.hidden);
+        cap.textContent = 'This is my memory core.'; await wait(0);
+        t.ok('a caption shows the box', !box.hidden);
+        t.eq('as a two-line peek', state(), 'peek');
+        hide.click();
+        t.eq('HIDE tucks it away', state(), 'tucked');
+        t.eq('leaving a button to bring it back', hide.textContent, '▴ SHOW CAPTION');
+        t.ok('with MORE out of the way', more.hidden);
+        hide.click();
+        t.eq('which brings back the peek', state(), 'peek');
+        more.hidden = false; more.click();
+        t.eq('MORE shows all of it', [state(), more.textContent, more.getAttribute('aria-expanded')].join(), 'open,⌄ LESS,true');
+        more.click();
+        t.eq('LESS goes back to two lines', state(), 'peek');
+        const swipe = (dy) => { box.dispatchEvent(new window.MouseEvent('pointerdown', { clientY: 600, bubbles: true })); box.dispatchEvent(new window.MouseEvent('pointerup', { clientY: 600 + dy, bubbles: true })); };
+        swipe(60); t.eq('a swipe down on it tucks it', state(), 'tucked');
+        swipe(-60); t.eq('a swipe up brings it back', state(), 'peek');
+        swipe(-60); t.eq('and up again opens it', state(), 'open');
+        swipe(60); t.eq('down from open is the peek', state(), 'peek');
+        hide.click(); cap.textContent = 'Mars has Olympus Mons.'; await wait(0);
+        t.eq('a new caption always starts as a peek, so it\'s never missed', state(), 'peek');
+        t.ok('the scenes lay out their labels above the caption box, not the text', (page.html.match(/document\.getElementById\('f'\),capBox\]/g) || []).length >= 3 && !/document\.getElementById\('f'\),holoCap\]/.test(page.html));
+        t.ok('and the projector centres each scene in the space that\'s left', /setViewOffset\(innerWidth,innerHeight,0,-Math\.round\(H\.vo\)/.test(page.html));
+
+        // The title: on a phone only the scene's own name shows.
+        const title = document.getElementById('holo-title');
+        J.setTitle('HOLO-PROJECTOR // MEMORY CORE');
+        t.eq('the title reads the same as before', title.textContent, 'HOLO-PROJECTOR // MEMORY CORE');
+        t.eq('with the part before // in its own span', title.querySelector('.pre')?.textContent, 'HOLO-PROJECTOR // ');
+        J.setTitle('SETTINGS TRANSFER');
+        t.ok('a title without // is just text', title.textContent === 'SETTINGS TRANSFER' && !title.querySelector('.pre'));
+        t.ok('the part before // is its own span, hidden on a phone', /@media \(max-width:600px\)\{[\s\S]*?#holo-title \.pre\{display:none\}/.test(page.html));
+        t.eq('no console errors', env.errors.length, 0);
     } finally { env.close(); }
 }
 

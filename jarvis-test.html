@@ -35,11 +35,22 @@ header b{display:block;color:var(--phos);font-size:1.4rem;font-weight:500;letter
 header a{color:var(--label);text-decoration:none}
 header a:hover,header a:focus-visible{color:var(--phos)}
 header a:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-#core{flex:1;display:grid;place-items:center;min-height:0;position:relative}
-#orb{width:min(78vw,52vh,420px);aspect-ratio:1;display:block}
+/* The face fills exactly the space between the header and the chat strip, so it can never sit under the chat. */
+#core{flex:1;display:grid;place-items:center;min-height:0;position:relative;container-type:size}
+#orb{width:min(78vw,96cqh,420px);aspect-ratio:1;display:block}
 #state{position:absolute;bottom:4%;font-size:.85rem;color:var(--phos);opacity:.8;letter-spacing:.2em}
 body.dreaming #state{color:var(--label);opacity:1}
-#log{height:26vh;overflow-y:auto;padding:0 18px;display:flex;flex-direction:column;gap:8px;max-width:640px;width:100%;margin:0 auto;scroll-behavior:smooth}
+/* The chat is a pull-up strip: only his latest reply shows under the face. Swipe up on the handle, or tap it, for the
+   whole conversation, which then takes the face's place until you swipe it back down. */
+#log{max-height:min(34vh,260px);flex:none;overflow-y:auto;padding:0 18px;display:flex;flex-direction:column;gap:8px;max-width:640px;width:100%;margin:0 auto;scroll-behavior:smooth}
+#log .msg.old{display:none}
+body.chat-open #core{display:none}
+body.chat-open #log{flex:1;max-height:none;min-height:0}
+body.chat-open #log .msg.old{display:block}
+#log-handle{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;max-width:640px;margin:0 auto;padding:6px 18px 8px;border:0;background:none;
+  color:var(--label);font-size:.68rem;font-weight:500;letter-spacing:.16em;touch-action:none}
+#log-handle::before{content:"";width:44px;height:4px;border-radius:2px;background:var(--phos-dim)}
+#log-handle[hidden],body.holo-on #log-handle{display:none}
 .msg{max-width:85%;padding:8px 12px;border:1px solid var(--phos-dim);background:var(--glass);font-size:1rem;line-height:1.4;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
 .brain-tag{display:block;font-size:.66rem;font-weight:700;letter-spacing:.14em;color:var(--amber);margin-bottom:3px}
 .me{align-self:flex-end;border-color:var(--amber);color:#ffe6b0;background:rgba(255,194,74,.06)}
@@ -133,6 +144,7 @@ body.holo-on #wake-note{display:none}
 @keyframes sweep{to{left:100%}}
 #holo-proto{margin-top:5px;width:max-content;max-width:calc(100% - 170px)} /* only as wide as its text, clear of CLOSE and HANDS */
 #holo-hint{margin:5px 160px 0 0;font-size:.72rem;color:var(--label)}
+#holo-title .pre{white-space:pre}
 #holo-hands{position:absolute;top:58px;right:56px;padding:8px 14px;background:rgba(2,10,6,.7);font-size:.8rem;letter-spacing:.1em}
 #holo-hands[aria-pressed="true"]{background:var(--phos);color:var(--void)}
 #hand-cam{position:absolute;top:100px;right:16px;width:160px;height:120px;border:1px solid var(--phos-dim);background:#000;display:none;pointer-events:none}
@@ -164,11 +176,25 @@ body.xfer-on #holo-hands,body.xfer-on #hand-cam,body.xfer-on #reticle{display:no
   #holo-proto{max-width:calc(100% - 16px);letter-spacing:.08em}body.hands-on #holo-proto{max-width:calc(100% - 148px)} /* below the buttons, beside the camera preview */
   #holo #holo-close{top:14px;right:16px;padding:7px 10px}#holo #holo-hands{top:14px;right:102px;padding:7px 10px}
   #hand-cam{top:58px;width:120px;height:90px}#holo-hint{margin:9px 148px 0 0;font-size:.68rem}
+  /* On a phone the scene's name matters more than "HOLO-PROJECTOR //", and a long hint shows two lines until it's tapped. */
+  #holo-title .pre{display:none}
+  #holo-hint{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;pointer-events:auto;cursor:pointer}
+  #holo-hint.full{display:block}
 }
 #holo-close{position:absolute;top:16px;right:56px;padding:8px 14px;background:rgba(2,10,6,.7);font-size:.8rem;letter-spacing:.1em}
-#holo-cap{left:50%;transform:translateX(-50%);bottom:96px;width:max-content;max-width:min(640px,calc(100vw - 32px));text-align:center;
-  padding:10px 14px;border:1px solid var(--phos-dim);background:rgba(2,10,6,.75);font-size:.95rem;line-height:1.4}
-#holo-cap:empty{display:none}
+/* The projector's caption slides like the chat: two lines at first, MORE for the rest, HIDE to tuck it away
+   so nothing in the scene stays covered (a swipe on it does the same). */
+#cap-box{left:50%;transform:translateX(-50%);bottom:96px;width:max-content;max-width:min(640px,calc(100vw - 32px));pointer-events:auto;touch-action:none;
+  border:1px solid var(--phos-dim);background:rgba(2,10,6,.75)}
+#cap-box[hidden]{display:none}
+#holo-cap{padding:8px 14px 2px;text-align:center;font-size:.95rem;line-height:1.4;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+#cap-box.open #holo-cap{display:block;max-height:42vh;overflow-y:auto;touch-action:pan-y}
+#cap-box.tucked{border-color:transparent;background:none;left:auto;right:16px;transform:none}
+#cap-box.tucked #holo-cap{display:none}
+#cap-ctl{display:flex;justify-content:center;gap:6px;padding:2px 8px 6px}
+#cap-ctl button{padding:3px 10px;border-color:var(--phos-dim);color:var(--label);background:rgba(2,10,6,.8);font-size:.66rem;font-weight:500;letter-spacing:.14em}
+#cap-ctl button[hidden]{display:none}
+#cap-box.tucked #cap-ctl{padding:0}
 .scan{left:0;right:0;top:0;height:2px;background:var(--phos);box-shadow:0 0 18px var(--phos);opacity:0}
 #holo.open .scan{animation:scan 1.1s ease-out .25s 1}
 @keyframes scan{0%{top:0;opacity:1}100%{top:100%;opacity:0}}
@@ -193,8 +219,35 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
 .suit-label.back{opacity:.8} /* the lowest that keeps 4.5:1 over pure white (5.61:1) */
 @media (max-width:600px){.suit-label{max-width:84px;padding:4px 6px;font-size:.66rem;letter-spacing:.04em}}
 
+/* ---------- What I can do: the Infinity Gauntlet. One stone per group, tabs below it, its commands as a list ---------- */
+#gauntlet{position:fixed;inset:0;z-index:32;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;
+  padding:max(16px,env(safe-area-inset-top,0px)) 12px max(16px,env(safe-area-inset-bottom,0px))}
+#gauntlet[hidden]{display:none}
+.g-card{display:flex;flex-direction:column;width:min(520px,100%);max-height:min(720px,100%);border:1px solid var(--phos);background:var(--void);
+  box-shadow:0 0 28px color-mix(in srgb,var(--phos) 25%,transparent)}
+.g-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px 4px;font-size:.75rem;letter-spacing:.24em;color:var(--phos)}
+#g-close{padding:6px 10px;border-color:var(--phos-dim);color:var(--label);font-size:.7rem;font-weight:500;letter-spacing:.12em}
+.g-top{display:flex;gap:12px;align-items:center;padding:4px 16px}
+.g-top svg{width:76px;height:96px;flex-shrink:0;overflow:visible}
+.g-stone{cursor:pointer}
+.g-stone .gem{fill:var(--c);transition:opacity .2s}
+.g-stone.dim .gem{opacity:.45}
+.g-stone.on{filter:drop-shadow(0 0 5px var(--c)) drop-shadow(0 0 2px var(--c))}
+#g-name{color:var(--c,var(--phos));font-size:1.1rem;font-weight:700;letter-spacing:.16em}
+#g-theme{font-size:.8rem;color:var(--label);line-height:1.35}
+.g-tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;padding:8px 10px 4px}
+.g-tab{display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0 6px;border:0;border-bottom:2px solid transparent;background:none;
+  color:var(--label);font-size:.62rem;font-weight:500;letter-spacing:.08em}
+.g-tab i{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0,var(--c) 38%,color-mix(in srgb,var(--c) 40%,#000) 100%);box-shadow:0 0 8px var(--c)}
+.g-tab[aria-selected="true"]{color:var(--c);border-bottom-color:var(--c)}
+#g-panel{flex:1;min-height:0;overflow-y:auto;padding:4px 14px 14px}
+#g-links .cmd{display:block;width:100%;text-align:left;padding:9px 4px;text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--stone) 22%,transparent);border-radius:0}
+#g-note{margin:10px 2px 0;font-size:.8rem;line-height:1.45;color:var(--label)}
+.g-s0{--c:#70abff}.g-s1{--c:#ffd84a}.g-s2{--c:#ff7a7a}.g-s3{--c:#c98fff}.g-s4{--c:#3dff8a}.g-s5{--c:#ff9f45}
+
 @media (prefers-reduced-motion:reduce){
   #log{scroll-behavior:auto}
+  .g-stone .gem{transition:none}
   #boot-go{animation:none}
   #holo{transition:none}
   #holo.open .scan{animation:none}
@@ -214,6 +267,7 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
 
 <div id="levelup" role="status" hidden><b></b><span></span></div>
 
+<button type="button" id="log-handle" aria-expanded="false" aria-controls="log" hidden></button>
 <div id="log" aria-live="polite"></div>
 
 <form id="f">
@@ -235,11 +289,38 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
   <div class="scan hud"></div>
   <div class="hud corner c-tl"></div><div class="hud corner c-tr"></div>
   <div class="hud corner c-bl"></div><div class="hud corner c-br"></div>
-  <div class="hud" id="holo-cap" aria-live="polite"></div>
+  <div class="hud" id="cap-box" hidden><div id="holo-cap" aria-live="polite"></div>
+    <div id="cap-ctl"><button type="button" id="cap-more" aria-expanded="false" hidden>⌃ MORE</button><button type="button" id="cap-hide">▾ HIDE</button></div></div>
   <button type="button" id="holo-close" aria-label="Close the holo-projector">✕ CLOSE</button>
   <button type="button" id="holo-hands" aria-pressed="false" aria-label="Hand control">✋ HANDS</button>
   <canvas id="hand-cam" width="160" height="120" aria-hidden="true"></canvas>
   <div class="hud" id="reticle"></div>
+</div>
+
+<div id="gauntlet" role="dialog" aria-modal="true" aria-labelledby="g-title" hidden>
+  <div class="g-card">
+    <div class="g-head"><span id="g-title">WHAT I CAN DO</span><button type="button" id="g-close">✕ CLOSE</button></div>
+    <div class="g-top">
+      <svg viewBox="20 10 180 240" aria-hidden="true">
+        <defs><linearGradient id="g-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6d27a"/><stop offset=".45" stop-color="#c8902c"/><stop offset="1" stop-color="#6b440f"/></linearGradient>
+          <linearGradient id="g-gold-dark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b98126"/><stop offset="1" stop-color="#4f320a"/></linearGradient></defs>
+        <g stroke="#3a2507" stroke-width="1.4" stroke-linejoin="round">
+          <rect x="52" y="34" width="24" height="80" rx="12" fill="url(#g-gold)"/><rect x="78" y="20" width="24" height="88" rx="12" fill="url(#g-gold)"/>
+          <rect x="104" y="26" width="24" height="84" rx="12" fill="url(#g-gold)"/><rect x="130" y="44" width="22" height="74" rx="11" fill="url(#g-gold)"/>
+          <path d="M150 168 C162 150 168 128 176 112 C181 102 194 106 192 118 C189 136 182 158 170 182 Z" fill="url(#g-gold)"/>
+          <path d="M48 104 Q100 88 156 106 L160 188 Q104 202 50 188 Z" fill="url(#g-gold)"/>
+          <path d="M54 186 Q104 200 158 186 L156 244 L56 244 Z" fill="url(#g-gold-dark)"/>
+          <path d="M58 202 Q106 214 154 202 M58 222 Q106 234 154 222" fill="none" stroke="#f6d27a" stroke-opacity=".45"/>
+          <path d="M56 70 h16 M82 58 h16 M108 62 h16 M133 78 h15" stroke="#5b3a0c" stroke-opacity=".7"/>
+          <path d="M64 166 L104 128 L144 166 M104 128 L104 180" fill="none" stroke="#5b3a0c" stroke-opacity=".55"/>
+        </g>
+        <g class="g-stone g-s0" data-k="space"><circle cx="90" cy="98" r="11" fill="url(#g-gold-dark)" stroke="#3a2507"/><circle class="gem" cx="90" cy="98" r="8"/><circle cx="87.2" cy="95.2" r="2.6" fill="#fff" opacity=".7"/></g><g class="g-stone g-s1" data-k="mind"><circle cx="104" cy="148" r="15" fill="url(#g-gold-dark)" stroke="#3a2507"/><circle class="gem" cx="104" cy="148" r="12"/><circle cx="99.8" cy="143.8" r="3.8" fill="#fff" opacity=".7"/></g><g class="g-stone g-s2" data-k="reality"><circle cx="116" cy="101" r="11" fill="url(#g-gold-dark)" stroke="#3a2507"/><circle class="gem" cx="116" cy="101" r="8"/><circle cx="113.2" cy="98.2" r="2.6" fill="#fff" opacity=".7"/></g><g class="g-stone g-s3" data-k="power"><circle cx="64" cy="104" r="11" fill="url(#g-gold-dark)" stroke="#3a2507"/><circle class="gem" cx="64" cy="104" r="8"/><circle cx="61.2" cy="101.2" r="2.6" fill="#fff" opacity=".7"/></g><g class="g-stone g-s4" data-k="time"><circle cx="168" cy="138" r="11" fill="url(#g-gold-dark)" stroke="#3a2507"/><circle class="gem" cx="168" cy="138" r="8"/><circle cx="165.2" cy="135.2" r="2.6" fill="#fff" opacity=".7"/></g><g class="g-stone g-s5" data-k="soul"><circle cx="141" cy="110" r="11" fill="url(#g-gold-dark)" stroke="#3a2507"/><circle class="gem" cx="141" cy="110" r="8"/><circle cx="138.2" cy="107.2" r="2.6" fill="#fff" opacity=".7"/></g>
+      </svg>
+      <div><div id="g-name"></div><div id="g-theme"></div></div>
+    </div>
+    <div class="g-tabs" role="tablist" aria-label="Infinity Stones"><button type="button" class="g-tab g-s0" role="tab" id="g-tab-space" data-k="space" aria-controls="g-panel" aria-selected="false" tabindex="-1"><i></i>SPACE</button><button type="button" class="g-tab g-s1" role="tab" id="g-tab-mind" data-k="mind" aria-controls="g-panel" aria-selected="false" tabindex="-1"><i></i>MIND</button><button type="button" class="g-tab g-s2" role="tab" id="g-tab-reality" data-k="reality" aria-controls="g-panel" aria-selected="false" tabindex="-1"><i></i>REALITY</button><button type="button" class="g-tab g-s3" role="tab" id="g-tab-power" data-k="power" aria-controls="g-panel" aria-selected="false" tabindex="-1"><i></i>POWER</button><button type="button" class="g-tab g-s4" role="tab" id="g-tab-time" data-k="time" aria-controls="g-panel" aria-selected="false" tabindex="-1"><i></i>TIME</button><button type="button" class="g-tab g-s5" role="tab" id="g-tab-soul" data-k="soul" aria-controls="g-panel" aria-selected="false" tabindex="-1"><i></i>SOUL</button></div>
+    <div id="g-panel" role="tabpanel"><div id="g-links"></div><p id="g-note"></p></div>
+  </div>
 </div>
 
 <div id="boot">
@@ -952,11 +1033,16 @@ function speechChunks(text,max=160){
   return out;
 }
 let sayGen=0; // which answer is being spoken, so a cancelled one can't switch the orb back to idle
-function say(text){
+// quiet: spoken only, with nothing added to the chat (a stone's name as you tap it in the gauntlet).
+function say(text,{quiet=false}={}){
   text=inUnits(text);wakeUp();
-  talk.lastAnswer=plainText(text);talk.why=nextWhy;nextWhy=null;
-  add(text,'ai');
-  if(H&&H.onAnswer)H.onAnswer(); // the neural network lights its output layer for each answer
+  const gauntlet=helpSplit(text);if(gauntlet)text=gauntlet.shown; // the help answer: the short line is shown and said, and the gauntlet opens
+  if(!quiet){
+    talk.lastAnswer=plainText(text);talk.why=nextWhy;nextWhy=null;
+    add(text,'ai');
+    if(gauntlet)openGauntlet();
+    if(H&&H.onAnswer)H.onAnswer(); // the neural network lights its output layer for each answer
+  }
   if(!synth){setMode('idle');return}
   const gen=++sayGen,parts=speechChunks(plainText(text));
   synth.cancel();
@@ -1037,6 +1123,81 @@ const plainText=t=>String(t).replace(CHIP_RE,'$1');
 let CHIP_CMDS=new Set(); // filled once the help lists exist, further down
 const chipKey=m=>m[1]+'|'+(m[2]||m[1]);
 function chipCommands(...texts){const set=new Set();for(const t of texts)for(const m of t.matchAll(CHIP_RE))set.add(chipKey(m));return set}
+/* What he can do, as the Infinity Gauntlet: six stones, each a group of commands, in the colours the links already use.
+   The help answer still carries every one of these as a ⟦link⟧ (between two HELP_MARKs), so every link stays a real,
+   checked command. say() shows and speaks only the short line around them, and opens the gauntlet with the rest. */
+const GAUNTLET=[
+  {k:'space',name:'Space',theme:'the holo-projector',links:[['show me the galaxy'],['show me the planets'],['take me to Mars'],['make a heart'],['make a rocket'],['write your name','write my name'],['show me your brain'],['suit up'],['show me Earth'],['Florida','show me Florida'],['Tokyo','show me Tokyo'],['hand control'],['close']],
+   note:'Show me any country, US state or big city on the globe. Hand control steers a scene with your hands, through the camera.'},
+  {k:'mind',name:'Mind',theme:'facts and my brains',links:[['tell me about Peru'],['how far is Mars'],['tell me about gold'],['tell me about the Mark 42'],['upgrade your brain'],['install your full brain'],['which brain are you using']],
+   note:"Ask me about countries, planets, moons, stars, missions, the elements and the suits. Upgrade my brain and I'll understand you in your own words, and ask when I'm not sure. Where your browser has WebGPU, the full brain is a small language model that talks about nearly anything."},
+  {k:'reality',name:'Reality',theme:'quick answers',links:[['the time','what time is it'],['date',"what's the date"],['a joke','tell me a joke'],['a fun fact','tell me a fun fact'],['seven times eight','what is seven times eight'],['flip a coin'],['roll a die'],['launch countdown'],['brief me'],['scan the room']],
+   note:'Brief me gives the time and the top headlines. Scan the room runs a threat scan through the camera.'},
+  {k:'power',name:'Power',theme:'protocols and control',links:[['a movie night protocol','create movie night protocol: make the orb purple, then open the galaxy'],['movie night'],['list my protocols'],['house party'],["wake up, daddy's home","wake up daddy's home"],['always listening','always listen'],['reboot']],
+   note:'A protocol runs several commands with one phrase: make one, then say its name to run it. In Chrome or Edge, turn on always listening with the HEY JARVIS switch, then start what you say with my name. Reboot to watch me power up again.'},
+  {k:'time',name:'Time',theme:'follow-ups and memory',links:[['now Jupiter'],['bigger'],['slower'],['again'],['go back'],['why'],['show me your memory'],['what do you know about me'],['what do you save'],['back up my settings'],['restore my settings'],['send my settings to my phone'],['scan settings']],
+   note:"Talk in fragments after a scene, and ask why after an answer. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit. Leave me alone for a few minutes and I'll dream. I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, so back them up to keep a copy, or send them to another device."},
+  {k:'soul',name:'Soul',theme:'you and me',links:[['switch to Matrix'],['switch to Panthers'],['back to Jarvis'],['make the orb blue'],['speak faster'],['use imperial units'],['open with the galaxy'],['how well do you know me'],["what's my favourite"],["what haven't I tried"],['stop putting my favourites first']],
+   note:"Settings like my orb and my voice stay on this device. If I don't understand you, tell me what you meant and I'll remember it. The more we talk, the better I know you."},
+];
+const HELP_LINE="Here's what I can do. Pick a stone.",HELP_MARK='⁣';
+const chip=([label,cmd])=>cmd?`⟦${label}|${cmd}⟧`:`⟦${label}⟧`;
+const GAUNTLET_TEXT=GAUNTLET.map(g=>` ${g.name}, ${g.theme}: ${g.links.map(chip).join(', ')}. ${g.note}`).join('');
+// An answer that carries the gauntlet, split into what's shown and said (the short line around it) and the gauntlet itself.
+function helpSplit(text){const t=String(text),i=t.indexOf(HELP_MARK),j=t.lastIndexOf(HELP_MARK);
+  return i<0||j===i?null:{shown:(t.slice(0,i)+t.slice(j+1)).replace(/\s+/g,' ').trim(),body:t.slice(i+1,j)}}
+const shownOf=t=>{const h=helpSplit(t);return h?h.shown:String(t)};
+const gEl=document.getElementById('gauntlet');let gStone='space',gBack=null;
+function pickStone(k,speak){
+  const i=GAUNTLET.findIndex(g=>g.k===k);if(i<0)return;const g=GAUNTLET[i];gStone=k;
+  gEl.querySelectorAll('.g-tab').forEach(b=>{const on=b.dataset.k===k;b.setAttribute('aria-selected',on);b.tabIndex=on?0:-1});
+  gEl.querySelectorAll('.g-stone').forEach(e=>{e.classList.toggle('on',e.dataset.k===k);e.classList.toggle('dim',e.dataset.k!==k)});
+  const nm=document.getElementById('g-name');nm.textContent=g.name.toUpperCase();nm.className='g-s'+i;
+  document.getElementById('g-theme').textContent=cap(g.theme)+'.';
+  document.getElementById('g-panel').setAttribute('aria-labelledby','g-tab-'+k);
+  const box=document.getElementById('g-links');box.replaceChildren();
+  for(const [label,cmd0] of g.links){const cmd=cmd0||label,b=document.createElement('button');b.type='button';b.className='cmd st'+i;b.textContent=label;b.title=`Say "${cmd}"`;
+    b.addEventListener('click',()=>{blip(1200,.05,.03);closeGauntlet();handle(cmd)});box.append(b)}
+  document.getElementById('g-note').textContent=g.note;
+  document.getElementById('g-panel').scrollTop=0;
+  if(speak){blip(900,.05,.03);say(`${g.name}: ${g.theme}.`,{quiet:true})}
+}
+function openGauntlet(){
+  if(gEl.hidden)gBack=document.activeElement;
+  gEl.hidden=false;pickStone(gStone,false);
+  document.getElementById('g-tab-'+gStone).focus({preventScroll:true});
+}
+function closeGauntlet(){
+  if(gEl.hidden)return false;gEl.hidden=true;
+  // Back to where you were, but never into the text box, which would pop a phone's keyboard up.
+  if(gBack&&gBack!==document.getElementById('q')&&gBack.focus)gBack.focus({preventScroll:true});gBack=null;return true;
+}
+gEl.addEventListener('click',e=>{if(e.target===gEl)closeGauntlet()});
+document.getElementById('g-close').addEventListener('click',closeGauntlet);
+gEl.querySelectorAll('.g-tab').forEach(b=>b.addEventListener('click',()=>pickStone(b.dataset.k,true)));
+gEl.querySelectorAll('.g-stone').forEach(e=>e.addEventListener('click',()=>pickStone(e.dataset.k,true)));
+gEl.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeGauntlet();return}
+  if(e.target.classList.contains('g-tab')&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){
+    const i=GAUNTLET.findIndex(g=>g.k===gStone),n=(i+(e.key==='ArrowRight'?1:5))%6;pickStone(GAUNTLET[n].k,true);document.getElementById('g-tab-'+GAUNTLET[n].k).focus();e.preventDefault()}
+  if(e.key==='Tab'){ // keep the keyboard inside the popup while it's open
+    const f=[...gEl.querySelectorAll('button')].filter(b=>b.offsetParent!==null&&b.tabIndex>=0);if(!f.length)return;
+    if(e.shiftKey&&document.activeElement===f[0]){e.preventDefault();f[f.length-1].focus()}else if(!e.shiftKey&&document.activeElement===f[f.length-1]){e.preventDefault();f[0].focus()}}
+});
+
+/* The chat strip (main screen): only the latest reply shows; the handle opens the whole conversation. */
+const logHandle=document.getElementById('log-handle');
+function chatOpen(on){document.body.classList.toggle('chat-open',on);logHandle.setAttribute('aria-expanded',on);updateHandle();log.scrollTop=log.scrollHeight}
+function updateHandle(){
+  const n=log.querySelectorAll('.msg.old').length,open=document.body.classList.contains('chat-open');
+  logHandle.hidden=!n&&!open;logHandle.textContent=open?'⌄ BACK TO THE FACE':`⌃ ${n} EARLIER MESSAGE${n===1?'':'S'}`;
+}
+let swipeY=null;
+logHandle.addEventListener('pointerdown',e=>{swipeY=e.clientY});
+logHandle.addEventListener('pointerup',e=>{const dy=swipeY===null?0:e.clientY-swipeY;swipeY=null;
+  const open=document.body.classList.contains('chat-open');
+  if(dy<-24)chatOpen(true);else if(dy>24)chatOpen(false);else chatOpen(!open)}); // a swipe up or down, or a tap to switch
+logHandle.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();chatOpen(!document.body.classList.contains('chat-open'))}});
 let fullTag=false; // the answer being said came from the full brain (Session 14), so its chat line is marked
 function add(text,who){
   const d=document.createElement('div');d.className='msg '+who;
@@ -1056,7 +1217,9 @@ function add(text,who){
     d.append(String(text).slice(at));
     holoCap.textContent=plainText(text);
   }else d.textContent=text;
-  log.appendChild(d);log.scrollTop=log.scrollHeight;
+  // The strip shows his latest reply: your message hides what came before it, and his reply hides your message.
+  log.querySelectorAll(who==='me'?'.msg:not(.old)':'.msg.me:not(.old)').forEach(m=>m.classList.add('old'));
+  log.appendChild(d);updateHandle();log.scrollTop=log.scrollHeight;
 }
 
 /* ---------- Built-in brain (no internet, kid-safe) ---------- */
@@ -1078,7 +1241,7 @@ function brainKnown(raw){
   const s=raw.toLowerCase().trim(),name=userName?`, ${userName}`:'';
   let m;
   if((m=s.match(/\b(?:my name is|call me|i am|i'm) ([a-z]+)/))&&!notNames.has(m[1])){userName=m[1][0].toUpperCase()+m[1].slice(1);return because(`Nice to meet you, ${userName}. I'll remember that until you close this page. I never save names.`,"Because nothing personal is ever saved in this browser. Your name stays in memory for this visit and is gone when you close the page.")}
-  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return favLead+"Ask me ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧, or some math like ⟦seven times eight|what is seven times eight⟧. I can ⟦flip a coin⟧, ⟦roll a die⟧ or start a ⟦launch countdown⟧. For the holo-projector, say ⟦show me the galaxy⟧, ⟦show me the planets⟧, ⟦take me to Mars⟧, ⟦make a heart⟧, ⟦make a rocket⟧, or ⟦write your name|write my name⟧. Say ⟦show me your brain⟧ to watch me think, or ⟦suit up⟧ to build a suit of armour. Say ⟦show me Earth⟧ for the globe, or show me any country, US state or big city, like ⟦Florida|show me Florida⟧ or ⟦Tokyo|show me Tokyo⟧. Ask me about the world and beyond, like ⟦tell me about Peru⟧, ⟦how far is Mars⟧, ⟦tell me about gold⟧ or ⟦tell me about the Mark 42⟧. Say ⟦hand control⟧ to steer it with your hands through the camera, or ⟦scan the room⟧ for a threat scan. Say ⟦brief me⟧ for the time and the top headlines. In Chrome or Edge, turn on ⟦always listening|always listen⟧ with the HEY JARVIS switch, then start what you say with my name. Say ⟦close⟧ to turn it off, or ⟦reboot⟧ to watch me power up again. Say ⟦switch to Matrix⟧ to talk to Morpheus, ⟦switch to Panthers⟧ for Stanley C. Panther, or ⟦back to Jarvis⟧. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit, whichever skin I'm in. Ask ⟦what do you know about me⟧ to hear them back. I can also remember settings on this device: say ⟦make the orb blue⟧, ⟦speak faster⟧, ⟦use imperial units⟧, or ⟦open with the galaxy⟧. Say ⟦show me your memory⟧ to see everything I keep as stars, and tap one to hear it or say forget that. Make a protocol to run several commands with one phrase, like ⟦a movie night protocol|create movie night protocol: make the orb purple, then open the galaxy⟧, then say ⟦movie night⟧ to run it. Say ⟦list my protocols⟧, or try ⟦house party⟧ or ⟦wake up, daddy's home|wake up daddy's home⟧. You can talk in fragments too: after ⟦take me to Mars⟧, say ⟦now Jupiter⟧, ⟦bigger⟧, ⟦slower⟧, ⟦again⟧ or ⟦go back⟧, and ask ⟦why⟧ after an answer. Leave me alone for a few minutes and I'll dream. Ask ⟦what do you save⟧ to see what I keep, and I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, so say ⟦back up my settings⟧ to keep a copy as a file, and ⟦restore my settings⟧ to load it. To move them to another device, say ⟦send my settings to my phone⟧ here and ⟦scan settings⟧ there. Say ⟦upgrade your brain⟧ and I'll understand you in your own words too, and ask when I'm not sure. Where your browser has WebGPU, say ⟦install your full brain⟧ for a small language model that talks about nearly anything, and ask ⟦which brain are you using⟧. If I don't understand you, tell me what you meant and I'll remember it on this device. The more we talk, the better I know you: ask ⟦how well do you know me⟧, ⟦what's my favourite⟧ or ⟦what haven't I tried⟧. I put your favourites first in these links, and you can say ⟦stop putting my favourites first⟧."+unlockLine(shownLevel);
+  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return favLead+HELP_LINE+HELP_MARK+GAUNTLET_TEXT+HELP_MARK+unlockLine(shownLevel);
   if(/^(?:please )?(?:forget|clear|delete|erase) my name\b/.test(s)){const had=userName;userName=null;return had?"Done. I've forgotten your name.":"I don't know your name yet, so there's nothing to forget."}
   if(/\bwhat(?:'s| is) my name\b|\bwho am i\b|\bdo you (?:know|remember) (?:my name|me|who i am)\b|\bsay my name\b/.test(s))return userName?`Your name is ${userName}. I'll remember it whichever skin I'm wearing, until you close this page. I never save it.`:"You haven't told me your name yet. Say my name is, then your name, and I'll remember it until you close this page.";
   if(/\b(hello|hi|hey|good (morning|afternoon|evening))\b/.test(s))return pick([`Hello${name}. All systems are online.`,`Good to see you${name}. How can I help?`]);
@@ -1240,6 +1403,33 @@ const holo=document.getElementById('holo'),stage=document.getElementById('stage'
   holoTitle=document.getElementById('holo-title'),holoStat=document.getElementById('holo-stat'),holoHint=document.getElementById('holo-hint');
 let H=null,closeTimer=0;
 const setStat=t=>{holoStat.textContent=t};
+// "HOLO-PROJECTOR // MEMORY CORE": the part before // is hidden on a phone, so the scene's own name shows.
+function setTitle(t){const i=t.indexOf(' // ');if(i<0){holoTitle.textContent=t;return}
+  const pre=document.createElement('span');pre.className='pre';pre.textContent=t.slice(0,i+4);holoTitle.replaceChildren(pre,t.slice(i+4))}
+holoHint.addEventListener('click',()=>holoHint.classList.toggle('full'));
+/* The projector's caption: two lines (peek), all of it (open), or tucked away to a SHOW button (tucked). Each new caption
+   starts as a peek. MORE and HIDE, or a swipe up or down on it, move between them. */
+const capBox=document.getElementById('cap-box'),capMore=document.getElementById('cap-more'),capHide=document.getElementById('cap-hide');
+function capState(st){
+  capBox.classList.toggle('open',st==='open');capBox.classList.toggle('tucked',st==='tucked');
+  capMore.setAttribute('aria-expanded',st==='open');capHide.textContent=st==='tucked'?'▴ SHOW CAPTION':'▾ HIDE';
+  capMore.textContent=st==='open'?'⌄ LESS':'⌃ MORE';
+  capMore.hidden=st==='tucked'||(st==='peek'&&!(holoCap.scrollHeight>holoCap.clientHeight+2));
+}
+const capNow=()=>capBox.classList.contains('tucked')?'tucked':capBox.classList.contains('open')?'open':'peek';
+new MutationObserver(()=>{capBox.hidden=!holoCap.textContent;capBox.classList.remove('open','tucked');capState('peek')}).observe(holoCap,{childList:true,characterData:true,subtree:true});
+capMore.addEventListener('click',()=>capState(capNow()==='open'?'peek':'open'));
+capHide.addEventListener('click',()=>capState(capNow()==='tucked'?'peek':'tucked'));
+let capY=null;
+capBox.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;capY=e.clientY});
+capBox.addEventListener('pointerup',e=>{if(capY===null)return;const dy=e.clientY-capY,now=capNow();capY=null;
+  if(dy<-24)capState(now==='tucked'?'peek':'open');else if(dy>24)capState(now==='open'?'peek':'tucked')});
+// The free space for a scene: below the top HUD and its buttons, above the caption and the text box.
+function freeArea(){
+  const top=Math.max(0,...['holo-top','holo-close','holo-hands'].concat(HC?['hand-cam']:[]).map(id=>{const r=document.getElementById(id).getBoundingClientRect();return r.height?r.bottom:0}));
+  const bot=[document.getElementById('f'),capBox].map(e=>e.getBoundingClientRect()).filter(r=>r.height).map(r=>r.top);
+  return {top,bottom:Math.min(innerHeight,...bot)};
+}
 
 function dotTexture(T,inner='rgba(255,255,255,1)',size=64){
   const c=document.createElement('canvas');c.width=c.height=size;const x=c.getContext('2d'),g=x.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2);
@@ -1596,7 +1786,7 @@ function buildSuit(T){
   const labelW=small?84:130,frac=clamp(1-2*(labelW+28)/innerWidth,.3,.6),vfrac=clamp((innerHeight-350)/innerHeight,.5,.78);
   const dist=fitDist(SUIT_HALF.w/frac,SUIT_HALF.h/vfrac),pxPerUnit=innerHeight/2/(Math.tan(27.5*Math.PI/180)*dist);
   const rig=makeRig(T,camera,{dist:dist*2.2,goal:dist,el:.6,elGoal:.12,min:12,max:dist*3,spin:0});
-  rig.want.set(0,SUIT_HALF.y+60/pxPerUnit,0);rig.target.copy(rig.want); // nudge the figure up into the middle of that gap
+  rig.want.set(0,SUIT_HALF.y,0);rig.target.copy(rig.want); // the projector centres it in that gap (freeArea, in loop)
   const geo=p=>p.shape==='box'?new T.BoxGeometry(...p.size):p.shape==='cyl'?new T.CylinderGeometry(...p.size,8):new T.IcosahedronGeometry(p.size[0],1);
   const fills=[],parts=SUIT_PARTS.map((p,i)=>{
     const g=geo(p),hot=p.name==='Arc reactor'||/repulsor|eye/.test(p.name),holder=new T.Group();
@@ -1637,7 +1827,7 @@ function buildSuit(T){
   });
   stage.after(root);
   const readBounds=()=>{
-    const bot=[document.getElementById('f'),holoCap].map(e=>e.getBoundingClientRect()).filter(r=>r.height).map(r=>r.top);
+    const bot=[document.getElementById('f'),capBox].map(e=>e.getBoundingClientRect()).filter(r=>r.height).map(r=>r.top);
     const top=['holo-top','holo-close','holo-hands'].concat(HC?['hand-cam']:[]).map(id=>document.getElementById(id).getBoundingClientRect().bottom);
     const mid=innerWidth/2,reach=SUIT_HALF.w*pxPerUnit*rig.goal/rig.dist+24,maxW=Math.max(...tags.map(t=>t.b.offsetWidth||labelW));
     return {left:Math.max(12,mid-reach-maxW),right:Math.min(innerWidth-12,mid+reach+maxW),top:Math.max(...top)+8,bottom:Math.min(innerHeight-12,...bot)-8};
@@ -2014,7 +2204,7 @@ function buildMemory(T){
     setStat(stars.length?`${saved.length} SAVED · ${visit.length} THIS VISIT`:'EMPTY');
   }
   const readBounds=()=>{
-    const bot=[document.getElementById('f'),holoCap].map(e=>e.getBoundingClientRect()).filter(r=>r.height).map(r=>r.top);
+    const bot=[document.getElementById('f'),capBox].map(e=>e.getBoundingClientRect()).filter(r=>r.height).map(r=>r.top);
     const top=['holo-top','holo-close','holo-hands'].concat(HC?['hand-cam']:[]).map(id=>document.getElementById(id).getBoundingClientRect().bottom);
     return {left:12,right:innerWidth-12,top:Math.max(...top)+8,bottom:Math.min(innerHeight-12,...bot)-8};
   };
@@ -2066,11 +2256,17 @@ function buildMemory(T){
     }};
 }
 const BUILDERS={galaxy:buildGalaxy,solar:buildSolar,particles:buildParticles,neural:buildNeural,suit:buildSuit,globe:buildGlobe,memory:buildMemory,tesseract:buildTesseract};
-function resizeHolo(){if(!H||!H.renderer)return;H.renderer.setSize(innerWidth,innerHeight,false);H.camera.aspect=innerWidth/innerHeight;H.camera.updateProjectionMatrix()}
+function resizeHolo(){if(!H||!H.renderer)return;H.renderer.setSize(innerWidth,innerHeight,false);H.camera.aspect=innerWidth/innerHeight;
+  if(H.camera.view)H.camera.setViewOffset(innerWidth,innerHeight,0,-Math.round(H.vo||0),innerWidth,innerHeight);H.camera.updateProjectionMatrix()}
 function loop(now){
   if(!H)return;
   const dt=Math.min(.05,H.last?(now-H.last)/1000:0),p=H.pace||1;H.last=now;H.t+=dt*p; // pace: "faster" and "slower" (Session 10)
-  H.update(dt*p,H.t);H.rig.update(dt,p);H.renderer.render(H.scene,H.camera);
+  H.update(dt*p,H.t);H.rig.update(dt,p);
+  // Centre the scene in the free space between the top HUD and the caption, which moves as the caption grows or hides.
+  if(!H.fr||++H.fr%15===0){H.fr=H.fr||1;const a=freeArea();H.voGoal=clamp((a.top+a.bottom)/2-innerHeight/2,-innerHeight*.2,innerHeight*.2)}
+  H.vo=(H.vo||0)+((H.voGoal||0)-(H.vo||0))*Math.min(1,dt*6);
+  if(Math.abs(H.vo-(H.voSet||0))>.5){H.voSet=H.vo;H.camera.setViewOffset(innerWidth,innerHeight,0,-Math.round(H.vo),innerWidth,innerHeight)}
+  H.renderer.render(H.scene,H.camera);
   H.raf=requestAnimationFrame(loop);
 }
 function startHolo(T,kind,arg){
@@ -2080,7 +2276,7 @@ function startHolo(T,kind,arg){
   const s=BUILDERS[kind](T);
   H={kind,renderer,...s,t:0,last:0};
   stage.appendChild(renderer.domElement);resizeHolo();
-  holoTitle.textContent='HOLO-PROJECTOR // '+s.title;setStat(s.stat);holoHint.textContent=HC?HANDS_HINT:s.hint;holoCap.textContent='';
+  setTitle('HOLO-PROJECTOR // '+s.title);setStat(s.stat);holoHint.textContent=HC?HANDS_HINT:s.hint;holoCap.textContent='';
   clearTimeout(closeTimer);holo.hidden=false;document.body.classList.add('holo-on');void holo.offsetWidth;holo.classList.add('open');
   blip(330,.25,.03,'sawtooth');blip(660,.3,.025,'sine',.12);blip(990,.35,.02,'sine',.24);
   H.raf=requestAnimationFrame(loop);
@@ -2369,7 +2565,7 @@ async function startScan(){
     }};
   H=S;
   stage.appendChild(canvas);document.body.classList.add('scan-on');
-  holoTitle.textContent='THREAT SCAN // FACE LOCK';setStat('STARTING CAMERA…');holoHint.textContent=SCAN_HINT;holoCap.textContent='';
+  setTitle('THREAT SCAN // FACE LOCK');setStat('STARTING CAMERA…');holoHint.textContent=SCAN_HINT;holoCap.textContent='';
   clearTimeout(closeTimer);holo.hidden=false;document.body.classList.add('holo-on');void holo.offsetWidth;holo.classList.add('open');
   blip(220,.3,.03,'sawtooth');blip(440,.3,.025,'square',.15);
   const fail=msg=>{if(H===S)closeHolo();else S.dispose();return msg};
@@ -2419,7 +2615,7 @@ function scanLoop(now){
     c.globalAlpha=.25;c.fillStyle=g;c.fillRect(0,y-60,W,60);c.globalAlpha=.9;c.fillStyle=phos;c.fillRect(0,y-1,W,2);c.globalAlpha=1;
   }
   const top=document.getElementById('holo-top').getBoundingClientRect().bottom+8;
-  const bottom=Math.min(holoCap.textContent?holoCap.getBoundingClientRect().top:Hh,f.getBoundingClientRect().top)-8;
+  const bottom=Math.min(holoCap.textContent?capBox.getBoundingClientRect().top:Hh,f.getBoundingClientRect().top)-8;
   const fs=W<600?11:13;c.font=`500 ${fs}px "Chakra Petch", sans-serif`;c.textBaseline='top';
   for(const k of S.targets){
     const age=t-k.born,lock=reduce?1:clamp(age/.35,0,1),grow=1+(1-lock)*.6;
@@ -2614,7 +2810,7 @@ function openTransfer(view){
     say(restoreWords(restoreBackup(text)));
   });
   holo.appendChild(box);document.body.classList.add('xfer-on');
-  holoTitle.textContent='SETTINGS TRANSFER';setStat('');holoHint.textContent=XFER_HINT;holoCap.textContent='';
+  setTitle('SETTINGS TRANSFER');setStat('');holoHint.textContent=XFER_HINT;holoCap.textContent='';
   clearTimeout(closeTimer);holo.hidden=false;document.body.classList.add('holo-on');void holo.offsetWidth;holo.classList.add('open');
   blip(330,.2,.03,'square');blip(660,.25,.02,'sine',.1);
   return S;
@@ -2998,7 +3194,7 @@ const CAPABILITIES=[
   {key:'chance',name:'coins and dice',ids:['cmd:coin','cmd:die'],cmds:['flip a coin','roll a die'],hint:"I can settle an argument. Say ⟦flip a coin⟧."},
   {key:'math',name:'maths',ids:['cmd:math'],cmds:['what is seven times eight'],hint:"I can do your sums. Ask ⟦what is seven times eight⟧."},
   {key:'chat',name:'small talk',ids:['cmd:chat'],cmds:['launch countdown','how are you'],hint:"I'm decent company. Ask me ⟦how are you⟧."},
-  {key:'help',name:'the help list',ids:['cmd:help'],cmds:['help'],hint:"I can list everything I do. Say ⟦help⟧."},
+  {key:'help',name:'the help list',ids:['cmd:help'],cmds:['help','what can you do'],hint:"I can show you everything I do, one Infinity Stone at a time. Say ⟦help⟧."},
   {key:'settings',name:'settings',ids:['cmd:setting'],cmds:['make the orb blue','speak faster','use imperial units','open with the galaxy','stop putting my favourites first'],hint:"I can change my colour and keep it. Say ⟦make the orb blue⟧."},
   {key:'remember',name:'short-term memory',ids:['cmd:remember'],cmds:[],hint:"Tell me something, like my dog is Rex, and I'll remember it for this visit."},
   {key:'teach',name:'teaching me phrases',ids:['cmd:teach'],cmds:[],hint:"When I don't understand you, tell me what you meant, and I'll learn the phrase."},
@@ -3261,7 +3457,7 @@ function capabilityStars(){
 }
 let pendingTeach=null; // the phrase Jarvis just didn't understand, while he waits to hear what it meant
 const NOPE=Symbol('not understood');
-const CAN_DO="Here's what I can do: tell ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧ or some math, ⟦flip a coin⟧ or ⟦roll a die⟧, show you things on the holo-projector like ⟦Mars|take me to Mars⟧, ⟦Earth|show me Earth⟧ or ⟦your name|write my name⟧, ⟦suit up⟧, show ⟦my brain|show me your brain⟧ or ⟦my memory|show me your memory⟧, run a ⟦threat scan|scan the room⟧, give you a ⟦briefing|brief me⟧, run ⟦protocols|list my protocols⟧, remember what you tell me this visit, change my settings, or switch to the ⟦Matrix|switch to Matrix⟧ or ⟦Panthers|switch to Panthers⟧ skin.";
+const CAN_DO="Tap ⟦see what I can do|what can you do⟧ for everything I know.";
 // Every link he can ever show: the help (with every extra open), the fallback, the hints, and the favourites.
 CHIP_CMDS=chipCommands(brainKnown('help'),CAN_DO,unlockLine(5),...CAPABILITIES.map(c=>c.hint),...FAV_IDS.map(favChip));
 /* ---------- Protocols (Session 10): one phrase runs a saved chain of commands ----------
@@ -4231,7 +4427,7 @@ const MEANT=/^(?:what\s+)?i\s+(?:was\s+(?:trying|going)\s+to\s+(?:say|ask)|tried
 async function answer(text){
   nextWhy=null;fullTag=false;
   const r=await answerCore(text);
-  if(typeof r==='string'){talk.lastAnswer=plainText(r);talk.why=nextWhy}
+  if(typeof r==='string'){talk.lastAnswer=plainText(shownOf(r));talk.why=nextWhy}
   return r;
 }
 async function answerCore(text){
@@ -4268,6 +4464,7 @@ async function answerCore(text){
       return "Then we'll have to move on. I'm not programmed for this.";
     const meant=text.trim().replace(MEANT,'').replace(/[.!]+$/,'').trim();
     const r=meant?await respond(meant):NOPE;
+    if(helpSplit(r)){pendingTeach=said;return r} // "see what I can do" isn't what you meant: look, then tell me
     if(r===NOPE)return "I don't understand that either, so we'll have to move on. I'm not programmed for this.";
     const why=personal(said)||personal(meant);
     if(why)return because(`I did it this time, but I won't save that phrase, because it has ${why} in it.${r?' '+r:''}`,"Because nothing personal is ever saved in this browser, and anything that looks personal is left out.");
@@ -4293,7 +4490,7 @@ async function answerCore(text){
 }
 
 function handle(text){
-  if(!text.trim())return;add(text,'me');setMode('think');
+  if(!text.trim())return;closeGauntlet();add(text,'me');setMode('think');
   setTimeout(async()=>{const r=await answer(text);if(r){const x=afterTurn();say(x?`${r} ${x}`:r)}else if(mode==='think'&&!booting)setMode('idle')},450);
 }
 
@@ -4385,7 +4582,7 @@ if(SR){
   }
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={full:()=>full,setLlmLib:f=>{llmLib=f},llmLibReal,gpuCheck,fullBrainIntent,BRAIN_PICKS,parseBrain,cleanSay,brainGuess,checkPick,systemPrompt,brainFacts,brainReport,LLM,micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
+window.__jarvis={say,setTitle,GAUNTLET,GAUNTLET_TEXT,HELP_LINE,helpSplit,openGauntlet,closeGauntlet,pickStone,chatOpen,freeArea,full:()=>full,setLlmLib:f=>{llmLib=f},llmLibReal,gpuCheck,fullBrainIntent,BRAIN_PICKS,parseBrain,cleanSay,brainGuess,checkPick,systemPrompt,brainFacts,brainReport,LLM,micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
   SETTING_CHOICES,cleanSettings,cleanStreak,streakLine,settingsIntent,applySetting,settings:()=>({...settings}),inUnits,ORB_COLOURS,ring:()=>ringRGB,SPEEDS,
   memoryTell,memoryAsk,memoryForget,memory:()=>memory.map(x=>({...x})),memoryStars,forgetStar,constellation,constellationLinks,get firstTime(){return firstTime},streak:()=>({...streak}),
   STEPS,BUILTIN,PROTO_MAX,PROTO_STEPS,stepOf,protoName,nameProblem,protoProblem,protoCreate,adjuster,noteScene,fragment,
