@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #63 — J.A.R.V.I.S. Session 11: he remembers you</title>
+<meta name="description" content="Review of Session 11 of the J.A.R.V.I.S. build plan in the test copy: a welcome-back recap, clearance levels with per-skin lines and four locked extras, favourites and a discovery log, all worked out from the usage counts and never saved, with one gap found and fixed on the way: settings could carry an extra field until the next load.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #63 — J.A.R.V.I.S. Session 11: he remembers you</h1>
+    <p class="sub">The test copy now greets you with what you were doing last time, has five clearance levels (Visitor, Associate, Engineer, Avenger, Stark) with lines for each skin and four new extras they open, knows your favourites and puts them first in its command links, and keeps a discovery log of everything it can do. All of it is worked out from the usage counts when the page loads and after each turn. Nothing new is saved except one setting, whether to put favourites first.</p>
+    <div class="meta">Review performed 2026-10-10 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>tests/jarvis-test.chromium.mjs</code>, <code>tests/README.md</code>, <code>jarvis/build-plan.html</code> · suites run: <code>jarvis-test</code> (1335 checks), then <code>tests/jarvis-test.chromium.mjs</code> (CHROMIUM_N checks) on its own</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 73%;"></div></div>
+    <div class="progress-label">22 items: 16 verified clean or fixed, 6 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security and privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Head block and CSP unchanged</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>git diff</code> of <code>jarvis-test.html</code> touches no <code>&lt;meta&gt;</code> line except the description. The suite still pins the whole CSP string to what it was before Session 8. The Tesseract is drawn with three.js, which was already loaded; nothing new is fetched.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">One place that saves, still</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The Session 9 checks pass unchanged: no <code>localStorage</code> write anywhere, exactly one <code>'readwrite'</code> transaction, in <code>flush()</code>, only <code>save()</code> queues a write, and it calls <code>fits()</code> first. Session 11 adds no <code>save(</code> call of its own: the only new saved value, <code>chips: "off"</code>, goes through <code>applySetting()</code>, <code>saveSettings()</code> and <code>store()</code>.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Nothing new is stored</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The level, the favourites, the hint rotation, what's been announced and the gold-and-red HUD are memory only. In jsdom, after a level-up, all three new questions, the HUD, the Tesseract and the links setting, the database holds its five tables, <code>kept</code> only listed keys, <code>meta</code> only <code>copied</code>, <code>rolled</code> and <code>carry</code>, and nothing matching level, clearance, favourite, hint or HUD. The same was checked in real IndexedDB in Chromium. A reload starts the HUD off.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Settings could carry an extra field until the next load</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Found by trying changes against the suite. <code>store('jarvis-settings', …)</code> checked only that the text wasn't personal, so a bug that put an extra field (a level, say) into the settings object would have saved it; <code>cleanSettings()</code> only dropped it on the next load. <code>fits()</code> now refuses a settings record holding anything <code>cleanSettings()</code> wouldn't keep (<code>settingsOnly()</code>), so it's checked inside <code>save()</code> like every other record. Pinned: <code>{"color":"blue","level":3}</code>, an unknown colour and an array are refused; the three real choices together are accepted.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A restored or hand-edited backup can't push a level past what fits() allows</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Levels and favourites read the counts through <code>fits()</code> again (<code>usageOf()</code>), and ignore days after today. A hostile backup with 80 days of an unlisted ID, 80 future days, fractional counts, days as strings, four-field records, a <code>meta</code> key and a <code>level</code> key had all 190 bad days refused and both keys skipped, and left the level at 1, even though its totals (allowed: a listed ID and a whole number) marked everything found. Totals are visits, not days, so they never add days. Seventy future days written straight into the database also left level 1. A valid backup with 60 real days in the kept window did raise the level, which is what <code>fits()</code> allows.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No per-protocol count</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Decided in the session: a protocol run still counts only as <code>cmd:protocol</code>, so no usage history is tied to a name you chose. "What's my favourite protocol" says so and gives the number of runs. The protocol record and the backup format are unchanged.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No user text as markup</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The level-up panel is filled with <code>textContent</code>; the suite's "no innerHTML anywhere" check passes. Every new command link comes from fixed strings in the page (hints, favourites, unlocks) and is added to <code>CHIP_CMDS</code> at load, and the suite checks every link is understood. Favourites are scenes and the two built-in protocols, never a protocol name you typed.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Only new extras are locked</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Four things are locked, all new: the gold-and-red HUD (2), the Tesseract (3), the Avengers logo (4) and the last line (5). The suite checks none of their usage IDs existed before Session 11, no protocol step needs a level, every older command link gets no lock at level 1, and eleven older commands give the same answer at level 1 and level 5. The boot protocol from Session 10 was left unlocked.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No hidden override</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>The plan left it to you whether the page should have a way to set a level by hand. None was added. Say if you want one.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A level can drop after a long time away</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>By design: a level is worked out from the 90 days kept by day plus the streak's carry. After about three months away, the days fall out of the window and the level falls with them. Keeping the highest level reached would be a new stored value, which this session ruled out.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">npm audit: source-map-js</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Carried from review 61. No dependency was added.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Phone speech without punctuation</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>All three questions are matched on <code>normPhrase()</code> and pinned unpunctuated, with "jarvis"/"hey jarvis" in front and "please" after: "how well do you know me", "what level am i", "whats my clearance", "whats my favourite", "what do i use most", "what havent i tried", "what have i not tried yet", "give me a hint" and more. "What's my favourite colour" still goes to short-term memory, and "I am Iron Man" no longer sets your name to Iron.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">CAPABILITIES, with a check that fails on a missing entry</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>39 entries, including the four Session 8 transfer commands. The suite fails if a usage ID has no capability (only <code>app:visit</code> and <code>skin:jarvis</code> are excused, with reasons), if a command link has no home (follow-ups, close, reboot and the privacy questions are listed with reasons), if the page counts an ID not on the list, or if a hint's link isn't understood. Each capability's first command, run at level 5, counts it (29 checked in jsdom; ten need a camera, a mic, a file or WebGL).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Everything spoken goes through say()</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>There is still one <code>speechSynthesis.speak</code> call, inside <code>say()</code>. Level-ups and "New capability logged" lines are added to the answer before <code>say()</code>, and the greeting's recap and level lines are part of the greeting. With a fake speech engine, every queued piece was at most 200 characters.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Two bugs found while building</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>"What have I not tried" (that word order) wasn't understood, and the level report said "20 more days" in digits. Both fixed and pinned.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The suite fails when the code is broken</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Sixteen changes were run against the suite, against the final page. Fifteen failed it: Associate at 2 days (3 checks), future days counted (2), totals adding days (3), the Tesseract unlocked (2), an existing command gated (10), favourites reordered mid-visit (2), hints repeating (1), a capability left out (4), announcements at level 1 (5), the recap asking despite an opening scene (4), the long gap from 3 days (1), the level saved in the settings (the suite stops), the level-up without the sweep (1), Morpheus using Jarvis's lines (1), and house party counting as your own protocol (1). The sixteenth, keeping the HUD in <code>meta</code>, changed nothing, because <code>fits()</code> refuses that key. In a first pass, three weren't caught (the Tesseract, the favourites order, the level in the settings); the first two were test gaps, now closed, and the third was the real gap above.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Rendered at both sizes</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>CHROMIUM_TEXT</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Contrast</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Computed with the WCAG formula. In the gold-and-red HUD, on its lightest background (<code>#2a0a06</code>): gold <code>#ffc93c</code> 11.95:1, label <code>#e8a33c</code> 8.51:1, text 15.83:1, accent <code>#ff7a5c</code> 7.16:1, and the label on a chat bubble 7.64:1. The level-up panel over a white star: its text at least 13.99:1, its title from 6.32:1 (gold-and-red) to 10.09:1 (Jarvis).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Session 16 added to the build plan</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>A new section in <code>jarvis/build-plan.html</code> (a chess board per skin, the last session, starting with a talk about Stockfish). Plain markup in the page's existing classes; its links are same-page anchors.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not tried on a real phone</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Headless Chromium isn't Safari or a phone. How the sweep looks on a real phone, and whether the tone shift and the links moving feel right, are your Session 11 checks.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The recap can't name a planet</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>By design: the counts hold <code>scene:solar</code>, not which planet, and no order within a day. So "last time" is the scene used most on the last day, and "yes" opens the solar system, not Jupiter.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Carried</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>From review 60: a failed save isn't reported, and chat answers are counted by an approximate kind. From review 62: a Session 10 Chromium step can time out under load.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Previous review: <a href="62.html">62</a>. Built to the fixed report template: no scripts, no external loads, no forms.</p>
+  </footer>
+</div>
+</body>
+</html>

@@ -382,11 +382,11 @@ try {
                 ok(`tapping a locked star says what opens it at ${w}×${h}`, /^Locked\. Clearance level (two|three|four|five), \w+, opens it\.$/.test(heard), heard);
             } else ok(`a locked star is clear of the labels to tap at ${w}×${h}`, false, 'none on screen');
             await say('close'); await p.waitForTimeout(800);
-            // Nine earlier days and four scenes, restored from another device: ten days and four scenes is level 2.
+            // Nine earlier days and three scenes, restored from another device: with the memory core, ten days and four scenes is level 2.
             const today = await p.evaluate(() => window.__jarvis.dayNumber());
             const days = [];
             for (let k = 1; k <= 9; k++) days.push(['app:visit', today - k, 1]);
-            ['galaxy', 'solar', 'globe', 'neural'].forEach((s, k) => days.push(['scene:' + s, today - 1 - k, 2]));
+            ['galaxy', 'solar', 'globe'].forEach((s, k) => days.push(['scene:' + s, today - 1 - k, 2])); // the memory core, opened above, is the fourth
             await p.evaluate((d) => window.__jarvis.restoreBackup(JSON.stringify({ app: 'jarvis', backup: 1, kept: {}, protocols: {}, days: d, totals: [] })), days);
             ok(`ten days and four scenes is level 2 at ${w}×${h}`, await p.evaluate(() => window.__jarvis.levelNow()) === 2);
             // The fifth scene, typed: level 3, mid-visit, with the sweep over the suit.
