@@ -110,6 +110,12 @@ engine then shows the install line and a labelled answer, screenshotted at both
 sizes. The jsdom suite's full-brain checks use a fake engine that streams and
 can fail like WebLLM's. `jarvis/llm/fetch-model.mjs --dry-run` (run by the
 suite too) checks the weights fetcher against `fixtures/jarvis-llm/`.
+Since review 67 it also measures the screens on a phone, at 1280×800, 390×844
+and 360×640. It checks that the face sits above the chat strip and that the
+Infinity Gauntlet help popup fits on screen, with every link reachable. It also
+checks that the projector caption is a two-line peek that MORE opens and HIDE
+tucks away, that the memory core's labels don't overlap and stay clear of the
+caption, and that the settings code stays clear of it too.
 Run it after the jsdom suite, not alongside it: its timing waits fail when
 the two compete for the CPU.
 

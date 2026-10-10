@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #67 — J.A.R.V.I.S. test copy: screens on a phone</title>
+<meta name="description" content="Review of the screen changes in the J.A.R.V.I.S. test copy: the chat as a pull-up strip so the face is never covered, the help answer as an Infinity Gauntlet popup with one stone per group of commands, and the projector caption as a two-line peek with MORE and HIDE, measured at three screen sizes.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #67 — J.A.R.V.I.S. test copy: screens on a phone</h1>
+    <p class="sub">On a phone, the face sat under the chat box, and the projector's caption covered the bottom of every scene: the memory core's lower stars, Peru on the globe, the threat scan's target, the settings code's note. The help answer had grown into one long paragraph. You chose a pull-up chat strip, an Infinity Gauntlet with stone tabs, a short spoken line plus each stone's name, and a link to the gauntlet when he doesn't understand. Every screen was checked for the same flaw.</p>
+    <div class="meta">Review performed 2026-10-10 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>tests/jarvis-test.chromium.mjs</code> · suites run: <code>jarvis-test-dom</code> and <code>tests/jarvis-test.chromium.mjs</code>, one after the other · <code>jarvis.html</code> unchanged</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 89%;"></div></div>
+    <div class="progress-label">19 items: 17 verified clean or fixed, 2 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security and privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Nothing new is stored</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Which stone is open, whether the chat is open and how the caption is set are kept in memory for the visit only. None of them goes through <code>store()</code> or <code>save()</code>. The suite's one-place-that-saves checks pass unchanged: no <code>localStorage</code> write anywhere in the page, and exactly one <code>'readwrite'</code> transaction, in <code>flush()</code>.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No markup from text: the gauntlet is built with DOM calls</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The gauntlet's card, tabs and picture are static markup in the page. Its links are made with <code>createElement</code> and <code>textContent</code> from the fixed <code>GAUNTLET</code> list, never from anything typed. The page still has no <code>innerHTML</code> (a suite check). The picture is an inline SVG with no script, no external reference and no event attribute. The stone colours come from CSS, not from attributes.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Links still do only what they say</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Every gauntlet link is one of the help answer's own <code>⟦label|command⟧</code> pairs, so it is in <code>CHIP_CMDS</code>. The suite clicks through all six stones and checks every link against <code>chipCmds()</code>. The CAPABILITIES/NOT_COUNTED check ("every command link belongs to a capability") and "every link command is understood" both pass. The new link, "what can you do", was added to the help capability.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">CSP unchanged</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>No new host, and no change to the CSP meta tag (the suite pins it). In Chromium, step 10 logged no CSP violation and no page error at any of its three sizes.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">"See what I can do" taught him that a phrase meant help</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Found while building. After "I didn't understand", whatever you say next is taken as what you meant, and he learns it. Tapping the new "see what I can do" link would have taught him that "blorp the snorkel" means help.</p></div>
+      <div class="fix-note"><b>Fix:</b> The help answer no longer counts as what you meant: the gauntlet opens, and he still waits for your meaning. Two checks pin this. One confirms the phrase isn't taught. The other confirms that what you say next is still learned. A copy of the page without the fix failed both.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A popup you can leave, and use from a keyboard</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The gauntlet is a <code>role="dialog"</code> with <code>aria-modal</code>, and its stones are a <code>tablist</code>. The arrow keys move between stones, and Tab stays inside it. Escape, CLOSE and a tap outside the card each close it. Focus goes back where it was, but never into the text box, where it would pop a phone's keyboard up. Every link is a real button at least 30 px tall (measured in Chromium).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Contrast</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Worked out, not eyeballed. The six stone colours on each skin's background score at least 7.93:1, and the label colour at least 6.58:1 (Jarvis). The chat handle's label on each skin's gradient scores at least 6.07:1. All pass WCAG AA, which needs 4.5:1.</p></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">02</span>Code quality and layout</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The face sat under the chat on a phone</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>On a phone, the skin, voice and HEY buttons wrap onto three rows, which leaves the face's area short. The face was drawn at <code>min(78vw, 52vh, 420px)</code> regardless, so it spilled down behind the chat, which took a fixed 26% of the screen.</p></div>
+      <div class="fix-note"><b>Fix:</b> The chat is a pull-up strip, as you chose (option D). Only his latest reply shows, scrolling inside the strip if it's long, at most a third of the screen. The face is sized by the space actually left (<code>container-type:size</code>, <code>min(78vw, 96cqh, 420px)</code>). The handle ("⌃ 6 EARLIER MESSAGES") opens the whole conversation in the face's place, by a tap, a swipe up or Enter, and a swipe down brings the face back. Measured in Chromium at 1280×800, 390×844 and 360×640: the face's bottom edge is above the strip, and the face is at least 140 px tall, after a long fact answer.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The help answer was one long paragraph</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>62 links and about 3,500 characters, all spoken.</p></div>
+      <div class="fix-note"><b>Fix:</b> "Help" or "what can you do" opens the Infinity Gauntlet with stone tabs (option 3). Space is the projector, Mind is facts and his brains, Reality is quick answers, Power is protocols, Time is follow-ups and memory, and Soul is you and him. Each stone lists its commands, one per line, plus a short note that keeps the old paragraph's other information (dreaming, the 7-day rule, my dog is Rex, WebGPU). He says only "Here's what I can do. Pick a stone.", and each stone's name and theme when you tap it, through <code>say()</code> with a new <code>quiet</code> option that adds nothing to the chat. The full text still sits in the help answer between two invisible markers, so every existing check of what help mentions still reads it. Your favourites and the clearance extras stay in the chat line as links.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">"Didn't understand" listed commands too</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The fallback answer carried its own list of 19 links.</p></div>
+      <div class="fix-note"><b>Fix:</b> It now says "Tap see what I can do for everything I know." with that one link, which opens the gauntlet, as you chose. Your favourites still lead it.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The projector caption covered the bottom of every scene</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The audit screenshot at 390×844 showed the memory core's lower stars and labels, Peru on the globe, the threat scan's target and the settings panel's note all under a caption of up to nine lines. The settings note overlapped the caption.</p></div>
+      <div class="fix-note"><b>Fix:</b> The caption is now a two-line peek. ⌃ MORE shows all of it (scrolling past 42% of the screen), ▾ HIDE tucks it to a small SHOW CAPTION button, and a swipe up or down does the same. Each new caption starts as a peek. The suit and memory labels, and the scan, now lay out above the caption's box. Measured in Chromium at all three sizes: the peek is at most 110 px tall, the tucked button at most 40 px, the memory core's labels don't overlap and stay between the top HUD and the caption, and the settings code stays clear of it.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Scenes centred in the space that's left</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Scenes were framed for the whole screen, so their lower part sat behind the caption and the text box.</p></div>
+      <div class="fix-note"><b>Fix:</b> Each frame, the projector centres the 3D view in the space between the top HUD and the caption, with <code>setViewOffset</code>, easing as the caption grows or hides. Tapping, picking and the labels all use the same projection, so they still line up. The suit schematic's own fixed 60 px nudge, which did the same job by hand, was removed so the figure isn't moved twice.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The projector title showed only "HOLO-PROJECTOR //" on a phone</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The scene's name was cut off by the HANDS and CLOSE buttons.</p></div>
+      <div class="fix-note"><b>Fix:</b> On screens under 600 px wide, the part before "//" is hidden, so the title reads "MEMORY CORE" or "EARTH". The title's text is unchanged, for anything that reads it. A long hint shows two lines on a phone and opens fully when tapped. Checked in Chromium: no "HOLO-PROJECTOR" and no cut-off at 390 and 360 wide.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Every screen checked, not just the two in the screenshots</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>All 20 screens were screenshotted at 390×844 before and after the change: chat, help, fallback, a fact answer, the galaxy, solar system, Mars, Earth, Peru, the neural network, the suit, a heart, your name, the memory core, the settings panel, its QR code, the threat scan, House Party, "how far is Mars", and the level report. After the change, nothing in any of them sits under the chat, the caption or the text box. The boot screen and the level-up panel already sit above everything, and the hand-control camera preview stays top right.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The suites</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>jarvis-test-dom: 1773 checks, all passing (1718 before). The new checks are in "Command links in the help answer" (rewritten for the gauntlet) and a new section, "Screens", which covers the strip, the handle, the caption's three states and swipes, and the title. Older checks that changed on purpose were re-worked from what the page should now do, not pasted from its output. These were the help speech tests (help now says one line, so the long-speech test uses the gauntlet's text), two fallback checks, "help starts with", and the help-links section. tests/jarvis-test.chromium.mjs: 255 checks, all passing (198 before), run on its own after the jsdom suite. Its new step 10 measures every changed screen at 1280×800, 390×844 and 360×640.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The suite fails when the page is broken</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Twenty-one copies of the page, each with one deliberate bug, were run against the new checks. Twenty failed them: the whole gauntlet spoken (6 failures), help not opening it (4), links in the wrong stone colour (2), a stone tap added to the chat (1), the fallback teaching "help" (2), Escape not closing it (1), the fallback keeping its own list (1), old messages never hidden (6), your message left in the strip (5), the handle never shown (1), the handle swiped the wrong way (4), a new caption keeping the old state (1), HIDE doing nothing (1), the caption swipe reversed (2), labels laid out against the caption text (1), no centring (1), no title prefix (1), the face sized by the screen (1), and the face shown over the open chat (1).</p><p>The first pass missed one: a command dropped from a stone. The gauntlet and the help text come from the same list, so they still agreed with each other. A check now pins all 61 commands the old paragraph linked, and that copy fails it. The 21st copy, a link that doesn't close the gauntlet itself, makes no difference: every turn closes it anyway.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">jsdom has no layout</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The jsdom suite can't measure anything, so it checks the wiring and the CSS rules. Every overlap claim above comes from Chromium step 10 measuring real boxes, not from reading the code.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not tried on a real phone</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Headless Chromium isn't Safari or Android Chrome. Whether the swipes feel natural, and how the gauntlet looks on your phone, are for you to try. The swipes use pointer events, which both browsers support, and taps work as well.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Carried</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>From review 66: the engine repository's missing licence file, the real model not running here, and a Session 8 check with a fixed 80 ms wait. From earlier reviews: a failed save isn't reported, chat answers are counted by an approximate kind, and a Session 10 Chromium step can time out under load. Nothing here changes them.</p></div>
+    </div>
+  </section>
+  <footer>Previous review: <a href="66.html">#66</a> (Session 14, the full brain). This change isn't a session of the build plan, so <code>jarvis/build-plan.html</code> was left as it was, as asked.</footer>
+</div>
+</body>
+</html>
