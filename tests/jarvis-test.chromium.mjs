@@ -40,6 +40,10 @@
  * record, and must check their hashes and stop at shader-f16 before any weight is read; a config with one byte changed
  * must be refused. A fake engine then shows the install line and a labelled answer, screenshotted at both sizes.
  *
+ * Review 67 added step 10: the screens on a phone. The face above the chat strip, the strip's handle, the Infinity Gauntlet
+ * (inside the screen, every link reachable), and the projector's caption as a peek that MORE opens and HIDE tucks away, with the
+ * memory core's labels apart and clear of it, Peru on the globe, and the settings code clear of it. At 1280×800, 390×844 and 360×640.
+ *
  * It isn't part of run.mjs, because it needs Playwright and Chromium, which the claude.ai/code containers
  * have and the Codespace doesn't (see "Browsers and screenshots" in CLAUDE.md). Run it from tests/:
  *
@@ -639,6 +643,104 @@ try {
             ok('a reload starts without the full brain', await p.evaluate(() => window.__jarvis.full().state) === 'off');
             await p.close();
         } finally { await ctxL.close(); await rm(join(work, `profile-l-${w}`), { recursive: true, force: true }); }
+    }
+
+    // 10. Review 67: the screens on a phone. The chat is a strip under the face, so the face is never under it; help
+    // opens the Infinity Gauntlet; the projector's caption is a two-line peek that MORE opens and HIDE tucks away, and
+    // each scene is centred in the space it leaves. Measured, not just screenshotted, at 1280×800, 390×844 and a short
+    // phone (360×640), in a fresh profile each.
+    for (const [w, h] of [[1280, 800], [390, 844], [360, 640]]) {
+        const ctxS = await chromium.launchPersistentContext(join(work, `profile-s-${w}`), { executablePath, headless: true,
+            args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: w, height: h }, acceptDownloads: true });
+        if (three) await ctxS.route('https://cdnjs.cloudflare.com/**', (r) => r.fulfill({ path: three, contentType: 'application/javascript', headers: { 'access-control-allow-origin': '*' } }));
+        await ctxS.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
+        try {
+            const p = await open('jarvis-test.html', { width: w, height: h }, ctxS);
+            await p.click('#boot-skip'); await p.waitForTimeout(900);
+            const type = async (q, ms = 900) => { await p.fill('#q', q); await p.press('#q', 'Enter'); await p.waitForTimeout(ms); };
+            const rect = (sel) => p.evaluate((x) => { const e = document.querySelector(x); if (!e) return null; const r = e.getBoundingClientRect(); return r.height ? { top: r.top, bottom: r.bottom, left: r.left, right: r.right, height: r.height } : null; }, sel);
+            for (const q of ['flip a coin', 'tell me a joke', 'what time is it']) await type(q, 700);
+            await type('jarvis tell me about gold please', 1500); // a long reply, in the strip
+            const orb = await rect('#orb'), below = (await Promise.all(['#log-handle', '#log'].map(rect))).filter(Boolean);
+            ok(`the face sits above the chat strip at ${w}×${h}`, orb && below.every((r) => orb.bottom <= r.top + 1), JSON.stringify({ orb, below }));
+            ok(`and stays a usable size at ${w}×${h}`, orb && orb.height >= 140, JSON.stringify(orb));
+            ok(`the strip shows only the latest reply at ${w}×${h}`, await p.evaluate(() => [...document.querySelectorAll('#log .msg')].filter((m) => getComputedStyle(m).display !== 'none').length) === 1);
+            const logR = await rect('#log');
+            ok(`a long reply scrolls inside the strip rather than covering the face at ${w}×${h}`, logR && logR.bottom <= (await rect('#f')).top + 1 && logR.height <= Math.min(0.34 * h, 260) + 1, JSON.stringify(logR));
+            await p.screenshot({ path: join(OUT, `screens-strip-${w}.png`) });
+            await p.click('#log-handle'); await p.waitForTimeout(300);
+            ok(`the handle opens the whole conversation in the face's place at ${w}×${h}`, await p.evaluate(() => getComputedStyle(document.getElementById('core')).display === 'none' && [...document.querySelectorAll('#log .msg')].every((m) => getComputedStyle(m).display !== 'none')));
+            await p.screenshot({ path: join(OUT, `screens-chat-open-${w}.png`) });
+            await p.click('#log-handle'); await p.waitForTimeout(300);
+            ok(`and back to the face at ${w}×${h}`, await p.evaluate(() => getComputedStyle(document.getElementById('core')).display !== 'none'));
+
+            // The gauntlet.
+            await type('help', 900);
+            const card = await rect('.g-card');
+            ok(`help opens the gauntlet, inside the screen, at ${w}×${h}`, card && card.top >= 0 && card.bottom <= h && card.left >= 0 && card.right <= w, JSON.stringify(card));
+            const tabsIn = await p.evaluate(() => [...document.querySelectorAll('.g-tab')].every((b) => { const r = b.getBoundingClientRect(); return r.width >= 30 && r.right <= innerWidth && r.left >= 0; }));
+            ok(`all six stones fit across at ${w}×${h}`, tabsIn);
+            let reach = true, total = 0;
+            for (const k of ['space', 'mind', 'reality', 'power', 'time', 'soul']) {
+                await p.click(`#g-tab-${k}`); await p.waitForTimeout(120);
+                const r = await p.evaluate(() => { const pn = document.getElementById('g-panel'), ls = [...document.querySelectorAll('#g-links .cmd')];
+                    const last = ls[ls.length - 1]; last.scrollIntoView({ block: 'nearest' }); const a = last.getBoundingClientRect(), b = pn.getBoundingClientRect();
+                    return { n: ls.length, ok: a.bottom <= b.bottom + 1 && a.top >= b.top - 1, tall: ls.every((x) => x.getBoundingClientRect().height >= 30) }; });
+                total += r.n; reach &&= r.ok && r.tall;
+                if (k === 'power') await p.screenshot({ path: join(OUT, `screens-gauntlet-${w}.png`) });
+            }
+            const marks = await p.evaluate(() => [...window.__jarvis.GAUNTLET_TEXT.matchAll(/⟦/g)].length);
+            ok(`every link is reachable in its stone, and big enough to tap, at ${w}×${h}`, reach && total === marks, `${total} of ${marks}`);
+            await p.click('#g-close'); await p.waitForTimeout(200);
+            await type('blorp the flibber', 900);
+            await p.click('#log .msg.ai:last-child button.cmd'); await p.waitForTimeout(900);
+            ok(`"see what I can do" opens it from the didn't-understand line at ${w}×${h}`, await p.evaluate(() => !document.getElementById('gauntlet').hidden));
+            await p.keyboard.press('Escape'); await p.waitForTimeout(200);
+            await type('nothing', 600);
+
+            if (three) {
+                // The memory core, full of stars, with the caption as a peek, then tucked away.
+                for (const q of ['make the orb blue', 'speak slower', 'use imperial units', 'my name is Sam', 'my dog is Rex', 'beam me up'])
+                    await type(q, 500);
+                await type('flip a coin', 500);
+                await type('create movie night protocol make the orb purple then open the galaxy', 700);
+                await type('create game day protocol make the orb red then show me earth', 700);
+                await type('show me your memory', 3500);
+                const lay = () => p.evaluate(() => { const L = [...document.querySelectorAll('#mem-labels .suit-label')].map((b) => b.getBoundingClientRect()), c = document.getElementById('cap-box').getBoundingClientRect(), a = window.__jarvis.freeArea();
+                    const apart = L.every((x, i) => L.every((y, j) => i >= j || x.right <= y.left || y.right <= x.left || x.bottom <= y.top || y.bottom <= x.top));
+                    return { n: L.length, apart, above: L.every((x) => x.bottom <= c.top + 1 || !c.height), below: L.every((x) => x.top >= a.top - 1), cap: c.height }; });
+                let m = await lay();
+                ok(`the memory core's labels don't overlap at ${w}×${h}`, m.n >= 5 && m.apart, JSON.stringify(m));
+                ok(`and sit between the top HUD and the caption at ${w}×${h}`, m.above && m.below, JSON.stringify(m));
+                ok(`the caption starts as a two-line peek at ${w}×${h}`, m.cap > 0 && m.cap <= 110, JSON.stringify(m));
+                await p.screenshot({ path: join(OUT, `screens-memory-${w}.png`) });
+                await p.click('#cap-hide'); await p.waitForTimeout(900);
+                const tucked = await rect('#cap-box');
+                m = await lay();
+                ok(`HIDE tucks it down to one small button, and the labels use the room at ${w}×${h}`, tucked && tucked.height <= 40 && m.apart, JSON.stringify({ tucked, m }));
+                await p.screenshot({ path: join(OUT, `screens-memory-tucked-${w}.png`) });
+                await p.click('#cap-hide'); await p.waitForTimeout(300);
+                // The globe with a long fact: the peek, then MORE.
+                await type('tell me about peru', 4500);
+                const peek = await rect('#cap-box');
+                ok(`a long fact is a two-line peek over the globe at ${w}×${h}`, peek && peek.height <= 110, JSON.stringify(peek));
+                await p.screenshot({ path: join(OUT, `screens-peru-${w}.png`) });
+                await p.click('#cap-more'); await p.waitForTimeout(300);
+                const full = await p.evaluate(() => { const c = document.getElementById('holo-cap'); return { h: c.getBoundingClientRect().height, scroll: c.scrollHeight <= c.clientHeight + 2 || getComputedStyle(c).overflowY === 'auto' }; });
+                ok(`MORE shows all of it, scrolling if it has to at ${w}×${h}`, full.h > peek.height - 20 && full.scroll, JSON.stringify(full));
+                await p.screenshot({ path: join(OUT, `screens-peru-more-${w}.png`) });
+                const title = await p.evaluate(() => { const t = document.getElementById('holo-title'); return { text: t.innerText, cut: t.scrollWidth > t.clientWidth + 1 }; });
+                ok(`the projector title shows the scene's name${w < 600 ? ', without HOLO-PROJECTOR //,' : ''} at ${w}×${h}`, /GLOBE|EARTH|PERU/.test(title.text) && (w < 600 ? !/HOLO-PROJECTOR/.test(title.text) && !title.cut : /HOLO-PROJECTOR \/\//.test(title.text)), JSON.stringify(title));
+                await p.click('#holo-close'); await p.waitForTimeout(1200);
+            }
+            // The settings transfer panel and its code stay clear of the caption.
+            await type('send my settings to my phone', 2500);
+            const xf = await rect('.xfer'), cb = await rect('#cap-box');
+            ok(`the settings code stays clear of the caption at ${w}×${h}`, xf && cb && xf.bottom <= cb.top + 1, JSON.stringify({ xf, cb }));
+            await p.screenshot({ path: join(OUT, `screens-qr-${w}.png`) });
+            ok(`no sideways scroll at ${w}×${h}`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+            await p.close();
+        } finally { await ctxS.close(); await rm(join(work, `profile-s-${w}`), { recursive: true, force: true }); }
     }
 
 } finally {
