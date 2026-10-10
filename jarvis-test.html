@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<meta name="description" content="J.A.R.V.I.S. Test: the trial copy of the J.A.R.V.I.S. Demo, where new features are tried before they go to the main page. A talking assistant that runs in your browser, with a boot-up sequence, an animated orb with a face, voice in and out, three skins (Jarvis, Morpheus from The Matrix and Stanley C. Panther of the Florida Panthers), phrases it learns from you, settings it remembers on your device, things you tell it remembered for one visit only, protocols that run several commands with one phrase, follow-ups like again, go back and why, and a holo-projector that shows a 3D galaxy, the solar system, the Earth, a suit schematic, its own neural network and its memory core, which you can steer with hand gestures.">
+<meta name="description" content="J.A.R.V.I.S. Test: the trial copy of the J.A.R.V.I.S. Demo, where new features are tried before they go to the main page. A talking assistant that runs in your browser, with a boot-up sequence, an animated orb with a face, voice in and out, three skins (Jarvis, Morpheus from The Matrix and Stanley C. Panther of the Florida Panthers), phrases it learns from you, settings it remembers on your device and can move to another one with a backup file or a QR code, things you tell it remembered for one visit only, protocols that run several commands with one phrase, follow-ups like again, go back and why, and a holo-projector that shows a 3D galaxy, the solar system, the Earth, a suit schematic, its own neural network and its memory core, which you can steer with hand gestures.">
 <title>J.A.R.V.I.S. Test</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%23020a06'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%2339ff88' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%2339ff88'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -127,6 +127,22 @@ body.holo-on #wake-note{display:none}
 body.hands-on #hand-cam{display:block}
 body.scan-on #holo-hands,body.scan-on #hand-cam,body.scan-on #reticle{display:none}
 body.scan-on #stage{cursor:crosshair}
+/* Settings transfer (Session 8): buttons, then the code or the camera, between the top HUD and the caption */
+.xfer{position:absolute;left:50%;transform:translateX(-50%);top:118px;bottom:180px;width:min(560px,calc(100vw - 32px));display:flex;flex-direction:column;align-items:center;gap:10px}
+.xfer-btns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%}
+.xfer-btns button{padding:9px 6px;background:rgba(2,10,6,.8);font-size:.72rem;letter-spacing:.08em}
+.xfer-btns button.on{border-color:var(--amber);color:var(--amber)}
+.xfer-view{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
+.xfer-qr,.xfer-cam{max-width:100%;max-height:100%;border:2px solid var(--phos)}
+.xfer-qr{aspect-ratio:1;image-rendering:pixelated;background:#fff}
+.xfer-cam{width:100%;object-fit:contain;background:#000}
+.xfer-note{margin:0;font-size:.8rem;line-height:1.35;color:var(--label);text-align:center}
+.xfer-note:empty{display:none}
+body.xfer-on #holo-hands,body.xfer-on #hand-cam,body.xfer-on #reticle{display:none}
+@media (max-width:600px){
+  .xfer{top:112px;bottom:205px}.xfer-btns{grid-template-columns:1fr 1fr}
+  body.xfer-on #holo-title,body.xfer-on #holo-stat{margin-right:112px}body.xfer-on #holo-hint{margin-right:16px} /* no HANDS button here */
+}
 #reticle{width:34px;height:34px;margin:-17px 0 0 -17px;border:2px solid var(--phos);border-radius:50%;left:0;top:0;display:none;
   box-shadow:0 0 12px rgba(57,255,136,.6);transition:width .12s,height .12s,margin .12s,background .12s}
 #reticle.on{display:block}
@@ -252,12 +268,12 @@ function cleanStreak(o){
 const ORDINALS=['','First','Second','Third','Fourth','Fifth','Sixth','Seventh','Eighth','Ninth','Tenth'];
 const streakLine=n=>n<2?'':n<ORDINALS.length?`${ORDINALS[n]} day in a row!`:`Day ${n} in a row!`;
 const PERSONAL=[
-  ['an email address',/[^\s@]+@[^\s@]+\.[a-z]{2,}/i],
+  ['an email address',/[^\s@]@[^\s@]+\.[a-z]{2,}/i], // one character before the @ is enough, and keeps a long value from taking seconds (Session 8)
   ['a phone or ID number',/(?:\+?\d[\s().-]*){7,}/],
   ['a long number',/\d{5,}/],
   ['a date',/\b\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}\b/],
   ['a street address',/\b\d{1,6}(?:\s+[a-z0-9.'-]+){1,4}\s+(?:street|st|avenue|ave|road|rd|drive|dr|lane|ln|boulevard|blvd|court|ct|way|circle|cir|parkway|pkwy|place|pl|terrace|ter|highway|hwy|trail|trl)\b/i],
-  ['a web address',/https?:\/\/|\bwww\.|\b[a-z0-9-]+\.(?:com|org|net|edu|gov|io|co|us|uk)\b/i],
+  ['a web address',/https?:\/\/|\bwww\.|[a-z0-9-]\.(?:com|org|net|edu|gov|io|co|us|uk)\b/i], // catches everything the old pattern did, in linear time (Session 8)
   ['something about you',/\bmy (?:name|full name|first name|last name|surname|nickname|address|street|zip|post ?code|town|city|phone|cell|mobile|number|email|e-?mail|birthday|birth ?date|date of birth|dob|age|password|passcode|pin|login|username|social security|ssn|credit card|debit card|card|account|bank|routing|licen[cs]e|passport|doctor|diagnosis|medication|medicine|condition|allerg(?:y|ies)|school|teacher|class|wife|husband|partner|girlfriend|boyfriend|son|daughter|kids?|children|mom|mum|mother|dad|father|brother|sister|boss|work|workplace|job|employer|salary|religion|church)\b|\bi(?:'m| am) \d{1,3}(?: years old)?\b|\bi live\b|\bi was born\b|\bcall me\b|\b(?:password|passcode|pin code|social security|credit card|ssn)\b/i]
 ];
 // Why a piece of text looks personal ("an email address", …), or null when it doesn't.
@@ -275,7 +291,7 @@ const TABLES=['kept','events','totals','meta','protocols'];
 // The only things ever counted. Later sessions add IDs here; nothing outside this list can be saved as an event.
 const EVENT_IDS=['app:visit',
   ...['galaxy','solar','globe','neural','suit','particles','memory'].map(k=>'scene:'+k),
-  ...['scan','briefing','setting','remember','teach','help','time','date','joke','fact','coin','die','math','chat','protocol','house-party','wake-up'].map(k=>'cmd:'+k),
+  ...['scan','briefing','setting','remember','teach','help','time','date','joke','fact','coin','die','math','chat','protocol','house-party','wake-up','backup','restore','qr','qr-scan'].map(k=>'cmd:'+k),
   ...['jarvis','matrix','panther'].map(k=>'skin:'+k),
   ...['mic','wake-word','hands','voice'].map(k=>'feature:'+k)];
 // Days are counted from a fixed start, so a day is stored as a small number such as 282, never as a date.
@@ -471,7 +487,7 @@ function storedSummary(){
   const counts=dbOK&&counted?` Counts of which scenes and commands you use, by day. Nothing you say. Your visit streak${streak.days>1?`, ${streak.days} days,`:''} is worked out from those counts.`:'';
   const now=typeof userName==='string'&&userName?` Your name, ${userName}, is only in memory for this visit.`:'';
   const told=typeof memory==='object'&&memory.length?` ${memory.length===1?'One thing':memory.length+' things'} you told me ${memory.length===1?'is':'are'} only in memory for this visit too.`:'';
-  return `${list}${counts}${now}${told} No names, no personal details, nothing from the camera and no chat history. Anything that looks personal is never saved. On an iPhone, Safari clears what I keep after 7 days without a visit.`;
+  return `${list}${counts}${now}${told} No names, no personal details, nothing from the camera and no chat history. Anything that looks personal is never saved. On an iPhone, Safari clears what I keep after 7 days without a visit, so say back up my settings to keep a copy.`;
 }
 // Settings in words, for "what do you save" and the memory core.
 const SCENE_NAMES={galaxy:'the galaxy',solar:'the solar system',globe:'the Earth',neural:'my neural network',suit:'the suit',particles:'the particles'};
@@ -1010,7 +1026,7 @@ function brainKnown(raw){
   const s=raw.toLowerCase().trim(),name=userName?`, ${userName}`:'';
   let m;
   if((m=s.match(/\b(?:my name is|call me|i am|i'm) ([a-z]+)/))&&!notNames.has(m[1])){userName=m[1][0].toUpperCase()+m[1].slice(1);return because(`Nice to meet you, ${userName}. I'll remember that until you close this page. I never save names.`,"Because nothing personal is ever saved in this browser. Your name stays in memory for this visit and is gone when you close the page.")}
-  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧, or some math like ⟦seven times eight|what is seven times eight⟧. I can ⟦flip a coin⟧, ⟦roll a die⟧ or start a ⟦launch countdown⟧. For the holo-projector, say ⟦show me the galaxy⟧, ⟦show me the planets⟧, ⟦take me to Mars⟧, ⟦make a heart⟧, ⟦make a rocket⟧, or ⟦write your name|write my name⟧. Say ⟦show me your brain⟧ to watch me think, or ⟦suit up⟧ to build a suit of armour. Say ⟦show me Earth⟧ for the globe, or show me any country, US state or big city, like ⟦Florida|show me Florida⟧ or ⟦Tokyo|show me Tokyo⟧. Say ⟦hand control⟧ to steer it with your hands through the camera, or ⟦scan the room⟧ for a threat scan. Say ⟦brief me⟧ for the time and the top headlines. In Chrome or Edge, turn on ⟦always listening|always listen⟧ with the HEY JARVIS switch, then start what you say with my name. Say ⟦close⟧ to turn it off, or ⟦reboot⟧ to watch me power up again. Say ⟦switch to Matrix⟧ to talk to Morpheus, ⟦switch to Panthers⟧ for Stanley C. Panther, or ⟦back to Jarvis⟧. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit, whichever skin I'm in. Ask ⟦what do you know about me⟧ to hear them back. I can also remember settings on this device: say ⟦make the orb blue⟧, ⟦speak faster⟧, ⟦use imperial units⟧, or ⟦open with the galaxy⟧. Say ⟦show me your memory⟧ to see everything I keep as stars, and tap one to hear it or say forget that. Make a protocol to run several commands with one phrase, like ⟦a movie night protocol|create movie night protocol: make the orb purple, then open the galaxy⟧, then say ⟦movie night⟧ to run it. Say ⟦list my protocols⟧, or try ⟦house party⟧ or ⟦wake up, daddy's home|wake up daddy's home⟧. You can talk in fragments too: after ⟦take me to Mars⟧, say ⟦now Jupiter⟧, ⟦bigger⟧, ⟦slower⟧, ⟦again⟧ or ⟦go back⟧, and ask ⟦why⟧ after an answer. Leave me alone for a few minutes and I'll dream. Ask ⟦what do you save⟧ to see what I keep, and I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, and a settings backup file is coming. If I don't understand you, tell me what you meant and I'll remember it on this device.";
+  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧, or some math like ⟦seven times eight|what is seven times eight⟧. I can ⟦flip a coin⟧, ⟦roll a die⟧ or start a ⟦launch countdown⟧. For the holo-projector, say ⟦show me the galaxy⟧, ⟦show me the planets⟧, ⟦take me to Mars⟧, ⟦make a heart⟧, ⟦make a rocket⟧, or ⟦write your name|write my name⟧. Say ⟦show me your brain⟧ to watch me think, or ⟦suit up⟧ to build a suit of armour. Say ⟦show me Earth⟧ for the globe, or show me any country, US state or big city, like ⟦Florida|show me Florida⟧ or ⟦Tokyo|show me Tokyo⟧. Say ⟦hand control⟧ to steer it with your hands through the camera, or ⟦scan the room⟧ for a threat scan. Say ⟦brief me⟧ for the time and the top headlines. In Chrome or Edge, turn on ⟦always listening|always listen⟧ with the HEY JARVIS switch, then start what you say with my name. Say ⟦close⟧ to turn it off, or ⟦reboot⟧ to watch me power up again. Say ⟦switch to Matrix⟧ to talk to Morpheus, ⟦switch to Panthers⟧ for Stanley C. Panther, or ⟦back to Jarvis⟧. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit, whichever skin I'm in. Ask ⟦what do you know about me⟧ to hear them back. I can also remember settings on this device: say ⟦make the orb blue⟧, ⟦speak faster⟧, ⟦use imperial units⟧, or ⟦open with the galaxy⟧. Say ⟦show me your memory⟧ to see everything I keep as stars, and tap one to hear it or say forget that. Make a protocol to run several commands with one phrase, like ⟦a movie night protocol|create movie night protocol: make the orb purple, then open the galaxy⟧, then say ⟦movie night⟧ to run it. Say ⟦list my protocols⟧, or try ⟦house party⟧ or ⟦wake up, daddy's home|wake up daddy's home⟧. You can talk in fragments too: after ⟦take me to Mars⟧, say ⟦now Jupiter⟧, ⟦bigger⟧, ⟦slower⟧, ⟦again⟧ or ⟦go back⟧, and ask ⟦why⟧ after an answer. Leave me alone for a few minutes and I'll dream. Ask ⟦what do you save⟧ to see what I keep, and I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, so say ⟦back up my settings⟧ to keep a copy as a file, and ⟦restore my settings⟧ to load it. To move them to another device, say ⟦send my settings to my phone⟧ here and ⟦scan settings⟧ there. If I don't understand you, tell me what you meant and I'll remember it on this device.";
   if(/^(?:please )?(?:forget|clear|delete|erase) my name\b/.test(s)){const had=userName;userName=null;return had?"Done. I've forgotten your name.":"I don't know your name yet, so there's nothing to forget."}
   if(/\bwhat(?:'s| is) my name\b|\bwho am i\b|\bdo you (?:know|remember) (?:my name|me|who i am)\b|\bsay my name\b/.test(s))return userName?`Your name is ${userName}. I'll remember it whichever skin I'm wearing, until you close this page. I never save it.`:"You haven't told me your name yet. Say my name is, then your name, and I'll remember it until you close this page.";
   if(/\b(hello|hi|hey|good (morning|afternoon|evening))\b/.test(s))return pick([`Hello${name}. All systems are online.`,`Good to see you${name}. How can I help?`]);
@@ -1957,7 +1973,7 @@ function closeHolo(keepHands){
 }
 async function project(it){
   if(it.kind==='hands')return it.arg?startHands():stopHands()?"Hand control off. The camera is off too.":"Hand control is already off.";
-  if(it.kind==='close'){const k=H&&H.kind;return closeHolo()?(k==='scan'?SCAN_OFF:pick(["Projector off.","Closing the hologram."])):"The projector's already off."}
+  if(it.kind==='close'){const k=H&&H.kind;return closeHolo()?(k==='scan'?SCAN_OFF:k==='transfer'?XFER_OFF:pick(["Projector off.","Closing the hologram."])):"The projector's already off."}
   if(it.kind==='boot'){closeHolo();showBoot();runBoot();return null}
   if(it.kind==='scan')return startScan();
   if(it.kind==='zoom'){
@@ -1974,7 +1990,7 @@ async function project(it){
   if(H&&H.kind===it.kind)noteScene(it);
   return r;
 }
-document.getElementById('holo-close').addEventListener('click',()=>{const k=H&&H.kind;stopProtocol();closeHolo();say(k==='scan'?SCAN_OFF:"Projector off.")});
+document.getElementById('holo-close').addEventListener('click',()=>{const k=H&&H.kind;stopProtocol();closeHolo();say(k==='scan'?SCAN_OFF:k==='transfer'?XFER_OFF:"Projector off.")});
 addEventListener('resize',resizeHolo);
 
 /* Drag to orbit, pinch or scroll to zoom, tap to pick. */
@@ -2074,7 +2090,7 @@ function loadLandmarker(){
 async function startHands(){
   if(HC)return "Hand control is already on.";
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return "Hand control needs a camera, and this browser can't use one here.";
-  if(!H||H.kind==='scan'){const r=await project({kind:'particles',arg:{shape:'sphere'}});if(!H||H.kind==='scan')return r}
+  if(!H||H.kind==='scan'||H.kind==='transfer'){const r=await project({kind:'particles',arg:{shape:'sphere'}});if(!H||H.kind==='scan'||H.kind==='transfer')return r}
   holoHint.textContent='Starting hand tracking…';handsBtn.disabled=true;
   let stream=null,lm=null;
   try{
@@ -2299,6 +2315,308 @@ function scanLoop(now){
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&H&&H.kind==='scan')closeHolo()}); // never leave the camera on in a hidden tab
 
+/* ---------- Moving settings to another device (Session 8) ----------
+   Two ways across, with no server and no cloud: a backup file (jarvis-settings.json), and a QR code shown on one
+   device and scanned by the other. Either way it carries what the database holds: the kept settings (not the mic
+   note, which is about this device), the protocols and, in the file only, the usage counts. Never the follow-up
+   context, which is memory only. Restoring merges: what's in the backup goes back in through save(), so fits()
+   checks every record exactly as if it were being saved for the first time, and nothing already here is deleted.
+   A setting, a taught phrase, a voice pick or a protocol of the same name is replaced; everything else is kept.
+   Counts take the larger of the two, so restoring the same file twice changes nothing.
+   The QR encoder and decoder are self-hosted in jarvis/qr/ and loaded with their SRI hashes, only when needed.
+   The camera is on only while scanning, video only, and off as soon as a code is read, on close, after a minute
+   with no code, or when the tab is hidden. */
+const BACKUP_FILE='jarvis-settings.json',BACKUP_KEYS=STORE_KEYS.filter(k=>k!=='jarvis-mic-note');
+const BACKUP_MAX=400000; // characters. A bigger file can't be one of these, so it isn't read.
+const QR_MAX=500; // bytes: at error correction L that's QR version 15 (77×77) at most, easy for a phone camera
+const QR_SCAN_MS=60000;
+const QR_LIBS={
+  enc:['jarvis/qr/qrcode.js','sha384-8FWZA6BGMXhsfO+BLtrJK0We6gg5o1JyO8xQm6peWDEUs17ACA5ziE/NIAkl9z2k','qrcode'],
+  dec:['jarvis/qr/jsQR.js','sha384-b5Ya4Bq3qCyz39m2ISh+4DxjAIljdeFwK/BsXLuj9gugaNwAcj/ia15fxNZL9Nlx','jsQR']
+};
+const libP={};
+function loadQrLib(k){
+  if(libP[k])return libP[k];
+  const [src,sri,name]=QR_LIBS[k];
+  libP[k]=typeof window[name]==='function'?Promise.resolve(window[name]):new Promise((res,rej)=>{
+    const s=document.createElement('script');s.src=new URL(src,location.href).href;s.integrity=sri;s.crossOrigin='anonymous';s.referrerPolicy='no-referrer';
+    const t=setTimeout(()=>rej(new Error('timeout')),15000);
+    s.onload=()=>{clearTimeout(t);typeof window[name]==='function'?res(window[name]):rej(new Error(name))};
+    s.onerror=()=>{clearTimeout(t);rej(new Error(name))};
+    document.head.appendChild(s);
+  });
+  libP[k].catch(()=>{delete libP[k]});
+  return libP[k];
+}
+// JSON with anything outside plain ASCII written as \u escapes, so every QR reader and file viewer reads it the same.
+const asciiJson=o=>JSON.stringify(o).replace(/[\u007f-￿]/g,c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0'));
+// What a backup holds, read from what's saved. counts: the usage counts too (the file has them; the QR code doesn't).
+function backupData(counts=true){
+  const o={app:'jarvis',backup:1,kept:{},protocols:{}};
+  for(const k of BACKUP_KEYS)if(kept.has(k)&&fits('kept',k,kept.get(k)))o.kept[k]=kept.get(k);
+  for(const [n,p] of protocols)if(fits('protocols',n,p))o.protocols[n]=[...p.steps];
+  if(counts){o.days=[...events.values()].map(e=>[e.id,e.day,e.n]);o.totals=[...totals.values()].map(t=>[t.id,t.n])}
+  return o;
+}
+const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
+const jsonObj=s=>{try{const o=JSON.parse(s);return isObj(o)?o:{}}catch(e){return {}}};
+function cleanVoices(s){const o=jsonObj(s),out={};for(const k of Object.keys(SKINS))if(typeof o[k]==='string'&&o[k].length<=200&&!personal(o[k]))out[k]=o[k];return out}
+const numWord=n=>n<NUMW.length?NUMW[n]:String(n);
+// The backup's contents in words: "your skin, your settings, two phrases you taught me and one protocol".
+function backupWords(o){
+  const k=o.kept,parts=[];
+  if(k['jarvis-skin'])parts.push('your skin');
+  if(k['jarvis-settings'])parts.push('your settings');
+  if(k['jarvis-voices'])parts.push('your voice picks');
+  const nl=Object.keys(jsonObj(k['jarvis-learned']||'{}')).length;if(nl)parts.push(`${numWord(nl)} ${nl===1?'phrase':'phrases'} you taught me`);
+  const np=Object.keys(o.protocols).length;if(np)parts.push(`${numWord(np)} ${np===1?'protocol':'protocols'}`);
+  const nd=new Set((o.days||[]).map(d=>d[1])).size;if(nd||(o.totals||[]).length)parts.push(nd?`usage counts for ${numWord(nd)} ${nd===1?'day':'days'}`:'usage counts');
+  return listWords(parts);
+}
+// A setting from a backup, cleaned the way the scrub cleans it and merged into what's here. null: nothing to keep.
+function mergeKept(k,v){
+  const c=cleanKept(k,v);if(c===null)return null;
+  if(k==='jarvis-skin')return Object.hasOwn(SKINS,c)?c:null;
+  if(k==='jarvis-voices'){const inc=cleanVoices(c);return Object.keys(inc).length?JSON.stringify({...cleanVoices(keptGet(k)),...inc}):null}
+  if(k==='jarvis-settings')return JSON.stringify({...cleanSettings(jsonObj(keptGet(k)||'{}')),...cleanSettings(jsonObj(c))});
+  if(k==='jarvis-learned'){const inc=jsonObj(c);if(!Object.keys(inc).length)return null;
+    return cleanKept(k,JSON.stringify(Object.assign(Object.create(null),jsonObj(keptGet(k)||'{}'),inc)))}
+  return null;
+}
+// Restore from a backup's text (a file or a scanned code). Every record goes back in through save(), and anything
+// fits() refuses is skipped. Nothing here is deleted. Returns what happened: {why} when nothing could be read.
+function restoreBackup(text){
+  if(typeof text!=='string')return {why:'unreadable'};
+  if(text.length>BACKUP_MAX)return {why:'big'};
+  let o=null;try{o=JSON.parse(text)}catch(e){return {why:'broken'}}
+  if(!isObj(o)||o.app!=='jarvis'||o.backup!==1)return {why:'foreign'};
+  const r={settings:[],learned:0,protocols:0,counts:0,skipped:0};
+  for(const k of Object.keys(o))if(!['app','backup','kept','protocols','days','totals'].includes(k))r.skipped++;
+  if(o.kept!==undefined&&!isObj(o.kept))r.skipped++;
+  if(isObj(o.kept))for(const [k,v] of Object.entries(o.kept)){
+    const m=BACKUP_KEYS.includes(k)&&typeof v==='string'&&v.length<=KEPT_MAX?mergeKept(k,v):null;
+    if(k==='jarvis-learned'&&typeof v==='string'){const all=Object.keys(jsonObj(v)).length,ok=Object.keys(jsonObj(cleanKept(k,v)||'{}')).length;r.skipped+=all-ok;if(m!==null)r.learned=ok}
+    if(m!==null&&(m===keptGet(k)||store(k,m)))r.settings.push(k);else r.skipped++;
+  }
+  if(o.protocols!==undefined&&!isObj(o.protocols))r.skipped++;
+  if(isObj(o.protocols))for(const [n,steps] of Object.entries(o.protocols)){
+    // The name exactly as a protocol is saved: "my mom" isn't trimmed to "mom" and let in, as it isn't when one is made.
+    // Names over 30 characters can't be saved anyway, so a huge one is refused before any work is done on it.
+    if(n.length<=30&&Array.isArray(steps)&&save('protocols',n,{steps:steps.slice(0,PROTO_STEPS+1)}))r.protocols++;else r.skipped++;
+  }
+  // Usage counts: a known ID, a day number and a count, nothing else. Days still kept by day take the larger count;
+  // older days and the all-time totals go into the totals, also the larger of the two. Days after today are refused.
+  const today=dayNumber(),lo=today-KEEP_DAYS+1,tot=Object.create(null),older=Object.create(null);
+  for(const k of ['days','totals'])if(o[k]!==undefined&&!Array.isArray(o[k]))r.skipped++;
+  if(Array.isArray(o.days))for(const d of o.days){
+    const [id,day,n]=Array.isArray(d)&&d.length===3?d:[],rec={id,day,n};
+    if(!fits('events',[id,day],rec)||day>today){r.skipped++;continue}
+    if(day<lo){older[id]=(older[id]||0)+n;r.counts++;continue}
+    const was=events.get(evKey(id,day));
+    if((was&&was.n>=n)||save('events',[id,day],rec))r.counts++;else r.skipped++;
+  }
+  if(Array.isArray(o.totals))for(const x of o.totals){
+    const [id,n]=Array.isArray(x)&&x.length===2?x:[];
+    if(fits('totals',id,{id,n})){tot[id]=Math.max(tot[id]||0,n);r.counts++}else r.skipped++;
+  }
+  for(const id of Object.keys(older))tot[id]=(tot[id]||0)+older[id];
+  for(const id of Object.keys(tot)){const was=totals.get(id),n=Math.min(1e9,tot[id]);if(!(was&&was.n>=n))save('totals',id,{id,n})}
+  if(r.settings.length||r.protocols)hydrate();
+  if(r.settings.length||r.protocols||r.counts)track('cmd:restore');
+  return r;
+}
+// What he says about a restore.
+function restoreWords(r){
+  const no={big:"That file is too big to be a settings backup, so I didn't read it. Nothing was changed.",
+    broken:"I couldn't read that as a settings backup. Nothing was changed.",
+    foreign:"That isn't a J.A.R.V.I.S. settings backup. Nothing was changed.",
+    unreadable:"I couldn't read that file. Nothing was changed."};
+  if(r.why)return no[r.why];
+  const S=r.settings,parts=[];
+  if(S.includes('jarvis-skin'))parts.push('your skin');
+  if(S.includes('jarvis-settings'))parts.push('your settings');
+  if(S.includes('jarvis-voices'))parts.push('your voice picks');
+  if(S.includes('jarvis-learned'))parts.push(`${numWord(r.learned)} taught ${r.learned===1?'phrase':'phrases'}`);
+  if(r.protocols)parts.push(`${numWord(r.protocols)} ${r.protocols===1?'protocol':'protocols'}`);
+  if(r.counts)parts.push('your usage counts');
+  const left=r.skipped?` I left out ${r.skipped===1?'one thing':numWord(r.skipped)+' things'} I can't keep, such as anything personal or anything I don't recognise.`:'';
+  if(!parts.length)return because(`There was nothing in that backup I could keep, so nothing was changed.${left}`,"Because a backup goes back in exactly as if it were being saved for the first time, and anything personal, unknown or too big is refused.");
+  const temp=dbOK?'':" This browser won't let me save, so it's only for this visit.";
+  return because(`Restored ${listWords(parts)}. Anything already here that the backup didn't have is kept.${left}${temp}`,"Because a backup goes back in exactly as if it were being saved for the first time, and anything personal, unknown or too big is refused.");
+}
+// "Back up my settings": download jarvis-settings.json.
+function downloadBackup(){
+  const o=backupData();
+  if(!Object.keys(o.kept).length&&!Object.keys(o.protocols).length&&!o.days.length&&!o.totals.length)return "There's nothing saved on this device to back up yet.";
+  if(typeof URL.createObjectURL!=='function'||typeof Blob!=='function')return "This browser can't save a file from a page, so I can't make a backup here.";
+  const url=URL.createObjectURL(new Blob([asciiJson(o)],{type:'application/json'})),a=document.createElement('a');
+  a.href=url;a.download=BACKUP_FILE;a.hidden=true;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+  track('cmd:backup');
+  return `Your backup, ${BACKUP_FILE}, is on its way to your downloads, with ${backupWords(o)}. Nothing personal is in it. On the other device, say restore my settings and pick that file.`;
+}
+// A picked file's text. Blob.text() where the browser has it, FileReader where it doesn't (older Safari).
+const readText=f=>typeof f.text==='function'?f.text():new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result));r.onerror=()=>rej(r.error);r.readAsText(f)});
+// The settings code: the backup without the usage counts, as plain ASCII. null when there's nothing to send.
+function qrPayload(){const o=backupData(false);return Object.keys(o.kept).length||Object.keys(o.protocols).length?asciiJson(o):null}
+const XFER_OFF="Settings transfer closed. The camera is off.";
+const XFER_HINT="Nothing personal is ever in a backup · the camera is on only while scanning · say close when you're done";
+// The settings transfer panel, on the holo-projector. view: 'menu', 'qr', 'scan' or 'restore'.
+function openTransfer(view){
+  if(H&&H.kind==='transfer')return H;
+  closeHolo(); // also turns hand control off
+  const mk=(tag,cls)=>{const e=document.createElement(tag);if(cls)e.className=cls;return e};
+  const box=mk('div','xfer'),btns=mk('div','xfer-btns'),view_=mk('div','xfer-view'),note=mk('p','xfer-note'),file=mk('input');
+  for(const [x,label] of [['save','⬇ SAVE BACKUP FILE'],['restore','⬆ RESTORE FROM FILE'],['qr','▦ SHOW CODE'],['scan','⌖ SCAN CODE']]){
+    const b=mk('button');b.type='button';b.dataset.x=x;b.textContent=label;btns.appendChild(b);
+  }
+  file.type='file';file.accept='.json,application/json';file.hidden=true;file.setAttribute('aria-label','Settings backup file');
+  box.append(btns,view_,note,file);
+  const S={kind:'transfer',title:'Settings transfer',rig:NO_RIG,raf:0,view:'menu',cam:null,box,viewEl:view_,note,
+    adjust:()=>"The settings panel stays the size it is. To read a code, move the camera closer instead.",
+    dispose(){stopQrCam(S);box.remove();document.body.classList.remove('xfer-on')}};
+  H=S;
+  box.addEventListener('click',async e=>{
+    const b=e.target.closest('button[data-x]');if(!b||H!==S)return;
+    const x=b.dataset.x;
+    if(x==='restore'){file.click();return}
+    const r=x==='save'?downloadBackup():await transferView(S,x);if(r)say(r);
+  });
+  file.addEventListener('change',async()=>{
+    const f=file.files&&file.files[0];file.value='';if(!f)return;
+    if(f.size>BACKUP_MAX){say(restoreWords({why:'big'}));return}
+    let text=null;try{text=await readText(f)}catch(e){}
+    say(restoreWords(restoreBackup(text)));
+  });
+  holo.appendChild(box);document.body.classList.add('xfer-on');
+  holoTitle.textContent='SETTINGS TRANSFER';setStat('');holoHint.textContent=XFER_HINT;holoCap.textContent='';
+  clearTimeout(closeTimer);holo.hidden=false;document.body.classList.add('holo-on');void holo.offsetWidth;holo.classList.add('open');
+  blip(330,.2,.03,'square');blip(660,.25,.02,'sine',.1);
+  return S;
+}
+// Switch the panel to a view, and say what's on it.
+async function transferView(S,view){
+  if(view!=='scan')stopQrCam(S);
+  S.view=view;S.viewEl.textContent='';S.note.textContent='';
+  for(const b of S.box.querySelectorAll('button[data-x]'))b.classList.toggle('on',b.dataset.x===view);
+  if(view==='menu'||view==='restore'){
+    setStat(view==='restore'?'READY TO RESTORE':'BACKUP · RESTORE · CODE');
+    S.note.textContent=view==='restore'?`Tap RESTORE FROM FILE and pick ${BACKUP_FILE}. What's here already is kept unless the backup replaces it.`:
+      'Save a backup file, or show a code here and scan it on your other device.';
+    return view==='restore'?`Tap RESTORE FROM FILE and pick your ${BACKUP_FILE}. Whatever is already here is kept, unless the backup has a newer version of it.`:
+      "Here's the settings transfer. Save a backup file, restore one, or show a code to scan on your other device.";
+  }
+  if(view==='qr'){
+    const text=qrPayload();
+    if(!text){setStat('NOTHING TO SEND');return "There are no settings or protocols saved on this device yet, so there's nothing to send."}
+    if(text.length>QR_MAX){setStat('TOO MUCH FOR ONE CODE');S.note.textContent='Use SAVE BACKUP FILE instead.';
+      return because(`That's too much for one code: ${text.length} bytes, and a phone reads up to ${QR_MAX} easily. Tap SAVE BACKUP FILE and move the file instead.`,"Because a denser code is hard for a phone camera to read. The file has no size problem.")}
+    setStat('PREPARING CODE…');
+    let qr;try{qr=await loadQrLib('enc')}catch(e){setStat('');return "I couldn't load my code maker. Use the backup file instead."}
+    if(H!==S||S.view!=='qr')return null;
+    const v=drawQr(S.viewEl,text,qr);
+    setStat(`READY · ${text.length} BYTES · QR V${v}`);
+    S.note.textContent='On the other device, open this page and say scan settings, or tap SCAN CODE.';
+    track('cmd:qr');
+    return `Here's your settings code: ${backupWords(backupData(false))}. Nothing personal is in it, and the usage counts stay here. On your phone, open this page and say scan settings.`;
+  }
+  if(view==='scan')return startQrCam(S);
+  return null;
+}
+// Draws the code, black on white with the standard 4-module margin. Returns its QR version.
+function drawQr(el,text,qrcode){
+  const q=qrcode(0,'L');q.addData(text,'Byte');q.make();
+  const n=q.getModuleCount(),cell=8,quiet=4,size=(n+quiet*2)*cell;
+  const c=document.createElement('canvas');c.width=c.height=size;c.className='xfer-qr';c.setAttribute('role','img');c.setAttribute('aria-label','QR code holding your settings');
+  const g=c.getContext('2d');
+  if(g){g.fillStyle='#fff';g.fillRect(0,0,size,size);g.fillStyle='#000';
+    for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(q.isDark(r,k))g.fillRect((k+quiet)*cell,(r+quiet)*cell,cell,cell)}
+  el.appendChild(c);
+  return (n-17)/4;
+}
+// Scanning: the decoder first, then the camera, video only. BarcodeDetector where the browser has one that reads QR
+// codes (Chrome on Android), otherwise the self-hosted jsQR, which is what Safari on iPhone uses.
+async function startQrCam(S){
+  if(S.cam)return "I'm already looking for a code.";
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){setStat('NO CAMERA');S.note.textContent='Use the backup file instead.';
+    return "Scanning a code needs a camera, and this browser can't use one here. Use the backup file instead: say back up my settings on the other device, then restore my settings here."}
+  stopHands();
+  setStat('LOADING CODE READER…');
+  let read=null;
+  try{
+    if(typeof BarcodeDetector==='function'&&(await BarcodeDetector.getSupportedFormats()).includes('qr_code')){
+      const bd=new BarcodeDetector({formats:['qr_code']});read=async v=>{const r=await bd.detect(v);return r.length?r[0].rawValue:null};
+    }
+  }catch(e){read=null}
+  if(!read){
+    let jsQR;try{jsQR=await loadQrLib('dec')}catch(e){setStat('');return "I couldn't load my code reader. Use the backup file instead."}
+    const cv=document.createElement('canvas'),g=cv.getContext('2d',{willReadFrequently:true});
+    if(!g){setStat('');return "This browser can't read a code from the camera. Use the backup file instead."}
+    read=async v=>{const s=Math.min(1,800/v.videoWidth);cv.width=Math.round(v.videoWidth*s);cv.height=Math.round(v.videoHeight*s);
+      g.drawImage(v,0,0,cv.width,cv.height);const d=g.getImageData(0,0,cv.width,cv.height),r=jsQR(d.data,cv.width,cv.height,{inversionAttempts:'attemptBoth'});return r?r.data:null};
+  }
+  if(H!==S||S.view!=='scan')return null;
+  setStat('STARTING CAMERA…');
+  const cam=S.cam={stream:null,video:null,timer:0,until:performance.now()+QR_SCAN_MS,warned:false};
+  try{cam.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},audio:false})}
+  catch(e){
+    S.cam=null;setStat('');S.note.textContent='Use the backup file instead.';
+    if(/NotAllowed|Security/.test(e.name))return "I need permission to use the camera to read the code. The video never leaves this device. Or use the backup file instead.";
+    if(/NotFound|Overconstrained/.test(e.name))return "I couldn't find a camera to read the code. Use the backup file instead.";
+    if(/NotReadable/.test(e.name))return "Your camera seems to be busy in another app. Close it and try again.";
+    return "I couldn't start the camera to read the code. Use the backup file instead.";
+  }
+  if(H!==S||S.cam!==cam||S.view!=='scan'){cam.stream.getTracks().forEach(t=>t.stop());if(S.cam===cam)S.cam=null;return null} // closed while the camera was starting
+  const video=cam.video=document.createElement('video');video.playsInline=true;video.muted=true;video.setAttribute('playsinline','');video.className='xfer-cam';video.srcObject=cam.stream;
+  S.viewEl.appendChild(video);
+  try{await video.play()}catch(e){}
+  if(S.cam!==cam)return null;
+  setStat('SCANNING FOR A SETTINGS CODE…');
+  S.note.textContent="Hold the code inside the frame. Can't scan? Save a backup file on the other device and restore it here.";
+  const tick=async()=>{
+    if(S.cam!==cam||H!==S)return;
+    if(performance.now()>cam.until){stopQrCam(S);setStat('NO CODE FOUND');S.note.textContent='The camera is off. Tap SCAN CODE to try again.';say("I didn't find a settings code, so I've turned the camera off. Say scan settings to try again.");return}
+    let text=null;
+    if(video.readyState>=2&&video.videoWidth)try{text=await read(video)}catch(e){}
+    if(S.cam!==cam)return;
+    if(text!==null){
+      const r=restoreBackup(text);
+      if(!r.why){stopQrCam(S);setStat('CODE READ · CAMERA OFF');S.note.textContent='Code read. The camera is off.';say(restoreWords(r));return}
+      if(!cam.warned){cam.warned=true;setStat("THAT ISN'T A SETTINGS CODE");}
+    }
+    cam.timer=setTimeout(tick,150);
+  };
+  cam.timer=setTimeout(tick,150);
+  track('cmd:qr-scan');
+  return "Point the camera at the settings code on your other device. The video stays on this device, and the camera turns off as soon as I've read it.";
+}
+function stopQrCam(S){
+  const cam=S&&S.cam;if(!cam)return false;
+  S.cam=null;clearTimeout(cam.timer);
+  if(cam.stream)cam.stream.getTracks().forEach(t=>t.stop());
+  if(cam.video){cam.video.srcObject=null;cam.video.remove()}
+  return true;
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&H&&H.kind==='transfer'&&stopQrCam(H)){setStat('CAMERA OFF');H.note.textContent='The camera turned off when you left the page. Tap SCAN CODE to try again.'}}); // never leave the camera on in a hidden tab
+// "Back up my settings", "restore my settings", "send my settings to my phone", "scan settings". Phone speech has no
+// punctuation, so every one of these works as plain words.
+function transferIntent(raw){
+  const p=normPhrase(raw).replace(/^(?:(?:hey |ok |okay )?jarvis |please |can you |could you |would you |will you |i want to |i'd like to |let's |lets )+/,'').replace(/ (?:please|now|for me)$/,'');
+  const STUFF='(?:settings|setup|preferences|protocols|stuff)';
+  if(new RegExp(`^(?:back ?up|export|download|save a (?:copy|backup) of|make a (?:copy|backup) of)\\b.*\\b${STUFF}\\b|^(?:make|save|download|create|export) (?:a |my |the )?(?:settings )?backup(?: file)?$`).test(p))return 'save';
+  if(new RegExp(`^(?:restore|import|load|upload|open)\\b.*\\b(?:${STUFF}|backup)\\b|^restore(?: from (?:a |my |the )?(?:file|backup(?: file)?))?$`).test(p))return 'restore';
+  if(new RegExp(`^(?:scan|read)\\b.*\\b(?:settings|setup|qr|code)\\b`).test(p))return 'scan';
+  if(new RegExp(`^(?:send|move|copy|transfer|share|put|give|beam)\\b.*\\b${STUFF}\\b.*\\b(?:phone|iphone|android|tablet|ipad|laptop|computer|pc|mac|device)\\b|^(?:show|make|give|display)(?: me)? (?:a |the |my )?(?:settings|qr|settings qr) code$|^(?:settings|qr) code$`).test(p))return 'qr';
+  if(new RegExp(`^(?:move|transfer|sync|copy|send|share)\\b.*\\b${STUFF}\\b|^settings transfer$`).test(p))return 'menu';
+  return null;
+}
+async function transfer(kind){
+  if(!loaded)return "One moment. I'm still reading what's saved on this device.";
+  const S=openTransfer();
+  if(kind==='save'){const r=downloadBackup();await transferView(S,'menu');return r}
+  return transferView(S,kind);
+}
+
 /* ---------- Boot sequence ---------- */
 const boot=document.getElementById('boot'),bootGo=document.getElementById('boot-go'),bootLog=document.getElementById('boot-log');
 let booting=false,bootTimers=[];
@@ -2344,7 +2662,7 @@ document.getElementById('boot-skip').addEventListener('click',finishBoot);
 addEventListener('resize',placeBootButton);
 addEventListener('keydown',e=>{
   if(e.key!=='Escape')return;
-  const k=H&&H.kind;if(!boot.hidden)finishBoot();else if(stopProtocol()|closeHolo())say(k==='scan'?SCAN_OFF:"Projector off.");
+  const k=H&&H.kind;if(!boot.hidden)finishBoot();else if(stopProtocol()|closeHolo())say(k==='scan'?SCAN_OFF:k==='transfer'?XFER_OFF:"Projector off.");
 });
 
 /* ---------- Skin switching ---------- */
@@ -2605,6 +2923,7 @@ function stepOf(raw){
   if(m){const n=m[2]?(m[2].startsWith('sec')?1:3):!m[1]?3:/^\d+$/.test(m[1])?+m[1]:NUM_WORDS[m[1]];return Number.isInteger(n)&&n>=1&&n<=PROTO_WAIT?{id:'wait:'+n}:{no:'wait'}}
   const rn=protoRunName(c),pn=protoName(c);
   if((rn!==null&&(protocols.has(rn)||Object.hasOwn(BUILTIN,rn)||/\bprotocol\b/.test(c)))||protocols.has(pn)||Object.hasOwn(BUILTIN,pn))return {no:'nested'};
+  if(transferIntent(c))return {no:'transfer'};
   const se=settingsIntent(c);
   if(se){
     if(se.key==='all')return {no:'destructive'};
@@ -2635,6 +2954,7 @@ const PRIVACY_WHY="Because nothing personal is ever saved in this browser. A pro
 const STEP_NO={
   destructive:[p=>`I can't put "${p}" in a protocol, because nothing in one may delete anything.`,"Because a protocol runs with one phrase, and one phrase said by mistake shouldn't be able to wipe anything. Deleting stays something you ask for yourself."],
   nested:[p=>`"${p}" is a protocol, and a protocol can't run another one.`,"Because protocols running protocols could loop for ever, or grow far past six steps without you seeing it."],
+  transfer:[p=>`"${p}" moves your settings between devices, so it can't go in a protocol.`,"Because a backup or a settings code should only ever be made or read when you ask for it yourself, and scanning a code starts the camera."],
   camera:[p=>`"${p}" uses the camera, so it can't go in a protocol.`,"Because the camera should only ever start when you ask for it yourself, not from a saved shortcut."],
   mic:[p=>`"${p}" changes how I listen, so it can't go in a protocol.`,"Because always listening sends what the mic hears to your browser's speech service, so it only turns on when you switch it on yourself."],
   place:[()=>"I can't save a place in a protocol, but show me Earth works.","Because a saved place could give away where you live, and nothing personal is saved in this browser."],
@@ -2910,6 +3230,7 @@ async function answerCore(text){
   if(/^(?:jarvis )?(?:what do you know about me|what (?:do|did) you (?:know|remember) about me)\b/.test(p))
     return `${memory.length?`This visit only, and never saved: ${listWords(memory.map(x=>x.text))}.`:"You haven't told me anything about you this visit."} ${storedSummary()}`;
   if(/^(?:jarvis )?(?:what (?:do|did|will) you (?:save|store|keep)|what (?:have you|do you have) (?:saved|stored)|what(?:'s| is) (?:saved|stored)|privacy check)\b/.test(p))return storedSummary();
+  const tf=transferIntent(text);if(tf)return await transfer(tf);
   if(pendingTeach===null&&/^(?:please )?forget (?:that|this|it|that one)$/.test(p)){
     if(H&&H.kind==='memory')return H.forget();
     const f=memory.pop();return f?`Done. I've forgotten that ${f.text}.`:"There's nothing from this visit to forget.";
@@ -3050,6 +3371,8 @@ window.__jarvis={micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...
   protocolDone:()=>runP,setPace:v=>{pace=v},context:()=>JSON.parse(JSON.stringify({...talk,question:!!talk.question})),
   DB_NAME,EVENT_IDS,KEEP_DAYS,dayNumber,fits,track,rollUp,streakDays,carryStreak,cleanKept,intentEvent,chatEvent,ready:null,loaded:()=>loaded,dbOK:()=>dbOK,
   saved:()=>({kept:Object.fromEntries(kept),events:[...events.values()].map(e=>({...e})),totals:[...totals.values()].map(e=>({...e})),meta:Object.fromEntries(meta),protocols:Object.fromEntries(protocols)}),persisted:()=>persisted,
+  BACKUP_FILE,BACKUP_KEYS,BACKUP_MAX,QR_MAX,QR_LIBS,backupData,restoreBackup,restoreWords,downloadBackup,qrPayload,transferIntent,transfer,
+  transferState:()=>H&&H.kind==='transfer'?{view:H.view,camera:!!H.cam}:null,
   applyGesture,dreamDue,dreamCheck,setDream,dreaming:()=>dreaming,DREAM_AFTER,idleFor:ms=>{lastActive=performance.now()-ms;return dreamCheck()},mode:()=>mode};
 setSkin(skin,false); // the skin on load is only saved once you pick one
 showBoot();

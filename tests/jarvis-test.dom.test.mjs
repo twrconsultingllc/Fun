@@ -32,6 +32,7 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import { openDom as openPage } from './lib/page.mjs';
 
 /* Session 9 moved the test copy's saving from localStorage to IndexedDB. jsdom has none, so every window here
@@ -40,11 +41,14 @@ import { openDom as openPage } from './lib/page.mjs';
  * opts.idb hands it an existing one, and opts.idb === null opens it with no IndexedDB at all. localStorage
  * seeded in beforeParse is what jarvis.html left there: the test copy copies it in on its first run. The
  * window is returned once the page has finished reading its database (window.__jarvis.ready). */
-let IDB = null;
+let IDB = null, QRCODE = null;
 async function openDom(html, url, opts = {}) {
     IDB ??= await import('fake-indexeddb');
     const idb = opts.idb === undefined ? new IDB.IDBFactory() : opts.idb;
-    const env = await openPage(html, url, { ...opts, beforeParse(w) { if (idb) { w.indexedDB = idb; w.IDBKeyRange = IDB.IDBKeyRange; } opts.beforeParse?.(w); } });
+    // The QR encoder (Session 8) is handed to every window, as if the browser had loaded jarvis/qr/qrcode.js: jsdom
+    // doesn't fetch scripts. Loading it for real, with its SRI hash, is checked in tests/jarvis-test.chromium.mjs.
+    QRCODE ??= createRequire(import.meta.url)('../jarvis/qr/qrcode.js');
+    const env = await openPage(html, url, { ...opts, beforeParse(w) { if (idb) { w.indexedDB = idb; w.IDBKeyRange = IDB.IDBKeyRange; } w.qrcode = QRCODE; opts.beforeParse?.(w); } });
     env.idb = idb;
     if (!opts.noWait) await env.window.__jarvis?.ready;
     return env;
@@ -626,9 +630,12 @@ export default async function run(t, page) {
 
         t.ok('without a camera, the scan says so', /needs a camera/.test(await window.__jarvis.project({ kind: 'scan' })));
         t.ok('and the projector stays closed', document.getElementById('holo').hidden && !document.body.classList.contains('scan-on'));
-        t.ok('the scan has no way to save a picture: no toDataURL, toBlob, MediaRecorder or download link', !/toDataURL|toBlob|MediaRecorder|\.download\s*=/.test(src));
+        t.ok('the scan has no way to save a picture: no toDataURL, toBlob or MediaRecorder', !/toDataURL|toBlob|MediaRecorder/.test(src));
+        // Session 8 added one download, the settings backup, built from backupData() alone (checked in "Settings backup").
+        t.eq('the only download link anywhere is the settings backup', (src.match(/\w+\.download\s*=[^;]*/g) || []).join(), 'a.download=BACKUP_FILE');
         t.ok('the scan closes itself when the tab is hidden', /visibilitychange',\(\)=>\{if\(document\.hidden&&H&&H\.kind==='scan'\)closeHolo\(\)\}/.test(src));
-        t.ok('the scan asks the camera for video only, never audio', (src.match(/getUserMedia\(/g) || []).length === 2 && (src.match(/getUserMedia\(\{video:\{facingMode:'user',width:\{ideal:640\},height:\{ideal:480\}\},audio:false\}\)/g) || []).length === 2);
+        t.ok('the scan asks the camera for video only, never audio', (src.match(/getUserMedia\(/g) || []).length === 3 && (src.match(/getUserMedia\(\{video:\{facingMode:'user',width:\{ideal:640\},height:\{ideal:480\}\},audio:false\}\)/g) || []).length === 2);
+        t.ok('and so does reading a settings code (Session 8), with the camera on the back', (src.match(/getUserMedia\(\{video:\{facingMode:'environment',width:\{ideal:1280\},height:\{ideal:720\}\},audio:false\}\)/g) || []).length === 1);
         t.ok('the face detector loads from jarvis/hands/ on this site', /modelAssetPath:url\('blaze_face_short_range\.tflite'\)/.test(src));
 
         t.section('Self-hosted hand tracker');
@@ -699,6 +706,7 @@ export default async function run(t, page) {
     await memoryFoundation(t, page);
     await keptApart(t, page);
     await protocolsAndFollowUps(t, page);
+    await backupAndQr(t, page);
     await commandLinks(t, page);
 }
 
@@ -816,8 +824,8 @@ async function protocolsAndFollowUps(t, page) {
         t.eq('fits(): an extra field riding along', fits('protocols', 'movie night', { steps: ['say:joke'], said: 'make the orb purple' }), false);
         t.eq('fits(): sys:boot, which only the built-in wake up may use', fits('protocols', 'boot me', { steps: ['sys:boot'] }), false);
         t.eq('fits(): a 21st name', fits('protocols', 'brand new', { steps: ['say:joke'] }), false);
-        t.eq('protocols are saved in one place, and removed in two (delete by name, the scrub)', [(page.html.match(/save\('protocols',/g) || []).length, page.html.includes("save('protocols',name,{steps:steps.slice()})"),
-            page.html.includes("save('protocols',name,undefined)"), page.html.includes("save('protocols',k,undefined)")].join(), '3,true,true,true');
+        t.eq('protocols are saved in two places (making one, a restore), and removed in two (delete by name, the scrub)', [(page.html.match(/save\('protocols',/g) || []).length, page.html.includes("save('protocols',name,{steps:steps.slice()})"),
+            page.html.includes("n.length<=30&&Array.isArray(steps)&&save('protocols',n,{steps:steps.slice(0,PROTO_STEPS+1)})"), page.html.includes("save('protocols',name,undefined)"), page.html.includes("save('protocols',k,undefined)")].join(), '4,true,true,true,true');
 
         t.section('Protocols: list, describe, run, delete (Session 10)');
         r = await A('list my protocols');
@@ -2179,4 +2187,346 @@ async function micErrors(t, page) {
         t.eq('a second tap while listening still stops it', stopped, 1);
         t.eq('no console errors', env.errors.length, 0);
     } finally { env.close(); }
+}
+
+// Session 8 of jarvis/build-plan.html: moving settings to another device (review 62). A backup file and a QR code
+// carry what the database holds: the kept settings (not the mic note), the protocols and, in the file, the usage
+// counts. A restore merges: every record goes back in through save(), so fits() checks it as if it were new, and
+// nothing that isn't being replaced is deleted. The follow-up context never goes into a backup.
+const QR_FILES = {
+    'qrcode.js': '18ae399f81182bc9de916e9c77b195df20cc58d6f2d55a62b085a299f1bf1780',
+    'jsQR.js': 'bc40c8a15196236b2314db0856f72ca0b49980cd5413b8c852a7349f5fee0859'
+};
+const CSP_BEFORE_S8 = "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'";
+// A camera that records what was asked of it, and whether every track was stopped.
+function fakeCamera() {
+    const log = { calls: [], tracks: [] };
+    return {
+        log,
+        beforeParse(w) {
+            w.navigator.mediaDevices = {
+                getUserMedia: async (c) => {
+                    log.calls.push(JSON.parse(JSON.stringify(c)));
+                    const track = { kind: 'video', stopped: false, stop() { this.stopped = true; } };
+                    log.tracks.push(track);
+                    return { getTracks: () => [track], getVideoTracks: () => [track], getAudioTracks: () => [] };
+                }
+            };
+            // jsdom's video never plays, so pretend a frame is ready; the fake BarcodeDetector below reads it.
+            Object.defineProperty(w.HTMLMediaElement.prototype, 'readyState', { get: () => 4, configurable: true });
+            Object.defineProperty(w.HTMLVideoElement.prototype, 'videoWidth', { get: () => 640, configurable: true });
+            w.HTMLMediaElement.prototype.play = () => Promise.resolve();
+        },
+        live: () => log.tracks.filter((x) => !x.stopped).length
+    };
+}
+async function backupAndQr(t, page) {
+    const URL_ = 'https://jarvis.test/jarvis.html', quiet = { ignore: /getContext|HTMLCanvasElement|navigation/ };
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const require_ = createRequire(import.meta.url);
+    // Captures the backup file: the Blob handed to URL.createObjectURL, and the name on the link that's clicked.
+    const capture = (w) => {
+        const got = { blobs: [], names: [] };
+        w.URL.createObjectURL = (b) => { got.blobs.push(b); return 'blob:https://jarvis.test/1'; };
+        w.URL.revokeObjectURL = () => {};
+        w.HTMLAnchorElement.prototype.click = function () { got.names.push(this.download); };
+        got.text = () => new Promise((res) => { const r = new w.FileReader(); r.onload = () => res(r.result); r.readAsText(got.blobs.at(-1)); });
+        return got;
+    };
+    const lsWrites = (w) => { const n = { c: 0 }; for (const m of ['setItem', 'removeItem', 'clear']) { const o = w.Storage.prototype[m]; w.Storage.prototype[m] = function (...a) { n.c++; return o.apply(this, a); }; } return n; };
+    const today = dayOf();
+
+    // ---- Device A: settings, phrases, a voice, protocols, counts, and things said this visit ----
+    let a = await openDom(page.html, URL_, quiet);
+    const A = a.window.__jarvis, aLs = lsWrites(a.window), fileA = capture(a.window);
+    try {
+        t.section('Settings backup: the file (Session 8)');
+        await A.answer('switch to matrix');
+        await A.answer('make the orb purple');
+        await A.answer('speak slower');
+        A.store('jarvis-learned', JSON.stringify({ 'lights please': 'make the orb blue', 'space time': 'show me the galaxy' }));
+        A.store('jarvis-voices', JSON.stringify({ matrix: 'Ralph' }));
+        A.store('jarvis-mic-note', '1');
+        await A.answer('create movie night protocol make the orb purple speak slower then open the galaxy');
+        await A.answer('make a protocol called bedtime that makes the orb blue and speaks slower');
+        // the follow-up context and short-term memory: this visit only
+        await A.answer('my dog is Rex');
+        await A.answer('my name is Tony');
+        await A.answer('what time is it');
+        const ctx = JSON.stringify(A.context());
+        let r = await A.answer('Back up my settings, please.');
+        t.ok('"back up my settings" downloads a file', fileA.blobs.length === 1 && /is on its way to your downloads/.test(r), r);
+        t.eq('called jarvis-settings.json', fileA.names.join(), 'jarvis-settings.json');
+        t.eq('as JSON', fileA.blobs[0]?.type, 'application/json');
+        const text = await fileA.text(), file = JSON.parse(text);
+        t.eq('it holds exactly the app marker, the version, settings, protocols and counts', Object.keys(file).sort().join(), 'app,backup,days,kept,protocols,totals');
+        t.eq('the settings are the kept table, without the mic note (that\'s about this device)', Object.keys(file.kept).sort().join(), 'jarvis-learned,jarvis-settings,jarvis-skin,jarvis-voices');
+        t.ok('each exactly as saved', Object.entries(file.kept).every(([k, v]) => A.saved().kept[k] === v));
+        t.eq('protocols as fixed command IDs', JSON.stringify(file.protocols), '{"movie night":["orb:purple","speed:slow","scene:galaxy"],"bedtime":["orb:blue","speed:slow"]}');
+        t.ok('usage counts as [id, day, n], every one on the fixed list', file.days.length > 0 && file.days.every(([id, day, n]) => A.EVENT_IDS.includes(id) && day === today && Number.isInteger(n)));
+        t.ok('the backup itself is counted, as cmd:backup', A.saved().events.some((e) => e.id === 'cmd:backup'));
+        t.ok('nothing said this visit is in it: no name, no dog, no answer, no follow-up context', !/Tony|Rex|dog|lastAnswer|lastCmd|scenes|question/i.test(text)  && /time/i.test(ctx));
+        t.ok('plain ASCII, so any reader reads it the same', /^[\x20-\x7e]*$/.test(text));
+        t.ok('the reply says what is in it and that nothing personal is', /purple|your skin/.test(r) && /Nothing personal is in it/.test(r));
+        t.eq('the panel opens too, with a button to save the file again', A.transferState()?.view, 'menu');
+        t.ok('with the four buttons', [...a.document.querySelectorAll('.xfer-btns button')].map((b) => b.textContent).join('|') === '⬇ SAVE BACKUP FILE|⬆ RESTORE FROM FILE|▦ SHOW CODE|⌖ SCAN CODE');
+        a.document.querySelector('.xfer-btns button[data-x="save"]').click();
+        await wait(20);
+        t.eq('SAVE BACKUP FILE saves it again', fileA.blobs.length, 2);
+        t.eq('no localStorage write anywhere in the backup', aLs.c, 0);
+
+        t.section('Settings backup: restoring merges (Session 8)');
+        // ---- Device B: its own settings, which a restore must not wipe ----
+        let b = await openDom(page.html, URL_, quiet);
+        const B = b.window.__jarvis, bLs = lsWrites(b.window);
+        try {
+            await B.answer('make the orb blue');
+            await B.answer('use imperial units');
+            B.store('jarvis-learned', JSON.stringify({ 'lights please': 'make the orb red', 'party time': 'make a heart' }));
+            B.store('jarvis-voices', JSON.stringify({ jarvis: 'Daniel' }));
+            await B.answer('create the bedtime protocol make the orb green');
+            await B.answer('create the morning protocol what time is it then brief me');
+            const yesterday = today - 1;
+            B.track('scene:globe', yesterday); B.track('scene:globe', yesterday);
+            const old = B.saved();
+            r = B.restoreWords(B.restoreBackup(text));
+            t.ok('a restore says what came back and that what was here is kept', /^Restored your skin, your settings, your voice picks, two taught phrases, two protocols and your usage counts\. Anything already here that the backup didn't have is kept\./.test(r), r);
+            const now = B.saved(), dump = await dbDump(b.idb);
+            t.eq('the skin is the backup\'s', now.kept['jarvis-skin'], 'matrix');
+            const sorted = (o) => JSON.stringify(Object.fromEntries(Object.entries(o).sort()));
+            t.eq('settings merge: the backup\'s colour and speed, this device\'s units', sorted(JSON.parse(now.kept['jarvis-settings'])), '{"color":"purple","speed":"slow","units":"imperial"}');
+            t.eq('taught phrases merge: the backup\'s meaning wins for the same phrase, this device\'s other phrase stays', JSON.stringify(JSON.parse(now.kept['jarvis-learned'])), '{"lights please":"make the orb blue","party time":"make a heart","space time":"show me the galaxy"}');
+            t.eq('voice picks merge', JSON.stringify(JSON.parse(now.kept['jarvis-voices'])), '{"jarvis":"Daniel","matrix":"Ralph"}');
+            t.eq('protocols merge: same name replaced, the rest added, this device\'s own kept', JSON.stringify(Object.fromEntries(Object.entries(now.protocols).map(([k, v]) => [k, v.steps.join('+')]))),
+                '{"bedtime":"orb:blue+speed:slow","morning":"say:time+say:briefing","movie night":"orb:purple+speed:slow+scene:galaxy"}');
+            t.ok('this device\'s own counts stay', now.events.some((e) => e.id === 'scene:globe' && e.day === yesterday && e.n === 2));
+            t.ok('and the backup\'s counts arrive, the larger of the two for the same day', file.days.every(([id, day, n]) => now.events.some((e) => e.id === id && e.day === day && e.n >= n)));
+            t.ok('nothing that was here is gone: every key, protocol and count is still there', Object.keys(old.kept).every((k) => k in now.kept) && Object.keys(old.protocols).every((k) => k in now.protocols) && old.events.every((e) => now.events.some((x) => x.id === e.id && x.day === e.day && x.n >= e.n)));
+            t.ok('the mic note is not carried over', !('jarvis-mic-note' in now.kept));
+            t.ok('it reached the real database', dump.kept['jarvis-skin'] === 'matrix' && dump.protocols['movie night'] && Object.keys(dump.protocols).length === 3);
+            t.eq('the page is in the restored skin straight away', B.skin(), 'matrix');
+            t.eq('and its settings', sorted(B.settings()), '{"color":"purple","speed":"slow","units":"imperial"}');
+            t.ok('the restore is counted, as cmd:restore', now.events.some((e) => e.id === 'cmd:restore'));
+            const twice = JSON.stringify(B.saved().events.filter((e) => e.id !== 'cmd:restore'));
+            B.restoreBackup(text);
+            t.eq('restoring the same file again changes no count (the larger, not the sum)', JSON.stringify(B.saved().events.filter((e) => e.id !== 'cmd:restore')), twice);
+            t.eq('no localStorage write in a restore', bLs.c, 0);
+            const back = await B.answer('what does movie night do');
+            t.eq('a restored protocol runs like one made here', back, 'Movie night will make the orb purple, speak slowly and open the galaxy.');
+        } finally { b.close(); }
+
+        t.section('Settings backup: a hostile or hand-edited file restores nothing bad (Session 8)');
+        let c = await openDom(page.html, URL_, quiet);
+        const C = c.window.__jarvis, cLs = lsWrites(c.window);
+        try {
+            await C.answer('make the orb blue');
+            await C.answer('create the bedtime protocol make the orb green');
+            const snap = async () => JSON.stringify(await dbDump(c.idb));
+            const before = await snap(), savedBefore = JSON.stringify(C.saved());
+            const R = (x) => C.restoreBackup(typeof x === 'string' ? x : JSON.stringify(x));
+            const base = { app: 'jarvis', backup: 1 };
+            t.eq('broken JSON', R('{"app":"jarvis","backup":1,"kept":{').why, 'broken');
+            t.eq('says so, and that nothing changed', C.restoreWords(R('not json')), "I couldn't read that as a settings backup. Nothing was changed.");
+            t.eq('a file over 400 KB isn\'t read at all (a 1 MB value)', R({ ...base, kept: { 'jarvis-skin': 'x'.repeat(1e6) } }).why, 'big');
+            t.eq('JSON that isn\'t a Jarvis backup', R({ hello: 'world' }).why, 'foreign');
+            t.eq('a backup from a later, unknown version', R({ ...base, backup: 2, kept: { 'jarvis-skin': 'matrix' } }).why, 'foreign');
+            t.eq('a list instead of an object', R('[1,2,3]').why, 'foreign');
+            const bad = {
+                ...base,
+                extra: 'ride along', name: 'Tony', __proto__x: 1,
+                kept: {
+                    'jarvis-name': 'Tony', 'jarvis-streak': '{"days":99}', 'jarvis-mic-note': '1', 'jarvis-anything': 'x',
+                    'jarvis-skin': 'evil', 'jarvis-voices': JSON.stringify({ jarvis: { nested: 1 }, matrix: 'call 239 555 0142' }),
+                    'jarvis-settings': JSON.stringify({ color: 'javascript:alert(1)', speed: 'ludicrous', name: 'Tony' }),
+                    'jarvis-learned': JSON.stringify({ 'ring pat': 'call 239 555 0142', 'my address': 'show me earth', 'email me': 'pat@example.com' }),
+                    ['__proto__']: 'x'
+                },
+                protocols: {
+                    'pats number 2395550142': ['say:joke'], 'call 239 555 0142': ['say:joke'], 'my mom': ['say:joke'],
+                    'words': ['make it cosy', 'tell my mom hi'], 'seven': ['say:joke', 'say:coin', 'say:die', 'say:time', 'say:date', 'say:fact', 'say:hello'],
+                    'two scenes': ['scene:galaxy', 'scene:globe'], 'house party': ['say:joke'], 'boot me': ['sys:boot'], 'only waits': ['wait:5'],
+                    'not a list': 'scene:galaxy', 'objects': [{ id: 'say:joke' }], 'a very long protocol name here': ['say:joke'], ['__proto__']: ['say:joke']
+                },
+                days: [['said:hello pat', today, 1], ['scene:globe', today + 5, 1], ['scene:globe', '2026-10-10', 1], ['scene:globe', today, 1.5], ['scene:globe', today, -3],
+                    ['scene:globe', today, 2, 'note'], { id: 'scene:globe', day: today, n: 1 }, ['scene:globe', today, 1e7], 'scene:globe'],
+                totals: [['cmd:secret', 5], ['cmd:joke', 2e9], ['cmd:joke'], 7]
+            };
+            const rr = R(bad);
+            t.eq('a file of nothing but bad records restores nothing', [rr.settings.length, rr.protocols, rr.counts].join(), '0,0,0');
+            t.eq('the database is exactly as it was', await snap(), before);
+            t.eq('and so is what the page holds', JSON.stringify(C.saved()), savedBefore);
+            t.ok('and he says nothing was changed, and that some things were left out', /^There was nothing in that backup I could keep, so nothing was changed\. I left out \d+ things I can't keep/.test(C.restoreWords(rr)));
+            // one good record among the bad: only it goes in
+            const mixed = R({ ...base, extra: 1, kept: { 'jarvis-skin': 'panther', 'jarvis-name': 'Tony', 'jarvis-learned': JSON.stringify({ 'go big': 'make a rocket', 'ring pat': 'call 239 555 0142' }) },
+                protocols: { 'game day': ['skin:panther', 'say:joke'], 'pats phone 2395550142': ['say:joke'] }, days: [['scene:suit', today, 4], ['cmd:secret', today, 1]], totals: [['cmd:joke', 9], ['cmd:nope', 1]] });
+            const s = C.saved();
+            t.eq('in a mixed file, only the good records go in', [s.kept['jarvis-skin'], JSON.parse(s.kept['jarvis-learned'])['go big'], Object.keys(s.protocols).sort().join('+'), s.events.find((e) => e.id === 'scene:suit')?.n, s.totals.find((e) => e.id === 'cmd:joke')?.n].join(), 'panther,make a rocket,bedtime+game day,4,9');
+            t.ok('and nothing personal or unknown came with them', !/239|Tony|pat|secret|nope/.test(JSON.stringify(s)) && !/239|Tony|secret|nope/.test(JSON.stringify(await dbDump(c.idb))));
+            t.eq('he counts what he left out (an extra key, a key not on the list, a personal phrase, a personal name, an unknown ID twice)', mixed.skipped, 6);
+            // the 20-protocol limit: a restore can't push past it
+            const many = {}; for (let i = 0; i < 25; i++) many[`proto ${String.fromCharCode(97 + i)}`] = ['say:joke'];
+            const lim = R({ ...base, protocols: many });
+            t.eq('a restore stops at 20 protocols, counting the ones already here', [Object.keys(C.protocols()).length, lim.protocols, lim.skipped].join(), '20,18,7');
+            t.ok('and a protocol already here can still be replaced at the limit', R({ ...base, protocols: { bedtime: ['orb:red'] } }).protocols === 1 && C.protocols().bedtime.steps.join() === 'orb:red');
+            // a setting value too big to save, in a file small enough to read
+            let t0 = Date.now();
+            t.eq('a phrase list over the 100,000-character limit, in a file under 400 KB, is refused', R({ ...base, kept: { 'jarvis-learned': JSON.stringify({ big: 'a'.repeat(150000) }) } }).settings.length, 0);
+            // The email and web-address patterns in personal() used to backtrack over a long value: 49 s for 150,000
+            // letters in Node. A hostile file could have frozen the page with one. Now each check is linear.
+            t0 = Date.now();
+            const slow = ['a'.repeat(99000), 'a-'.repeat(49000), 'a.'.repeat(49000), '1 '.repeat(49000), 'a@'.repeat(49000)].map((x) => C.personal(x));
+            t.ok(`personal() checks five 98,000-character worst cases quickly (${Date.now() - t0} ms)`, Date.now() - t0 < 1000);
+            t.ok('and the rewritten patterns still catch what they did', C.personal('pat@example.com') === 'an email address' && C.personal('x pat.smith@mail.example.org') === 'an email address' && C.personal('go to my-site.com') === 'a web address' && C.personal('a-.com') === 'a web address' && C.personal('show me the galaxy') === null && slow.every((x) => x === null || typeof x === 'string'));
+            t.eq('a 300,000-character protocol name restores nothing, quickly', (t0 = Date.now(), [R({ ...base, protocols: { ['the '.repeat(75000) + 'x']: ['say:joke'] } }).protocols, Date.now() - t0 < 1000].join()), '0,true');
+            t.eq('a 100,000-character phrase list of the worst kind restores quickly', (t0 = Date.now(), R({ ...base, kept: { 'jarvis-learned': JSON.stringify({ x: 'a-'.repeat(49990) }) } }), Date.now() - t0 < 1000), true);
+            t.eq('no localStorage write, whatever the file held', cLs.c, 0);
+            // the file picker: a file over the limit isn't read, a good one is
+            const input = c.document.querySelector('.xfer input[type=file]') || (await C.answer('restore my settings'), c.document.querySelector('.xfer input[type=file]'));
+            t.ok('"restore my settings" opens the panel, ready for a file', C.transferState()?.view === 'restore' && !!input);
+            t.eq('the picker only offers JSON files', input.accept, '.json,application/json');
+            const pick = async (content, name = 'jarvis-settings.json') => {
+                const f = new c.window.File([content], name, { type: 'application/json' });
+                Object.defineProperty(input, 'files', { value: [f], configurable: true });
+                input.dispatchEvent(new c.window.Event('change'));
+                await wait(80);
+                return [...c.document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? '';
+            };
+            t.ok('a file over 400 KB is refused without being read', /too big to be a settings backup/.test(await pick('x'.repeat(400001))));
+            t.ok('a good file is restored', /^Restored your skin/.test(await pick(JSON.stringify({ ...base, kept: { 'jarvis-skin': 'jarvis' } }))) && C.skin() === 'jarvis');
+            t.ok('broken JSON says so', /couldn't read that as a settings backup/.test(await pick('{oops')));
+            t.ok('a file of nothing he can keep says so', /^There was nothing in that backup I could keep/.test(await pick(JSON.stringify({ ...base, kept: { 'jarvis-name': 'Tony' } }))));
+            t.ok('and "why?" gives the reason', /saved for the first time/.test(await C.answer('why')));
+        } finally { c.close(); }
+
+        t.section('Settings code (QR): the payload (Session 8)');
+        const qrcode = require_('../jarvis/qr/qrcode.js'), jsQR = require_('../jarvis/qr/jsQR.js');
+        const payload = A.qrPayload(), pj = JSON.parse(payload);
+        t.eq('the code carries settings and protocols, not the usage counts', Object.keys(pj).sort().join(), 'app,backup,kept,protocols');
+        t.eq('the same settings and protocols as the file', JSON.stringify([pj.kept, pj.protocols]), JSON.stringify([file.kept, file.protocols]));
+        t.ok(`it's under the ${A.QR_MAX}-byte limit for this set-up (${payload.length} bytes)`, payload.length <= A.QR_MAX);
+        t.ok('plain ASCII', /^[\x20-\x7e]*$/.test(payload));
+        const version = (s) => { const q = qrcode(0, 'L'); q.addData(s, 'Byte'); q.make(); return (q.getModuleCount() - 17) / 4; };
+        t.ok(`at the limit, ${A.QR_MAX} bytes, it's QR version 15 at most (77×77), easy for a phone camera`, version('x'.repeat(A.QR_MAX)) <= 15);
+        // Decode the code the way a phone would, with jsQR on a picture of it: same text back.
+        const toImage = (s, cell = 4) => {
+            const q = qrcode(0, 'L'); q.addData(s, 'Byte'); q.make();
+            const n = q.getModuleCount(), w = (n + 8) * cell, px = new Uint8ClampedArray(w * w * 4).fill(255);
+            for (let y = 0; y < w; y++) for (let x = 0; x < w; x++) {
+                const r = Math.floor(y / cell) - 4, k = Math.floor(x / cell) - 4;
+                if (r >= 0 && k >= 0 && r < n && k < n && q.isDark(r, k)) { const i = (y * w + x) * 4; px[i] = px[i + 1] = px[i + 2] = 0; }
+            }
+            return { px, w };
+        };
+        const img = toImage(payload);
+        t.eq('the code, read back by the decoder, is the same text', jsQR(img.px, img.w, img.w)?.data, payload);
+        const big = toImage('{"app":"jarvis","backup":1,"kept":{"jarvis-learned":"' + 'z'.repeat(A.QR_MAX - 50) + '"}}');
+        t.ok('so is a code at the size limit', jsQR(big.px, big.w, big.w)?.data.length >= A.QR_MAX - 10);
+
+        t.section('Settings code (QR): showing it (Session 8)');
+        r = await A.answer('send my settings to my phone');
+        t.ok('"send my settings to my phone" shows the code', A.transferState()?.view === 'qr' && !!a.document.querySelector('.xfer .xfer-qr') && /^Here's your settings code/.test(r), r);
+        t.ok('the status line gives its size and QR version', new RegExp(`^READY · ${payload.length} BYTES · QR V${version(payload)}$`).test(a.document.getElementById('holo-stat').textContent));
+        t.ok('and he says the usage counts stay here', /usage counts stay here/.test(r));
+        t.ok('the code is described for screen readers', a.document.querySelector('.xfer-qr')?.getAttribute('aria-label') === 'QR code holding your settings');
+        t.ok('showing it is counted, as cmd:qr', A.saved().events.some((e) => e.id === 'cmd:qr'));
+        r = await A.answer('close');
+        t.ok('"close" closes the panel and removes it from the page', r === "Settings transfer closed. The camera is off." && !a.document.querySelector('.xfer') && !a.document.body.classList.contains('xfer-on') && A.transferState() === null);
+        // too much for one code
+        A.store('jarvis-learned', JSON.stringify(Object.fromEntries(Array.from({ length: 30 }, (_, i) => [`phrase number ${String.fromCharCode(97 + i % 26)}${i}`, 'show me the galaxy']))));
+        r = await A.answer('show my settings code');
+        t.ok('a set-up too big for one code says so and points to the file', /too much for one code/.test(r) && !a.document.querySelector('.xfer-qr') && /SAVE BACKUP FILE/.test(r), r);
+        await A.answer('close');
+        t.eq('still no localStorage write', aLs.c, 0);
+    } finally { a.close(); }
+
+    t.section('Settings code (QR): scanning it (Session 8)');
+    // No camera: he says so and points to the file.
+    let n = await openDom(page.html, URL_, quiet);
+    try {
+        const r = await n.window.__jarvis.answer('scan settings');
+        t.ok('without a camera, "scan settings" points to the backup file', /needs a camera/.test(r) && /backup file/.test(r), r);
+    } finally { n.close(); }
+    // A camera and a BarcodeDetector (Chrome on Android) that sees a settings code.
+    const good = JSON.stringify({ app: 'jarvis', backup: 1, kept: { 'jarvis-skin': 'panther', 'jarvis-settings': '{"color":"gold"}' }, protocols: { 'game day': ['skin:panther', 'say:joke'] } });
+    for (const [label, seen] of [['a settings code', good], ['another QR code first', 'https://example.com/menu']]) {
+        const cam = fakeCamera(), shown = { v: seen };
+        const s = await openDom(page.html, URL_, { ...quiet, beforeParse(w) { cam.beforeParse(w); w.BarcodeDetector = class { static async getSupportedFormats() { return ['qr_code']; } async detect() { return [{ rawValue: shown.v }]; } }; } });
+        const S = s.window.__jarvis, sLs = lsWrites(s.window);
+        try {
+            const r = await S.answer('scan my settings code');
+            t.ok(`${label}: "scan my settings code" starts the camera`, /Point the camera at the settings code/.test(r) && cam.live() === 1, r);
+            t.eq('video only, from the back camera, never audio', JSON.stringify(cam.log.calls), '[{"video":{"facingMode":"environment","width":{"ideal":1280},"height":{"ideal":720}},"audio":false}]');
+            if (seen === good) {
+                await wait(400);
+                t.eq('the code is read and the camera turns off at once', cam.live(), 0);
+                t.ok('the settings are restored', S.skin() === 'panther' && S.settings().color === 'gold' && S.protocols()['game day']);
+                t.ok('he says what came back', /^Restored your skin, your settings and one protocol/.test([...s.document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? ''));
+                t.ok('the panel stays, saying the camera is off', /CAMERA OFF/.test(s.document.getElementById('holo-stat').textContent) && !s.document.querySelector('.xfer video'));
+            } else {
+                await wait(400);
+                t.ok('a code that isn\'t a settings code is ignored, and he keeps looking', cam.live() === 1 && /ISN'T A SETTINGS CODE/.test(s.document.getElementById('holo-stat').textContent) && S.skin() === 'jarvis');
+                Object.defineProperty(s.document, 'hidden', { value: true, configurable: true });
+                s.document.dispatchEvent(new s.window.Event('visibilitychange'));
+                t.eq('hiding the tab turns the camera off', cam.live(), 0);
+                Object.defineProperty(s.document, 'hidden', { value: false, configurable: true });
+                await S.answer('scan settings');
+                t.eq('scanning again starts it again', cam.live(), 1);
+                await S.answer('close');
+                t.ok('and closing the panel turns it off and removes the video', cam.live() === 0 && !s.document.querySelector('.xfer'));
+            }
+            t.ok('scanning is counted, as cmd:qr-scan', S.saved().events.some((e) => e.id === 'cmd:qr-scan'));
+            t.eq('no localStorage write', sLs.c, 0);
+        } finally { s.close(); }
+    }
+    // Closing while the camera is still starting leaves nothing on.
+    {
+        const cam = fakeCamera();
+        const s = await openDom(page.html, URL_, { ...quiet, beforeParse(w) { cam.beforeParse(w); w.BarcodeDetector = class { static async getSupportedFormats() { return ['qr_code']; } async detect() { return []; } }; } });
+        try {
+            const S = s.window.__jarvis, p = S.answer('scan settings');
+            await wait(0); await S.answer('close'); await p; await wait(50);
+            t.eq('closing while the camera starts leaves it off', cam.live(), 0);
+        } finally { s.close(); }
+    }
+
+    t.section('Settings transfer: voice commands, unpunctuated (Session 8)');
+    let v = await openDom(page.html, URL_, quiet);
+    try {
+        const V = v.window.__jarvis;
+        for (const [q, want] of [
+            ['Back up my settings.', 'save'], ['back up my settings', 'save'], ['jarvis back up my settings please', 'save'], ['backup my settings', 'save'], ['make a backup', 'save'],
+            ['export my settings', 'save'], ['download a backup of my settings', 'save'], ['save a backup of my protocols', 'save'],
+            ['Restore my settings.', 'restore'], ['restore my settings', 'restore'], ['restore from a file', 'restore'], ['load my backup', 'restore'], ['jarvis restore my settings from the backup file', 'restore'],
+            ['Send my settings to my phone.', 'qr'], ['send my settings to my phone', 'qr'], ['jarvis send my settings to my phone please', 'qr'], ['move my settings to my laptop', 'qr'],
+            ['copy my protocols to my iphone', 'qr'], ['show my settings code', 'qr'], ['show me a qr code', 'qr'],
+            ['Scan settings.', 'scan'], ['scan settings', 'scan'], ['scan my settings code', 'scan'], ['jarvis scan the settings code', 'scan'], ['read the qr code', 'scan'],
+            ['move my settings', 'menu'], ['transfer my settings', 'menu'], ['settings transfer', 'menu']])
+            t.eq(`"${q}"`, V.transferIntent(q), want);
+        for (const q of ['scan the room', 'scan this barcode', 'threat scan', 'reset my settings', 'back', 'go back', 'what do you save', 'show me the suit', 'send a message', 'make the orb blue', 'back up', 'what are my settings'])
+            t.eq(`"${q}" is not a transfer command`, V.transferIntent(q), null);
+        t.eq('it can\'t go in a protocol', V.stepOf('back up my settings')?.no, 'transfer');
+        const pr = await V.answer('create the move protocol make the orb blue then send my settings to my phone');
+        t.ok('and he says why, saving nothing until asked', /moves your settings between devices/.test(pr) && !V.protocols().move, pr);
+        await V.answer('no');
+        const help = await V.answer('help');
+        t.ok('help mentions backing up, restoring, sending and scanning', /back up my settings/.test(help) && /restore my settings/.test(help) && /send my settings to my phone/.test(help) && /scan settings/.test(help));
+        t.ok('"what do you save" says how to keep a copy', /back up my settings to keep a copy/.test(await V.answer('what do you save')));
+        t.ok('the four IDs are on the fixed list', ['cmd:backup', 'cmd:restore', 'cmd:qr', 'cmd:qr-scan'].every((id) => V.EVENT_IDS.includes(id)));
+    } finally { v.close(); }
+
+    t.section('Settings transfer: self-hosted QR files, pinned (Session 8)');
+    const csp = /http-equiv="Content-Security-Policy" content="([^"]+)"/.exec(page.html)?.[1];
+    t.eq('no new outside host in the CSP: it is exactly what it was before Session 8', csp, CSP_BEFORE_S8);
+    t.ok('the encoder and decoder load from jarvis/qr/ on this site, with SRI', /enc:\['jarvis\/qr\/qrcode\.js','sha384-[A-Za-z0-9+/=]{64}','qrcode'\]/.test(page.html) && /dec:\['jarvis\/qr\/jsQR\.js','sha384-[A-Za-z0-9+/=]{64}','jsQR'\]/.test(page.html) && /s\.integrity=sri;/.test(page.html));
+    t.ok('they are loaded only when a code is shown or scanned, never at start-up', !/<script[^>]+jarvis\/qr\//.test(page.html) && (page.html.match(/loadQrLib\(/g) || []).length === 3);
+    if (page.url.startsWith('file:')) {
+        for (const [f, want] of Object.entries(QR_FILES)) {
+            let buf = null; try { buf = await readFile(fileURLToPath(new URL('jarvis/qr/' + f, page.url))); } catch { /* missing */ }
+            t.eq(`jarvis/qr/${f} is the pinned file`, buf ? createHash('sha256').update(buf).digest('hex') : 'missing', want);
+            const sri = 'sha384-' + (buf ? createHash('sha384').update(buf).digest('base64') : '');
+            t.ok(`and the page's SRI hash matches it`, page.html.includes(`'jarvis/qr/${f}','${sri}'`));
+        }
+        const readme = await readFile(fileURLToPath(new URL('jarvis/qr/README.md', page.url)), 'utf8');
+        t.ok('the README lists the same hashes', Object.values(QR_FILES).every((h) => readme.includes(h)));
+    } else t.note('hash checks skipped: not running against the working copy');
 }

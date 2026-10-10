@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #62 — J.A.R.V.I.S. Session 8: moving settings to another device</title>
+<meta name="description" content="Review of Session 8 of the J.A.R.V.I.S. build plan in the test copy: a settings backup file and a QR code handoff, restored through save() and fits() as a merge, with self-hosted QR files pinned by hash, the camera on only while scanning, and two fixes found on the way: protocol names trimmed before they were checked, and slow patterns in personal().">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #62 — J.A.R.V.I.S. Session 8: moving settings to another device</h1>
+    <p class="sub">The test copy can now carry its settings to another device two ways: a backup file, <code>jarvis-settings.json</code>, and a QR code shown on one device and scanned on the other. Both carry what the database holds: the kept settings (not the mic note), the protocols and, in the file, the usage counts. A restore merges, and every record goes back in through <code>save()</code>, so <code>fits()</code> checks it as if it were new. The QR encoder and decoder are self-hosted in <code>jarvis/qr/</code> and loaded with SRI hashes. <code>jarvis.html</code> is unchanged.</p>
+    <div class="meta">Review performed 2026-10-10 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>jarvis/qr/</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>tests/jarvis-test.chromium.mjs</code>, <code>tests/README.md</code>, <code>jarvis/build-plan.html</code> · suites run: <code>jarvis-test</code> (1146 checks), <code>tests/jarvis-test.chromium.mjs</code> (69 checks)</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 65%;"></div></div>
+    <div class="progress-label">23 items: 15 verified clean or fixed, 8 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security and privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Head block and CSP unchanged</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>git diff</code> of <code>jarvis-test.html</code> touches no <code>&lt;meta&gt;</code> line except the description, which now mentions moving settings with a backup file or a QR code. The suite now pins the whole CSP string to what it was before Session 8, so a new host can't be added without that check failing. The QR files come from this site (<code>'self'</code>), and the download is a <code>blob:</code> link, which Chromium followed with no CSP change and no <code>Refused</code> message.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">QR encoder and decoder are self-hosted, pinned and loaded with SRI</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>jarvis/qr/qrcode.js</code> (<code>qrcode-generator</code> 1.4.4, MIT) and <code>jarvis/qr/jsQR.js</code> (<code>jsqr</code> 1.4.0, Apache-2.0, with its <code>LICENSE-jsQR</code>) are unmodified copies from npm. Neither uses <code>eval</code> or <code>new Function</code> (grepped), and neither makes a network request. The suite pins both by SHA-256 and checks the page's <code>sha384-</code> SRI hashes against the files, and <code>jarvis/qr/README.md</code> lists the same hashes. The page adds each <code>&lt;script&gt;</code> only when a code is shown or scanned, with <code>integrity</code>, <code>crossorigin</code> and <code>referrerpolicy=no-referrer</code>. In Chromium, a copy of the encoder with one byte changed was refused by the browser with an integrity error, and Jarvis pointed to the backup file instead.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">One place that saves, still</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The Session 9 checks pass unchanged: no <code>localStorage</code> write anywhere, exactly one <code>'readwrite'</code> transaction, in <code>flush()</code>, only <code>save()</code> queues a write, and <code>save()</code> calls <code>fits()</code> first. A restore adds no new write path: settings go through <code>store()</code>, protocols, counts and totals through <code>save()</code>. A <code>Storage.prototype</code> spy counted zero localStorage writes across a backup, a restore, a hostile restore, a QR show and a scan, and in Chromium device B's localStorage stayed empty.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A restore is checked exactly as a first save</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>A hostile file with extra top-level keys, unlisted setting keys (<code>jarvis-name</code>, <code>jarvis-streak</code>), the mic note, an unknown skin, a voice pick holding a phone number, settings with made-up values, taught phrases holding a phone number, an email and "my address", protocol names with a phone number or "my mom", words as steps, seven steps, two scenes, a built-in name, <code>sys:boot</code>, only waits, a 31-character name, an unknown event ID, a future day, a date string, fractional and negative counts, an extra field, a count over the limit, and a total for an unknown ID restored nothing: the database and the page's copy were byte-for-byte the same afterwards. Broken JSON, JSON that isn't a backup, a later version (<code>backup: 2</code>) and a list are refused whole. A file over 400 KB isn't read at all, and neither is a 1 MB value. In a mixed file only the good records went in, and he counted the six he left out.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Protocol names were trimmed before they were checked</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Found by the suite during this session. The first version of the restore passed each name through <code>protoName()</code> before saving, which drops a leading "my", "the" or "a". So "my mom" was saved as "mom", which passes <code>personal()</code>, and <code>__proto__</code> became "proto". Making a protocol checks the name as spoken, so this was a way round that check.</p><div class="fix-note"><b>Fix:</b> A restored name must already be in its saved form: it goes to <code>save()</code> unchanged, and <code>fits()</code> refuses it unless <code>protoName(n) === n</code>. The suite's hostile file includes both names, and the mutation that brings the trimming back fails seven checks.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">personal() could take seconds on a long value</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Found while running the hostile-file checks, which took three and a half minutes. Two of <code>personal()</code>'s patterns backtracked: the email pattern <code>[^\s@]+@…</code> and the web-address pattern <code>\b[a-z0-9-]+\.(?:com|…)</code> both rescan to the end of the text from every starting point. Measured in Node: 48.8 s for 150,000 letters (email), 50.9 s and 48.8 s for 75,000 repetitions of "a-" (email and web). The values a page could save until now were short, but a restore file can hold a 100,000-character phrase list, so a hostile file could have frozen the page.</p><div class="fix-note"><b>Fix:</b> The email pattern now needs one character before the @ (<code>[^\s@]@</code>), which is exactly what the old pattern needed, so it matches the same text. The web pattern looks at one character before the dot (<code>[a-z0-9-]\.(?:com|…)\b</code>), which matches everything the old one did and a few rare extra cases, so it can only refuse more. Five 98,000-character worst cases now take 9 ms in the suite. On top of that, a restored setting over 100,000 characters or a protocol name over 30 is refused before any check runs (a 300,000-character "the the the…" name would otherwise have made <code>protoName()</code>'s loop slow too). The old email pattern, put back, makes the suite fail with a 63-second check.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Restoring never wipes</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Decided in the session: a restore merges. Nothing already here is deleted. A setting, taught phrase, voice pick or protocol of the same name is replaced; everything else is kept. Counts take the larger of the two for the same day, so restoring the same file twice changes no count (checked). There's no <code>save(…, undefined)</code> in the restore code (grepped). A device with its own units, phrase, voice, two protocols and counts kept all of them after a restore, in the suite and in Chromium's real IndexedDB. The mutation that clears protocols before restoring fails eight checks.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The follow-up context and short-term memory never go into a backup</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>backupData()</code> reads only the <code>kept</code>, <code>protocols</code>, <code>events</code> and <code>totals</code> maps. The suite told Jarvis a name and "my dog is Rex" and asked the time, then checked that the file and the QR payload contain none of it and no context field. In Chromium, "my dog is Rex" on device A didn't reach the file or device B's database. The mutation that adds <code>talk</code> to the backup fails nine checks.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The camera follows the threat scan's rules</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Only while scanning; <code>getUserMedia({video:{facingMode:'environment',…},audio:false})</code>, pinned in the suite; the decoder loads first, so a failed load never leaves the camera on. It stops when a code is read, on CLOSE, Escape or "close", when the tab is hidden, after a minute with no code, and if the panel closes while the camera is still starting. Checked with a fake camera in the suite (every track stopped) and in Chromium with the fake device (no live track after the read, no audio track at all). A QR code that isn't a settings code is ignored and doesn't restore anything. Nothing is drawn to a canvas that's kept, and there's still no <code>toDataURL</code>, <code>toBlob</code> or <code>MediaRecorder</code>; the only <code>.download=</code> in the page is the backup's.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">No innerHTML, no user text as markup</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The panel is built with <code>createElement</code>, <code>textContent</code> and <code>dataset</code>; the suite's "no innerHTML anywhere in the page" check passes. The file picker accepts <code>.json</code> only, and its text is only ever passed to <code>JSON.parse</code>. Replies quote nothing from the file: they count what was restored, so a hostile file can't put a <code>⟦label|command⟧</code> marker into the chat.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A backup file isn't encrypted</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>By design, as the plan said: it holds only what <code>personal()</code> lets through, so there's nothing to encrypt. But <code>personal()</code> is a pattern filter, so a taught phrase or protocol name that's personal in a way it doesn't recognise could be in the file, and the file sits in your downloads. The same is true of what's saved in the browser today. Left as it is.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">jarvis.html has the same slow patterns</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p><code>jarvis.html</code> still has the old email and web patterns. Nothing outside the page can give it a long value (it only checks what you type, phrases capped at 120 characters, and its own localStorage), so it isn't reachable there. The rewrite goes across when the test copy is promoted. Left for the promotion rather than changing the main page now.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">npm audit: source-map-js</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Carried from review 61. No npm dependency was added: the QR files are vendored copies in <code>jarvis/qr/</code>, not packages.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Phone speech without punctuation</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Every command is matched on <code>normPhrase()</code>, which drops punctuation. The suite pins 28 phrasings, punctuated and not, with "jarvis" in front and "please" after: "back up my settings", "restore my settings from the backup file", "send my settings to my phone", "scan the settings code" and the rest. Twelve near misses aren't transfer commands, among them "scan the room", "scan this barcode", "reset my settings", "go back" and a bare "back up". None of them can be a protocol step, and he says why.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The suite fails when the code is broken</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Each of these twelve changes to the page was run against the suite, which failed every time (failing checks in brackets): restoring with names trimmed first (7), clearing protocols before a restore (8), the mic note in the backup (1), counts summed instead of the larger (1), the camera left on after a read (2), the follow-up context in the backup (9), audio asked for (3), future days accepted (4), the QR limit raised to 2000 bytes (2), the old email pattern (2), the skin not checked against the three skins (4), and the camera left on in a hidden tab (1).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Two devices, in a real browser</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Headless Chromium over the local server, with two separate browser profiles. Device A saved <code>jarvis-settings.json</code> through a real download started by voice, and showed its code (326 bytes, QR version 12). The code was cut out of a screenshot of A's screen and made into the fake camera's video with <code>ffmpeg</code>. Device B scanned it with the self-hosted <code>jsQR</code> (headless Chromium on Linux has no <code>BarcodeDetector</code>), at 1280×800 and 390×844, then restored the downloaded file through the real file picker. Both landed in B's real IndexedDB, merged with B's own settings and protocol. No page errors or CSP violations.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Rendered at both sizes</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Screenshots of the panel, the code, the scan (the fake camera starts out of focus so the scan can be caught running) and the result at 1280×800 and 390×844. At 390 px the first version's hint text ran into the buttons and the status line was cut off, because the top lines still left room for the HANDS button, which the panel hides. Also, after a code was read, the note still said "Hold the code inside the frame".</p><div class="fix-note"><b>Fix:</b> On a phone, the top lines use the room the HANDS button would have had, the panel starts lower, and the status line is shorter (<code>READY · 326 BYTES · QR V12</code>). The note now says when the camera is off. Chromium checks that the top lines end above the buttons and the status line isn't cut off.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Contrast</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Computed with the WCAG formula. The note text (<code>--label</code>) is 6.58:1 on the page background in the Jarvis skin, 9.49:1 in Morpheus and 10.13:1 in Stanley, and at least 6.07:1 on the lighter panel colour. Buttons use the existing button colours (7.65:1 at the lowest). The code is black on white, 21:1, with the standard four-module margin.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not tried on a real phone</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Headless Chromium has no real camera and isn't Safari. Whether Safari on iPhone reads the code with <code>jsQR</code>, starts a download from a voice command, and opens the Files picker for RESTORE FROM FILE is unverified. If the iPhone can't read the code, Jarvis says so and points to the file. That's your Session 8 check.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A Session 10 Chromium step can time out</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>In two of six Chromium runs during this session, Session 10's check stopped waiting for "movie night" to reach its third step with the galaxy open (30 s, under SwiftShader at a slowed pace). One of the two ran alongside the jsdom suite, competing for the CPU. The page's protocol code didn't change in this session, the same check passed in the other four runs, and the final run passed all 69. It's a timing margin in the check, not a page fault. It's left as it is and recorded here, rather than lengthening a Session 10 wait in a Session 8 change.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A save that fails is not reported</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Carried from review 60, and now covering restores: if the browser refuses the write, "Restored …" is still said and the settings work for this visit.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Chat answers are counted by an approximate kind</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Carried from review 60, unchanged.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A protocol can't be named in the usage counts</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Carried from review 61, for Session 11 to decide.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Previous review: <a href="61.html">61</a>. Built to the fixed report template: no scripts, no external loads, no forms.</p>
+  </footer>
+</div>
+</body>
+</html>
