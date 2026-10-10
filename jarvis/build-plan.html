@@ -6,7 +6,7 @@
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
 <title>J.A.R.V.I.S. — Build Plan</title>
-<meta name="description" content="Build plan for the rest of the J.A.R.V.I.S. Demo features: voice-reactive orb, neural network, Iron Man suit schematic, Earth globe, threat scan, wake word, briefing and gesture tuning, and memory, split into self-contained sessions." />
+<meta name="description" content="Build plan for the rest of the J.A.R.V.I.S. Demo features: voice-reactive orb, neural network, Iron Man suit schematic, Earth globe, threat scan, wake word, briefing and gesture tuning, memory, protocols, clearance levels, a meaning model, a knowledge pack, a tiny on-device language model and offline mode, split into self-contained sessions." />
 <style>
   :root {
     --bg: #0f1115;
@@ -372,7 +372,7 @@
   </header>
 
   <div class="callout warning" style="grid-column: 1 / -1;">
-    <strong class="label">Status: Sessions 1 to 4 and the interim session live in jarvis.html · Sessions 5 and 6 in test in jarvis-test.html · Sessions 7 and 8 (memory) planned</strong>
+    <strong class="label">Status: Sessions 1 to 7 and the interim session live in jarvis.html · Sessions 8 to 15 planned (do 9 before 8)</strong>
     Written 2026-10-09, after the boot sequence, holo-projector (galaxy,
     solar system, particle sculptor) and hand control were merged (PRs
     #61–#64). Sessions are numbered in the suggested order, but each one
@@ -405,6 +405,14 @@
       <li><a href="#s6">Wake word, briefing, gesture tuning</a></li>
       <li><a href="#s7">Memory, without the personal</a></li>
       <li><a href="#s8">Moving your settings to another device</a></li>
+      <li><a href="#s9">Memory foundation</a></li>
+      <li><a href="#s10">Protocols and follow-ups</a></li>
+      <li><a href="#s11">He remembers you</a></li>
+      <li><a href="#s12">Meaning module</a></li>
+      <li><a href="#s13">Knowledge pack</a></li>
+      <li><a href="#s14">Tiny language model</a></li>
+      <li><a href="#s15">Offline and install</a></li>
+      <li><a href="#later">Parked and ruled out</a></li>
       <li><a href="#done">Every session ends the same way</a></li>
     </ol>
   </nav>
@@ -458,8 +466,9 @@
 
     <section id="index">
       <h2><span class="kicker">At a glance</span>Session index</h2>
+      <p>Sessions 1–8 came from the first features chat and the first memory chat. Sessions 9–15 came from the second memory chat on 2026-10-10, and their option codes (A1–A8, B1–B11) are in the Covers column. Work them in this order: 9, then 8, then 10 to 15.</p>
       <div class="table-wrap"><table>
-        <caption>Eight sessions, smallest first, then the two memory sessions. Original option numbers from the first features chat in brackets.</caption>
+        <caption>All sessions, with option numbers from the chats that picked them.</caption>
         <thead><tr><th>#</th><th>Session</th><th>Covers</th><th>Size</th><th>Status</th></tr></thead>
         <tbody>
           <tr><td>1</td><td><a href="#s1">Polish and voice-reactive orb</a></td><td>Option 8 and four open review items</td><td>Small</td><td><span class="badge done">Done</span></td></tr>
@@ -470,7 +479,14 @@
           <tr><td>5</td><td><a href="#s5">Threat scan</a></td><td>Option 11</td><td>Medium</td><td><span class="badge done">Done</span></td></tr>
           <tr><td>6</td><td><a href="#s6">Wake word, briefing, gesture tuning</a></td><td>Options 7 and 12, and the hand-control review item</td><td>Medium</td><td><span class="badge done">Done</span></td></tr>
           <tr><td>7</td><td><a href="#s7">Memory, without the personal</a></td><td>Memory options 1, 2, 3, 4, 6 and 9, picked on 2026-10-10</td><td>Medium–large</td><td><span class="badge done">Done</span></td></tr>
-          <tr><td>8</td><td><a href="#s8">Moving your settings to another device</a></td><td>Memory options 7 and 8</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>8</td><td><a href="#s8">Moving your settings to another device</a></td><td>Memory options 7 and 8. Do it after Session 9.</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>9</td><td><a href="#s9">Memory foundation</a></td><td>A1, A2, and keeping the test copy's storage apart from the main page's</td><td>Medium–large</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>10</td><td><a href="#s10">Protocols and follow-ups</a></td><td>A5, B5</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>11</td><td><a href="#s11">He remembers you</a></td><td>B1, B2 with B3, B4, B10</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>12</td><td><a href="#s12">Meaning module</a></td><td>A4</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>13</td><td><a href="#s13">Knowledge pack</a></td><td>A6</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>14</td><td><a href="#s14">Tiny language model</a></td><td>A7, the self-hosted part</td><td>Medium–large</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>15</td><td><a href="#s15">Offline and install</a></td><td>A3, and self-hosting the font and three.js</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
         </tbody>
       </table></div>
     </section>
@@ -649,7 +665,8 @@
 
     <section id="s8">
       <h2><span class="kicker">Session 8 · medium</span>Moving your settings to another device</h2>
-      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> Session 7, so there are settings worth moving</span></div>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> Session 7, so there are settings worth moving, and Session 9, so the backup carries the new database</span></div>
+      <div class="callout"><strong class="label">Changed on 2026-10-10</strong>Session 9 moves saved data into IndexedDB and adds protocols and usage counts after it. So do this session after Session 9, and back up what Session 9 leaves in the database rather than the <code>STORE_KEYS</code> values in localStorage. A restored protocol is checked step by step, the same way as when it's created (fixed command IDs only, at most 6 steps). Restored usage counts accept only known event IDs. Read "<code>STORE_KEYS</code> values" below with that in mind.</div>
       <p>Browser storage stays on one device, and there's no server. These are the two ways to carry settings and taught phrases across, both run through the same <code>personal()</code> filter on the way out and on the way in.</p>
       <ol class="substeps">
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Settings backup file</strong> (option 7). "Back up my settings" downloads a small <code>jarvis-settings.json</code> holding only the <code>STORE_KEYS</code> values. A "Restore" button or "restore my settings" loads one. On the way in, every value is validated and filtered as if it were being saved for the first time, so a hand-edited or hostile file can't add a key, a personal phrase or anything oversized. No encryption is needed, since nothing personal can be in it.</li>
@@ -658,6 +675,127 @@
       </ol>
       <p><strong>Checks:</strong> a backup round trip; a hostile file (extra keys, a phone number, a 1 MB value, broken JSON) restores nothing bad; the QR payload is under the size a phone camera reads easily; headless Chromium with the fake camera fed a generated QR code; no new outside host in the CSP.</p>
       <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+    </section>
+
+    <section id="s9">
+      <h2><span class="kicker">Session 9 · medium–large</span>Memory foundation</h2>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> nothing</span></div>
+      <div class="callout warning"><strong class="label">The rule still holds for Sessions 9–15</strong>Nothing personal is ever stored. Moving to IndexedDB changes where data is saved, not what may be saved. <code>store()</code> stays the only way in, <code>personal()</code> is unchanged, and the suites' "exactly one place that saves" check is widened to cover IndexedDB writes, not loosened. The encrypted vault that would have changed this rule is <a href="#later">parked</a>.</div>
+      <p>On 2026-10-10 you went through a second round of memory ideas one at a time: eight changes to how memory works (A1–A8) and eleven features (B1–B11), then three privacy follow-ups. Sessions 9–15 are what you picked. Everything else, and why, is under <a href="#later">Parked and ruled out</a>. This session is the groundwork most of the others read from.</p>
+      <ol class="substeps">
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Move saved data to IndexedDB</strong> (A1). The browser's built-in database: gigabytes instead of the ~5 MB of localStorage that every page on <code>twrconsultingllc.github.io</code> shares, and saves that never make the page wait. Give the database a version number with upgrade steps, so later sessions upgrade old saves instead of deleting them. IndexedDB is asynchronous, so the start-up order (greeting, streak, opening scene) has to wait for the first read. That's the riskiest part. jsdom has no IndexedDB, so the suite needs a fake one: a small one in <code>tests/lib/</code>, or the <code>fake-indexeddb</code> package, so decide in the session. Either way it has to behave like the real one: asynchronous, with transactions that finish later (the same lesson as the fake speech recognizer in <code>CLAUDE.md</code>).</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Keep the test copy and the main page apart.</strong> Today both use the same <code>jarvis-*</code> localStorage keys, so whatever the test copy saves or deletes also changes the main page in the same browser (see <code>CLAUDE.md</code>). The test copy gets its own database (for example <code>jarvis-test</code>). On its first run it <em>copies</em> the localStorage values in, never moves them, because the main page still reads them, and records that the copy is done. After that it never writes localStorage again. The main page's <code>scrubStore()</code> only touches localStorage keys, so <code>jarvis.html</code> shouldn't need a change. Confirm that, rather than assume it. The database name becomes one more difference between the two copies, like the TEST tag, and promotion changes it.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>An events database</strong> (A2). One table of <code>{id, day, n}</code> records: <code>id</code> from a fixed <code>EVENT_IDS</code> list in the code (<code>scene:globe</code>, <code>cmd:scan</code>, <code>skin:morpheus</code>, <code>feature:wake-word</code>…), <code>day</code> as a count of days from a fixed start date (so no date is ever stored), and <code>n</code> as a count. No word you said or typed is ever recorded. After 90 days, a day's records are added into all-time totals and removed (<code>{id, n}</code>). "What do you save" adds: "Counts of which scenes and commands you use, by day. Nothing you say." The memory core shows the history as one star.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Move the streak onto events.</strong> It becomes a count of the days in the events table. <code>jarvis-streak</code> is read once to carry the current streak over, then retired in the test copy.</li>
+        <li><span class="who"><span class="badge you">You</span></span> Try the test copy, then open the main page in the same browser and check its settings, skin and taught phrases are still yours.</li>
+      </ol>
+      <p><strong>Checks:</strong> the suite covers the one place that saves (now including IndexedDB), the first-run copy happening once and leaving localStorage untouched, events refusing an ID that isn't on the list, the roll-up on day 91, the streak across a missed day from events alone, and short-term memory still forgotten on reload. Headless Chromium over the local HTTP server (real IndexedDB): save settings in the test copy, reload and see them kept, then open <code>jarvis.html</code> in the same profile and see its storage unchanged. Screenshots at 1280×800 and 390×844, with no page errors or CSP violations.</p>
+      <p><strong>On wiping.</strong> You decided against any new wipe commands, and against Clean Slate. So once the events table exists, the only way to clear it is the browser's "clear site data". Protocols can still be deleted one at a time (Session 10).</p>
+      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+    </section>
+
+    <section id="s10">
+      <h2><span class="kicker">Session 10 · medium</span>Protocols and follow-ups</h2>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> Session 9</span></div>
+      <ol class="substeps">
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Protocols</strong> (A5). One phrase runs a saved chain of commands: "Create movie night protocol: make the orb purple, speak slower, then open the galaxy." The name goes through <code>personal()</code> like a taught phrase. The steps are saved as <strong>fixed command IDs</strong> (<code>orb:purple</code>, <code>speed:slow</code>, <code>scene:galaxy</code>), never as your words, and each one must be something <code>intent()</code> or <code>brain()</code> already understands. If a part doesn't parse, he asks: "I didn't follow 'make it cosy'. Save the other two steps?" Limits: 6 steps, 20 protocols, no protocol inside another, nothing destructive, one scene per protocol, and an optional "wait 5 seconds" step. While one runs, the HUD shows "PROTOCOL: MOVIE NIGHT · 2/3". Also "list my protocols", "what does movie night do?" and "delete movie night". In the memory core, a protocol is a small cluster of linked stars.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Built-in protocols.</strong> <em>House Party</em> opens each scene in turn, normally, since the quick preview mode waits for the <a href="#later">parked</a> replay (B6). A boot sequence protocol in the films' spirit ("Wake up, daddy's home") is built here, and Session 11 decides whether it's a clearance unlock. Clean Slate was dropped.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Follow-ups</strong> (B5, the full version). A running context of this visit, kept in memory only, never stored, and gone on reload, so fragments work. "Show me Mars" … "now Jupiter". "Again" or "do that again". "Go back" or "the one before". "Bigger", "smaller", "faster", "slower" adjust whatever's open. "What was that?" repeats or explains. "Yes" and "no" answer his last question. "Why?" gives the reason behind his last answer, where there is one. Each scene declares what bigger, smaller, faster and slower mean for it (an optional <code>adjust(kind)</code> on the builder), and that's most of the work. Sessions 11 and 12 rely on "yes" and "no".</li>
+        <li><span class="who"><span class="badge you">You</span></span> Make a protocol by voice on your phone, run it, and try talking in fragments.</li>
+      </ol>
+      <p><strong>Checks:</strong> protocol creation from several phrasings, a step that doesn't parse, a personal name refused, each limit, and a destructive step refused. Protocols are stored as IDs only. Every follow-up phrase in the list above is pinned. The context never reaches storage and a reload forgets it. Chromium screenshots of the protocol HUD line and House Party at both sizes, with no page errors.</p>
+      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+    </section>
+
+    <section id="s11">
+      <h2><span class="kicker">Session 11 · medium</span>He remembers you</h2>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> Sessions 9 and 10</span></div>
+      <p>Everything here is worked out from the events table on each load. Nothing new is stored, which also means a level or a favourite can't be faked by editing storage.</p>
+      <ol class="substeps">
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>"Welcome back" recap</strong> (B1). "Welcome back. Last time we were looking at Jupiter. Shall I bring it back up?" "Yes" reopens it. He mentions scenes, protocols and skin changes only, once per visit. After a long gap, worked out from day numbers: "It's been a while: eleven days." If an opening scene is set (Session 7), that wins, and he only mentions the last one.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Clearance levels, with familiarity</strong> (B2 and B3, combined). One ladder. Levels rise with visit days and what you've tried, for example: 1 Visitor, 2 Associate (3 days), 3 Engineer (10 days and 5 scenes), 4 Avenger (30 days, a taught phrase and a protocol), 5 Stark (60 days and every capability found). His tone follows the level, with lines written for each skin (Morpheus gets more cryptic, not chummier). It changes greetings, fallback lines and the odd aside, never command responses. A level-up shows an "ACCESS LEVEL 3 GRANTED" sweep. "How well do you know me?" answers with the level and day count. <strong>Only new extras are locked</strong> (a hidden scene, the boot protocol, a gold-and-red HUD theme, a final easter egg). Nothing that exists today gets locked, so other users of the main page lose nothing. Set the exact thresholds and unlocks in the session. The suite tests levels by filling the events. Whether there's a hidden override in the page is your call.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Favourites</strong> (B4, all of it). "What's my favourite?" ("The globe, by a distance. 31 visits.") Your top three scenes or protocols move to the front of the chips, reordered only at load, never mid-visit, with an "adapt the chips" on/off choice added to <code>jarvis-settings</code>. An occasional nudge: "You haven't opened the suit schematic in a while." Favourites glow brighter in the memory core.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Discovery log</strong> (B10). A fixed <code>CAPABILITIES</code> list. "What haven't I tried?" ("You've discovered 14 of 26. Here's a hint: I can scan a room for threats.") A line the first time you find something: "New capability logged: hand control." Undiscovered capabilities are dim, unlabelled stars in the memory core. Hints don't repeat until all have been given. It feeds clearance level 5. A suite check fails when a new command isn't on the list, so later sessions can't forget it.</li>
+        <li><span class="who"><span class="badge you">You</span></span> Use it over a few days on the live test copy. Say whether the tone shift feels right, and whether the chips moving helps or annoys.</li>
+      </ol>
+      <p><strong>Checks:</strong> the recap from given events (including a long gap and an opening scene), every level threshold, that nothing existing is gated, the chip order (and that it doesn't move mid-visit), the "adapt the chips" setting through <code>store()</code>, and the discovery count and hint rotation. Chromium screenshots of a level-up and the locked stars at both sizes.</p>
+      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+    </section>
+
+    <section id="s12">
+      <h2><span class="kicker">Session 12 · medium</span>Meaning module</h2>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> Session 10, for "yes" and "no"</span></div>
+      <ol class="substeps">
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Host MediaPipe's text embedder ourselves</strong> (A4, the full model). <code>@mediapipe/tasks-text</code> with the Universal Sentence Encoder model (6.1 MB, checked 2026-10-10. The larger BERT model is 26 MB and isn't needed). The text library brings its own WebAssembly, separate from the hand tracker's, so expect 12–15 MB in all. Put it in <code>jarvis/text/</code>, pinned by hash with a README, like <a href="hands/README.md">jarvis/hands/</a>. No new outside host.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Loaded on request, not at start-up.</strong> "Jarvis, upgrade your brain" plays a neural-upgrade animation on the neural network scene while it downloads, then: "Language comprehension module online." Decide in the session whether it then loads from the browser's normal cache or is kept in the Cache API.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>A safety net, not a replacement.</strong> It's used only after <code>intent()</code> and <code>brainKnown()</code> have both failed, so every command that works today works the same. Each command gets a few example sentences, and what you said is compared against them. Very close: he does it. Somewhat close: "Did you mean the globe?" (answered by Session 10's "yes" and "no"). Otherwise, the usual fallback line. Destructive commands are exact-match only and never chosen this way. Taught phrases and protocol names match loosely too. Fingerprints are worked out again on each load, never stored.</li>
+        <li><span class="who"><span class="badge you">You</span></span> Upgrade his brain on your phone and PC, then try rewordings he used to miss ("show me the planet we live on").</li>
+      </ol>
+      <p><strong>Checks:</strong> the matching rules in jsdom with fixed fingerprints (the confidence bands, destructive commands never chosen, the patterns always winning), and the hashes of the hosted files. Headless Chromium over the local HTTP server loads the real model and ranks "show me the planet we live on" closest to the globe (it'll be slow under SwiftShader, and that's fine). No CSP change beyond what the hand tracker already allows.</p>
+      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+    </section>
+
+    <section id="s13">
+      <h2><span class="kicker">Session 13 · medium</span>Knowledge pack</h2>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> Session 9</span></div>
+      <ol class="substeps">
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Build the pack from public-domain sources</strong> (A6, all four areas). Space: planets, major moons, well-known stars, missions (NASA fact sheets). Countries: capital, continent, area, highest point, flag colours (CIA World Factbook). The periodic table: all 118 elements. Iron Man suits: a line or two each, hand-written and marked as fan knowledge, since there's no official source. Stable facts only, so no population or GDP, which go stale silently. No Wikipedia text, because its licence needs attribution on every reuse. A build script kept in the repo (for example <code>jarvis/knowledge/build.mjs</code>) produces the JSON (about 1–3 MB) and lists its sources. This container probably can't reach those sites (see the Daily Wire notes in <code>CLAUDE.md</code>), so run the build from the Codespace or a hand-run Actions workflow, and commit the result.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Answers that drive scenes.</strong> Loaded into IndexedDB on first use. "Tell me about Peru" spins the globe there and reads the facts. "How far is Mars?" opens the solar system near Mars. Suit questions can open the schematic. With Session 12, questions also work in your own words.</li>
+        <li><span class="who"><span class="badge you">You</span></span> Ask him things he used to wave off.</li>
+      </ol>
+      <p><strong>Checks:</strong> the pack's shape is validated, a sample of answers is pinned, every country in it matches one the globe can find, and the pack carries no fast-changing number. Chromium screenshots of a country answer on the globe.</p>
+      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+    </section>
+
+    <section id="s14">
+      <h2><span class="kicker">Session 14 · medium–large</span>Tiny language model</h2>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> Sessions 10, 12 and 13, so it has protocols to pick and real facts to work from</span></div>
+      <p>An experiment, as you put it: a small open model running on your device's graphics chip, hosted on this site, with nothing from Hugging Face at run time. Expect fluent small talk and a convincing persona, but weak facts. That's why the knowledge pack comes first. Gemini Nano and larger downloaded models are <a href="#later">parked</a> for later.</p>
+      <ol class="substeps">
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Pick the model.</strong> The smallest with a permissive licence: SmolLM2-360M (about 250 MB) or Qwen2.5-0.5B (bigger, noticeably smarter), both Apache 2.0. Check the real sizes, licence and benchmarks in the session rather than trusting these numbers. No Llama, because its licence has strings attached.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Host every piece of code ourselves.</strong> The WebLLM library and the model's compiled WebAssembly engine go in <code>jarvis/llm/</code>, pinned by hash with a README, so nothing from outside ever runs as code.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Get the weights in once, by a workflow you run.</strong> This container gets 403 from Hugging Face. So add an Actions workflow, run by hand from the Actions tab, that downloads the weights from a <strong>pinned Hugging Face commit</strong>, checks each chunk's SHA-256 against hashes committed in the repo, and commits the chunks. The repo grows by roughly 250–400 MB for good. Each chunk must be under GitHub's 100 MB file limit, and the site stays within Pages' 1 GB limit.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Opt-in.</strong> "Jarvis, install your full brain" warns about the size first. It needs WebGPU (desktop Chrome and Edge, Chrome on Android, Safari on iOS 26), and without it he says so and stays as he is. He always says which brain he's using. The downloaded files are kept until you remove them through the browser.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Kept in line.</strong> The model answers in a fixed format and can only pick commands from the same list of IDs as protocols. The page checks every pick before running it, and nothing destructive is on the list. Facts come from the knowledge pack and are handed to it to put into words, and its own guesses are labelled ("from memory, I may be wrong"). There are fixed instructions for each skin. The conversation and this visit's short-term memories go to it in memory only. Nothing it says is stored, and it can't reach <code>store()</code>.</li>
+        <li><span class="who"><span class="badge you">You</span></span> Install it on your PC and your phone, and judge speed and answers. This container renders in software, so it can't judge either.</li>
+      </ol>
+      <p><strong>Checks:</strong> a fake model in the suite (behaving like the real API: asynchronous, streaming, able to fail) proves the wiring: picks are checked, an invented or destructive command is refused, guesses are labelled, nothing is stored, and he falls back cleanly without WebGPU. The workflow's hash check refuses a changed chunk. The CSP gains no outside host. Chromium loads the real model only if WebGPU works under SwiftShader. If not, say so plainly.</p>
+      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+    </section>
+
+    <section id="s15">
+      <h2><span class="kicker">Session 15 · medium</span>Offline and install</h2>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> Session 9. Best after 12–14, so their files are cached too.</span></div>
+      <ol class="substeps">
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Host the font and three.js ourselves.</strong> Chakra Petch (Open Font License) in its three weights as Latin-only <code>.woff2</code> files, about 20–30 KB each. three.js r128 from npm, which is byte-identical to cdnjs's copy, so the SRI hash stays. Then drop <code>fonts.googleapis.com</code>, <code>fonts.gstatic.com</code> and <code>cdnjs.cloudflare.com</code> from the Jarvis pages' CSP, so loading Jarvis only talks to GitHub. Jarvis pages only. The other pages that use cdnjs or Google Fonts are a separate change, if you want it.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>A service worker</strong> (A3). The page itself is always fetched from the network first, with the saved copy used only when offline, so a deploy is never hidden behind a stale page. Libraries and models are kept by version. The worker sits in <code>/Fun/</code>, because the test copy lives there, so it must handle only Jarvis's own files and pass everything else through untouched, and a test proves that. Include an "update Jarvis" path.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Install to home screen.</strong> A web app manifest and icons, so the browser offers "Install Jarvis": its own icon, full screen, no browser bar. On iPhone, an installed app gets storage separate from Safari's, so it starts fresh. Say so in the help. Try the worker on the test copy. Decide in the session whether the test copy is installable, or only the main page after promotion.</li>
+        <li><span class="who"><span class="badge you">You</span></span> Install it on your phone, turn on airplane mode, and use it. Weather and, on most phones, speech recognition still need a connection.</li>
+      </ol>
+      <p><strong>Checks:</strong> no request leaves the site (watched in Chromium over the local HTTP server), fonts render in the screenshots, the page loads offline after one visit, a new deploy is picked up on the next online load, and requests for other pages pass straight through the worker.</p>
+      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+    </section>
+
+    <section id="later">
+      <h2><span class="kicker">Decided on 2026-10-10</span>Parked and ruled out</h2>
+      <p>Parked ideas can come back as sessions later. Ruled-out ideas were turned down for a reason worth keeping, so read it before suggesting one again.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Idea</th><th>Decision</th><th>Why, and what it would take</th></tr></thead>
+        <tbody>
+          <tr><td>Gemini Nano (Chrome's built-in model)</td><td>Parked</td><td>Stable for web pages from Chrome 148. No download for Jarvis, but desktop only (no Android or iPhone), with 22 GB free disk and a graphics card over 4 GB, or 16 GB of RAM. It would be a second brain tier on your PC, beside the tiny model.</td></tr>
+          <tr><td>Bigger models from Hugging Face</td><td>Parked</td><td>1–2 GB is too big for the site. Safe enough if every piece of code is hosted here, the weights come from a pinned commit, every chunk's SHA-256 is checked as it arrives, and the CSP gains Hugging Face's download hosts for <code>connect-src</code> only. Hugging Face would see your IP address, once.</td></tr>
+          <tr><td>Encrypted vault (A8)</td><td>Parked</td><td>The only safe way to keep personal things: AES-256-GCM with a key derived from a typed passphrase (PBKDF2, about 600,000 rounds), the key held in memory only, auto-lock. It ends the simple "nothing personal is stored" rule, a forgotten passphrase loses everything, and it doesn't cover code running in the shared site, malware, or speech already sent to Google or Apple. Medium–large, needs Session 9, and a rule change only you can make.</td></tr>
+          <tr><td>"What did we do today?" replay (B6)</td><td>Parked</td><td>A holo highlight reel of the visit. Needs a quick preview mode in every scene, which House Party could reuse.</td></tr>
+          <tr><td>"Run a memory scan" (B9)</td><td>Parked</td><td>A HUD readout of real storage use, quota, persistence and file fingerprints. Useful for checking the later sessions on a phone.</td></tr>
+          <tr><td>"Where does my data go?"</td><td>Parked</td><td>An honest answer for the current device: what's stored, which voice is on a server (<code>localService</code>), and that the browser usually sends speech to Google or Apple. Maybe with a holo data map.</td></tr>
+          <tr><td>Private mode</td><td>Ruled out</td><td>On-device speech recognition (<code>processLocally</code>) works in desktop Chrome 139+, but wasn't confirmed on phones, so your iPhone would likely lose voice input in that mode.</td></tr>
+          <tr><td>Fading memory (B7)</td><td>Ruled out</td><td>Short-term memory stays sharp until the page closes.</td></tr>
+          <tr><td>Clean Slate (B8) and new wipe commands</td><td>Ruled out</td><td>No dramatic full wipe, and no "forget my protocols" or "forget my history". The existing commands stay. Consequence: usage counts are cleared only through the browser's "clear site data".</td></tr>
+          <tr><td>Time-of-day habits (B11)</td><td>Ruled out</td><td>Storing when you use Jarvis builds a routine profile over time, which goes against the reason for the no-personal-data rule even though <code>personal()</code> would pass it.</td></tr>
+          <tr><td>Tab sync</td><td>Ruled out earlier</td><td>Option 5 of the first memory chat (Session 7).</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout decision"><strong class="label">Where your data goes, with Sessions 9–15</strong>Everything Jarvis saves or works out stays on your device, and the page's CSP (<code>connect-src 'self'</code>) stops it sending data anywhere but its own site. Only the browser's own voice features send anything away: your voice goes to Google or Apple to become text, and his replies go to a server if you pick a server voice such as "Google UK English". Loading the page tells GitHub, Google Fonts and cdnjs that you visited, until Session 15 cuts that to GitHub only.</div>
     </section>
 
     <section id="done">

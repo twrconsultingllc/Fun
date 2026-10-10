@@ -489,6 +489,21 @@ hold personal data, and pass the suites' "exactly one `localStorage.setItem`"
 check. Facts about the user (birthdays, family, a diary) aren't stored at
 all. "What do you save" makes Jarvis read back what's actually stored.
 
+`jarvis.html` and `jarvis-test.html` share their browser storage. Both are
+on `twrconsultingllc.github.io` and use the same `jarvis-*` localStorage
+keys, so in one browser, whatever the test copy saves, changes or deletes
+also changes the main page. Each page's `scrubStore()` deletes any
+`jarvis-*` key missing from its own `STORE_KEYS`, so a key added to one copy
+is deleted whenever the other copy loads. That happened: from Session 7
+until the promotion on 2026-10-10, opening `jarvis.html` deleted the test
+copy's `jarvis-settings` and `jarvis-streak`, with no error. Found while
+planning Session 9 of `jarvis/build-plan.html`, which gives the test copy
+its own IndexedDB database that copies the localStorage values once and
+never writes them back. Until then, don't test a wipe or a storage
+migration in the test copy in a browser whose main-page settings matter.
+Expect a new storage key in the test copy to vanish whenever the main page
+is opened.
+
 The interim session on 2026-10-09 (skins, faces, voices, learned phrases)
 is written up in `jarvis/build-plan.html` under "Interim", with what was
 picked and what was decided against. Read it before changing any of those.
