@@ -540,6 +540,22 @@ list any word that also appears inside a step, like "suit" in "show me the
 suit". Pin a spoken, unpunctuated phrasing in the suite next to the typed
 one.
 
+The meaning module's similarity scores mean nothing until they're centred.
+Raw Universal Sentence Encoder fingerprints for short commands are all
+alike: in a calibration run of 205 sentences on 2026-10-10 (Session 12,
+review 64), nearly every pair scored above 0.9, and "where is my phone"
+scored 0.956 against "what time is it". So `fingerprint()` subtracts the
+mean of the example sentences in `MEANINGS` before comparing. That mean is
+worked out again on each upgrade and never stored. After centring,
+rewordings scored about 0.5 to 1.0 and unrelated sentences 0.28 to 0.70,
+which is where the bands `MEAN_DO` (0.80) and `MEAN_ASK` (0.60) come from.
+Every example sentence added or removed moves the mean, and so moves every
+score. After changing `MEANINGS`, or swapping the model, run
+`tests/jarvis-test.chromium.mjs` (it prints the globe's score for "show me
+the planet we live on", 0.821 when the bands were set) and re-check the
+bands against the real model. Don't set them from the jsdom suite, whose
+fake fingerprints are placed at whatever score the test asks for.
+
 The interim session on 2026-10-09 (skins, faces, voices, learned phrases)
 is written up in `jarvis/build-plan.html` under "Interim", with what was
 picked and what was decided against. Read it before changing any of those.
