@@ -482,7 +482,7 @@
           <tr><td>8</td><td><a href="#s8">Moving your settings to another device</a></td><td>Memory options 7 and 8. Do it after Session 9.</td><td>Medium</td><td><span class="badge in-progress">In test</span></td></tr>
           <tr><td>9</td><td><a href="#s9">Memory foundation</a></td><td>A1, A2, and keeping the test copy's storage apart from the main page's</td><td>Medium–large</td><td><span class="badge in-progress">In test</span></td></tr>
           <tr><td>10</td><td><a href="#s10">Protocols and follow-ups</a></td><td>A5, B5</td><td>Medium</td><td><span class="badge in-progress">In test</span></td></tr>
-          <tr><td>11</td><td><a href="#s11">He remembers you</a></td><td>B1, B2 with B3, B4, B10</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>11</td><td><a href="#s11">He remembers you</a></td><td>B1, B2 with B3, B4, B10</td><td>Medium</td><td><span class="badge in-progress">In test</span></td></tr>
           <tr><td>12</td><td><a href="#s12">Meaning module</a></td><td>A4</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
           <tr><td>13</td><td><a href="#s13">Knowledge pack</a></td><td>A6</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
           <tr><td>14</td><td><a href="#s14">Tiny language model</a></td><td>A7, the self-hosted part</td><td>Medium–large</td><td><span class="badge">Not started</span></td></tr>
@@ -505,7 +505,8 @@
           <tr><td>Hand control</td><td><code>classifyHand</code>, <code>createGestures</code>, <code>startHands</code>; files in <code>jarvis/hands/</code></td><td>The vendored files are pinned by hash (see <a href="hands/README.md">hands/README.md</a>). <code>tasks-vision</code> 0.10.14 also has a face detector, which Session 5 can reuse.</td></tr>
           <tr><td>Orb</td><td><code>draw()</code>, <code>orbPulse()</code></td><td>Reads <code>mode</code>, <code>energy</code> and <code>bootP</code>. While listening, recognition's <code>speechstart</code>/<code>speechend</code> set <code>hearing</code>. Never open a mic stream here: it takes the mic from speech recognition. While speaking, <code>lastWord</code> (from <code>onboundary</code>) drives the pulse. Under reduced motion, <code>orbPulse</code> holds still.</td></tr>
           <tr><td>Privacy line</td><td>CSP meta tag</td><td><code>connect-src 'self'</code>. Anything that would widen it to an outside host is a decision for you, not the session.</td></tr>
-          <tr><td>Tests</td><td><code>tests/jarvis-test.dom.test.mjs</code> for the test copy (765 checks), <code>tests/jarvis.dom.test.mjs</code> for the main page (762)</td><td>jsdom has no WebGL, canvas or camera, so pure logic is exposed on <code>window.__jarvis</code> and tested directly.</td></tr>
+          <tr><td>What he knows about you</td><td><code>CAPABILITIES</code>, <code>LEVELS</code>, <code>LEVEL_TALK</code>, <code>usageOf()</code>, <code>clearanceOf()</code>, <code>lockOf()</code> (Session 11)</td><td>A new command needs a <code>CAPABILITIES</code> entry (its usage ID in <code>ids</code>, its command links in <code>cmds</code>), or a line in <code>NOT_CAPABILITIES</code> or <code>NOT_COUNTED</code> saying why not. The suite fails otherwise. Only the extras in <code>lockOf()</code> and <code>setHud()</code>/<code>ironMan()</code> are locked; never lock something that already exists.</td></tr>
+          <tr><td>Tests</td><td><code>tests/jarvis-test.dom.test.mjs</code> for the test copy (1329 checks), <code>tests/jarvis.dom.test.mjs</code> for the main page (762)</td><td>jsdom has no WebGL, canvas or camera, so pure logic is exposed on <code>window.__jarvis</code> and tested directly.</td></tr>
         </tbody>
       </table></div>
 <pre><code>cd tests && node run.mjs --page=jarvis-test.html</code></pre>
@@ -741,7 +742,7 @@
 
     <section id="s11">
       <h2><span class="kicker">Session 11 · medium</span>He remembers you</h2>
-      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> Sessions 9 and 10</span></div>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge in-progress">In test</span></span><span><strong>Needs:</strong> Sessions 9 and 10</span><span><strong>Review:</strong> <a href="../tests/secrpts/63.html">63</a></span></div>
       <div class="callout"><strong class="label">Changed on 2026-10-10</strong>Session 10 counts a protocol run only as <code>cmd:protocol</code>, never by its name. So "favourite protocol" and a recap naming a protocol can't come from the events table as it stands. Decide in this session whether that's worth a per-protocol count on the protocol's own record (see <a href="#s10">Session 10's notes</a>).</div>
       <p>Everything here is worked out from the events table on each load. Nothing new is stored, which also means a level or a favourite can't be faked by editing storage.</p>
       <ol class="substeps">
