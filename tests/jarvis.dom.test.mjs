@@ -643,7 +643,7 @@ async function skinsAndMemory(t, page) {
         const lastUtt = () => fake.log.queue[fake.log.queue.length - 1];
         t.eq('starts as Jarvis', J.skin(), 'jarvis');
         t.eq('with a skin button in the header', document.getElementById('skin')?.textContent, 'SKIN: JARVIS');
-        for (const [q, k] of [['switch to matrix', 'matrix'], ['Matrix skin', 'matrix'], ['morpheus', 'matrix'], ['I take the red pill', 'matrix'], ['switch to the Panthers', 'panther'], ['change to panthers mode', 'panther'], ['stanley', 'panther'], ['switch back to Jarvis', 'jarvis'], ['go back to normal', 'jarvis'], ['take the blue pill', 'jarvis']])
+        for (const [q, k] of [['switch to matrix', 'matrix'], ['Matrix skin', 'matrix'], ['morpheus', 'matrix'], ['I take the red pill', 'matrix'], ['switch to the Panthers', 'panther'], ['change to panthers mode', 'panther'], ['stanley', 'panther'], ['switch back to Jarvis', 'jarvis'], ['back to Jarvis', 'jarvis'], ['Back to the Matrix', 'matrix'], ['come back to Stanley', 'panther'], ['go back to normal', 'jarvis'], ['take the blue pill', 'jarvis']])
             t.eq(`"${q}" picks the ${k} skin`, J.skinIntent(q), k);
         for (const q of ['what time is it', 'show me Florida', 'hey jarvis tell me a joke', 'what is the matrix', 'take me to mars', 'i want to go to jupiter jarvis'])
             t.eq(`"${q}" doesn't change the skin`, J.skinIntent(q), null);

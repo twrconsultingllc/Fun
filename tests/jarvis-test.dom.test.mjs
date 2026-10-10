@@ -742,7 +742,7 @@ async function skinsAndMemory(t, page) {
         const lastUtt = () => fake.log.queue[fake.log.queue.length - 1];
         t.eq('starts as Jarvis', J.skin(), 'jarvis');
         t.eq('with a skin button in the header', document.getElementById('skin')?.textContent, 'SKIN: JARVIS');
-        for (const [q, k] of [['switch to matrix', 'matrix'], ['Matrix skin', 'matrix'], ['morpheus', 'matrix'], ['I take the red pill', 'matrix'], ['switch to the Panthers', 'panther'], ['change to panthers mode', 'panther'], ['stanley', 'panther'], ['switch back to Jarvis', 'jarvis'], ['go back to normal', 'jarvis'], ['take the blue pill', 'jarvis']])
+        for (const [q, k] of [['switch to matrix', 'matrix'], ['Matrix skin', 'matrix'], ['morpheus', 'matrix'], ['I take the red pill', 'matrix'], ['switch to the Panthers', 'panther'], ['change to panthers mode', 'panther'], ['stanley', 'panther'], ['switch back to Jarvis', 'jarvis'], ['back to Jarvis', 'jarvis'], ['Back to the Matrix', 'matrix'], ['come back to Stanley', 'panther'], ['go back to normal', 'jarvis'], ['take the blue pill', 'jarvis']])
             t.eq(`"${q}" picks the ${k} skin`, J.skinIntent(q), k);
         for (const q of ['what time is it', 'show me Florida', 'hey jarvis tell me a joke', 'what is the matrix', 'take me to mars', 'i want to go to jupiter jarvis'])
             t.eq(`"${q}" doesn't change the skin`, J.skinIntent(q), null);
@@ -813,6 +813,32 @@ async function skinsAndMemory(t, page) {
         t.ok('and anything that isn\'t a phrase is dropped', !('bad' in J.learned()));
         document.getElementById('q').value = 'forget what you learned'; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(520);
         t.eq('"forget what you learned" clears them', window.localStorage.getItem('jarvis-learned'), '{}');
+    } finally {
+        env.close();
+    }
+    // One memory, whatever the skin: the user asked on 2026-10-10 for the name and learned phrases to carry
+    // across skins seamlessly. Morpheus and Stanley used to greet without the name, and nothing answered
+    // "what's my name".
+    env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ...opts, beforeParse(w) { opts.beforeParse(w); w.localStorage.setItem('jarvis-skin', 'matrix'); w.localStorage.setItem('jarvis-name', 'Tony'); w.localStorage.setItem('jarvis-learned', JSON.stringify({ 'beam me up': 'roll a die' })); } });
+    try {
+        const { document, window } = env, J = window.__jarvis;
+        const lastAi = () => [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? '';
+        J.finishBoot();
+        t.ok('coming back as Morpheus, he greets you by name', /^Welcome to the real world, Tony\./.test(lastAi()));
+        for (const k of ['matrix', 'panther', 'jarvis']) {
+            J.setSkin(k === 'matrix' ? 'jarvis' : 'matrix');
+            const hi = J.setSkin(k);
+            t.ok(`switching to ${k}, the hello uses the name`, /Tony/.test(hi));
+            t.ok(`as ${k}, "what's my name" is answered`, /Your name is Tony\./.test(await J.answer("what's my name?")));
+            t.ok(`as ${k}, a learned phrase still works`, /You rolled a [1-6]\./.test(await J.answer('beam me up')));
+        }
+        J.setSkin('panther');
+        t.ok('"who am I" and "do you remember me" work too', /Tony/.test(await J.answer('who am I')) && /Tony/.test(await J.answer('do you remember me')));
+        t.ok('"what is your name" is still about him, not you', !/Your name is/.test(await J.answer('what is your name')));
+        t.ok('"forget my name" forgets it', /forgotten your name/.test(await J.answer('forget my name')) && window.localStorage.getItem('jarvis-name') === null);
+        t.ok('then no skin knows it', /haven't told me your name/.test(await J.answer('what is my name')) && !/Tony/.test(J.setSkin('matrix')));
+        t.ok('a name told to one skin is known to the next', /Nice to meet you, Pepper/.test(await J.answer('my name is pepper')) && /Pepper/.test(J.setSkin('jarvis')) && /Your name is Pepper/.test(await J.answer('what is my name')));
+        t.eq('no console errors', env.errors.length, 0);
     } finally {
         env.close();
     }
