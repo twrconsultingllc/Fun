@@ -1120,7 +1120,7 @@ async function heRemembersYou(t, page) {
             t.ok('no level, favourite, hint or HUD anywhere in it', !/clearance|Engineer|Associate|favourite|hint|hotrod|hud|level|announced/i.test(JSON.stringify(db.kept) + JSON.stringify(db.meta)));
             t.eq('fits() refuses settings with anything but the fixed choices in them', JSON.stringify([J.fits('kept', 'jarvis-settings', '{"color":"blue","level":3}'), J.fits('kept', 'jarvis-settings', '{"color":"teal"}'), J.fits('kept', 'jarvis-settings', '[1]'), J.fits('kept', 'jarvis-settings', '{"speed":"slow","color":"blue","chips":"off"}')]), '[false,false,false,true]');
             t.ok('every count is a listed ID', Object.values(db.events).every((e) => J.EVENT_IDS.includes(e.id)));
-            t.eq('the one new setting is "favourites first"', JSON.parse(db.kept['jarvis-settings']).chips, 'off');
+            t.eq('the one new setting is "favourites first"', JSON.parse(db.kept['jarvis-settings'] ?? '{}').chips, 'off');
         } finally { env.close(); }
     }
 }
