@@ -82,9 +82,11 @@ async function fetchReal(url, { binary } = {}) {
     for (let attempt = 1; attempt <= 4; attempt++) {
         try {
             const res = await fetch(url, { headers: { 'user-agent': USER_AGENT }, redirect: 'follow', signal: AbortSignal.timeout(10 * 60 * 1000) });
+            if (res.status === 404) throw Object.assign(new Error(`404 ${url}`), { final: true });
             if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
             return binary ? Buffer.from(await res.arrayBuffer()) : await res.text();
         } catch (e) {
+            if (e.final) throw e;
             last = e;
             console.log(`  ${url}: ${e.message} (try ${attempt} of 4)`);
             await new Promise((r) => setTimeout(r, 2000 * 2 ** (attempt - 1)));
@@ -109,16 +111,22 @@ export function fixtureGetter(root) {
 
 /* ---------- The checks ---------- */
 
-export function licenceOf(info) {
-    const tags = (info.tags || []).filter((t) => t.startsWith('license:')).map((t) => t.slice(8));
-    const card = info.cardData && info.cardData.license;
-    return { tags, card };
+// The licence as Hugging Face's tags give it, and as the model card (README.md's front matter, at the same
+// pinned commit) states it. Both must say apache-2.0.
+export function cardLicence(readme) {
+    const m = String(readme || '').match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!m) return null;
+    const line = m[1].match(/^license:\s*["']?([\w.-]+)["']?\s*$/m);
+    return line ? line[1].toLowerCase() : null;
 }
 
-export function checkLicence(info, who) {
-    const { tags, card } = licenceOf(info);
-    if (card !== LICENCE) refuse(`${who}: its model card says the licence is ${card || 'nothing'}, not ${LICENCE}`);
-    if (tags.length !== 1 || tags[0] !== LICENCE) refuse(`${who}: its licence tags are [${tags.join(', ')}], not exactly ${LICENCE}`);
+export function checkLicence(info, readme, who) {
+    const tags = (info.tags || []).filter((t) => t.startsWith('license:')).map((t) => t.slice(8));
+    const card = cardLicence(readme);
+    const facts = `tags [${tags.join(', ')}], model card ${card || 'no licence line'}`;
+    console.log(`  ${who}: ${facts}`);
+    if (tags.length !== 1 || tags[0] !== LICENCE) refuse(`${who}: its licence tags are [${tags.join(', ')}], not exactly ${LICENCE} (${facts})`);
+    if (card !== LICENCE) refuse(`${who}: its model card says the licence is ${card || 'nothing'}, not ${LICENCE} (${facts})`);
 }
 
 export function checkLicenceText(buf, who) {
@@ -158,10 +166,10 @@ async function revisionInfo(get, repo, rev) {
 async function download(get, key, m, commit, baseCommit, limits) {
     const info = await revisionInfo(get, m.repo, commit);
     if (info.sha !== commit) refuse(`${m.repo}: asked for ${commit}, Hugging Face answered for ${info.sha}`);
-    checkLicence(info, m.repo);
+    checkLicence(info, await get(`${HF}${m.repo}/resolve/${commit}/README.md`).catch(() => ''), m.repo);
     const base = await revisionInfo(get, m.base, baseCommit);
     if (base.sha !== baseCommit) refuse(`${m.base}: asked for ${baseCommit}, Hugging Face answered for ${base.sha}`);
-    checkLicence(base, m.base);
+    checkLicence(base, await get(`${HF}${m.base}/resolve/${baseCommit}/README.md`).catch(() => ''), m.base);
     const names = filesOf(info, m.repo);
     if (!names.includes('mlc-chat-config.json') || !names.includes('ndarray-cache.json')) refuse(`${m.repo}: not an MLC model (no mlc-chat-config.json or ndarray-cache.json)`);
     const licence = await get(`${HF}${m.base}/resolve/${baseCommit}/LICENSE`, { binary: true });
@@ -246,6 +254,7 @@ export async function dryRun(fixtures, log = console.log) {
             ['a site over the site limit', () => fetchModel(get, 'sample', models.sample, { ...limits, site0: async () => limits.site }, { write: false })],
             ['a file models.json does not list', () => fetchModel(get, 'sample', { ...models.sample, files: Object.fromEntries(Object.entries(models.sample.files).slice(1)) }, limits, { write: false })],
             ['a commit that is not pinned', () => fetchModel(get, 'sample', { ...models.sample, commit: undefined }, limits, { write: false })],
+            ['a model card whose licence differs from its tags', () => fetchModel(get, 'mixed', models.mixed, limits, { write: false })],
             ['a file name with a folder in it', () => fetchModel(get, 'sneaky', models.sneaky, limits, { write: false })],
             ['a changed chunk already on disk', async () => { await writeFile(join(out, ...models.sample.dir.split('/'), 'params_shard_1.bin'), 'changed'); await checkFiles('sample', models.sample, out); }]
         ];
