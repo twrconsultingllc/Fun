@@ -61,7 +61,15 @@ IDs only), the "PROTOCOL: … · 2/3" HUD line over a scene and over the orb,
 House Party opening all six scenes in turn, the "wake up, daddy's home" boot
 protocol, and follow-ups ("now Jupiter", "bigger", "go back") with real
 scenes open, with screenshots of the HUD line and House Party at both sizes.
-A full run takes about four minutes.
+Since Session 8 it also moves settings between two devices, each its own
+browser profile: device A saves `jarvis-settings.json` through a real
+download and shows its settings code; the code is cut out of a screenshot of
+A's screen and turned into a fake camera's video with `ffmpeg`; device B, a
+second Chromium launched with that fake camera, scans it with the
+self-hosted decoder (loaded with its SRI hash), then restores the downloaded
+file through the real file picker, and both land merged in B's real
+IndexedDB. An encoder with one byte changed must be refused by the browser.
+It needs `ffmpeg`, which those containers have.
 
 ```bash
 node jarvis-test.chromium.mjs                     # screenshots go to a new temp folder

@@ -15,6 +15,13 @@
  * turn, and follow-ups ("now Jupiter", "bigger", "faster", "go back") with the real scenes open. Screenshots of the
  * HUD line and House Party at both sizes. These need three.js, like the memory core.
  *
+ * Session 8 added step 5: settings moved between two devices, each its own browser profile. Device A (the profile
+ * above) saves jarvis-settings.json through a real download and shows its settings code. The code is cut out of a
+ * screenshot of A's screen, made into a fake camera's video with ffmpeg, and device B, a second Chromium with that
+ * fake camera, scans it with the self-hosted decoder, which the page loads with its SRI hash. B then restores the
+ * downloaded file through the real file picker. Both land in B's real IndexedDB, merged with what B had. A copy of
+ * the encoder with one byte changed is refused by the browser. Screenshots of the code and the scan at both sizes.
+ *
  * It isn't part of run.mjs, because it needs Playwright and Chromium, which the claude.ai/code containers
  * have and the Codespace doesn't (see "Browsers and screenshots" in CLAUDE.md). Run it from tests/:
  *
@@ -59,7 +66,7 @@ async function threeJs() {
 
 // Serves the working copy, read only, and nothing outside it.
 const TYPES = { '.html': 'text/html', '.js': 'application/javascript', '.mjs': 'application/javascript', '.json': 'application/json',
-    '.wasm': 'application/wasm', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' };
+    '.wasm': 'application/wasm', '.y4m': 'application/octet-stream', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' };
 function serve() {
     const server = createServer(async (req, res) => {
         let path;
@@ -87,8 +94,8 @@ const ctx = await chromium.launchPersistentContext(join(work, 'profile'), { exec
 if (three) await ctx.route('https://cdnjs.cloudflare.com/**', (r) => r.fulfill({ path: three, contentType: 'application/javascript', headers: { 'access-control-allow-origin': '*' } }));
 await ctx.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
 
-async function open(file, size = { width: 1280, height: 800 }) {
-    const page = await ctx.newPage(); await page.setViewportSize(size);
+async function open(file, size = { width: 1280, height: 800 }, on = ctx) {
+    const page = await on.newPage(); await page.setViewportSize(size);
     page.on('pageerror', (e) => problems.push(`${file} page error: ${e.message}`));
     page.on('console', (m) => { if (m.type() === 'error' || /Refused/.test(m.text())) problems.push(`${file} console: ${m.text()}`); });
     await page.goto(BASE + file); await page.waitForFunction(() => window.__jarvis);
@@ -238,10 +245,116 @@ try {
         ok(`no sideways scroll at ${w}×${h}`, await test.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
         await test.close();
     }
+
+    // 5. Session 8: moving settings to another device. Device A is this profile; device B is a second browser.
+    {
+        const a = await open('jarvis-test.html');
+        await a.click('#boot-skip'); await a.waitForTimeout(600);
+        const sayA = (q) => a.evaluate((x) => window.__jarvis.answer(x), q);
+        await sayA('switch to panthers'); await sayA('make the orb gold'); await sayA('speak faster');
+        await sayA('create game day protocol switch to panthers tell me a joke then start a launch countdown');
+        await sayA('my dog is Rex');
+        const dl = a.waitForEvent('download', { timeout: 10000 }).catch(() => null);
+        const said = await sayA('back up my settings');
+        const download = await dl;
+        ok('"back up my settings" downloads a real file, even when asked by voice', !!download && download.suggestedFilename() === 'jarvis-settings.json', said);
+        const backupPath = join(work, 'jarvis-settings.json');
+        if (download) await download.saveAs(backupPath);
+        const fileText = download ? await readFile(backupPath, 'utf8') : '{}', file = JSON.parse(fileText);
+        ok('the file holds settings, protocols and counts, and nothing said this visit', file.app === 'jarvis' && file.kept['jarvis-skin'] === 'panther' && file.protocols['game day'] && file.days.length > 0 && !/Rex|dog/.test(fileText), fileText.slice(0, 200));
+        ok('the panel opens with it', await a.evaluate(() => window.__jarvis.transferState()?.view === 'menu'));
+        await a.screenshot({ path: join(OUT, 'transfer-menu-1280.png') });
+        const shown = await sayA('send my settings to my phone');
+        await a.waitForTimeout(800);
+        const qr = await a.evaluate(() => { const c = document.querySelector('.xfer-qr'), r = c && c.getBoundingClientRect(), s = document.querySelector('script[src*="jarvis/qr/qrcode.js"]');
+            return { stat: document.getElementById('holo-stat').textContent, box: r && [r.x, r.y, r.width, r.height], sri: s && s.integrity, payload: window.__jarvis.qrPayload() }; });
+        ok('"send my settings to my phone" shows the code, made by the self-hosted encoder loaded with its SRI hash', /^Here's your settings code/.test(shown) && /^READY · \d+ BYTES · QR V\d+$/.test(qr.stat) && /^sha384-/.test(qr.sri || ''), qr.stat + ' ' + qr.sri);
+        const ver = +(/QR V(\d+)/.exec(qr.stat) || [])[1];
+        ok(`it is a small code: ${qr.payload.length} bytes, QR version ${ver}`, qr.payload.length <= 500 && ver <= 15);
+        const fitsBox = await a.evaluate(() => { const q = document.querySelector('.xfer-qr').getBoundingClientRect(), top = document.getElementById('holo-top').getBoundingClientRect(), form = document.getElementById('f').getBoundingClientRect();
+            return q.top >= top.bottom - 1 && q.bottom <= form.top && q.width >= 200 && Math.abs(q.width - q.height) < 2; });
+        ok('it sits between the top HUD and the input, square and at least 200 px', fitsBox);
+        await a.screenshot({ path: join(OUT, 'transfer-code-1280.png') });
+        const codePng = join(work, 'code.png');
+        await a.screenshot({ path: codePng, clip: { x: qr.box[0], y: qr.box[1], width: qr.box[2], height: qr.box[3] } });
+        await a.close();
+        // The phone-sized view of the same code.
+        const a390 = await open('jarvis-test.html', { width: 390, height: 844 });
+        await a390.click('#boot-skip'); await a390.waitForTimeout(600);
+        await a390.evaluate(() => window.__jarvis.answer('send my settings to my phone')); await a390.waitForTimeout(800);
+        ok('at 390×844 the top lines end above the buttons, and the status line isn\'t cut off', await a390.evaluate(() => { const hud = document.getElementById('holo-hint').getBoundingClientRect(), btn = document.querySelector('.xfer-btns').getBoundingClientRect(), st = document.getElementById('holo-stat');
+            return hud.bottom <= btn.top && st.scrollWidth <= st.clientWidth; }));
+        ok('at 390×844 the code fits on screen with nothing scrolling sideways', await a390.evaluate(() => { const q = document.querySelector('.xfer-qr').getBoundingClientRect(); return q.left >= 0 && q.right <= innerWidth && q.width >= 200 && document.documentElement.scrollWidth <= innerWidth; }));
+        await a390.screenshot({ path: join(OUT, 'transfer-code-390.png') });
+        await a390.close();
+
+        // The code, as a camera would see it: A's own pixels, centred on a 640×480 frame, as y4m video.
+        const y4m = join(work, 'code.y4m');
+        // The first 1.5 s are out of focus, as a phone camera is while it settles, so a screenshot can catch the scan running.
+        const frame = 'scale=-2:400:flags=neighbor,pad=640:480:(ow-iw)/2:(oh-ih)/2:color=white';
+        execFileSync('ffmpeg', ['-v', 'error', '-y', '-loop', '1', '-t', '1.5', '-i', codePng, '-loop', '1', '-t', '4', '-i', codePng, '-filter_complex',
+            `[0]${frame},boxblur=8,fps=10,format=yuv420p[a];[1]${frame},fps=10,format=yuv420p[b];[a][b]concat=n=2:v=1[v]`, '-map', '[v]', y4m]);
+        const ctxB = await chromium.launchPersistentContext(join(work, 'profile-b'), { executablePath, headless: true, viewport: { width: 1280, height: 800 },
+            args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-video-capture=${y4m}`] });
+        if (three) await ctxB.route('https://cdnjs.cloudflare.com/**', (r) => r.fulfill({ path: three, contentType: 'application/javascript', headers: { 'access-control-allow-origin': '*' } }));
+        await ctxB.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
+        try {
+            for (const [w, h] of [[1280, 800], [390, 844]]) {
+                const b = await open('jarvis-test.html', { width: w, height: h }, ctxB);
+                await b.evaluate(() => { window.__camLog = []; const g = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+                    navigator.mediaDevices.getUserMedia = async (c) => { const s = await g(c); window.__camLog.push({ c, s }); return s; }; });
+                await b.click('#boot-skip'); await b.waitForTimeout(600);
+                const sayB = (q) => b.evaluate((x) => window.__jarvis.answer(x), q);
+                if (w === 1280) { await sayB('make the orb blue'); await sayB('use imperial units'); await sayB('create the bedtime protocol make the orb green'); }
+                const before = await b.evaluate(() => window.__jarvis.saved());
+                const started = await sayB('scan settings');
+                await b.waitForTimeout(500);
+                const scanning = await b.evaluate(() => [document.getElementById('holo-stat').textContent, !!document.querySelector('.xfer video'), window.__jarvis.transferState()?.camera]);
+                ok(`while it looks, the camera's view is on the panel at ${w}×${h}`, scanning[0] === 'SCANNING FOR A SETTINGS CODE…' && scanning[1] && scanning[2], JSON.stringify(scanning));
+                await b.screenshot({ path: join(OUT, `transfer-scan-${w}.png`) });
+                await b.waitForFunction(() => /CODE READ/.test(document.getElementById('holo-stat').textContent), null, { timeout: 20000 }).catch(() => {});
+                const got = await b.evaluate(() => ({ stat: document.getElementById('holo-stat').textContent, skin: window.__jarvis.skin(), settings: window.__jarvis.settings(), protocols: Object.keys(window.__jarvis.protocols()),
+                    cam: window.__camLog.map(({ c, s }) => ({ c, live: s.getTracks().filter((t) => t.readyState === 'live').length, audio: s.getAudioTracks().length })),
+                    decoder: typeof BarcodeDetector === 'function' ? 'BarcodeDetector' : 'jsQR', sri: document.querySelector('script[src*="jarvis/qr/jsQR.js"]')?.integrity,
+                    said: [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent }));
+                ok(`B scans A's code through the fake camera at ${w}×${h} (${got.decoder})`, /Point the camera/.test(started) && /CODE READ/.test(got.stat) && got.skin === 'panther' && got.protocols.includes('game day'), JSON.stringify(got));
+                await b.screenshot({ path: join(OUT, `transfer-read-${w}.png`) });
+                ok('the camera was video only, and is off once the code is read', got.cam.length === 1 && got.cam[0].c.audio === false && got.cam[0].audio === 0 && got.cam[0].live === 0 && !(await b.$('.xfer video')), JSON.stringify(got.cam));
+                if (got.decoder === 'jsQR') ok('the decoder came from jarvis/qr/ with its SRI hash', /^sha384-/.test(got.sri || ''));
+                if (w === 1280) {
+                    ok('B\'s own things are kept: its units and its other protocol', got.settings.units === 'imperial' && got.settings.color === 'gold' && got.protocols.includes('bedtime'), JSON.stringify(got.settings));
+                    // Then the file, through the real file picker.
+                    const chooser = b.waitForEvent('filechooser');
+                    await b.click('.xfer-btns button[data-x="restore"]');
+                    await (await chooser).setFiles(backupPath);
+                    await b.waitForFunction(() => /^Restored/.test([...document.querySelectorAll('#log .msg.ai')].pop()?.textContent || '') && window.__jarvis.saved().events.some((e) => e.id === 'cmd:restore' && e.n >= 2), null, { timeout: 10000 }).catch(() => {});
+                    const said2 = await b.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent);
+                    const dbB = await dbOf(b), evB = Object.values(dbB.events || {});
+                    ok('RESTORE FROM FILE takes the downloaded backup', /^Restored your skin, your settings.* protocols? and your usage counts\./.test(said2 || ''), said2);
+                    ok('in B\'s real IndexedDB: A\'s protocol and counts, B\'s own protocol, nothing dropped', dbB.protocols?.['"game day"'] && dbB.protocols?.['"bedtime"'] && file.days.every(([id, day, n]) => evB.some((e) => e.id === id && e.day === day && e.n >= n))
+                        && before.events.every((e) => evB.some((x) => x.id === e.id && x.day === e.day && x.n >= e.n)), JSON.stringify(Object.keys(dbB.protocols || {})));
+                    ok('B\'s localStorage was never written', Object.keys(await lsOf(b)).length === 0);
+                    ok('nothing from A\'s visit reached B', !/Rex|dog/.test(JSON.stringify(dbB)));
+                }
+                ok(`no sideways scroll at ${w}×${h}`, await b.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+                await b.close();
+            }
+            // A changed encoder is refused: one byte different, so its SRI hash no longer matches.
+            const real = await readFile(join(ROOT, 'jarvis/qr/qrcode.js'), 'utf8');
+            const t = await ctxB.newPage(); const errs = [];
+            t.on('console', (m) => errs.push(m.text()));
+            await t.route('**/jarvis/qr/qrcode.js', (r) => r.fulfill({ body: real.replace('QR Code Generator', 'QR Code Generatoz'), contentType: 'application/javascript' }));
+            await t.goto(BASE + 'jarvis-test.html'); await t.waitForFunction(() => window.__jarvis); await t.evaluate(() => window.__jarvis.ready);
+            const r = await t.evaluate(() => window.__jarvis.answer('show my settings code'));
+            ok('an encoder with one byte changed is refused by the browser, and he points to the file instead', /couldn't load my code maker/.test(r) && errs.some((e) => /integrity/i.test(e)) && !(await t.evaluate(() => typeof window.qrcode)).includes('function'), r + ' | ' + errs.join(' | '));
+            await t.close();
+        } finally { await ctxB.close(); }
+    }
 } finally {
     await ctx.close();
     server.close();
     await rm(join(work, 'profile'), { recursive: true, force: true });
+    await rm(join(work, 'profile-b'), { recursive: true, force: true });
 }
 
 ok('no page errors or CSP violations', !problems.length);
