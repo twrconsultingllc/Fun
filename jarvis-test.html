@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<meta name="description" content="J.A.R.V.I.S. Test: the trial copy of the J.A.R.V.I.S. Demo, where new features are tried before they go to the main page. A talking assistant that runs in your browser, with a boot-up sequence, an animated orb with a face, voice in and out, three skins (Jarvis, Morpheus from The Matrix and Stanley C. Panther of the Florida Panthers), phrases it learns from you, settings it remembers on your device and can move to another one with a backup file or a QR code, things you tell it remembered for one visit only, protocols that run several commands with one phrase, follow-ups like again, go back and why, a clearance level that grows as it gets to know you and opens a few hidden extras, favourites and a discovery log worked out from what you use, and a holo-projector that shows a 3D galaxy, the solar system, the Earth, a suit schematic, its own neural network and its memory core, which you can steer with hand gestures.">
+<meta name="description" content="J.A.R.V.I.S. Test: the trial copy of the J.A.R.V.I.S. Demo, where new features are tried before they go to the main page. A talking assistant that runs in your browser, with a boot-up sequence, an animated orb with a face, voice in and out, three skins (Jarvis, Morpheus from The Matrix and Stanley C. Panther of the Florida Panthers), phrases it learns from you, settings it remembers on your device and can move to another one with a backup file or a QR code, things you tell it remembered for one visit only, protocols that run several commands with one phrase, follow-ups like again, go back and why, a clearance level that grows as it gets to know you and opens a few hidden extras, favourites and a discovery log worked out from what you use, a language module you can download from this site so it understands rewordings, and a holo-projector that shows a 3D galaxy, the solar system, the Earth, a suit schematic, its own neural network and its memory core, which you can steer with hand gestures.">
 <title>J.A.R.V.I.S. Test</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%23020a06'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%2339ff88' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%2339ff88'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -307,7 +307,7 @@ const TABLES=['kept','events','totals','meta','protocols'];
 const EVENT_IDS=['app:visit',
   ...['galaxy','solar','globe','neural','suit','particles','memory','tesseract'].map(k=>'scene:'+k),
   ...['scan','briefing','setting','remember','teach','help','time','date','joke','fact','coin','die','math','chat','protocol','house-party','wake-up','backup','restore','qr','qr-scan',
-    'level','favourite','discover','hud','avengers','iron-man'].map(k=>'cmd:'+k),
+    'level','favourite','discover','hud','avengers','iron-man','upgrade'].map(k=>'cmd:'+k),
   ...['jarvis','matrix','panther'].map(k=>'skin:'+k),
   ...['mic','wake-word','hands','voice'].map(k=>'feature:'+k)];
 // Days are counted from a fixed start, so a day is stored as a small number such as 282, never as a date.
@@ -490,6 +490,9 @@ let shownLevel=1,favLead='',hudOn=false;
    and a reload starts it empty. */
 const talk={lastCmd:null,frame:null,scenes:[],lastAnswer:null,why:null,question:null};
 let nextWhy=null; // the reason behind the answer being given now, for "why?"
+// The meaning module (Session 12), this visit only and never saved. state: off, loading, on. embed: text to
+// fingerprint. fp: fingerprints worked out so far. p: how far the upgrade has got.
+const mind={state:'off',embed:null,mean:null,fp:new Map(),p:0};
 const because=(text,why)=>{nextWhy=why;return text};
 function saveSettings(){if(Object.keys(settings).length)store('jarvis-settings',JSON.stringify(settings));else unstore('jarvis-settings')}
 // "What do you save?": exactly what's in this browser, read back from what was saved rather than from the page.
@@ -509,7 +512,8 @@ function storedSummary(){
   const counts=dbOK&&counted?` Counts of which scenes and commands you use, by day. Nothing you say. Your visit streak${streak.days>1?`, ${streak.days} days,`:''} is worked out from those counts. So are your clearance level, your favourites and what you've discovered, and none of them is saved.`:'';
   const now=typeof userName==='string'&&userName?` Your name, ${userName}, is only in memory for this visit.`:'';
   const told=typeof memory==='object'&&memory.length?` ${memory.length===1?'One thing':memory.length+' things'} you told me ${memory.length===1?'is':'are'} only in memory for this visit too.`:'';
-  return `${list}${counts}${now}${told} No names, no personal details, nothing from the camera and no chat history. Anything that looks personal is never saved. On an iPhone, Safari clears what I keep after 7 days without a visit, so say back up my settings to keep a copy.`;
+  const mod=mind.state==='on'?' My language module is only in memory too: it comes from this site, and I work out its fingerprints again each visit.':'';
+  return `${list}${counts}${now}${told}${mod} No names, no personal details, nothing from the camera and no chat history. Anything that looks personal is never saved. On an iPhone, Safari clears what I keep after 7 days without a visit, so say back up my settings to keep a copy.`;
 }
 // Settings in words, for "what do you save" and the memory core.
 const SCENE_NAMES={galaxy:'the galaxy',solar:'the solar system',globe:'the Earth',neural:'my neural network',suit:'the suit',particles:'the particles'};
@@ -1054,7 +1058,7 @@ function brainKnown(raw){
   const s=raw.toLowerCase().trim(),name=userName?`, ${userName}`:'';
   let m;
   if((m=s.match(/\b(?:my name is|call me|i am|i'm) ([a-z]+)/))&&!notNames.has(m[1])){userName=m[1][0].toUpperCase()+m[1].slice(1);return because(`Nice to meet you, ${userName}. I'll remember that until you close this page. I never save names.`,"Because nothing personal is ever saved in this browser. Your name stays in memory for this visit and is gone when you close the page.")}
-  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return favLead+"Ask me ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧, or some math like ⟦seven times eight|what is seven times eight⟧. I can ⟦flip a coin⟧, ⟦roll a die⟧ or start a ⟦launch countdown⟧. For the holo-projector, say ⟦show me the galaxy⟧, ⟦show me the planets⟧, ⟦take me to Mars⟧, ⟦make a heart⟧, ⟦make a rocket⟧, or ⟦write your name|write my name⟧. Say ⟦show me your brain⟧ to watch me think, or ⟦suit up⟧ to build a suit of armour. Say ⟦show me Earth⟧ for the globe, or show me any country, US state or big city, like ⟦Florida|show me Florida⟧ or ⟦Tokyo|show me Tokyo⟧. Say ⟦hand control⟧ to steer it with your hands through the camera, or ⟦scan the room⟧ for a threat scan. Say ⟦brief me⟧ for the time and the top headlines. In Chrome or Edge, turn on ⟦always listening|always listen⟧ with the HEY JARVIS switch, then start what you say with my name. Say ⟦close⟧ to turn it off, or ⟦reboot⟧ to watch me power up again. Say ⟦switch to Matrix⟧ to talk to Morpheus, ⟦switch to Panthers⟧ for Stanley C. Panther, or ⟦back to Jarvis⟧. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit, whichever skin I'm in. Ask ⟦what do you know about me⟧ to hear them back. I can also remember settings on this device: say ⟦make the orb blue⟧, ⟦speak faster⟧, ⟦use imperial units⟧, or ⟦open with the galaxy⟧. Say ⟦show me your memory⟧ to see everything I keep as stars, and tap one to hear it or say forget that. Make a protocol to run several commands with one phrase, like ⟦a movie night protocol|create movie night protocol: make the orb purple, then open the galaxy⟧, then say ⟦movie night⟧ to run it. Say ⟦list my protocols⟧, or try ⟦house party⟧ or ⟦wake up, daddy's home|wake up daddy's home⟧. You can talk in fragments too: after ⟦take me to Mars⟧, say ⟦now Jupiter⟧, ⟦bigger⟧, ⟦slower⟧, ⟦again⟧ or ⟦go back⟧, and ask ⟦why⟧ after an answer. Leave me alone for a few minutes and I'll dream. Ask ⟦what do you save⟧ to see what I keep, and I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, so say ⟦back up my settings⟧ to keep a copy as a file, and ⟦restore my settings⟧ to load it. To move them to another device, say ⟦send my settings to my phone⟧ here and ⟦scan settings⟧ there. If I don't understand you, tell me what you meant and I'll remember it on this device. The more we talk, the better I know you: ask ⟦how well do you know me⟧, ⟦what's my favourite⟧ or ⟦what haven't I tried⟧. I put your favourites first in these links, and you can say ⟦stop putting my favourites first⟧."+unlockLine(shownLevel);
+  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return favLead+"Ask me ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧, or some math like ⟦seven times eight|what is seven times eight⟧. I can ⟦flip a coin⟧, ⟦roll a die⟧ or start a ⟦launch countdown⟧. For the holo-projector, say ⟦show me the galaxy⟧, ⟦show me the planets⟧, ⟦take me to Mars⟧, ⟦make a heart⟧, ⟦make a rocket⟧, or ⟦write your name|write my name⟧. Say ⟦show me your brain⟧ to watch me think, or ⟦suit up⟧ to build a suit of armour. Say ⟦show me Earth⟧ for the globe, or show me any country, US state or big city, like ⟦Florida|show me Florida⟧ or ⟦Tokyo|show me Tokyo⟧. Say ⟦hand control⟧ to steer it with your hands through the camera, or ⟦scan the room⟧ for a threat scan. Say ⟦brief me⟧ for the time and the top headlines. In Chrome or Edge, turn on ⟦always listening|always listen⟧ with the HEY JARVIS switch, then start what you say with my name. Say ⟦close⟧ to turn it off, or ⟦reboot⟧ to watch me power up again. Say ⟦switch to Matrix⟧ to talk to Morpheus, ⟦switch to Panthers⟧ for Stanley C. Panther, or ⟦back to Jarvis⟧. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit, whichever skin I'm in. Ask ⟦what do you know about me⟧ to hear them back. I can also remember settings on this device: say ⟦make the orb blue⟧, ⟦speak faster⟧, ⟦use imperial units⟧, or ⟦open with the galaxy⟧. Say ⟦show me your memory⟧ to see everything I keep as stars, and tap one to hear it or say forget that. Make a protocol to run several commands with one phrase, like ⟦a movie night protocol|create movie night protocol: make the orb purple, then open the galaxy⟧, then say ⟦movie night⟧ to run it. Say ⟦list my protocols⟧, or try ⟦house party⟧ or ⟦wake up, daddy's home|wake up daddy's home⟧. You can talk in fragments too: after ⟦take me to Mars⟧, say ⟦now Jupiter⟧, ⟦bigger⟧, ⟦slower⟧, ⟦again⟧ or ⟦go back⟧, and ask ⟦why⟧ after an answer. Leave me alone for a few minutes and I'll dream. Ask ⟦what do you save⟧ to see what I keep, and I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, so say ⟦back up my settings⟧ to keep a copy as a file, and ⟦restore my settings⟧ to load it. To move them to another device, say ⟦send my settings to my phone⟧ here and ⟦scan settings⟧ there. Say ⟦upgrade your brain⟧ and I'll understand you in your own words too, and ask when I'm not sure. If I don't understand you, tell me what you meant and I'll remember it on this device. The more we talk, the better I know you: ask ⟦how well do you know me⟧, ⟦what's my favourite⟧ or ⟦what haven't I tried⟧. I put your favourites first in these links, and you can say ⟦stop putting my favourites first⟧."+unlockLine(shownLevel);
   if(/^(?:please )?(?:forget|clear|delete|erase) my name\b/.test(s)){const had=userName;userName=null;return had?"Done. I've forgotten your name.":"I don't know your name yet, so there's nothing to forget."}
   if(/\bwhat(?:'s| is) my name\b|\bwho am i\b|\bdo you (?:know|remember) (?:my name|me|who i am)\b|\bsay my name\b/.test(s))return userName?`Your name is ${userName}. I'll remember it whichever skin I'm wearing, until you close this page. I never save it.`:"You haven't told me your name yet. Say my name is, then your name, and I'll remember it until you close this page.";
   if(/\b(hello|hi|hey|good (morning|afternoon|evening))\b/.test(s))return pick([`Hello${name}. All systems are online.`,`Good to see you${name}. How can I help?`]);
@@ -1435,7 +1439,7 @@ function buildNeural(T){
   scene.add(group,starfield(T,1500));
   const LAYER_COL=['#5aa9ff','#39ff88','#ffc24a'].map(c=>new T.Color(c));
   const rig=makeRig(T,camera,{dist:110,goal:60,el:.5,elGoal:.12,min:12,max:160,spin:0});
-  let shapeIdx=0,net,sim,parts=null,burstT=0;
+  let shapeIdx=0,net,sim,parts=null,burstT=0,upg=null; // upg: the brain upgrade (Session 12), {p} while it downloads, {p:1,done} after
   function build(i){
     shapeIdx=(i+NEURAL_SHAPES.length)%NEURAL_SHAPES.length;
     if(parts)parts.objs.forEach(o=>{group.remove(o);o.geometry.dispose();o.material.dispose()});
@@ -1452,7 +1456,7 @@ function buildNeural(T){
     const pp=new Float32Array(sim.max*3),pg=new T.BufferGeometry();pg.setAttribute('position',new T.BufferAttribute(pp,3));pg.setDrawRange(0,0);
     const objs=[new T.LineSegments(eg,new T.LineBasicMaterial({color:0x39ff88,transparent:true,opacity:.14,depthWrite:false})),
       pts(ng,{size:1.6,vertexColors:true,opacity:.75}),pts(gg,{size:4.2,vertexColors:true}),pts(pg,{size:1.1,color:0xfff1a0})];
-    group.add(...objs);parts={objs,pos,col,glowCol,gg,pg,pp};
+    group.add(...objs);parts={objs,pos,col,base:col.slice(),glowCol,ng,gg,pg,pp};
     rig.goal=Math.max(40,fitDist(net.halfW+2.5,net.halfH+2.5));
     setStat(`${L} LAYERS · ${N} NEURONS · ${net.edges.length} CONNECTIONS`);
     sim.burst();
@@ -1466,6 +1470,12 @@ function buildNeural(T){
     next(dir){return build(shapeIdx+dir)},
     squeeze(on){if(on){sim.fireAll();blip(220,.25,.03,'sawtooth')}},
     onAnswer(){sim.lightOutputs()},
+    // The upgrade: a gold front sweeps through the layers as the module downloads, then everything fires at once.
+    upgrade(p,done){
+      upg={p:clamp(p,0,1),done:!!done};
+      setStat(done?'BRAIN UPGRADED':`UPGRADING · ${Math.round(upg.p*100)}%`); // short, so a phone shows the number
+      if(done){sim.fireAll();blip(880,.3,.03);blip(1320,.35,.025,'sine',.12)}
+    },
     pick(ndc){ // the node nearest the tap on screen, within 48 px
       let best=-1,bd=48;group.updateMatrixWorld();
       net.nodes.forEach((n,i)=>{v.set(n.x,n.y,n.z).applyMatrix4(group.matrixWorld).project(camera);if(v.z>1)return;
@@ -1476,7 +1486,15 @@ function buildNeural(T){
     update(dt,t){
       if(mode==='think'){burstT-=dt;if(burstT<=0){sim.burst();burstT=.18}}else burstT=0; // thinking fires bursts into the input layer
       sim.step(dt);
-      const {pos,col,glowCol,gg,pg,pp}=parts;
+      const {pos,col,base,glowCol,ng,gg,pg,pp}=parts;
+      if(upg){
+        const L=net.shape.length,front=upg.p*L;
+        if(!upg.done){burstT-=dt;if(burstT<=0){sim.burst();burstT=.12}}
+        net.nodes.forEach((n,i)=>{const k=clamp(front-n.l,0,1);
+          col[i*3]=base[i*3]+(1-base[i*3])*k;col[i*3+1]=base[i*3+1]+(.78-base[i*3+1])*k;col[i*3+2]=base[i*3+2]+(.24-base[i*3+2])*k;
+          if(!upg.done&&k>0&&k<1)sim.glow[i]=Math.max(sim.glow[i],.6+.4*Math.sin(t*9+n.l))});
+        ng.attributes.color.needsUpdate=true;
+      }
       for(let i=0;i<glowCol.length;i++)glowCol[i]=col[i]*sim.glow[Math.floor(i/3)];
       gg.attributes.color.needsUpdate=true;
       sim.pulses.forEach((q,k)=>{const [a,b]=net.edges[q.e];for(let c=0;c<3;c++)pp[k*3+c]=pos[a*3+c]+(pos[b*3+c]-pos[a*3+c])*q.p});
@@ -2978,6 +2996,7 @@ const CAPABILITIES=[
   {key:'qr-scan',name:'scanning a settings code',ids:['cmd:qr-scan'],can:'camera',cmds:['scan settings'],hint:"I can read a settings code from your other device. Say ⟦scan settings⟧."},
   {key:'level',name:'your clearance level',ids:['cmd:level'],cmds:['how well do you know me'],hint:"Ask ⟦how well do you know me⟧ to hear your clearance level."},
   {key:'favourite',name:'your favourites',ids:['cmd:favourite'],cmds:["what's my favourite"],hint:"I notice what you use most. Ask ⟦what's my favourite⟧."},
+  {key:'meaning',name:'my language module',ids:['cmd:upgrade'],can:'wasm',cmds:['upgrade your brain'],hint:"I can learn to understand you in your own words. Say ⟦upgrade your brain⟧."},
   {key:'discover',name:'the discovery log',ids:['cmd:discover'],cmds:["what haven't I tried"],hint:"I keep count of what you've found. Ask ⟦what haven't I tried⟧."},
   // The clearance extras: new in Session 11, and the only things a level locks.
   {key:'hud',name:'the gold-and-red HUD',ids:['cmd:hud'],lock:2,cmds:['gold and red HUD'],hint:"Your clearance has opened my gold-and-red HUD. Say ⟦gold and red HUD⟧."},
@@ -2994,7 +3013,7 @@ const NOT_COUNTED={
   'close':'Closing the projector.','reboot':'A restart, not a feature.','back to Jarvis':'Switching back to the skin you start in (see NOT_CAPABILITIES).'};
 // What the browser needs for each kind of capability. Worked out once, when first asked.
 let canCache=null;
-const available=c=>{if(!c.can)return true;canCache=canCache||{webgl:hasWebGL(),camera:!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia),mic:!!SR,wake:wakeOK,voices:!!synth};return !!canCache[c.can]};
+const available=c=>{if(!c.can)return true;canCache=canCache||{wasm:typeof WebAssembly==='object',webgl:hasWebGL(),camera:!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia),mic:!!SR,wake:wakeOK,voices:!!synth};return !!canCache[c.can]};
 /* The usage counts as numbers to reason about. evs: {id, day, n} records, tots: {id, n}, carry: the streak's carry.
    Only what fits() would accept counts here, and days after today don't count at all. days: how many days have
    anything counted, from the 90 kept by day plus the carry, which is a run of real days just before them. Older days
@@ -3498,6 +3517,157 @@ function runBuiltin(name){
   return runSteps(name,B.steps,B.event,{each:B.each,end:B.end,first:B.first});
 }
 
+/* ---------- Meaning module (Session 12): understanding rewordings, as a safety net ----------
+   "Upgrade your brain" downloads MediaPipe's text embedder and the Universal Sentence Encoder from jarvis/text/ on
+   this site (never at start-up, and never from anywhere else: the CSP's connect-src 'self' stands). It turns a
+   sentence into a fingerprint, 100 numbers, and sentences that mean much the same have fingerprints that point the
+   same way. It's only asked after every pattern has failed (see answerCore), so everything that worked before works
+   the same. Very close to one command's examples: he does it. Somewhat close: "Did you mean …?", which yes and no
+   answer (ask()). Anything that deletes, forgets, resets or reboots is never chosen this way: those stay exact.
+   The fingerprints live in memory for this visit and are worked out again next time. Nothing is saved. */
+// [the command it runs, what to call it in "Did you mean …?", example sentences]. Each command is one he already understands.
+const MEANINGS=[
+  ['show me earth','the Earth globe',['show me the earth','open the globe','spin the world','show me our planet','show me a map of the world','show me planet earth']],
+  ['show me the galaxy','the galaxy',['show me the galaxy','show me the milky way','show me the stars','take me into deep space','show me outer space']],
+  ['show me the solar system','the solar system',['show me the solar system','show me the planets','the sun and all its planets','fly me round the planets','show me the planets going round the sun']],
+  ['take me to Mars','Mars',['take me to mars','fly to the red planet','show me mars']],
+  ['take me to Jupiter','Jupiter',['take me to jupiter','show me the biggest planet','fly to the gas giant']],
+  ['take me to Saturn','Saturn',['take me to saturn','show me the planet with rings']],
+  ['take me to the Sun','the Sun',['take me to the sun','fly to our star']],
+  ['show me your brain','my neural network',['show me your brain','show me your neural network','show me how you think','let me see inside your mind']],
+  ['suit up','the suit of armour',['suit up','build the iron man suit','put the armour on','show me the suit schematic']],
+  ['make a heart','a heart in particles',['make a heart','draw a heart','show me a love heart']],
+  ['make a rocket','a rocket in particles',['make a rocket','build a spaceship','draw a rocket ship']],
+  ['show me your memory','my memory core',['show me your memory','open your memory core','show me what you keep','let me see your memories']],
+  ['what time is it','the time',['what time is it','tell me the time','do you know what time it is','what hour is it']],
+  ["what's the date",'the date',["what's the date",'what day is it today',"what's today's date",'which day of the week is it']],
+  ['tell me a joke','a joke',['tell me a joke','make me laugh','say something funny','do you know any jokes']],
+  ['tell me a fun fact','a fun fact',['tell me a fun fact','tell me something interesting','teach me something new',"tell me something i don't know"]],
+  ['flip a coin','a coin flip',['flip a coin','toss a coin','heads or tails','coin toss']],
+  ['roll a die','a dice roll',['roll a die','roll the dice','throw a dice','pick a number from one to six']],
+  ['launch countdown','a launch countdown',['start a countdown','count down to liftoff','launch the rocket','blast off']],
+  ['how are you','how I am',['how are you','how are you doing',"how's it going",'are you feeling ok']],
+  ['help','the list of what I can do',['what can you do','help me','what are your commands','what can i ask you']],
+  ['brief me','the briefing',['brief me','give me the news',"what's in the news",'read me the headlines']],
+  ['scan the room','the threat scan',['scan the room','run a threat scan','check the room for threats','scan for intruders']],
+  ['hand control','hand control',['hand control','let me use my hands','control it with my hands','track my hands']],
+  ['always listen','always listening',['always listen','listen for your name','keep listening all the time']],
+  ['close','closing the projector',['close the projector','turn off the hologram','put the hologram away']],
+  ['what do you save','what I save',['what do you save','what do you store about me','what data do you keep',"what's saved on this device"]],
+  ['how well do you know me','your clearance level',['how well do you know me',"what's my clearance level",'what level am i']],
+  ["what's my favourite",'your favourites',["what's my favourite",'what do i use the most','which scene do i like best']],
+  ["what haven't I tried",'the discovery log',["what haven't i tried",'what have i not found yet','what else is there to find']],
+  ['list my protocols','your protocols',['list my protocols','what protocols do i have','show me my protocols']],
+  ['house party','house party',['house party','show me everything','show me all your scenes','party mode']],
+  ['switch to Matrix','Morpheus',['switch to the matrix','be morpheus','talk like morpheus','matrix mode']],
+  ['switch to Panthers','Stanley C. Panther',['switch to panthers','be the panthers mascot','hockey mode']],
+  ['back to Jarvis','Jarvis',['back to jarvis','be jarvis again','your normal self']],
+  ['speak slower','speaking slower',['speak slower','talk more slowly','you talk too fast']],
+  ['speak faster','speaking faster',['speak faster','talk more quickly','you talk too slowly']],
+  ['use imperial units','imperial units',['use imperial units','use miles and feet','give me distances in miles']],
+  ['use metric units','metric units',['use metric units','use kilometres and metres','give me distances in kilometres']],
+  ['back up my settings','a backup of your settings',['back up my settings','save a copy of my settings','download my settings']],
+  ['restore my settings','restoring your settings',['restore my settings','load my settings backup','import my settings']],
+  ['send my settings to my phone','your settings code',['send my settings to my phone','show my settings code','copy my settings to another device']],
+  ['scan settings','scanning a settings code',['scan settings','scan my settings code','read the code from my other device']]
+];
+// The bands, set against the real model in headless Chromium (review 64). Scores are cosines of centred fingerprints.
+const MEAN_DO=.8,MEAN_ASK=.6,MEAN_GAP=.05;
+// Never chosen by meaning, from either side: what you said, or the command it would run.
+const DESTRUCTIVE=/\b(?:forget|forgets|delete|remove|erase|wipe|clear|reset|unlearn|undo|destroy|purge|scrap|ditch|bin|trash|junk|dump|discard|nuke|kill|cancel|uninstall|get rid of|throw (?:away|out)|reboot|restart|power (?:down|off|cycle)|shut ?down)\b/;
+// Commands that turn on the camera or the mic only ever ask first, however close.
+const asksFirst=cmd=>{const it=intent(cmd);return !!(it&&(it.kind==='scan'||it.kind==='hands'))||wakeIntent(cmd)===true||transferIntent(cmd)==='scan'};
+const TEXT_DIR='jarvis/text/';
+const textUrl=f=>new URL(TEXT_DIR+f,location.href).href;
+const meaningText=raw=>normPhrase(raw).replace(/^(?:(?:hey |ok |okay )?jarvis |please |can you |could you |would you |will you )+/,'').replace(/(?: (?:please|now|jarvis|for me))+$/,'');
+function upgradeIntent(raw){
+  return /^(?:upgrade|update|boost|improve|expand|power up|install) (?:your |ur |the )?(?:brain|mind|language (?:module|comprehension(?: module)?)|comprehension module)$|^(?:get|become) smarter$|^(?:install|load|download) (?:the |your )?language (?:module|comprehension module)$/.test(meaningText(raw));
+}
+async function fetchBytes(f,on){
+  const r=await fetch(textUrl(f));if(!r.ok)throw new Error(f);
+  const total=+r.headers.get('content-length')||0;
+  if(!r.body||!total){const b=new Uint8Array(await r.arrayBuffer());on(1);return b}
+  const rd=r.body.getReader(),parts=[];let got=0;
+  for(;;){const {done,value}=await rd.read();if(done)break;parts.push(value);got+=value.length;on(Math.min(1,got/total))}
+  const out=new Uint8Array(got);let o=0;for(const x of parts){out.set(x,o);o+=x.length}return out;
+}
+// Loads the module and returns a function from text to a fingerprint. on(p) reports progress from 0 to 1.
+// The tests swap it for one with fixed fingerprints (setTextLib), since jsdom can't run WebAssembly models.
+let textLib=async on=>{
+  const {TextEmbedder}=await import(textUrl('text_bundle.js'));on(.05);
+  await fetchBytes('text_wasm_internal.wasm',p=>on(.05+p*.45)); // fetched once for the progress; the runtime's own fetch then comes from the cache
+  const model=await fetchBytes('universal_sentence_encoder.tflite',p=>on(.5+p*.45));
+  const e=await TextEmbedder.createFromOptions({wasmLoaderPath:textUrl('text_wasm_internal.js'),wasmBinaryPath:textUrl('text_wasm_internal.wasm')},
+    {baseOptions:{modelAssetBuffer:model},l2Normalize:true});
+  on(1);
+  return t=>Float32Array.from(e.embed(t).embeddings[0].floatEmbedding);
+};
+const unit=v=>{let n=0;for(const x of v)n+=x*x;n=Math.sqrt(n)||1;return Float32Array.from(v,x=>x/n)};
+// Every fingerprint is measured from the middle of the example sentences, which spreads them apart: raw, nearly
+// every pair of short commands scores above 0.9.
+function fingerprint(t){
+  if(mind.fp.has(t))return mind.fp.get(t);
+  const raw=mind.embed(t),v=unit(raw.map((x,i)=>x-mind.mean[i]));
+  if(mind.fp.size<2000)mind.fp.set(t,v);
+  return v;
+}
+const cosine=(a,b)=>{let s=0;for(let i=0;i<a.length;i++)s+=a[i]*b[i];return s};
+function upgradeShow(p,done){
+  mind.p=p;
+  const onScene=!!(H&&H.kind==='neural'&&H.upgrade);if(onScene)H.upgrade(p,done);
+  // Over the orb, or over another scene, the amber line shows it. The neural network shows it in its own stat line.
+  if(!running)for(const e of protoHud){const t=done||onScene?'':`UPGRADING · LANGUAGE MODULE · ${Math.round(p*100)}%`;e.textContent=t;e.hidden=!t}
+}
+// "Upgrade your brain": answers at once, opens the neural network for the animation, and says when it's done.
+async function upgradeBrain(){
+  if(mind.state==='on')return "My language comprehension module is already online. Talk to me in your own words.";
+  if(mind.state==='loading')return "I'm upgrading already. It won't be long.";
+  if(typeof WebAssembly!=='object')return "This browser can't run my language module. It needs WebAssembly.";
+  track('cmd:upgrade');mind.state='loading';
+  if(hasWebGL())await project({kind:'neural'});
+  upgradeShow(0);
+  // Started once this answer has been said, so a quick result (from the cache, or offline) can't come before it.
+  setTimeout(async()=>{
+    try{
+      const embed=await textLib(p=>upgradeShow(p*.7));
+      // The example sentences' fingerprints, a few at a time so the page keeps moving.
+      const ex=MEANINGS.flatMap(m=>m[2].map(meaningText)),raw=[];
+      for(let i=0;i<ex.length;i++){raw.push(embed(ex[i]));if(i%8===7){upgradeShow(.7+.3*i/ex.length);await new Promise(r=>setTimeout(r,0))}}
+      const mean=new Float32Array(raw[0].length);for(const v of raw)v.forEach((x,i)=>{mean[i]+=x/raw.length});
+      mind.embed=embed;mind.mean=mean;mind.fp=new Map();mind.state='on';
+      upgradeShow(1,true);
+      say("Language comprehension module online. Talk to me in your own words now. If I'm not sure what you mean, I'll ask.");
+    }catch(e){
+      mind.state='off';upgradeShow(1,true);
+      say("I couldn't load my language module. Check your connection, then say upgrade your brain to try again.");
+    }
+  },0);
+  return `Upgrading. I'm downloading my language comprehension module from this site, about 12 megabytes.${hasWebGL()?' Watch my neural network.':''}`;
+}
+// What could be meant: every command in MEANINGS, the phrases you taught me, and your protocols' names.
+function meaningCandidates(){
+  const c=MEANINGS.map(([cmd,what,ex])=>({key:'cmd:'+cmd,ex:ex.map(meaningText),what,ask:asksFirst(cmd),run:()=>respond(cmd)}));
+  for(const [k,v] of Object.entries(learned))if(!DESTRUCTIVE.test(normPhrase(v))&&!DESTRUCTIVE.test(k))
+    c.push({key:'learned:'+k,ex:[meaningText(k)],what:`"${k}", which you taught me`,ask:asksFirst(v),run:()=>respond(k)});
+  for(const n of protocols.keys())c.push({key:'protocol:'+n,ex:[meaningText(n)],what:`the ${n} protocol`,ask:false,run:()=>runProtocol(n)});
+  return c;
+}
+// The closest command to what was said, as {c, score, sure}, or null. Only once the module is online.
+function meaningOf(raw){
+  if(mind.state!=='on')return null;
+  const t=meaningText(raw);
+  if(t.split(' ').length<2||t.length>120||DESTRUCTIVE.test(t)||personal(t))return null;
+  const v=fingerprint(t);
+  const ranked=meaningCandidates().map(c=>({c,score:Math.max(...c.ex.filter(Boolean).map(e=>cosine(v,fingerprint(e))))})).sort((a,b)=>b.score-a.score);
+  const [best,next]=ranked;
+  if(!best||!(best.score>=MEAN_ASK))return null;
+  return {...best,sure:best.score>=MEAN_DO&&(!next||best.score-next.score>=MEAN_GAP)&&!best.c.ask};
+}
+async function byMeaning(m,said){
+  if(m.sure){const r=await m.c.run();return typeof r==='string'?because(r,`Because what you said means much the same as ${m.c.what}.`):r}
+  return ask(`Did you mean ${m.c.what}? Say yes or no.`,()=>m.c.run(),()=>{pendingTeach=said;return "Then tell me what you meant, and I'll remember it."});
+}
+
 /* ---------- Follow-ups (Session 10): see talk, near the top ---------- */
 // A question that "yes" or "no" answers on the very next turn. Anything else said drops it.
 function ask(text,yes,no){talk.question={yes,no};return text}
@@ -3590,6 +3760,7 @@ async function respond(text,inner=false){
   const se=settingsIntent(text);if(se){track('cmd:setting');note(se.key==='color'||se.key==='speed'?se.key:null);return applySetting(se)}
   const sk=skinIntent(text);if(sk){note('skin');return setSkin(sk)}
   if(BRIEF_RE.test(normPhrase(text).replace(/^(?:jarvis )/,''))){track('cmd:briefing');note(null);return await briefing()}
+  if(upgradeIntent(text)){note(null);return await upgradeBrain()}
   const it=intent(text);if(it){const need=lockOf(it);if(need>levelNow())return locked(need,it.kind==='tesseract'?'The Tesseract':'The Avengers logo');
     track(intentEvent(it));note(FRAMES[it.kind]?it.kind:null);return await project(it)}
   if(skin!=='jarvis'&&/who are you|your name|what are you/.test(normPhrase(text)))return SKINS[skin].who;
@@ -3657,6 +3828,8 @@ async function answerCore(text){
   const pn=protoName(text);if(protocols.has(pn))return runProtocol(pn);
   const fr=await fragment(text);if(fr!==null)return fr;
   if(/^(?:jarvis )?wake up$/.test(p))return "I'm awake. Say wake up, daddy's home, for my whole boot protocol.";
+  // Last of all, and only once the brain is upgraded: what it means, rather than how it's said (Session 12).
+  const mn=meaningOf(text);if(mn)return await byMeaning(mn,p);
   if(p&&p.length<=120)pendingTeach=p;
   return because(`${missLine()} ${favLead}${CAN_DO} What were you trying to say?`,"Because I only know the commands I was built with and the phrases you've taught me. Tell me what you meant and I'll learn it for next time.");
 }
@@ -3760,6 +3933,8 @@ window.__jarvis={micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...
   STEPS,BUILTIN,PROTO_MAX,PROTO_STEPS,stepOf,protoName,nameProblem,protoProblem,protoCreate,adjuster,noteScene,fragment,
   protocols:()=>Object.fromEntries([...protocols].map(([k,v])=>[k,{steps:[...v.steps]}])),running:()=>running&&{label:running.label,i:running.i,n:running.steps.length},
   protocolDone:()=>runP,setPace:v=>{pace=v},context:()=>JSON.parse(JSON.stringify({...talk,question:!!talk.question})),
+  MEANINGS,MEAN_DO,MEAN_ASK,MEAN_GAP,DESTRUCTIVE,asksFirst,upgradeIntent,meaningText,meaningOf,meaningCandidates,mind:()=>({state:mind.state,p:mind.p,fingerprints:mind.fp.size}),
+  setTextLib:f=>{textLib=f},holoStat:()=>document.getElementById('holo-stat').textContent,
   DB_NAME,EVENT_IDS,KEEP_DAYS,dayNumber,fits,track,rollUp,streakDays,carryStreak,cleanKept,intentEvent,chatEvent,ready:null,loaded:()=>loaded,dbOK:()=>dbOK,
   saved:()=>({kept:Object.fromEntries(kept),events:[...events.values()].map(e=>({...e})),totals:[...totals.values()].map(e=>({...e})),meta:Object.fromEntries(meta),protocols:Object.fromEntries(protocols)}),persisted:()=>persisted,
   BACKUP_FILE,BACKUP_KEYS,BACKUP_MAX,QR_MAX,QR_LIBS,backupData,restoreBackup,restoreWords,downloadBackup,qrPayload,transferIntent,transfer,

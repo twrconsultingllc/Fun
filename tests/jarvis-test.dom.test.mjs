@@ -708,6 +708,7 @@ export default async function run(t, page) {
     await protocolsAndFollowUps(t, page);
     await backupAndQr(t, page);
     await heRemembersYou(t, page);
+    await meaningModule(t, page);
     await commandLinks(t, page);
 }
 
@@ -1050,9 +1051,11 @@ async function heRemembersYou(t, page) {
         const counted = [...page.html.matchAll(/\btrack\('([^']+)'/g)].map((m) => m[1]).filter((id) => !id.endsWith(':')); // 'skin:'+k is built from the skin list
         t.eq('everything the page counts by name is on the list', counted.filter((id) => !J.EVENT_IDS.includes(id)).join(), '');
         t.ok('every capability has a hint, and every hint\'s links are real command links', J.CAPABILITIES.every((c) => c.hint.length > 20 && [...c.hint.matchAll(/⟦([^⟦⟧|]+)(?:\|([^⟦⟧|]+))?⟧/g)].every((m) => J.chipCmds().includes(m[2] || m[1]))));
-        // What a level-1 newcomer sees in this browser (jsdom: no WebGL, camera, mic or voices).
+        // What a level-1 newcomer sees in this browser (jsdom: no WebGL, camera, mic or voices). It does have WebAssembly,
+        // which is all the language module (Session 12) needs, so that one counts here.
+        const cant = (c) => c.can && c.can !== 'wasm';
         const d = J.discovery(J.usageNow());
-        t.ok('the count leaves out what this browser can\'t do', !J.CAPABILITIES.filter((c) => c.can).some((c) => d.missing.includes(c)));
+        t.ok('the count leaves out what this browser can\'t do', !J.CAPABILITIES.filter(cant).some((c) => d.missing.includes(c)));
         t.eq('and what\'s locked', d.locked, 4);
         const first = await J.answer('what haven\'t I tried');
         const d2 = J.discovery(J.usageNow());
@@ -1064,7 +1067,7 @@ async function heRemembersYou(t, page) {
         t.ok('then they start again', given.includes((await J.answer('what have i not tried')).replace(/^.*Here's a hint: /, '').replace(/ Four more.*$/, '')));
         for (const q of ['what havent i tried', 'what have i not tried yet', 'jarvis what haven\'t i tried', 'give me a hint', "what's left to discover", 'what else can i try'])
             t.ok(`"${q}" asks it`, /^You've discovered/.test(await J.answer(q)));
-        t.ok('no hint is for something locked or unavailable', !J.CAPABILITIES.filter((c) => c.lock || c.can).some((c) => given.includes(c.hint)));
+        t.ok('no hint is for something locked or unavailable', !J.CAPABILITIES.filter((c) => c.lock || cant(c)).some((c) => given.includes(c.hint)));
         t.ok('a newcomer at level 1 hears no "new capability" lines', !/New capability/.test(await typeIn(env, 'tell me a joke')));
         const stars = J.capabilityStars();
         t.eq('the memory core\'s locked stars: the four extras', stars.filter((s) => s.state === 'locked').map((s) => s.key).join(), 'hud,tesseract,avengers,iron-man');
@@ -2946,3 +2949,294 @@ async function backupAndQr(t, page) {
         t.ok('the README lists the same hashes', Object.values(QR_FILES).every((h) => readme.includes(h)));
     } else t.note('hash checks skipped: not running against the working copy');
 }
+
+// Session 12 of jarvis/build-plan.html: the meaning module (review 64). "Upgrade your brain" loads MediaPipe's text
+// embedder and the Universal Sentence Encoder from jarvis/text/, and from then on, a sentence nothing else understood
+// is compared with example sentences by meaning. jsdom can't run the model, so the page's loader is swapped for a fake
+// (setTextLib) whose fingerprints this test chooses exactly. Every command's examples get their own direction, and a
+// probe sentence is given a fingerprint whose cosine with a command, after the page's centring, is a number the test
+// picks: so each band (do it, ask, ignore) is hit on purpose. The real model is checked in tests/jarvis-test.chromium.mjs.
+const TEXT_FILES = {
+    'text_bundle.js': 'e6d723a45c9d2f93cadaf86879ecb653324b855ddf0066ffdb5edc57124669ca',
+    'text_wasm_internal.js': '578cabc9cdccdf47eb3b1099379a975ecd32ab1c9336bd87494e23337adf79bb',
+    'text_wasm_internal.wasm': '28cf973aa2575263a1eab07d52a22a0332a30117de1d1bffb147e29685ba5b7b',
+    'universal_sentence_encoder.tflite': '89ad3c74175dd8caa398cc22b657296d94302d20c525c12b58b29420f7249749'
+};
+// A stand-in for the model. Examples of command k all get basis vector k. A sentence the test hasn't placed gets a
+// fresh direction of its own (so it's close to nothing), or, with everything set, the same vector as that command's
+// examples (so anything that reaches the module is a perfect match for it). near() places a sentence at an exact
+// cosine from a direction, worked out the way the page does it: centred on the mean of the examples, then unit length.
+export function fakeMind(J, { everything = null } = {}) {
+    const D = 600, raw = new Map(), exOf = new Map();
+    J.MEANINGS.forEach(([, , ex], k) => ex.forEach((e) => exOf.set(J.meaningText(e), k)));
+    const exs = J.MEANINGS.flatMap((m) => m[2].map(J.meaningText));
+    const mean = new Float32Array(D); for (const e of exs) mean[exOf.get(e)] += 1 / exs.length;
+    let free = J.MEANINGS.length, calls = 0, steps = [];
+    const basis = (i) => { if (i >= D) throw new Error('fakeMind: out of directions'); const v = new Float32Array(D); v[i] = 1; return v; };
+    const unit = (v) => { const n = Math.hypot(...v) || 1; return Float32Array.from(v, (x) => x / n); };
+    const everyK = everything === null ? -1 : J.MEANINGS.findIndex((m) => m[0] === everything);
+    const embed = (t) => {
+        if (raw.has(t)) return raw.get(t);
+        if (exOf.has(t)) return basis(exOf.get(t));
+        const v = everyK >= 0 ? basis(everyK) : basis(free++); raw.set(t, v); return v;
+    };
+    const centred = (v) => unit(v.map((x, i) => x - mean[i]));
+    const dirOf = (cmdOrText) => { const k = J.MEANINGS.findIndex((m) => m[0] === cmdOrText); return centred(k >= 0 ? basis(k) : embed(J.meaningText(cmdOrText))); };
+    // text placed at cosine `score` from each direction given (one, or two at once for a tie), and nothing else.
+    const near = (text, targets, score) => {
+        const dirs = [].concat(targets).map(dirOf), sum = unit(dirs.reduce((a, d) => a.map((x, i) => x + d[i]), new Float32Array(D)));
+        const c = dirs.length === 1 ? 1 : sum.reduce((s, x, i) => s + x * dirs[0][i], 0); // the tie's own cosine with each
+        const s = score / c, o = free++;
+        raw.set(J.meaningText(text), Float32Array.from(sum, (x, i) => mean[i] + s * x + (i === o ? Math.sqrt(Math.max(0, 1 - s * s)) : 0)));
+    };
+    let gate = null;
+    const lib = async (on) => { calls++; for (const p of [0.25, 0.5, 1]) { on(p); if (gate) await new Promise((r) => steps.push(r)); } return (t) => embed(t); };
+    return { lib, near, dirOf, embed, calls: () => calls, hold() { gate = true; }, step() { const r = steps.shift(); r?.(); return !!r; }, release() { gate = null; while (steps.length) steps.shift()(); } };
+}
+async function meaningModule(t, page) {
+    const URL_ = 'https://jarvis.test/jarvis.html', quiet = { ignore: /getContext|HTMLCanvasElement/ };
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const lastAi = (env) => [...env.document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? '';
+    const typeIn = async (env, text) => { const { document, window } = env; document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(520); return lastAi(env); };
+    const count = (J, id) => J.usageNow().n[id] || 0;
+    const MISSED = /What were you trying to say\?$/;
+    const fixed = { ...quiet, beforeParse(w) { w.Math.random = () => 0.42; } };
+    const src = page.html;
+
+    t.section('Meaning module: the files (Session 12)');
+    if (page.url.startsWith('file:')) {
+        for (const [file, want] of Object.entries(TEXT_FILES)) {
+            let got = 'missing';
+            try { got = createHash('sha256').update(await readFile(fileURLToPath(new URL('jarvis/text/' + file, page.url)))).digest('hex'); } catch { /* missing */ }
+            t.eq(`jarvis/text/${file} is the pinned file`, got, want);
+        }
+        const readme = await readFile(fileURLToPath(new URL('jarvis/text/README.md', page.url)), 'utf8');
+        t.ok('the README lists the same hashes', Object.values(TEXT_FILES).every((h) => readme.includes(h)));
+    } else t.note('hash checks skipped: not running against the working copy');
+    t.ok('the page loads the module from jarvis/text/ on this site', /const TEXT_DIR='jarvis\/text\/';/.test(src) && /new URL\(TEXT_DIR\+f,location\.href\)/.test(src) && !/cdn\.jsdelivr|storage\.googleapis|tfhub|kaggle/.test(src));
+    t.eq('it is imported in one place', (src.match(/import\(textUrl\(/g) || []).length, 1);
+    t.ok('and that place is only run by "upgrade your brain"', (src.match(/\btextLib\(/g) || []).length === 1 && /async function upgradeBrain\(\)\{[\s\S]*?const embed=await textLib\(/.test(src));
+    t.eq('the CSP is exactly what it was before Session 8: no new outside host', env0Csp(src), CSP_BEFORE_S8);
+
+    let env = await openDom(page.html, URL_, fixed), J = env.window.__jarvis;
+    try {
+        t.section('Meaning module: not at start-up (Session 12)');
+        J.finishBoot(); await wait(50);
+        t.eq('the module is off when the page loads', J.mind().state, 'off');
+        t.ok('"show me the planet we live on" isn\'t understood before the upgrade', MISSED.test(await typeIn(env, 'show me the planet we live on')));
+        await typeIn(env, 'never mind'); // so the next thing said isn't taken as what that meant
+        t.eq('and nothing has been loaded by then', J.mind().state, 'off');
+
+        t.section('Meaning module: "upgrade your brain" (Session 12)');
+        for (const q of ['upgrade your brain', 'jarvis upgrade your brain please', 'Jarvis, upgrade your brain.', 'hey jarvis upgrade your brain', 'please upgrade your brain jarvis', 'update your brain', 'install your language module', 'get smarter'])
+            t.ok(`"${q}" asks for it`, J.upgradeIntent(q));
+        for (const q of ['show me your brain', 'upgrade', 'my brain hurts', 'upgrade my phone'])
+            t.ok(`"${q}" doesn't`, !J.upgradeIntent(q));
+        const F = fakeMind(J); F.hold(); J.setTextLib(F.lib);
+        const before = count(J, 'cmd:upgrade');
+        const said = await typeIn(env, 'jarvis upgrade your brain please');
+        t.ok('he answers at once, saying what he\'s downloading and from where', /^Upgrading\. I'm downloading my language comprehension module from this site, about 12 megabytes\.$/.test(said), said);
+        t.eq('it counts once, as cmd:upgrade', count(J, 'cmd:upgrade'), before + 1);
+        t.eq('the module is loading', J.mind().state, 'loading');
+        const line = env.document.getElementById('proto');
+        t.ok('without WebGL, the progress shows over the orb', !line.hidden && line.textContent === 'UPGRADING · LANGUAGE MODULE · 18%', line.textContent);
+        F.step(); await wait(20);
+        t.eq('and moves on as it downloads', line.textContent, 'UPGRADING · LANGUAGE MODULE · 35%');
+        t.ok('asking again while it loads doesn\'t start a second download', /^I'm upgrading already/.test(await typeIn(env, 'upgrade your brain')) && F.calls() === 1 && count(J, 'cmd:upgrade') === before + 1);
+        F.release(); await wait(150);
+        t.eq('then the module is online', J.mind().state, 'on');
+        t.eq('"Language comprehension module online."', lastAi(env), "Language comprehension module online. Talk to me in your own words now. If I'm not sure what you mean, I'll ask.");
+        t.ok('and the progress line goes', line.hidden);
+        t.ok('both lines go through say(), so they\'re spoken in whole sentences', /say\("Language comprehension module online\./.test(src) && /say\("I couldn't load my language module\./.test(src));
+        t.ok('a third time: already online, and not counted again', /^My language comprehension module is already online/.test(await typeIn(env, 'upgrade your brain')) && count(J, 'cmd:upgrade') === before + 1);
+        t.ok('"what do you save" says the module is only in memory', /My language module is only in memory too/.test(await typeIn(env, 'what do you save')));
+
+        t.section('Meaning module: very close, somewhat close, not close (Session 12)');
+        F.near('show me the planet we live on', 'show me earth', 0.82);
+        let n = count(J, 'scene:globe');
+        let r = await typeIn(env, 'show me the planet we live on');
+        t.ok('very close (0.82): he does it. The globe, which needs WebGL here', /My holo-projector needs WebGL/.test(r), r);
+        t.eq('and it counts under its own ID, scene:globe', count(J, 'scene:globe'), n + 1);
+        t.eq('"why?" says it was the meaning', await typeIn(env, 'why'), 'Because what you said means much the same as the Earth globe.');
+        F.near('cheer me up', 'tell me a joke', 0.9);
+        n = count(J, 'cmd:joke');
+        r = await typeIn(env, 'cheer me up');
+        t.ok('very close (0.9): a joke', !MISSED.test(r) && !/Did you mean/.test(r) && count(J, 'cmd:joke') === n + 1, r);
+        t.eq('"why?" after it', await typeIn(env, 'why'), 'Because what you said means much the same as a joke.');
+        F.near('make me chuckle', 'tell me a joke', 0.7);
+        t.eq('somewhat close (0.7): "Did you mean …?"', await typeIn(env, 'make me chuckle'), 'Did you mean a joke? Say yes or no.');
+        t.eq('asking doesn\'t count anything', count(J, 'cmd:joke'), n + 1);
+        r = await typeIn(env, 'yes');
+        t.ok('"yes" does it', !/Did you mean|Yes to what/.test(r) && count(J, 'cmd:joke') === n + 2, r);
+        t.eq('and "yes" again isn\'t an answer to anything', await typeIn(env, 'yes'), "Yes to what? I didn't ask you anything.");
+        await typeIn(env, 'make me chuckle');
+        t.eq('"no": he asks what you meant instead', await typeIn(env, 'no'), "Then tell me what you meant, and I'll remember it.");
+        t.eq('and does nothing', count(J, 'cmd:joke'), n + 2);
+        r = await typeIn(env, 'flip a coin');
+        t.ok('so the next thing you say teaches him the phrase, as usual', /^Got it\. Next time you say "make me chuckle", I'll know you mean "flip a coin"\. It's (heads|tails)\.$/.test(r), r);
+        F.near('tell me a gag', 'tell me a joke', 0.7);
+        await typeIn(env, 'tell me a gag');
+        const coins = count(J, 'cmd:coin');
+        r = await typeIn(env, 'what time is it');
+        t.ok('anything else drops the question, and is answered as itself', /^It's /.test(r), r);
+        t.eq('so a "yes" after that answers nothing', await typeIn(env, 'yes'), "Yes to what? I didn't ask you anything.");
+        t.eq('and nothing ran', count(J, 'cmd:joke') + count(J, 'cmd:coin'), n + 2 + coins);
+        F.near('i want a giggle', 'tell me a joke', 0.55);
+        t.ok('not close (0.55): the usual "didn\'t understand"', MISSED.test(await typeIn(env, 'i want a giggle')));
+        await typeIn(env, 'never mind');
+        F.near('watch the room', 'scan the room', 0.97);
+        t.eq('the camera is never started on a guess: even at 0.97 he asks', await typeIn(env, 'watch the room'), 'Did you mean the threat scan? Say yes or no.');
+        await typeIn(env, 'no'); await typeIn(env, 'never mind');
+        F.near('listen out for me', 'always listen', 0.97);
+        t.eq('nor the mic', await typeIn(env, 'listen out for me'), 'Did you mean always listening? Say yes or no.');
+        await typeIn(env, 'no'); await typeIn(env, 'never mind');
+        t.ok('the camera and mic commands are the ones that ask first', J.MEANINGS.filter((m) => J.asksFirst(m[0])).map((m) => m[0]).join() === 'scan the room,hand control,always listen,scan settings');
+        F.near('zebras', 'tell me a joke', 0.99);
+        t.ok('a single word is never guessed at', MISSED.test(await typeIn(env, 'zebras')));
+        await typeIn(env, 'never mind');
+
+        t.section('Meaning module: the patterns always win (Session 12)');
+        // A brain that thinks everything means "tell me a joke". Every command understood today must still do what it did.
+        const plain = await openDom(page.html, URL_, fixed), P = plain.window.__jarvis;
+        const adv = await openDom(page.html, URL_, fixed), A = adv.window.__jarvis;
+        try {
+            P.finishBoot(); A.finishBoot(); await wait(50);
+            A.setTextLib(fakeMind(A, { everything: 'tell me a joke' }).lib);
+            P.setTextLib(fakeMind(P).lib); // online too, so the discovery count matches, but nothing is ever close
+            await Promise.all([typeIn(adv, 'upgrade your brain'), typeIn(plain, 'upgrade your brain')]); await wait(150);
+            t.ok('(the always-a-joke brain is online, and so is one that never matches)', A.mind().state === 'on' && P.mind().state === 'on');
+            await typeIn(plain, 'blah blah'); await typeIn(plain, 'never mind');
+            t.ok('(and it does turn anything else into a joke)', !MISSED.test(await typeIn(adv, 'blah blah')) && count(A, 'cmd:joke') === 1);
+            const phrases = [...P.chipCmds(), 'jarvis show me the galaxy please', 'take me to mars', 'now jupiter', 'what is seven times eight', 'my dog is rex', 'what do you know about me',
+                'speak slower', 'make the orb purple', 'how well do you know me', 'whats my favourite', 'what havent i tried', 'show me florida', 'thank you', 'how far is the moon',
+                'delete movie night', 'forget my name', 'reset my settings', 'list my protocols', 'brief me', 'how are you'].filter((q) => !/^(?:upgrade your brain|reboot|wake up daddy's home|house party|scan settings|restore my settings|back up my settings)$/i.test(q));
+            const diff = [];
+            for (const q of phrases) {
+                const [a, b] = await Promise.all([typeIn(plain, q), typeIn(adv, q)]);
+                if (a !== b) diff.push(`${q}: "${a.slice(0, 60)}" vs "${b.slice(0, 60)}"`);
+                if (/Say yes or no\.$/.test(a)) { await Promise.all([typeIn(plain, 'no'), typeIn(adv, 'no')]); }
+            }
+            t.eq(`all ${phrases.length} command links and pinned phrasings answer exactly as without the module`, diff.join(' | '), '');
+            t.eq('and none of them reached it', count(A, 'cmd:joke'), count(P, 'cmd:joke') + 1);
+        } finally { plain.close(); adv.close(); }
+
+        t.section('Meaning module: destructive commands stay exact (Session 12)');
+        t.eq('no command in the list deletes, forgets, resets or reboots', J.MEANINGS.filter((m) => J.DESTRUCTIVE.test(J.meaningText(m[0])) || m[2].some((e) => J.DESTRUCTIVE.test(e))).map((m) => m[0]).join(), '');
+        for (const q of ['forget everything', 'get rid of movie night', 'scrap my protocol', 'throw away my settings', 'ditch that', 'delete movie night', 'reset my settings', 'clear my phrases', 'wipe your memory', 'erase it all', 'reboot', 'power down', 'remove my protocol'])
+            t.ok(`"${q}" is a destructive word`, J.DESTRUCTIVE.test(J.meaningText(q)));
+        F.near('forget about the globe', 'show me earth', 0.99);
+        n = count(J, 'scene:globe');
+        r = await typeIn(env, 'forget about the globe');
+        t.ok('something said with a destructive word is never matched, however close (0.99)', MISSED.test(r) && count(J, 'scene:globe') === n, r);
+        await typeIn(env, 'never mind');
+        // A taught phrase that resets something: taught the usual way, then never chosen by meaning.
+        await typeIn(env, 'make the orb gold');
+        await typeIn(env, 'fresh start'); r = await typeIn(env, 'I meant reset my settings');
+        t.ok('(a phrase taught to mean "reset my settings")', /^Got it\. Next time you say "fresh start"/.test(r), r);
+        await typeIn(env, 'make the orb gold');
+        t.ok('isn\'t a candidate', !J.meaningCandidates().some((c) => c.key.startsWith('learned:fresh')));
+        F.near('a fresh beginning', 'fresh start', 0.99);
+        r = await typeIn(env, 'a fresh beginning');
+        t.ok('so saying it another way (0.99) doesn\'t reset your settings', MISSED.test(r) && J.settings().color === 'gold', r);
+        await typeIn(env, 'never mind');
+        await typeIn(env, 'create movie night protocol make the orb purple then open the galaxy');
+        F.near('get rid of the movie night thing', 'movie night', 0.99);
+        r = await typeIn(env, 'get rid of the movie night thing');
+        t.ok('nor is deleting a protocol', MISSED.test(r) && !!J.protocols()['movie night'], r);
+        await typeIn(env, 'never mind');
+        t.ok('deleting one by name still asks, as before', /^Delete the movie night protocol\? Say yes or no\.$/.test(await typeIn(env, 'delete movie night')));
+        await typeIn(env, 'no');
+
+        t.section('Meaning module: taught phrases and protocol names (Session 12)');
+        await typeIn(env, 'beam me up'); await typeIn(env, 'I meant roll a die');
+        F.near('beam me up scotty', 'beam me up', 0.9);
+        n = count(J, 'cmd:die');
+        r = await typeIn(env, 'beam me up scotty');
+        t.ok('a taught phrase, said another way (0.9): it does what it was taught', /^You rolled a \d\.$/.test(r) && count(J, 'cmd:die') === n + 1, r);
+        F.near('beam us up', 'beam me up', 0.7);
+        t.eq('somewhat close: it asks, naming the phrase', await typeIn(env, 'beam us up'), 'Did you mean "beam me up", which you taught me? Say yes or no.');
+        await typeIn(env, 'no'); await typeIn(env, 'never mind');
+        F.near('cinema evening', 'movie night', 0.9);
+        n = count(J, 'cmd:protocol'); J.setPace(0.002);
+        r = await typeIn(env, 'cinema evening');
+        t.ok('a protocol\'s name, said another way (0.9): it runs, counted as cmd:protocol', count(J, 'cmd:protocol') === n + 1);
+        await J.protocolDone();
+        t.eq('it ran its steps', J.settings().color, 'purple');
+        F.near('film night', 'movie night', 0.65);
+        t.eq('somewhat close: it asks', await typeIn(env, 'film night'), 'Did you mean the movie night protocol? Say yes or no.');
+        await typeIn(env, 'yes'); await J.protocolDone();
+        t.eq('and yes runs it', count(J, 'cmd:protocol'), n + 2);
+
+        t.section('Meaning module: nothing new is stored (Session 12)');
+        const db = await dbDump(env.idb), all = JSON.stringify(db);
+        t.eq('the database still has its five tables', Object.keys(db).sort().join(), 'events,kept,meta,protocols,totals');
+        t.eq('kept: only the listed settings keys', Object.keys(db.kept).filter((k) => !J.STORE_KEYS.includes(k)).join(), '');
+        t.eq('meta: only the three bookkeeping numbers', Object.keys(db.meta).filter((k) => !['copied', 'rolled', 'carry'].includes(k)).join(), '');
+        t.ok('no fingerprint (no list of numbers) anywhere in it', !/\[(?:-?\d+(?:\.\d+)?(?:e-?\d+)?,){6,}/.test(all) && !/Float32Array|"0":/.test(all));
+        t.ok('no example sentence and nothing said to the module', !/planet we live on|cheer me up|tell me a gag|cinema evening|scotty|milky way|language module|fingerprint/i.test(all));
+        t.ok('the only counts are listed IDs', Object.values(db.events).every((e) => J.EVENT_IDS.includes(e.id)));
+        const ver = await new Promise((res) => { const rq = env.idb.open('jarvis-test'); rq.onsuccess = () => { const v = rq.result.version; rq.result.close(); res(v); }; });
+        t.eq('and it is still at version 2', ver, 2);
+        t.ok('the fingerprints live in memory', J.mind().fingerprints > 100);
+    } finally { env.close(); }
+
+    t.section('Meaning module: gone on reload (Session 12)');
+    {
+        const first = await openDom(page.html, URL_, fixed);
+        const F = fakeMind(first.window.__jarvis); first.window.__jarvis.setTextLib(F.lib); first.window.__jarvis.finishBoot();
+        await typeIn(first, 'upgrade your brain'); await wait(150);
+        F.near('cheer me up', 'tell me a joke', 0.9);
+        t.ok('(online, and understanding a rewording)', !MISSED.test(await typeIn(first, 'cheer me up')));
+        const idb = first.idb; first.close(); await wait(40);
+        env = await openDom(page.html, URL_, { ...fixed, idb }); J = env.window.__jarvis;
+        try {
+            J.finishBoot(); await wait(50);
+            t.eq('after a reload the module is off again', J.mind().state, 'off');
+            t.eq('with no fingerprints', J.mind().fingerprints, 0);
+            t.ok('and the rewording isn\'t understood until you upgrade again', MISSED.test(await typeIn(env, 'cheer me up')));
+        } finally { env.close(); }
+    }
+
+    t.section('Meaning module: too close to call (Session 12)');
+    // Two things nearly as close as each other: a taught phrase that means much the same as "tell me a joke" (0.98 from
+    // it), and a sentence 0.9 from the joke, so 0.88 from the phrase. Above the "do it" band, but only 0.02 apart.
+    env = await openDom(page.html, URL_, fixed); J = env.window.__jarvis;
+    try {
+        J.finishBoot(); await wait(50);
+        await typeIn(env, 'crack me up'); await typeIn(env, 'I meant flip a coin'); // taught before the upgrade
+        const F = fakeMind(J); J.setTextLib(F.lib);
+        F.near('crack me up', 'tell me a joke', 0.98);
+        F.near('give me a chortle', 'tell me a joke', 0.9);
+        await typeIn(env, 'upgrade your brain'); await wait(150);
+        const m = J.meaningOf('give me a chortle');
+        t.ok('(the two scores: 0.9 and about 0.88)', m && Math.abs(m.score - 0.9) < 1e-6, JSON.stringify(m && m.score));
+        const n = count(J, 'cmd:joke') + count(J, 'cmd:coin');
+        const r = await typeIn(env, 'give me a chortle');
+        t.ok('he asks rather than picks', /^Did you mean a joke\? Say yes or no\.$/.test(r), r);
+        t.eq('and nothing ran', count(J, 'cmd:joke') + count(J, 'cmd:coin'), n);
+    } finally { env.close(); }
+
+    t.section('Meaning module: when it can\'t load (Session 12)');
+    env = await openDom(page.html, URL_, fixed); J = env.window.__jarvis;
+    try {
+        J.finishBoot(); await wait(50);
+        J.setTextLib(async () => { throw new Error('offline'); });
+        await typeIn(env, 'upgrade your brain'); await wait(100);
+        t.eq('he says so', lastAi(env), "I couldn't load my language module. Check your connection, then say upgrade your brain to try again.");
+        t.ok('the module stays off and the progress line goes', J.mind().state === 'off' && env.document.getElementById('proto').hidden);
+        const F = fakeMind(J); J.setTextLib(F.lib);
+        await typeIn(env, 'upgrade your brain'); await wait(150);
+        t.eq('and saying it again tries again', J.mind().state, 'on');
+    } finally { env.close(); }
+
+    t.section('Meaning module: discovery and clearance (Session 12)');
+    env = await openDom(page.html, URL_, fixed); J = env.window.__jarvis;
+    try {
+        const cap = J.CAPABILITIES.find((c) => c.ids.includes('cmd:upgrade'));
+        t.ok('"upgrade your brain" has a capability, with its usage ID on the list', !!cap && J.EVENT_IDS.includes('cmd:upgrade') && cap.cmds.includes('upgrade your brain'));
+        t.ok('it isn\'t a clearance extra: anyone can upgrade him, from level 1', !cap.lock && J.levelNow() === 1);
+        t.ok('the help answer offers it as a link', J.brainKnown('help').includes('⟦upgrade your brain⟧') && J.chipCmds().includes('upgrade your brain'));
+        t.ok('it needs only WebAssembly', cap.can === 'wasm');
+    } finally { env.close(); }
+}
+const env0Csp = (html) => (html.match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)">/) || [])[1];

@@ -75,8 +75,17 @@ size: a newcomer's memory core with its four red locked stars (one is tapped
 for real and says what opens it), then a restored backup and one typed
 command that make level 3 mid-visit, with the "ACCESS LEVEL 3 GRANTED" sweep
 over the real suit, then the Tesseract and the gold-and-red HUD that level 3
-opens, with screenshots of each. Run it after the jsdom suite, not alongside
-it: its timing waits fail when the two compete for the CPU.
+opens, with screenshots of each.
+Since Session 12 it also loads the meaning module's real model from
+`jarvis/text/`, in a fresh profile at each size: nothing is fetched from
+there until "jarvis upgrade your brain please" is typed, the neural network
+plays the upgrade while it downloads, "show me the planet we live on" ranks
+closest to the globe and opens it, and "make me smile" asks "Did you mean a
+joke?", which "yes" answers. The real database gains nothing but usage
+counts and the Cache API stays empty. The model works out its example
+sentences on the CPU, so under SwiftShader this step takes a few minutes.
+Run it after the jsdom suite, not alongside it: its timing waits fail when
+the two compete for the CPU.
 
 ```bash
 node jarvis-test.chromium.mjs                     # screenshots go to a new temp folder

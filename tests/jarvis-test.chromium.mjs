@@ -28,6 +28,12 @@
  * LEVEL 3 GRANTED" sweep over the real suit. Then the extras level 3 opened: the Tesseract, rendered, and the
  * gold-and-red HUD. Screenshots of each.
  *
+ * Session 12 added step 7: the meaning module with the real model, in a fresh profile at each size. Nothing comes from
+ * jarvis/text/ until "jarvis upgrade your brain please" is typed; the neural network plays the upgrade while it downloads;
+ * "show me the planet we live on" ranks closest to the globe and opens it; "make me smile" asks "Did you mean a joke?" and
+ * "yes" tells one. The real database gains nothing but usage counts, the Cache API stays empty, and a reload starts
+ * without the module. Screenshots of the upgrade and the question at both sizes. This step is slow under SwiftShader.
+ *
  * It isn't part of run.mjs, because it needs Playwright and Chromium, which the claude.ai/code containers
  * have and the Codespace doesn't (see "Browsers and screenshots" in CLAUDE.md). Run it from tests/:
  *
@@ -103,7 +109,10 @@ await ctx.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', 
 async function open(file, size = { width: 1280, height: 800 }, on = ctx) {
     const page = await on.newPage(); await page.setViewportSize(size);
     page.on('pageerror', (e) => problems.push(`${file} page error: ${e.message}`));
-    page.on('console', (m) => { if (m.type() === 'error' || /Refused/.test(m.text())) problems.push(`${file} console: ${m.text()}`); });
+    // MediaPipe's text embedder (Session 12) prints its own two start-up notes through console.error. They're the
+    // library's logging, not page errors, so exactly those two lines are let through; anything else still fails.
+    const MEDIAPIPE_LOG = /^(?:INFO: Created TensorFlow Lite XNNPACK delegate for CPU\.|WARNING: Attempting to use a delegate that only supports static-sized tensors with a graph that has dynamic-sized tensors \(tensor#\d+ is a dynamic-sized tensor\)\.)$/;
+    page.on('console', (m) => { if ((m.type() === 'error' && !MEDIAPIPE_LOG.test(m.text())) || /Refused/.test(m.text())) problems.push(`${file} console: ${m.text()}`); });
     await page.goto(BASE + file); await page.waitForFunction(() => window.__jarvis);
     if (file === 'jarvis-test.html') await page.evaluate(() => window.__jarvis.ready);
     return page;
@@ -413,6 +422,69 @@ try {
             ok(`no sideways scroll at ${w}×${h}`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
             await p.close();
         } finally { await ctxC.close(); await rm(join(work, `profile-c-${w}`), { recursive: true, force: true }); }
+    }
+    // 7. Session 12: the meaning module, with the real model, in a fresh profile at each size. Nothing is fetched from
+    // jarvis/text/ until "upgrade your brain" is typed. The neural network plays the upgrade while it downloads (a
+    // screenshot part way), then "show me the planet we live on" ranks closest to the globe and opens it, and a
+    // somewhat-close "make me smile" asks "Did you mean a joke?" (a screenshot), which yes answers. The real database
+    // is the same before and after apart from the usage counts, the Cache API is unused, and a reload starts without it.
+    // Slow under SwiftShader: the model works out the example sentences' fingerprints on the CPU.
+    if (three) for (const [w, h] of [[1280, 800], [390, 844]]) {
+        const ctxM = await chromium.launchPersistentContext(join(work, `profile-m-${w}`), { executablePath, headless: true,
+            args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: w, height: h } });
+        await ctxM.route('https://cdnjs.cloudflare.com/**', (r) => r.fulfill({ path: three, contentType: 'application/javascript', headers: { 'access-control-allow-origin': '*' } }));
+        await ctxM.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
+        const asked = [];
+        ctxM.on('request', (rq) => asked.push(rq.url()));
+        try {
+            const p = await open('jarvis-test.html', { width: w, height: h }, ctxM);
+            await p.click('#boot-skip'); await p.waitForTimeout(800);
+            const lastAi = () => p.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent || '');
+            const type = async (q) => { await p.fill('#q', q); await p.press('#q', 'Enter'); await p.waitForTimeout(900); return lastAi(); };
+            ok(`nothing is fetched from jarvis/text/ at start-up at ${w}×${h}`, !asked.some((u) => u.includes('/jarvis/text/')) && await p.evaluate(() => window.__jarvis.mind().state) === 'off');
+            const dbBefore = await dbOf(p);
+            const said = await type('jarvis upgrade your brain please');
+            ok(`"jarvis upgrade your brain please", typed unpunctuated, starts the upgrade at ${w}×${h}`, /^Upgrading\. I'm downloading my language comprehension module from this site, about 12 megabytes\. Watch my neural network\.$/.test(said), said);
+            await p.waitForFunction(() => /^UPGRADING · ([3-9]\d)%$/.test(window.__jarvis.holoStat()), null, { timeout: 120000 }).catch(() => {});
+            const mid = await p.evaluate(() => ({ title: document.getElementById('holo-title').textContent, stat: window.__jarvis.holoStat(), amber: !document.getElementById('holo-proto').hidden, cut: (() => { const e = document.getElementById('holo-stat'); return e.scrollWidth > e.clientWidth; })() }));
+            ok(`the neural network plays the upgrade while it downloads at ${w}×${h}`, /NEURAL NETWORK/.test(mid.title) && /^UPGRADING · \d+%$/.test(mid.stat), JSON.stringify(mid));
+            ok(`the percentage fits on the line, not cut off, at ${w}×${h}`, !mid.cut);
+            ok('shown once, in the scene\'s stat line, not again in the amber line', !mid.amber);
+            await p.screenshot({ path: join(OUT, `upgrade-${w}.png`) });
+            await p.waitForFunction(() => window.__jarvis.mind().state !== 'loading', null, { timeout: 300000 }).catch(() => {});
+            ok(`"Language comprehension module online." at ${w}×${h}`, /^Language comprehension module online\./.test(await lastAi()) && await p.evaluate(() => window.__jarvis.mind().state) === 'on', await lastAi());
+            ok('the stat line says so', await p.evaluate(() => window.__jarvis.holoStat()) === 'BRAIN UPGRADED');
+            await p.waitForTimeout(600);
+            await p.screenshot({ path: join(OUT, `upgrade-done-${w}.png`) });
+            const files = asked.filter((u) => u.includes('/jarvis/text/')).map((u) => u.replace(/^.*\/jarvis\/text\//, '')).sort();
+            ok('it fetched the bundle, the loader, the WebAssembly and the model, all from this site', ['text_bundle.js', 'text_wasm_internal.js', 'text_wasm_internal.wasm', 'universal_sentence_encoder.tflite'].every((f) => files.includes(f)), files.join());
+            ok('and nothing from any other host', asked.every((u) => u.startsWith(BASE) || /^(data|blob):|^https:\/\/(cdnjs\.cloudflare\.com|fonts\.googleapis\.com)\//.test(u)), asked.filter((u) => !u.startsWith(BASE)).join());
+            if (w === 1280) {
+                const rank = await p.evaluate(() => { const m = window.__jarvis.meaningOf('show me the planet we live on'); return m && { key: m.c.key, score: m.score, sure: m.sure }; });
+                ok('"show me the planet we live on" ranks closest to the globe, close enough to do it', rank && rank.key === 'cmd:show me earth' && rank.sure, JSON.stringify(rank));
+                results.push({ pass: true, line: `     (its score: ${rank && rank.score.toFixed(3)})` });
+            }
+            const globeBefore = await p.evaluate(() => window.__jarvis.usageNow().n['scene:globe'] || 0);
+            await type('show me the planet we live on'); await p.waitForTimeout(2500);
+            ok(`typed, it opens the globe at ${w}×${h}`, (await p.evaluate(() => document.getElementById('holo-title').textContent)).includes('EARTH'));
+            ok('counted as scene:globe', await p.evaluate(() => window.__jarvis.usageNow().n['scene:globe'] || 0) === globeBefore + 1);
+            await type('close'); await p.waitForTimeout(800);
+            const dym = await type('make me smile');
+            ok(`somewhat close: "Did you mean a joke?" at ${w}×${h}`, dym === 'Did you mean a joke? Say yes or no.', dym);
+            await p.screenshot({ path: join(OUT, `did-you-mean-${w}.png`) });
+            const jokes = await p.evaluate(() => window.__jarvis.usageNow().n['cmd:joke'] || 0);
+            const y = await type('yes');
+            ok('and "yes" tells one, counted as cmd:joke', !/Did you mean|Yes to what/.test(y) && await p.evaluate(() => window.__jarvis.usageNow().n['cmd:joke'] || 0) === jokes + 1, y);
+            await p.waitForTimeout(300);
+            const dbAfter = await dbOf(p), strip = (d) => JSON.stringify({ ...d, events: null, names: null });
+            ok(`the real database: nothing new but usage counts at ${w}×${h}`, strip(dbAfter) === strip(dbBefore) && Object.values(dbAfter.events || {}).every((e) => Object.keys(e).sort().join() === 'day,id,n'), strip(dbAfter).slice(0, 300));
+            ok('still version 2, and no fingerprint in it', await p.evaluate(() => new Promise((res) => { const rq = indexedDB.open('jarvis-test'); rq.onsuccess = () => { const v = rq.result.version; rq.result.close(); res(v); }; })) === 2 && !/\[(?:-?\d+(?:\.\d+)?(?:e-?\d+)?,){6,}/.test(JSON.stringify(dbAfter)));
+            ok('no Cache API storage and no localStorage', (await p.evaluate(() => caches.keys())).length === 0 && Object.keys(await lsOf(p)).length === 0);
+            ok(`no sideways scroll at ${w}×${h}`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+            await p.reload(); await p.waitForFunction(() => window.__jarvis); await p.evaluate(() => window.__jarvis.ready);
+            ok(`a reload starts without the module at ${w}×${h}`, await p.evaluate(() => window.__jarvis.mind()).then((m) => m.state === 'off' && m.fingerprints === 0));
+            await p.close();
+        } finally { await ctxM.close(); await rm(join(work, `profile-m-${w}`), { recursive: true, force: true }); }
     }
 } finally {
     await ctx.close();
