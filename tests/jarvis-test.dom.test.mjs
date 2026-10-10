@@ -1011,7 +1011,7 @@ async function heRemembersYou(t, page) {
             const lead = J.favLead();
             t.eq('the top three, used at least three times, go first in the links', lead, 'Your favourites first: ⟦the Earth|show me earth⟧, ⟦the galaxy|show me the galaxy⟧ and ⟦house party⟧. ');
             t.ok('at the front of the help', J.brainKnown('help').startsWith(lead));
-            t.ok('and of the "didn\'t understand" list', (await J.answer('blorp the snorkel')).includes(lead + "Here's what I can do"));
+            t.ok('and of the "didn\'t understand" list', (await J.answer('blorp the snorkel')).includes(lead + 'Tap ⟦see what I can do'));
             await J.answer('no');
             const help = await typeIn(env, 'help');
             const links = [...env.document.querySelectorAll('#log .msg.ai')].pop().querySelectorAll('button.cmd');
@@ -1036,7 +1036,7 @@ async function heRemembersYou(t, page) {
         env = await openDom(page.html, URL_, { ...quiet, idb }); J = env.window.__jarvis;
         try {
             t.eq('off: the next load keeps the usual order', J.favLead(), '');
-            t.ok('and help starts as it always did', J.brainKnown('help').startsWith('Ask me'));
+            t.ok('and help starts with its usual line', J.brainKnown('help').startsWith(J.HELP_LINE));
             t.ok('"what do you save" lists it', /my command links in their usual order/.test(await J.answer('what do you save')));
             t.ok('the memory core shows it as a setting star', J.memoryStars().some((s) => s.type === 'setting' && s.label === 'Favourites first: off'));
             for (const q of ['keep the links in their usual order', "don't put my favourites first", 'turn off adaptive chips', 'stop adapting the chips', 'stop moving the links'])
