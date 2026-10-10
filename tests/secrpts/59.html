@@ -176,8 +176,8 @@
       <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
       <span><span class="dot open"></span> Open</span>
     </div>
-    <div class="progress-bar"><div class="progress-fill" style="width: 75%;"></div></div>
-    <div class="progress-label">8 items: 6 verified clean, 2 open.</div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 78%;"></div></div>
+    <div class="progress-label">9 items: 7 verified clean, 2 open.</div>
   </header>
 
   <section>
@@ -217,6 +217,10 @@
     <div class="item">
       <div class="item-head"><div class="item-title">Facts from outside, checked by search only</div><span class="badge open">Open</span></div>
       <div class="item-body"><p>The text-model sizes (6.1 MB and 26 MB) were measured with <code>curl -I</code> against Google's model storage. The Chrome 148 Prompt API, its hardware limits, on-device speech recognition from Chrome 139 and WebGPU on iOS 26 came from web search results, because <code>developer.chrome.com</code> couldn't be fetched from this container. The small-model sizes are third-party estimates, and Session 14 is told to check them. Each session should re-check its facts before relying on them.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Follow-up: Session 14's model picked</div><span class="badge fixed">Confirmed</span></div>
+      <div class="item-body"><p>Added the same day, after you asked for the best model whose licence allows it. Session 14 now names Qwen3-0.6B (<code>Qwen3-0.6B-q4f16_1-MLC</code>), with Qwen2.5-0.5B as the lighter fallback. Sources: WebLLM's <code>src/config.ts</code> for the builds and memory figures (Qwen3-0.6B about 1.4 GB, Qwen2.5-0.5B about 0.9 GB), and the Qwen2.5 and Qwen3 READMEs for the licence ("All our open-weight models are licensed under Apache 2.0"). Hugging Face couldn't be reached from this container, so the per-model licence file is unconfirmed. The session's download workflow is told to refuse anything that isn't tagged <code>apache-2.0</code>. This is a text change inside two existing list items, with no new link, script or style.</p></div>
     </div>
   </section>
 
