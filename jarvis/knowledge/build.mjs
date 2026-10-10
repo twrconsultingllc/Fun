@@ -282,8 +282,8 @@ export const MISSIONS = [
     ['Parker Solar Probe', '2018-065A', 'Parker Solar Probe', 'the Sun, closer than any spacecraft before it', 'NASA'],
     ['Perseverance', '2020-052A', 'Perseverance', 'Mars, as a rover with the Ingenuity helicopter', 'NASA'],
     ['James Webb Space Telescope', '2021-130A', 'Webb', 'a point beyond the Moon, as a space telescope', 'NASA, ESA and the Canadian Space Agency'],
-    ['Artemis I', '2022-156A', 'Artemis', 'the Moon and back, uncrewed', 'NASA'],
-    ['Europa Clipper', '2024-182A', 'Europa Clipper', 'Jupiter, to study its moon Europa', 'NASA']
+    ['Artemis I', '2022-156A', 'Artemis', 'the Moon and back, uncrewed', 'NASA']
+    // Europa Clipper (2024-182A) was dropped on 2026-10-10: the catalogue has no record for it yet ("no data found").
 ];
 export const missionUrl = (id) => `https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=${id}`;
 export function parseMission(html, [name, id, must, target, agency]) {
@@ -397,7 +397,7 @@ export function parseSuits(json) {
 /* ---------- Putting it together ---------- */
 
 // get(url, {binary}) returns the text (or bytes) at a URL. The real build fetches; the dry run reads fixtures.
-export async function buildPack(get, suitsJson) {
+export async function buildPack(get, suitsJson, { wait = 3000 } = {}) {
     // Every source is tried even when one fails, so a single run names every page that didn't parse.
     const problems = [], part = async (what, f) => { try { return await f(); } catch (e) { problems.push(e.message); return []; } };
     const parts = [
@@ -405,9 +405,19 @@ export async function buildPack(get, suitsJson) {
         await part('moons', async () => parseMoons(await get(SOURCES[1].url))),
         await part('stars', async () => parseStars(await get(SOURCES[2].url, { binary: true }))),
         await part('missions', async () => {
-            const got = await Promise.allSettled(MISSIONS.map(async (m) => parseMission(await get(missionUrl(m[1])), m))), bad = got.filter((g) => g.status === 'rejected');
-            if (bad.length) throw new Error(bad.map((g) => g.reason.message).join('\n'));
-            return got.map((g) => g.value);
+            // One page at a time: asked for all at once, the catalogue answered a third of them with its error page.
+            // That page ("An error has occurred") is tried again, twice, a few seconds apart.
+            const out = [], bad = [];
+            for (const m of MISSIONS) {
+                for (let attempt = 1; ; attempt++) {
+                    try { out.push(parseMission(await get(missionUrl(m[1])), m)); break; } catch (e) {
+                        if (attempt < 3 && /An error has occurred/.test(e.message)) { await new Promise((r) => setTimeout(r, wait * attempt)); continue; }
+                        bad.push(e.message); break;
+                    }
+                }
+            }
+            if (bad.length) throw new Error(bad.join('\n'));
+            return out;
         }),
         await part('elements', async () => parseElements(await get(SOURCES[4].url))),
         await part('countries', async () => Promise.all(COUNTRIES.map(async (c) => parseCountry(await get(factbookUrl(c[1])), c)))),

@@ -16,7 +16,7 @@ unchanged: nothing comes from another host.
 | 8 planets and Pluto: distance from the Sun, size, day, year, gravity, temperature, rings | NASA NSSDCA Planetary Fact Sheet (metric), `https://nssdc.gsfc.nasa.gov/planetary/factsheet/` | US government work, public domain |
 | 21 major moons: radius, density | NASA JPL Solar System Dynamics, satellite physical parameters, `https://ssd.jpl.nasa.gov/sats/phys_par/` | US government work, public domain |
 | 25 well-known stars: constellation, spectral type, magnitude, distance where the parallax is good enough | Yale Bright Star Catalogue, 5th revised edition (Hoffleit and Warren 1991), from CDS, `https://cdsarc.cds.unistra.fr/ftp/V/50/catalog.gz` | free to use, with credit to the authors and CDS |
-| 23 space missions: launch date | NASA NSSDCA Master Catalog, one page per mission | US government work, public domain |
+| 22 space missions: launch date | NASA NSSDCA Master Catalog, one page per mission (Europa Clipper is left out: the catalogue has no record for it yet) | US government work, public domain |
 | All 118 elements | PubChem Periodic Table (NIH), `https://pubchem.ncbi.nlm.nih.gov/rest/pug/periodictable/JSON` | US government work, public domain |
 | 76 countries (every country on the globe except England and Scotland): capital, region, area, highest point, flag | CIA World Factbook, last archived copy in `factbook/factbook.json`, pinned to commit `144d6977b2b01ac1cbd220de754c0a005616760b` | public domain |
 | 13 Iron Man suits, a line or two each | Hand-written in `suits.json` | fan knowledge, not an official source |

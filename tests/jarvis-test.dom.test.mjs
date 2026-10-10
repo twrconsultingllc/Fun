@@ -3283,7 +3283,7 @@ async function knowledgePack(t, page) {
     t.section('Knowledge pack: the build script and its pack (Session 13)');
     t.eq('the pack built from the sample documents passes the build\'s own check', B.checkPack(PK).join(' | '), '');
     const kinds = {}; for (const r of PK.records) kinds[r.kind] = (kinds[r.kind] || 0) + 1;
-    t.eq('all four areas: space (planets, moons, stars, missions), countries, all 118 elements and the suits', JSON.stringify(kinds), '{"country":76,"element":118,"mission":23,"moon":21,"planet":9,"star":25,"suit":13}');
+    t.eq('all four areas: space (planets, moons, stars, missions), countries, all 118 elements and the suits', JSON.stringify(kinds), '{"country":76,"element":118,"mission":22,"moon":21,"planet":9,"star":25,"suit":13}');
     t.ok('it lists its sources, and none is Wikipedia', PK.sources.length === 7 && PK.sources.every((x) => x.name && x.licence) && !/wikipedia/i.test(JSON.stringify(PK)));
     t.ok('the World Factbook copy is pinned to one commit', PK.sources.find((x) => x.id === 'countries').url.includes(B.FACTBOOK_SHA) && /^[0-9a-f]{40}$/.test(B.FACTBOOK_SHA));
     t.ok('every suit line is marked as fan knowledge', PK.records.filter((r) => r.kind === 'suit').every((r) => r.fan === true) && /fan knowledge/i.test(PK.sources.find((x) => x.id === 'suits').licence));
@@ -3409,7 +3409,7 @@ async function knowledgePack(t, page) {
         t.ok('the pack table holds nothing but pack records', Object.entries(d.pack).every(([k, r]) => K.packFits(k, r)));
         await typeIn(env, 'tell me about japan'); await typeIn(env, 'how far is mars');
         t.eq('later questions don\'t fetch it again', env.packFetches(), 1);
-        t.ok('"what do you save" now says it keeps the pack, and that none of it is about you', /I also keep my knowledge pack here: 285 public facts about countries, planets, moons, stars, missions, elements and Mr Stark's suits, copied from this site the first time you asked me about one\. None of it is about you\./.test(await typeIn(env, 'what do you save')));
+        t.ok('"what do you save" now says it keeps the pack, and that none of it is about you', /I also keep my knowledge pack here: 284 public facts about countries, planets, moons, stars, missions, elements and Mr Stark's suits, copied from this site the first time you asked me about one\. None of it is about you\./.test(await typeIn(env, 'what do you save')));
         t.ok('a backup never carries the pack', !('pack' in K.backupData()) && !/Lima|Huascaran|Fan knowledge/.test(JSON.stringify(K.backupData())));
         t.ok('nothing about the pack is a setting or a protocol', JSON.stringify(d.kept) === '{}' && JSON.stringify(d.protocols) === '{}');
     } finally { env.close(); }
