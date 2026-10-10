@@ -10,6 +10,11 @@
  * It also takes screenshots of the booted page and the memory core at 1280×800 and 390×844, and fails on
  * any page error or CSP violation.
  *
+ * Session 10 added step 4: a protocol saved and kept across a reload in real IndexedDB (version 2, IDs only), the
+ * "PROTOCOL: MOVIE NIGHT · 3/3" HUD line over the galaxy and over the orb, House Party opening all six scenes in
+ * turn, and follow-ups ("now Jupiter", "bigger", "faster", "go back") with the real scenes open. Screenshots of the
+ * HUD line and House Party at both sizes. These need three.js, like the memory core.
+ *
  * It isn't part of run.mjs, because it needs Playwright and Chromium, which the claude.ai/code containers
  * have and the Codespace doesn't (see "Browsers and screenshots" in CLAUDE.md). Run it from tests/:
  *
@@ -152,6 +157,87 @@ try {
     if (three) ok('the Usage history star at phone size', /Usage history/.test(await memoryCore(test, 'memory-core-390.png')));
     ok('no sideways scroll at phone size', await test.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await test.close();
+
+    // 4. Session 10: protocols in real IndexedDB, the HUD line, House Party and follow-ups, at both sizes.
+    if (three) for (const [w, h] of [[1280, 800], [390, 844]]) {
+        test = await open('jarvis-test.html', { width: w, height: h });
+        await test.click('#boot-skip'); await test.waitForTimeout(800);
+        const say = (q) => test.evaluate((x) => window.__jarvis.answer(x), q);
+        if (w === 1280) {
+            const made = await say('create movie night protocol: make the orb purple, speak slower, then open the galaxy');
+            ok('a protocol is saved', /^Protocol saved: Movie night, three steps/.test(made), made);
+            await test.reload(); await test.waitForFunction(() => window.__jarvis); await test.evaluate(() => window.__jarvis.ready);
+            await test.click('#boot-skip'); await test.waitForTimeout(800);
+            const pdb = await dbOf(test);
+            ok('it is kept across a reload, in real IndexedDB, as fixed IDs only', JSON.stringify(pdb.protocols) === '{"\\"movie night\\"":{"steps":["orb:purple","speed:slow","scene:galaxy"]}}', JSON.stringify(pdb.protocols));
+            ok('the real database is at version 2', await test.evaluate(async () => (await indexedDB.databases()).find((d) => d.name === 'jarvis-test')?.version === 2));
+            ok('and the context was forgotten by the reload', await test.evaluate(() => window.__jarvis.context().lastCmd === null && window.__jarvis.context().scenes.length === 0));
+        }
+        // The HUD line: slowed down so the run can be caught on its last step, with the galaxy up.
+        await test.evaluate(() => window.__jarvis.setPace(4));
+        await say('movie night');
+        await test.waitForFunction(() => window.__jarvis.running()?.i === 2 && document.getElementById('holo-title').textContent.includes('GALAXY'), null, { timeout: 30000 });
+        await test.waitForTimeout(1500);
+        const line = await test.evaluate(() => [document.getElementById('holo-proto').textContent, getComputedStyle(document.getElementById('holo-proto')).display]);
+        ok(`the HUD line shows the run at ${w}×${h}`, line[0] === 'PROTOCOL: MOVIE NIGHT · 3/3' && line[1] !== 'none', JSON.stringify(line));
+        await test.screenshot({ path: join(OUT, `protocol-hud-${w}.png`) });
+        const fitsLine = await test.evaluate(() => { const r = document.getElementById('holo-proto').getBoundingClientRect(), b = ['holo-close', 'holo-hands'].map((id) => document.getElementById(id).getBoundingClientRect());
+            return r.right <= innerWidth && b.every((x) => r.right <= x.left || r.top >= x.bottom || r.bottom <= x.top); });
+        ok(`and doesn't run under the buttons at ${w}×${h}`, fitsLine);
+        // The main view's copy of the line, with no projector open.
+        await test.evaluate(() => window.__jarvis.protocolDone());
+        await say('close');
+        await test.waitForTimeout(800);
+        await say('create orb only protocol: make the orb gold, wait 10 seconds, make the orb purple');
+        await say('orb only');
+        await test.waitForFunction(() => window.__jarvis.running()?.i === 1, null, { timeout: 10000 });
+        const main2 = await test.evaluate(() => { const e = document.getElementById('proto'), r = e.getBoundingClientRect(); return [e.textContent, r.left >= 0 && r.right <= innerWidth && r.height > 0]; });
+        ok(`the line over the orb at ${w}×${h}`, main2[0] === 'PROTOCOL: ORB ONLY · 2/3' && main2[1], JSON.stringify(main2));
+        await test.screenshot({ path: join(OUT, `protocol-orb-${w}.png`) });
+        ok('saying anything stops it', (await say('stop')) === 'Protocol stopped.' && await test.evaluate(() => !window.__jarvis.running() && document.getElementById('proto').hidden));
+        // House Party: every scene in turn, normally.
+        await test.evaluate(() => window.__jarvis.setPace(0.4));
+        await say('house party');
+        const kinds = [];
+        for (let i = 0; i < 6; i++) {
+            await test.waitForFunction((n) => window.__jarvis.running()?.i === n || !window.__jarvis.running(), i, { timeout: 60000 });
+            await test.waitForTimeout(1800);
+            kinds.push(await test.evaluate(() => [document.getElementById('holo-title').textContent, document.getElementById('holo-proto').textContent]));
+            if (i === 1 || i === 4) await test.screenshot({ path: join(OUT, `house-party-${i + 1}-${w}.png`) });
+        }
+        await test.evaluate(() => window.__jarvis.protocolDone());
+        const titles = kinds.map(([a]) => a.replace('HOLO-PROJECTOR // ', '')).join(', ');
+        ok(`House Party opens each scene in turn at ${w}×${h}`, titles === 'SPIRAL GALAXY, SOLAR SYSTEM, EARTH, NEURAL NETWORK, SUIT SCHEMATIC, PARTICLE SCULPTOR', titles);
+        ok('with the HUD counting them', kinds.map(([, b]) => b).join(',') === [1, 2, 3, 4, 5, 6].map((n) => `PROTOCOL: HOUSE PARTY · ${n}/6`).join(','), kinds.map(([, b]) => b).join(','));
+        ok('and the HUD clears at the end', await test.evaluate(() => document.getElementById('holo-proto').hidden && !window.__jarvis.running()));
+        if (w === 1280) {
+            // Follow-ups with real scenes open.
+            await say('take me to mars');
+            const j = await say('now jupiter');
+            ok('"now Jupiter" after Mars flies to Jupiter', /^Jupiter\./.test(j) && (await test.evaluate(() => document.getElementById('holo-stat').textContent)) === 'JUPITER', j);
+            const g0 = await test.evaluate(() => document.querySelector('#stage canvas') && true);
+            ok('"bigger" and "faster" adjust the open scene', (await say('bigger')) === 'Moving in on the solar system.' && (await say('faster')) === 'The planets move faster now.' && g0);
+            ok('"slower" back again', (await say('slower')) === 'The planets move slower now.');
+            const back = await say('go back');
+            ok('"go back" returns to Mars', /^Going back\. Mars\./.test(back), back);
+            ok('"what was that?" repeats it', (await say('what was that')) === back);
+            await say('show me the galaxy');
+            ok('"go back" from another scene reopens the one before', /^Going back\. Mars\./.test(await say('go back')) && (await test.evaluate(() => document.getElementById('holo-title').textContent)).includes('SOLAR'));
+            const dbNow = JSON.stringify(await dbOf(test));
+            ok('nothing from the follow-ups reached the database', !/jupiter|Going back|lastCmd|take me to/i.test(dbNow));
+            // The built-in boot protocol: power down, boot, then build the suit.
+            await test.evaluate(() => window.__jarvis.setPace(0.3));
+            await say("wake up, daddy's home");
+            await test.waitForTimeout(400);
+            const booted = await test.evaluate(() => !document.getElementById('boot').hidden && !document.getElementById('holo').classList.contains('open'));
+            await test.waitForFunction(() => document.getElementById('holo-title').textContent.includes('SUIT') && document.getElementById('boot').hidden, null, { timeout: 30000 });
+            const said = await test.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].slice(-2).map((m) => m.textContent).join(' | '));
+            ok('"wake up, daddy\'s home" reboots him, then builds the suit', booted && said.split(' | ').length === 2 && /Welcome home\. Suiting up/.test(said), said);
+            await test.evaluate(() => window.__jarvis.protocolDone());
+        }
+        ok(`no sideways scroll at ${w}×${h}`, await test.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+        await test.close();
+    }
 } finally {
     await ctx.close();
     server.close();

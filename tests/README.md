@@ -55,7 +55,13 @@ reload in real IndexedDB, and `jarvis.html` then still has its own settings,
 with the test copy's database unchanged. It takes screenshots of the page
 and the memory core at 1280×800 and 390×844, and fails on any page error or
 CSP violation. three.js comes from npm, because cdnjs is often blocked in
-those containers.
+those containers. Since Session 10 it also checks protocols with real WebGL
+and real IndexedDB: one kept across a reload (database version 2, command
+IDs only), the "PROTOCOL: … · 2/3" HUD line over a scene and over the orb,
+House Party opening all six scenes in turn, the "wake up, daddy's home" boot
+protocol, and follow-ups ("now Jupiter", "bigger", "go back") with real
+scenes open, with screenshots of the HUD line and House Party at both sizes.
+A full run takes about four minutes.
 
 ```bash
 node jarvis-test.chromium.mjs                     # screenshots go to a new temp folder
