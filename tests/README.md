@@ -46,6 +46,22 @@ requests and transactions finish asynchronously, like a browser's. That
 suite gives each window a fresh database, and reuses one to stand for a
 reload in the same browser.
 
+`jarvis-test.chromium.mjs` checks the same storage in a real browser, and
+isn't part of `run.mjs`, because it needs Playwright and Chromium. The
+claude.ai/code containers have them; the Codespace doesn't. It serves the
+working copy on `127.0.0.1` and uses one browser profile. `jarvis.html` saves
+its settings, the test copy copies them in once and keeps its own across a
+reload in real IndexedDB, and `jarvis.html` then still has its own settings,
+with the test copy's database unchanged. It takes screenshots of the page
+and the memory core at 1280×800 and 390×844, and fails on any page error or
+CSP violation. three.js comes from npm, because cdnjs is often blocked in
+those containers.
+
+```bash
+node jarvis-test.chromium.mjs                     # screenshots go to a new temp folder
+node jarvis-test.chromium.mjs --out=../shots --three=/path/to/three.min.js
+```
+
 Exit code is 0 when everything passes, 1 on any failure, 2 if the page could
 not be loaded — so this drops straight into CI or a pre-push hook.
 
