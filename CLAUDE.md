@@ -508,6 +508,17 @@ change, because it never opens IndexedDB and its scrub only touches
 localStorage. When Session 9 is promoted, the main page gets a database of
 its own name (for example `jarvis`), so the two copies stay apart.
 
+Speech recognition on a phone sends commands without punctuation. "Create
+movie night protocol: make the orb purple, speak slower, then open the
+galaxy" arrives as "create movie night protocol make the orb purple speak
+slower then open the galaxy". So any command with several parts has to
+parse without colons or commas, or it only works when typed. Session 10
+(review 61) hit this. Protocol steps there are split at "then" and "and",
+and also wherever a new step's verb starts (`STEP_VERB`). Leave out of that
+list any word that also appears inside a step, like "suit" in "show me the
+suit". Pin a spoken, unpunctuated phrasing in the suite next to the typed
+one.
+
 The interim session on 2026-10-09 (skins, faces, voices, learned phrases)
 is written up in `jarvis/build-plan.html` under "Interim", with what was
 picked and what was decided against. Read it before changing any of those.
