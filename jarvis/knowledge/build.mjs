@@ -399,20 +399,24 @@ export function parseSuits(json) {
 // get(url, {binary}) returns the text (or bytes) at a URL. The real build fetches; the dry run reads fixtures.
 export async function buildPack(get, suitsJson, { wait = 3000 } = {}) {
     // Every source is tried even when one fails, so a single run names every page that didn't parse.
-    const problems = [], part = async (what, f) => { try { return await f(); } catch (e) { problems.push(e.message); return []; } };
+    const problems = [], skipped = [], part = async (what, f) => { try { return await f(); } catch (e) { problems.push(e.message); return []; } };
     const parts = [
         await part('planets', async () => parsePlanets(await get(SOURCES[0].url))),
         await part('moons', async () => parseMoons(await get(SOURCES[1].url))),
         await part('stars', async () => parseStars(await get(SOURCES[2].url, { binary: true }))),
         await part('missions', async () => {
-            // One page at a time: asked for all at once, the catalogue answered a third of them with its error page.
-            // That page ("An error has occurred") is tried again, twice, a few seconds apart.
+            // One page at a time. On 2026-10-10 the catalogue answered six of these (Sputnik 1, Explorer 1, Vostok 1,
+            // Galileo, Hubble and Cassini) with its own error page every time, though their IDs are right. Its error page is
+            // tried again twice, then that mission is left out and named in the log, so a later run picks it up once
+            // NASA fixes the record. Anything else (a page naming another craft, a year that doesn't match) stops the build.
             const out = [], bad = [];
             for (const m of MISSIONS) {
                 for (let attempt = 1; ; attempt++) {
                     try { out.push(parseMission(await get(missionUrl(m[1])), m)); break; } catch (e) {
-                        if (attempt < 3 && /An error has occurred/.test(e.message)) { await new Promise((r) => setTimeout(r, wait * attempt)); continue; }
-                        bad.push(e.message); break;
+                        const theirs = /An error has occurred|no data found/.test(e.message);
+                        if (theirs && attempt < 3) { await new Promise((r) => setTimeout(r, wait * attempt)); continue; }
+                        if (theirs) skipped.push(`${m[0]} (${m[1]})`); else bad.push(e.message);
+                        break;
                     }
                 }
             }
@@ -424,6 +428,7 @@ export async function buildPack(get, suitsJson, { wait = 3000 } = {}) {
         await part('suits', async () => parseSuits(suitsJson))
     ];
     if (problems.length) throw new Error(problems.join('\n'));
+    if (skipped.length) console.warn(`Left out, because NASA's catalogue answered with its error page: ${skipped.join(', ')}.`);
     const records = [
         ...parts.flat()
     ].sort((a, b) => (a.kind === b.kind ? (a.name < b.name ? -1 : 1) : a.kind < b.kind ? -1 : 1));
