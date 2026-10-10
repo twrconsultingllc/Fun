@@ -41,6 +41,7 @@ header a:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 body.dreaming #state{color:var(--label);opacity:1}
 #log{height:26vh;overflow-y:auto;padding:0 18px;display:flex;flex-direction:column;gap:8px;max-width:640px;width:100%;margin:0 auto;scroll-behavior:smooth}
 .msg{max-width:85%;padding:8px 12px;border:1px solid var(--phos-dim);background:var(--glass);font-size:1rem;line-height:1.4;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+.brain-tag{display:block;font-size:.66rem;font-weight:700;letter-spacing:.14em;color:var(--amber);margin-bottom:3px}
 .me{align-self:flex-end;border-color:var(--amber);color:#ffe6b0;background:rgba(255,194,74,.06)}
 .ai{align-self:flex-start}
 /* Command links in Jarvis's bubbles, in the Infinity Stones' colours: space, mind, reality, power, time, soul */
@@ -310,6 +311,8 @@ const EVENT_IDS=['app:visit',
   ...['galaxy','solar','globe','neural','suit','particles','memory','tesseract'].map(k=>'scene:'+k),
   ...['scan','briefing','setting','remember','teach','help','time','date','joke','fact','coin','die','math','chat','protocol','house-party','wake-up','backup','restore','qr','qr-scan',
     'level','favourite','discover','hud','avengers','iron-man','upgrade',
+    // Session 14: installing the full brain, and an answer from it. Never what was asked.
+    'full-brain','brain-chat',
     // Session 13: which kind of thing a fact question was about. Never the name asked about.
     'know-country','know-planet','know-moon','know-star','know-mission','know-element','know-suit'].map(k=>'cmd:'+k),
   ...['jarvis','matrix','panther'].map(k=>'skin:'+k),
@@ -522,9 +525,10 @@ function storedSummary(){
   const now=typeof userName==='string'&&userName?` Your name, ${userName}, is only in memory for this visit.`:'';
   const told=typeof memory==='object'&&memory.length?` ${memory.length===1?'One thing':memory.length+' things'} you told me ${memory.length===1?'is':'are'} only in memory for this visit too.`:'';
   const mod=mind.state==='on'?' My language module is only in memory too: it comes from this site, and I work out its fingerprints again each visit.':'';
+  const big=full.state==='on'?" My full brain's conversation is only in memory too, and nothing it says is saved. Its model files are kept by your browser's cache, not by me, until you clear this site's data.":'';
   const facts=!dbOK?(pack.size?' My knowledge pack of public facts is only in memory for this visit.':''):pack.size?` I also keep my knowledge pack here: ${pack.size.toLocaleString('en-US')} public facts about countries, planets, moons, stars, missions, elements and Mr Stark's suits, copied from this site the first time you asked me about one. None of it is about you.`
     :" When you first ask me about a country, a planet, an element or a suit, I copy my knowledge pack of public facts from this site and keep it here. None of it is about you.";
-  return `${list}${counts}${now}${told}${mod}${facts} No names, no personal details, nothing from the camera and no chat history. Anything that looks personal is never saved. On an iPhone, Safari clears what I keep after 7 days without a visit, so say back up my settings to keep a copy.`;
+  return `${list}${counts}${now}${told}${mod}${big}${facts} No names, no personal details, nothing from the camera and no chat history. Anything that looks personal is never saved. On an iPhone, Safari clears what I keep after 7 days without a visit, so say back up my settings to keep a copy.`;
 }
 // Settings in words, for "what do you save" and the memory core.
 const SCENE_NAMES={galaxy:'the galaxy',solar:'the solar system',globe:'the Earth',neural:'my neural network',suit:'the suit',particles:'the particles'};
@@ -1033,8 +1037,10 @@ const plainText=t=>String(t).replace(CHIP_RE,'$1');
 let CHIP_CMDS=new Set(); // filled once the help lists exist, further down
 const chipKey=m=>m[1]+'|'+(m[2]||m[1]);
 function chipCommands(...texts){const set=new Set();for(const t of texts)for(const m of t.matchAll(CHIP_RE))set.add(chipKey(m));return set}
+let fullTag=false; // the answer being said came from the full brain (Session 14), so its chat line is marked
 function add(text,who){
   const d=document.createElement('div');d.className='msg '+who;
+  if(who==='ai'&&fullTag){fullTag=false;const g=document.createElement('span');g.className='brain-tag';g.textContent=FULL_TAG+' · '+LLM.short.toUpperCase();d.append(g)}
   if(who==='ai'){
     let at=0,n=0;
     for(const m of String(text).matchAll(CHIP_RE)){
@@ -1072,7 +1078,7 @@ function brainKnown(raw){
   const s=raw.toLowerCase().trim(),name=userName?`, ${userName}`:'';
   let m;
   if((m=s.match(/\b(?:my name is|call me|i am|i'm) ([a-z]+)/))&&!notNames.has(m[1])){userName=m[1][0].toUpperCase()+m[1].slice(1);return because(`Nice to meet you, ${userName}. I'll remember that until you close this page. I never save names.`,"Because nothing personal is ever saved in this browser. Your name stays in memory for this visit and is gone when you close the page.")}
-  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return favLead+"Ask me ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧, or some math like ⟦seven times eight|what is seven times eight⟧. I can ⟦flip a coin⟧, ⟦roll a die⟧ or start a ⟦launch countdown⟧. For the holo-projector, say ⟦show me the galaxy⟧, ⟦show me the planets⟧, ⟦take me to Mars⟧, ⟦make a heart⟧, ⟦make a rocket⟧, or ⟦write your name|write my name⟧. Say ⟦show me your brain⟧ to watch me think, or ⟦suit up⟧ to build a suit of armour. Say ⟦show me Earth⟧ for the globe, or show me any country, US state or big city, like ⟦Florida|show me Florida⟧ or ⟦Tokyo|show me Tokyo⟧. Ask me about the world and beyond, like ⟦tell me about Peru⟧, ⟦how far is Mars⟧, ⟦tell me about gold⟧ or ⟦tell me about the Mark 42⟧. Say ⟦hand control⟧ to steer it with your hands through the camera, or ⟦scan the room⟧ for a threat scan. Say ⟦brief me⟧ for the time and the top headlines. In Chrome or Edge, turn on ⟦always listening|always listen⟧ with the HEY JARVIS switch, then start what you say with my name. Say ⟦close⟧ to turn it off, or ⟦reboot⟧ to watch me power up again. Say ⟦switch to Matrix⟧ to talk to Morpheus, ⟦switch to Panthers⟧ for Stanley C. Panther, or ⟦back to Jarvis⟧. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit, whichever skin I'm in. Ask ⟦what do you know about me⟧ to hear them back. I can also remember settings on this device: say ⟦make the orb blue⟧, ⟦speak faster⟧, ⟦use imperial units⟧, or ⟦open with the galaxy⟧. Say ⟦show me your memory⟧ to see everything I keep as stars, and tap one to hear it or say forget that. Make a protocol to run several commands with one phrase, like ⟦a movie night protocol|create movie night protocol: make the orb purple, then open the galaxy⟧, then say ⟦movie night⟧ to run it. Say ⟦list my protocols⟧, or try ⟦house party⟧ or ⟦wake up, daddy's home|wake up daddy's home⟧. You can talk in fragments too: after ⟦take me to Mars⟧, say ⟦now Jupiter⟧, ⟦bigger⟧, ⟦slower⟧, ⟦again⟧ or ⟦go back⟧, and ask ⟦why⟧ after an answer. Leave me alone for a few minutes and I'll dream. Ask ⟦what do you save⟧ to see what I keep, and I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, so say ⟦back up my settings⟧ to keep a copy as a file, and ⟦restore my settings⟧ to load it. To move them to another device, say ⟦send my settings to my phone⟧ here and ⟦scan settings⟧ there. Say ⟦upgrade your brain⟧ and I'll understand you in your own words too, and ask when I'm not sure. If I don't understand you, tell me what you meant and I'll remember it on this device. The more we talk, the better I know you: ask ⟦how well do you know me⟧, ⟦what's my favourite⟧ or ⟦what haven't I tried⟧. I put your favourites first in these links, and you can say ⟦stop putting my favourites first⟧."+unlockLine(shownLevel);
+  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return favLead+"Ask me ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧, or some math like ⟦seven times eight|what is seven times eight⟧. I can ⟦flip a coin⟧, ⟦roll a die⟧ or start a ⟦launch countdown⟧. For the holo-projector, say ⟦show me the galaxy⟧, ⟦show me the planets⟧, ⟦take me to Mars⟧, ⟦make a heart⟧, ⟦make a rocket⟧, or ⟦write your name|write my name⟧. Say ⟦show me your brain⟧ to watch me think, or ⟦suit up⟧ to build a suit of armour. Say ⟦show me Earth⟧ for the globe, or show me any country, US state or big city, like ⟦Florida|show me Florida⟧ or ⟦Tokyo|show me Tokyo⟧. Ask me about the world and beyond, like ⟦tell me about Peru⟧, ⟦how far is Mars⟧, ⟦tell me about gold⟧ or ⟦tell me about the Mark 42⟧. Say ⟦hand control⟧ to steer it with your hands through the camera, or ⟦scan the room⟧ for a threat scan. Say ⟦brief me⟧ for the time and the top headlines. In Chrome or Edge, turn on ⟦always listening|always listen⟧ with the HEY JARVIS switch, then start what you say with my name. Say ⟦close⟧ to turn it off, or ⟦reboot⟧ to watch me power up again. Say ⟦switch to Matrix⟧ to talk to Morpheus, ⟦switch to Panthers⟧ for Stanley C. Panther, or ⟦back to Jarvis⟧. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit, whichever skin I'm in. Ask ⟦what do you know about me⟧ to hear them back. I can also remember settings on this device: say ⟦make the orb blue⟧, ⟦speak faster⟧, ⟦use imperial units⟧, or ⟦open with the galaxy⟧. Say ⟦show me your memory⟧ to see everything I keep as stars, and tap one to hear it or say forget that. Make a protocol to run several commands with one phrase, like ⟦a movie night protocol|create movie night protocol: make the orb purple, then open the galaxy⟧, then say ⟦movie night⟧ to run it. Say ⟦list my protocols⟧, or try ⟦house party⟧ or ⟦wake up, daddy's home|wake up daddy's home⟧. You can talk in fragments too: after ⟦take me to Mars⟧, say ⟦now Jupiter⟧, ⟦bigger⟧, ⟦slower⟧, ⟦again⟧ or ⟦go back⟧, and ask ⟦why⟧ after an answer. Leave me alone for a few minutes and I'll dream. Ask ⟦what do you save⟧ to see what I keep, and I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, so say ⟦back up my settings⟧ to keep a copy as a file, and ⟦restore my settings⟧ to load it. To move them to another device, say ⟦send my settings to my phone⟧ here and ⟦scan settings⟧ there. Say ⟦upgrade your brain⟧ and I'll understand you in your own words too, and ask when I'm not sure. Where your browser has WebGPU, say ⟦install your full brain⟧ for a small language model that talks about nearly anything, and ask ⟦which brain are you using⟧. If I don't understand you, tell me what you meant and I'll remember it on this device. The more we talk, the better I know you: ask ⟦how well do you know me⟧, ⟦what's my favourite⟧ or ⟦what haven't I tried⟧. I put your favourites first in these links, and you can say ⟦stop putting my favourites first⟧."+unlockLine(shownLevel);
   if(/^(?:please )?(?:forget|clear|delete|erase) my name\b/.test(s)){const had=userName;userName=null;return had?"Done. I've forgotten your name.":"I don't know your name yet, so there's nothing to forget."}
   if(/\bwhat(?:'s| is) my name\b|\bwho am i\b|\bdo you (?:know|remember) (?:my name|me|who i am)\b|\bsay my name\b/.test(s))return userName?`Your name is ${userName}. I'll remember it whichever skin I'm wearing, until you close this page. I never save it.`:"You haven't told me your name yet. Say my name is, then your name, and I'll remember it until you close this page.";
   if(/\b(hello|hi|hey|good (morning|afternoon|evening))\b/.test(s))return pick([`Hello${name}. All systems are online.`,`Good to see you${name}. How can I help?`]);
@@ -3011,6 +3017,8 @@ const CAPABILITIES=[
   {key:'level',name:'your clearance level',ids:['cmd:level'],cmds:['how well do you know me'],hint:"Ask ⟦how well do you know me⟧ to hear your clearance level."},
   {key:'favourite',name:'your favourites',ids:['cmd:favourite'],cmds:["what's my favourite"],hint:"I notice what you use most. Ask ⟦what's my favourite⟧."},
   {key:'meaning',name:'my language module',ids:['cmd:upgrade'],can:'wasm',cmds:['upgrade your brain'],hint:"I can learn to understand you in your own words. Say ⟦upgrade your brain⟧."},
+  // The full brain (Session 14). Opt-in, so it's never needed for a clearance level.
+  {key:'full-brain',name:'my full brain',ids:['cmd:full-brain','cmd:brain-chat'],can:'webgpu',optIn:true,cmds:['install your full brain'],hint:"I can install a full language model on your graphics chip, and talk about nearly anything. It's a big download. Say ⟦install your full brain⟧."},
   {key:'discover',name:'the discovery log',ids:['cmd:discover'],cmds:["what haven't I tried"],hint:"I keep count of what you've found. Ask ⟦what haven't I tried⟧."},
   // The knowledge pack (Session 13), counted by the kind of thing asked about, never its name.
   {key:'know-country',name:'country facts',ids:['cmd:know-country'],cmds:['tell me about Peru'],hint:"I know every country on my globe. Ask ⟦tell me about Peru⟧."},
@@ -3029,10 +3037,10 @@ const NOT_COUNTED={
   'what do you save':'A privacy check, not something to discover.','what do you know about me':'A privacy check, not something to discover.',
   'list my protocols':'Part of protocols, counted when one runs.','now Jupiter':'A follow-up, which only means something after another command.',
   'bigger':'A follow-up.','slower':'A follow-up.','again':'A follow-up.','go back':'A follow-up.','why':'A follow-up.',
-  'close':'Closing the projector.','reboot':'A restart, not a feature.','back to Jarvis':'Switching back to the skin you start in (see NOT_CAPABILITIES).'};
+  'which brain are you using':'A status question, not something to discover.','close':'Closing the projector.','reboot':'A restart, not a feature.','back to Jarvis':'Switching back to the skin you start in (see NOT_CAPABILITIES).'};
 // What the browser needs for each kind of capability. Worked out once, when first asked.
 let canCache=null;
-const available=c=>{if(!c.can)return true;canCache=canCache||{wasm:typeof WebAssembly==='object',webgl:hasWebGL(),camera:!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia),mic:!!SR,wake:wakeOK,voices:!!synth};return !!canCache[c.can]};
+const available=c=>{if(!c.can)return true;canCache=canCache||{wasm:typeof WebAssembly==='object',webgl:hasWebGL(),camera:!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia),mic:!!SR,wake:wakeOK,voices:!!synth,webgpu:!!navigator.gpu};return !!canCache[c.can]};
 /* The usage counts as numbers to reason about. evs: {id, day, n} records, tots: {id, n}, carry: the streak's carry.
    Only what fits() would accept counts here, and days after today don't count at all. days: how many days have
    anything counted, from the 90 kept by day plus the carry, which is a run of real days just before them. Older days
@@ -3048,7 +3056,7 @@ function usageOf(evs,tots,carry=0,today=dayNumber()){
 const usageNow=()=>usageOf(events.values(),totals.values(),meta.get('carry')||0);
 const found=(c,u)=>c.ids.some(id=>u.n[id]>0);
 // What level 5 asks for: everything this browser can do that isn't itself a level-5 extra.
-const toFind=u=>CAPABILITIES.filter(c=>(c.lock||0)<5&&available(c)&&!found(c,u));
+const toFind=u=>CAPABILITIES.filter(c=>(c.lock||0)<5&&!c.optIn&&available(c)&&!found(c,u));
 function clearanceOf(u){
   if(u.days<3)return 1;
   if(u.days<10||CORE_SCENES.filter(id=>u.n[id]).length<5)return 2;
@@ -3895,6 +3903,214 @@ async function byMeaning(m,said){
   return ask(`Did you mean ${m.c.what}? Say yes or no.`,()=>m.c.run(),()=>{pendingTeach=said;return "Then tell me what you meant, and I'll remember it."});
 }
 
+/* ---------- Full brain (Session 14): a small language model on your graphics chip, opt-in ----------
+   "Install your full brain" loads Qwen3-0.6B (WebLLM's Qwen3-0.6B-q4f16_1-MLC build) from jarvis/llm/ on this site,
+   never from Hugging Face. It needs WebGPU, and without it he says so and stays as he is. It's asked only after
+   everything else has passed on what you said: the patterns, the knowledge pack and the meaning module. It answers in
+   a fixed format, and can only pick one command from the protocols' STEPS IDs (never a wait, never anything that
+   deletes, since STEPS has nothing like that); the page checks every pick before running it, and runs it the way a
+   protocol step does. Facts come from the knowledge pack and are handed to it to put into words; a number it adds that
+   isn't in those facts, or an answer about the world with no facts behind it, is labelled "From memory, I may be
+   wrong". What it's given (this visit's conversation, what you've told me this visit, your name) is in memory only, and
+   nothing it says is ever passed to store() or save(). The model files are kept by the browser's own cache (WebLLM uses
+   the Cache API), not by this page, until you clear the site's data. */
+const LLM_DIR='jarvis/llm/';
+const llmUrl=f=>new URL(LLM_DIR+f,location.href).href;
+const LLM={id:'Qwen3-0.6B-q4f16_1-MLC',name:'Qwen3, a language model with 0.6 billion parameters',short:'Qwen3 0.6B',mb:350,gb:1.4,
+  dir:'resolve/Qwen3-0.6B-q4f16_1-MLC/',lib:'Qwen3-0.6B-q4f16_1_cs1k-webgpu.wasm',
+  // SHA-256 of the files WebLLM checks itself as it loads them (from jarvis/llm/models.json and README.md).
+  integrity:{config:'sha256-GQpRxWuaB6jYchJm+ORZvNGxaJvN/ylHlc0r/6ID/y0=',model_lib:'sha256-TbgAskEZIE4aA4booS4ITVASqmD3fFv/rTYvIEmN+RI=',
+    tokenizer:{'tokenizer.json':'sha256-rrEzB6cazY/oGGHZStVKtonfdzMYgJ7tPL55S0SS2uQ='},onFailure:'error'}};
+const LLM_TIMEOUT=45000,LLM_TURNS=6,LLM_MAX_SAY=320;
+// state: off, loading or on. This visit only, never saved. turns: the last few exchanges, in memory, for context.
+const full={state:'off',engine:null,p:0,busy:false,turns:[]};
+// Loads WebLLM and the model and returns its engine. on(p) reports progress from 0 to 1. The tests swap it for a fake
+// that behaves like the real one (setLlmLib): asynchronous, streaming, and able to fail.
+let llmLib=async on=>{
+  const webllm=await import(llmUrl('web-llm.js'));on(.02);
+  // The engine runs in a worker (jarvis/llm/worker.js). There, WebLLM's logging can't reach localStorage, and paths
+  // resolve against the site's origin, so every address here is a full one.
+  const record={model:llmUrl(LLM.dir),model_id:LLM.id,model_lib:llmUrl(LLM.lib),required_features:['shader-f16'],
+    overrides:{context_window_size:4096},integrity:LLM.integrity};
+  const worker=new Worker(llmUrl('worker.js'),{type:'module'});
+  try{
+    const engine=await webllm.CreateWebWorkerMLCEngine(worker,LLM.id,{appConfig:{model_list:[record],cacheBackend:'cache'},
+      initProgressCallback:r=>on(.02+.98*Math.max(0,Math.min(1,+r.progress||0)))});
+    const unload=engine.unload.bind(engine);
+    engine.unload=async()=>{try{await unload()}finally{worker.terminate()}};
+    return engine;
+  }catch(e){worker.terminate();throw e}
+};
+const llmLibReal=llmLib; // for the Chromium check, which loads the real thing as far as its graphics allow
+// What this browser's graphics allow: ok, none (no WebGPU), adapter (WebGPU but no chip) or f16 (no half precision,
+// which the q4f16 build needs).
+async function gpuCheck(){
+  const gpu=navigator.gpu;if(!gpu||typeof gpu.requestAdapter!=='function')return 'none';
+  let a=null;try{a=await gpu.requestAdapter()}catch(e){}
+  if(!a)return 'adapter';
+  return a.features&&a.features.has('shader-f16')?'ok':'f16';
+}
+const STAY=" I'll stay as I am, with my standard brain.";
+const GPU_LINES={
+  none:"My full brain needs WebGPU, and this browser doesn't have it. It works in desktop Chrome and Edge, Chrome on Android, and Safari on iOS 26."+STAY,
+  adapter:"This browser has WebGPU, but it couldn't find a graphics chip for me to run on."+STAY,
+  f16:"Your graphics chip can't do the half-precision maths my full brain is built for."+STAY};
+const GPU_WHY="Because my full brain is a language model that runs on your graphics chip, through WebGPU, so nothing you say leaves this device.";
+const brainText=raw=>meaningText(raw).replace(/^(?:can you |could you |please )+/,'');
+function fullBrainIntent(raw){
+  const s=brainText(raw);
+  if(/^(?:install|download|load|get|turn on|switch on|activate|enable|start|start up|boot up|power up|use) (?:your |ur |the |my )?(?:full|big|whole|large) brain$|^(?:install|download|load) (?:the |your )?(?:language model|large language model|llm|ai model)$/.test(s))return 'install';
+  if(/^(?:turn off|switch off|unload|stop using|disable|shut off) (?:your |ur |the )?(?:full|big|whole|large) brain$/.test(s))return 'off';
+  if(/^(?:which|what) brain (?:are you (?:using|running|on)|is (?:this|on|running|in use)|do you have(?: on)?)$|^(?:are you using|is) (?:your |the )?(?:full|big) brain(?: on| running| installed)?$|^what (?:model|language model|ai) (?:are you|is this|are you running|are you using)$/.test(s))return 'which';
+  return null;
+}
+function brainShow(p,done){
+  full.p=p;
+  if(!running)for(const e of protoHud){const t=done?'':`INSTALLING FULL BRAIN · ${Math.round(p*100)}%`;e.textContent=t;e.hidden=!t}
+}
+// "Install your full brain": says what it is and how big, and asks first.
+async function installBrain(){
+  if(full.state==='on')return `My full brain is already running: ${LLM.name}.`;
+  if(full.state==='loading')return "I'm installing my full brain already. It won't be long.";
+  const g=await gpuCheck();
+  if(g!=='ok')return because(GPU_LINES[g],GPU_WHY);
+  return ask(`My full brain is ${LLM.name}. It's a download of about ${LLM.mb} megabytes from this site, and it needs about ${LLM.gb} gigabytes of graphics memory while it runs. Your browser keeps the files until you clear this site's data, so next time it loads much faster. Install it? Say yes or no.`,
+    startInstall,()=>"All right. I'll stay with my standard brain.");
+}
+function startInstall(){
+  if(full.state!=='off')return installBrain();
+  track('cmd:full-brain');full.state='loading';brainShow(0);
+  // Started once this answer has been said, so a quick load from the cache can't come before it.
+  setTimeout(async()=>{
+    try{
+      const engine=await llmLib(p=>brainShow(p));
+      if(!engine||!engine.chat||!engine.chat.completions)throw new Error('no engine');
+      full.engine=engine;full.turns=[];full.state='on';brainShow(1,true);
+      say(`Full brain online: ${LLM.short}, running on your graphics chip. When I don't know something by heart, I'll think it through. When I'm only going from memory, I'll say so.`);
+    }catch(e){
+      full.state='off';full.engine=null;brainShow(1,true);
+      const m=String(e&&(e.name+' '+e.message));
+      say(/f16/i.test(m)?GPU_LINES.f16:/lost|memory|OutOfMemory/i.test(m)?"Your graphics chip ran out of memory loading my full brain."+STAY:
+        "I couldn't install my full brain. Check your connection, then say install your full brain to try again."+STAY);
+    }
+  },0);
+  return `Installing my full brain: about ${LLM.mb} megabytes, unless your browser already has it.`;
+}
+async function brainOff(){
+  if(full.state!=='on')return "My full brain isn't running. I'm on my standard brain.";
+  const e=full.engine;full.engine=null;full.state='off';full.turns=[];
+  try{if(e&&e.unload)await e.unload()}catch(x){}
+  return "Full brain off. I'm back on my standard brain. Its files stay in your browser, so it comes back quickly.";
+}
+// "Which brain are you using?": every answer comes from one of these, and he always says which.
+function brainReport(){
+  const parts=['my built-in patterns'];
+  if(pack.size)parts.push('my knowledge pack');
+  if(mind.state==='on')parts.push('my language module');
+  const fb=full.state==='on'?` and my full brain, ${LLM.name}, for anything those don't cover. Its answers are marked FULL BRAIN, and anything it says from its own memory starts "From memory, I may be wrong".`:
+    full.state==='loading'?`. My full brain is installing now.`:`. My full brain isn't running. Say install your full brain to add it.`;
+  return `I'm using ${listWords(parts)}${fb}`;
+}
+// The commands it may pick: every protocol step except the waits, and never anything that deletes.
+const BRAIN_PICKS=Object.keys(STEPS).filter(id=>!id.startsWith('wait:')&&!DESTRUCTIVE.test(id)&&!DESTRUCTIVE.test(STEPS[id].text));
+const SKIN_BRIEF={
+  jarvis:"You are J.A.R.V.I.S., Tony Stark's AI from the Iron Man films: calm, precise and polite, with a dry British wit.",
+  matrix:"You are Morpheus from The Matrix: calm, serious and a little cryptic. You speak of choices, truth and the real world.",
+  panther:"You are Stanley C. Panther, the Florida Panthers' mascot: upbeat and loud, with hockey play-by-play energy. You love saying Go Cats!"};
+function systemPrompt(facts){
+  const told=memory.map(x=>x.text),who=typeof userName==='string'&&userName?`The user's name is ${userName}.`:'';
+  return [SKIN_BRIEF[skin]||SKIN_BRIEF.jarvis,
+    "You run on the user's own device, in a web page. You can't browse the internet, see, or remember anything after this visit. Keep it friendly and suitable for children. Never ask for personal details. If you don't know, say so.",
+    'Reply in exactly this format, three lines, nothing else:',
+    'SAY: what you say, at most two short sentences',
+    'DO: one command ID from the list below if the user asked for one of those things, otherwise none',
+    'KIND: chat for small talk, fact if you state something about the world',
+    'Commands: '+BRAIN_PICKS.map(id=>`${id} (${STEPS[id].label})`).join('; ')+'.',
+    facts?`FACTS from your knowledge pack, which are true. Put them into your own words and don't add numbers: ${facts}`:'',
+    who,told.length?`The user told you this visit: ${told.join('; ')}.`:''].filter(Boolean).join('\n');
+}
+// Facts about whatever the sentence names, from the pack's own answer lines (which have no side effects).
+function brainFacts(text){
+  const m=packMention(text);if(!m)return null;
+  const f={planet:planetAnswer,moon:moonAnswer,star:starAnswer,mission:missionAnswer,element:elementAnswer,country:countryAnswer,suit:suitAnswer}[m.r.kind];
+  const s=f&&f(m.r,'about');return s?inUnits(s):null;
+}
+// The fixed format, read back. Anything else (no SAY line) is refused: null.
+function parseBrain(out){
+  const t=String(out).replace(/<think>[\s\S]*?(?:<\/think>|$)/g,'').replace(/\r/g,'');
+  const line=k=>{const m=t.match(new RegExp(`^\\s*\\**${k}\\**\\s*:\\s*(.*)$`,'im'));return m?m[1].trim():null};
+  const said=line('SAY');if(!said)return null;
+  return {say:said,do:(line('DO')||'none').replace(/[`'".*\s]/g,'').toLowerCase(),kind:(line('KIND')||'fact').replace(/[^a-z]/gi,'').toLowerCase()};
+}
+// Plain words only: no links (⟦…⟧ would become a command button), no markup, at most a couple of sentences.
+function cleanSay(s){
+  let t=String(s).replace(/[⟦⟧<>`*_#|\\]/g,'').replace(/\s+/g,' ').trim();
+  if(t.length>LLM_MAX_SAY){const cut=t.slice(0,LLM_MAX_SAY),end=Math.max(cut.lastIndexOf('. '),cut.lastIndexOf('! '),cut.lastIndexOf('? '));t=end>40?cut.slice(0,end+1):cut.replace(/\s+\S*$/,'')+'…'}
+  return t;
+}
+const numbersIn=t=>(String(t).match(/\d[\d,]*(?:\.\d+)?/g)||[]).map(n=>n.replace(/,/g,'').replace(/\.0+$/,''));
+const ABOUT_WORLD=/^(?:who|what|when|where|which|why|how|is|are|was|were|does|do|did|can|has|have|tell me|explain|name)\b/; // not advice: "should I…"
+// Is the answer a guess? Grounded only when facts were handed over and every number in it is one of theirs. Small talk
+// with no numbers isn't a guess. Anything else about the world is.
+function brainGuess(say,kind,facts,asked){
+  if(facts){const ok=new Set(numbersIn(facts));return !numbersIn(say).every(n=>ok.has(n))}
+  if(numbersIn(say).length)return true;
+  if(kind==='chat'&&!(ABOUT_WORLD.test(asked)&&!/\b(?:you|your|yourself|jarvis|morpheus|stanley)\b/.test(asked)))return false;
+  return true;
+}
+// Checks a pick: on the list, or "none". Anything else is refused and never run.
+function checkPick(id){
+  if(!id||id==='none'||id==='null'||id==='n/a')return {none:true};
+  return BRAIN_PICKS.includes(id)?{id}:{refused:id};
+}
+const FULL_TAG='FULL BRAIN';
+// Asked last of all, once the full brain is on. An answer, or null to carry on as before.
+async function askBrain(text){
+  if(full.state!=='on'||!full.engine)return null;
+  if(full.busy)return "I'm still thinking about your last question. Give me a moment.";
+  const asked=brainText(text);if(!asked||asked.length>400)return null;
+  if(!packGone)await packReady();
+  const facts=brainFacts(asked);
+  const messages=[{role:'system',content:systemPrompt(facts)},...full.turns,{role:'user',content:String(text).trim().slice(0,400)}];
+  full.busy=true;let out='',failed=null;
+  for(const e of protoHud)if(!running){e.textContent=`${FULL_TAG} · THINKING`;e.hidden=false}
+  try{
+    const stream=await full.engine.chat.completions.create({messages,stream:true,temperature:.6,top_p:.9,max_tokens:160,extra_body:{enable_thinking:false}});
+    const t0=performance.now();
+    for await(const ch of stream){
+      out+=(ch&&ch.choices&&ch.choices[0]&&ch.choices[0].delta&&ch.choices[0].delta.content)||'';
+      if(out.length>4000||performance.now()-t0>LLM_TIMEOUT){try{full.engine.interruptGenerate()}catch(e){}break}
+    }
+  }catch(e){failed=e}
+  full.busy=false;
+  if(!running)for(const e of protoHud){e.textContent='';e.hidden=true}
+  if(failed){
+    if(/lost/i.test(String(failed&&(failed.name+' '+failed.message)))){full.state='off';full.engine=null;full.turns=[];
+      return because("My full brain stopped: the graphics chip lost it, usually from running out of memory. I'm back on my standard brain.",GPU_WHY)}
+    return because("My full brain didn't answer that time. Ask me again, or try one of my usual commands.","Because the language model on your graphics chip hit an error, so there was nothing I could check.");
+  }
+  const r=parseBrain(out);
+  if(!r||!cleanSay(r.say))return because("My full brain answered in a way I couldn't check, so I've left it. Try asking another way.","Because my full brain has to answer in a fixed format I can check, and that answer wasn't in it.");
+  let said=cleanSay(r.say);
+  const guess=brainGuess(said,r.kind,facts,asked),pk=checkPick(r.do);
+  track('cmd:brain-chat');
+  full.turns.push({role:'user',content:String(text).trim().slice(0,400)},{role:'assistant',content:`SAY: ${said}\nDO: ${pk.id||'none'}\nKIND: ${r.kind==='chat'?'chat':'fact'}`});
+  while(full.turns.length>LLM_TURNS)full.turns.shift();
+  let ran='';
+  if(pk.id){
+    const S=STEPS[pk.id],res=S.run?S.run():await respond(S.text,true);
+    if(!S.quiet&&typeof res==='string'&&res)ran=' '+res;
+  }
+  const label=guess?'From memory, I may be wrong: ':'';
+  fullTag=true; // the chat line shows it came from the full brain
+  const refused=pk.refused?' My full brain asked for a command that isn\'t on my list, so I didn\'t run it.':'';
+  return because(`${label}${said}${ran}${refused}`,
+    pk.refused?"Because my full brain can only pick from my fixed list of commands, the same list protocols use, and I check every pick before running it.":
+    facts&&!guess?`Because my full brain, ${LLM.short}, put facts from my knowledge pack into words.`:
+    guess?`Because that came from my full brain's own memory. It's ${LLM.short}, a small language model, and it can be wrong. Only my knowledge pack is checked.`:
+    `Because my full brain, ${LLM.short}, came up with that.`);
+}
+
 /* ---------- Follow-ups (Session 10): see talk, near the top ---------- */
 // A question that "yes" or "no" answers on the very next turn. Anything else said drops it.
 function ask(text,yes,no){talk.question={yes,no};return text}
@@ -3989,6 +4205,7 @@ async function respond(text,inner=false){
   const sk=skinIntent(text);if(sk){note('skin');return setSkin(sk)}
   if(BRIEF_RE.test(normPhrase(text).replace(/^(?:jarvis )/,''))){track('cmd:briefing');note(null);return await briefing()}
   if(upgradeIntent(text)){note(null);return await upgradeBrain()}
+  const fb=fullBrainIntent(text);if(fb){note(null);return fb==='install'?await installBrain():fb==='off'?await brainOff():brainReport()}
   const it=intent(text);if(it){const need=lockOf(it);if(need>levelNow())return locked(need,it.kind==='tesseract'?'The Tesseract':'The Avengers logo');
     track(intentEvent(it));note(FRAMES[it.kind]?it.kind:null);return await project(it)}
   // A fact question (Session 13): before the chat answers, whose loose patterns ("fact", "launch") would take it.
@@ -4012,7 +4229,7 @@ function chatEvent(raw){const s=String(raw).toLowerCase();for(const [id,re] of C
 const MEANT=/^(?:what\s+)?i\s+(?:was\s+(?:trying|going)\s+to\s+(?:say|ask)|tried\s+to\s+(?:say|ask)|wanted\s+to\s+(?:say|ask)|meant\s+to\s+(?:say|ask)|wanted\s+(?:you\s+)?to|want\s+(?:you\s+)?to|meant|mean)(?:\s+(?:was|is))?[\s,:]*/i;
 // One turn. The follow-up context is updated here: what was said, and the reason behind it for "why?".
 async function answer(text){
-  nextWhy=null;
+  nextWhy=null;fullTag=false;
   const r=await answerCore(text);
   if(typeof r==='string'){talk.lastAnswer=plainText(r);talk.why=nextWhy}
   return r;
@@ -4069,6 +4286,8 @@ async function answerCore(text){
   // knowledge pack is read first, so a fact question in your own words can name anything in it (Session 13).
   if(mind.state==='on'&&!packGone)await packReady();
   const mn=meaningOf(text);if(mn)return await byMeaning(mn,p);
+  // And only after all of that, the full brain, if it's running (Session 14).
+  const fa=await askBrain(text);if(fa!==null)return fa;
   if(p&&p.length<=120)pendingTeach=p;
   return because(`${missLine()} ${favLead}${CAN_DO} What were you trying to say?`,"Because I only know the commands I was built with and the phrases you've taught me. Tell me what you meant and I'll learn it for next time.");
 }
@@ -4166,7 +4385,7 @@ if(SR){
   }
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
+window.__jarvis={full:()=>full,setLlmLib:f=>{llmLib=f},llmLibReal,gpuCheck,fullBrainIntent,BRAIN_PICKS,parseBrain,cleanSay,brainGuess,checkPick,systemPrompt,brainFacts,brainReport,LLM,micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
   SETTING_CHOICES,cleanSettings,cleanStreak,streakLine,settingsIntent,applySetting,settings:()=>({...settings}),inUnits,ORB_COLOURS,ring:()=>ringRGB,SPEEDS,
   memoryTell,memoryAsk,memoryForget,memory:()=>memory.map(x=>({...x})),memoryStars,forgetStar,constellation,constellationLinks,get firstTime(){return firstTime},streak:()=>({...streak}),
   STEPS,BUILTIN,PROTO_MAX,PROTO_STEPS,stepOf,protoName,nameProblem,protoProblem,protoCreate,adjuster,noteScene,fragment,

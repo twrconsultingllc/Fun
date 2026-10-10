@@ -34,6 +34,12 @@
  * "yes" tells one. The real database gains nothing but usage counts, the Cache API stays empty, and a reload starts
  * without the module. Screenshots of the upgrade and the question at both sizes. This step is slow under SwiftShader.
  *
+ * Session 14 added step 9: the full brain, in a fresh profile at each size with WebGPU on. SwiftShader's WebGPU adapter
+ * has no shader-f16, which the q4f16 build needs, so the real model can't run here, and the check says so: the page
+ * says so too and stays as it is, fetching nothing. The real WebLLM library and engine are loaded with the page's own
+ * record, and must check their hashes and stop at shader-f16 before any weight is read; a config with one byte changed
+ * must be refused. A fake engine then shows the install line and a labelled answer, screenshotted at both sizes.
+ *
  * It isn't part of run.mjs, because it needs Playwright and Chromium, which the claude.ai/code containers
  * have and the Codespace doesn't (see "Browsers and screenshots" in CLAUDE.md). Run it from tests/:
  *
@@ -548,6 +554,93 @@ try {
             await p.close();
         } finally { await ctxK.close(); await rm(join(work, `profile-k-${w}`), { recursive: true, force: true }); }
     }
+    // 9. Session 14: the full brain, in a fresh profile at each size, with WebGPU on (SwiftShader's software adapter).
+    // Nothing comes from jarvis/llm/ until it's asked for. What the page says depends on what the adapter offers, and
+    // SwiftShader's has no shader-f16, which the q4f16 build needs, so the real model can't run here: the check says so
+    // plainly. Then, once, the real WebLLM library and engine are loaded under the page's own CSP with the page's own model
+    // record: WebLLM must check the config and the engine against their hashes and stop at shader-f16, before it reads the
+    // tokenizer or a single weight. A config with one byte changed must be refused by WebLLM's own integrity check. Last, a
+    // fake engine stands in, so the install line and a labelled answer with its FULL BRAIN tag can be screenshotted.
+    const GPU_ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--enable-unsafe-webgpu', '--use-webgpu-adapter=swiftshader', '--enable-features=Vulkan'];
+    for (const [w, h] of [[1280, 800], [390, 844]]) {
+        const ctxL = await chromium.launchPersistentContext(join(work, `profile-l-${w}`), { executablePath, headless: true, args: GPU_ARGS, viewport: { width: w, height: h } });
+        if (three) await ctxL.route('https://cdnjs.cloudflare.com/**', (r) => r.fulfill({ path: three, contentType: 'application/javascript', headers: { 'access-control-allow-origin': '*' } }));
+        await ctxL.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
+        const asked = []; ctxL.on('request', (rq) => asked.push(rq.url()));
+        const llmAsked = () => asked.filter((u) => u.includes('/jarvis/llm/')).map((u) => u.split('/jarvis/llm/')[1]);
+        try {
+            const p = await open('jarvis-test.html', { width: w, height: h }, ctxL);
+            await p.click('#boot-skip'); await p.waitForTimeout(800);
+            const lastAi = () => p.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent || '');
+            const type = async (q, ms = 1500) => { await p.fill('#q', q); await p.press('#q', 'Enter'); await p.waitForTimeout(ms); return lastAi(); };
+            ok(`nothing is fetched from jarvis/llm/ at start-up at ${w}×${h}`, llmAsked().length === 0, llmAsked().join());
+            const gpu = await p.evaluate(() => window.__jarvis.gpuCheck());
+            const adapter = await p.evaluate(async () => { const a = await navigator.gpu?.requestAdapter(); return a ? { f16: a.features.has('shader-f16'), arch: a.info?.architecture || '' } : null; });
+            console.log(`WebGPU under SwiftShader at ${w}×${h}: ${adapter ? `an adapter (${adapter.arch || 'unnamed'}), shader-f16 ${adapter.f16 ? 'yes' : 'NO'}` : 'no adapter'}; the page's check says "${gpu}"`);
+            ok('WebGPU is there under SwiftShader, without shader-f16, and the page reads it that way', adapter && !adapter.f16 && gpu === 'f16', JSON.stringify(adapter) + ' ' + gpu);
+            const said = await type('jarvis install your full brain please');
+            ok(`"jarvis install your full brain please" says the chip can't do half precision, and stays as he is, at ${w}×${h}`, said === "Your graphics chip can't do the half-precision maths my full brain is built for. I'll stay as I am, with my standard brain." && await p.evaluate(() => window.__jarvis.full().state) === 'off', said);
+            ok('and nothing is fetched from jarvis/llm/', llmAsked().length === 0, llmAsked().join());
+            await p.screenshot({ path: join(OUT, `brain-no-f16-${w}.png`) });
+            if (w === 1280) {
+                // The real library and engine, as far as this adapter allows.
+                const real = await p.evaluate(async () => {
+                    const L = window.__jarvis.LLM, web = await import(new URL('jarvis/llm/web-llm.js', location.href).href);
+                    const pre = web.prebuiltAppConfig.model_list.find((m) => m.model_id === L.id);
+                    let err = null; // the page's own loader: WebLLM in its worker, with the page's record
+                    try { await window.__jarvis.llmLibReal(() => {}); } catch (e) { err = String(e && (e.message || e)).slice(0, 200); }
+                    return { version: web.modelVersion, preLib: pre && pre.model_lib.split('/').pop(), err, caches: await caches.keys() };
+                });
+                ok('the hosted WebLLM (0.2.85) is built for engine set v0_2_84/base, and names this exact engine for Qwen3-0.6B', real.version === 'v0_2_84/base' && real.preLib === 'Qwen3-0.6B-q4f16_1_cs1k-webgpu.wasm', JSON.stringify(real));
+                ok('the page\'s own loader runs WebLLM in its worker, checks the config and engine hashes, then stops at shader-f16', /ShaderF16|shader-f16/.test(real.err || ''), real.err);
+                const got = llmAsked();
+                ok('having fetched only the library, its worker, the config and the engine: no tokenizer, no weights', got.includes('web-llm.js') && got.includes('worker.js') && got.some((u) => u.endsWith('mlc-chat-config.json')) && got.includes('Qwen3-0.6B-q4f16_1_cs1k-webgpu.wasm') && !got.some((u) => /params_shard|tokenizer|cache\.json/.test(u)), got.join());
+                ok('and nothing went into localStorage: WebLLM\'s logging runs in the worker, which has none', Object.keys(await lsOf(p)).length === 0, JSON.stringify(await lsOf(p)));
+                ok('its config went into the browser\'s Cache API, not the page\'s database', real.caches.includes('webllm/config'), real.caches.join());
+                // One byte changed in the config: WebLLM's integrity check refuses it.
+                await p.evaluate(() => caches.delete('webllm/config'));
+                const cfgPath = join(ROOT, 'jarvis/llm/resolve/Qwen3-0.6B-q4f16_1-MLC/mlc-chat-config.json');
+                const bad = (await readFile(cfgPath, 'utf8')).replace('"qwen3"', '"qwen4"');
+                await p.route('**/jarvis/llm/resolve/**/mlc-chat-config.json', (r) => r.fulfill({ body: bad, contentType: 'application/json' }));
+                const tampered = await p.evaluate(async () => {
+                    try { await window.__jarvis.llmLibReal(() => {}); return 'loaded'; } catch (e) { return String(e && (e.message || e)).slice(0, 160); }
+                });
+                ok('a config with one byte changed is refused by WebLLM\'s integrity check', /Integrity/i.test(tampered), tampered);
+                await p.unroute('**/jarvis/llm/resolve/**/mlc-chat-config.json');
+                problems.splice(0, problems.length, ...problems.filter((x) => !/Integrity|integrity|ShaderF16|shader-f16/.test(x))); // WebLLM logs these two refusals itself; they were asked for
+            }
+            // A fake engine, so the install line and an answer can be seen. It streams, like WebLLM's.
+            const before = await dbOf(p);
+            await p.evaluate(() => {
+                Object.defineProperty(navigator, 'gpu', { configurable: true, value: { requestAdapter: async () => ({ features: new Set(['shader-f16']) }) } });
+                let go; const gate = new Promise((r) => { go = r; }); window.__release = go;
+                const engine = { chat: { completions: { create: async () => (async function* () { for (const piece of ['SAY: The Eiffel ', 'Tower is 330 metres ', 'tall.\nDO: none\nKIND: fact']) { await new Promise((r) => setTimeout(r, 30)); yield { choices: [{ delta: { content: piece } }] }; } })() } }, interruptGenerate() {}, async unload() {} };
+                window.__jarvis.setLlmLib(async (on) => { on(0.47); await gate; on(1); return engine; });
+            });
+            ok('it warns about the size and asks first', /about 350 megabytes from this site.*Install it\? Say yes or no\.$/.test(await type('jarvis install your full brain please')));
+            await type('yes', 1200);
+            const line = await p.evaluate(() => { const e = document.getElementById('proto'); return e.hidden ? '' : e.textContent; });
+            ok(`the install line shows over the orb at ${w}×${h}`, line === 'INSTALLING FULL BRAIN · 47%', line);
+            await p.screenshot({ path: join(OUT, `brain-installing-${w}.png`) });
+            await p.evaluate(() => window.__release()); await p.waitForTimeout(1500);
+            ok('then "Full brain online"', /^Full brain online: Qwen3 0\.6B/.test(await lastAi()));
+            const ans = await type('how tall is the eiffel tower', 2500);
+            const tag = await p.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.brain-tag')?.textContent || '');
+            ok(`a guess comes back labelled, with the FULL BRAIN tag, at ${w}×${h}`, /^FULL BRAIN · QWEN3 0\.6BFrom memory, I may be wrong: The Eiffel Tower is 330 metres tall\.$/.test(ans) && tag === 'FULL BRAIN · QWEN3 0.6B', ans);
+            await p.screenshot({ path: join(OUT, `brain-answer-${w}.png`) });
+            ok(`no sideways scroll at ${w}×${h}`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+            const after = await dbOf(p);
+            const strip = (d) => { const o = { ...d }; delete o.events; delete o.totals; return JSON.stringify(o); };
+            // The knowledge pack may be copied in here: the full brain reads it for facts (Session 13's first-use copy).
+            const strip2 = (d) => { const o = JSON.parse(strip(d)); delete o.pack; if (o.meta) delete o.meta['"pack"']; return JSON.stringify(o); };
+            ok('the real database gained nothing but usage counts (and the public pack), and none of what was said', strip2(before) === strip2(after) && !/Eiffel|metres|SAY/.test(JSON.stringify(after)), strip2(before).slice(0, 300) + ' → ' + strip2(after).slice(0, 300));
+            ok('no localStorage written', Object.keys(await lsOf(p)).length === 0);
+            await p.reload(); await p.waitForFunction(() => window.__jarvis); await p.evaluate(() => window.__jarvis.ready);
+            ok('a reload starts without the full brain', await p.evaluate(() => window.__jarvis.full().state) === 'off');
+            await p.close();
+        } finally { await ctxL.close(); await rm(join(work, `profile-l-${w}`), { recursive: true, force: true }); }
+    }
+
 } finally {
     await ctx.close();
     server.close();
