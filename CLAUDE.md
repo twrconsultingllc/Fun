@@ -564,6 +564,20 @@ the planet we live on", 0.821 when the bands were set) and re-check the
 bands against the real model. Don't set them from the jsdom suite, whose
 fake fingerprints are placed at whatever score the test asks for.
 
+In `jarvis-test.html`, "help" no longer has a hand-written paragraph. It
+opens the Infinity Gauntlet, built from the `GAUNTLET` list: six stones (Space,
+Mind, Reality, Power, Time, Soul), each with its command links and a short
+note. The help answer's text is built from that list too, between two
+invisible `HELP_MARK`s, so the suite's link checks still read every command.
+`say()` shows and speaks only the short line around it. So a new command gets
+a `[label, command]` line in `GAUNTLET` under the stone it fits, not new words
+in `brain()`'s help branch, and still needs its CAPABILITIES entry. The suite
+pins the 61 commands the old paragraph linked, so none can drop out. Speech
+that shouldn't add a chat line (a stone's name as it's tapped) uses
+`say(text, {quiet: true})`. The user chose this layout on 2026-10-10 (review
+67), along with the pull-up chat strip and the projector caption's MORE and
+HIDE.
+
 The interim session on 2026-10-09 (skins, faces, voices, learned phrases)
 is written up in `jarvis/build-plan.html` under "Interim", with what was
 picked and what was decided against. Read it before changing any of those.
