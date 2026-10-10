@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #51 — Session 6, wake word, briefing, gesture thresholds, in jarvis-test.html</title>
+<meta name="description" content="Review of Session 6 of the J.A.R.V.I.S. build plan in jarvis-test.html: an opt-in always-listening Hey Jarvis switch, a Brief me answer read from My Daily Wire's headlines with no weather, and the hand-gesture thresholds pinned unchanged.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #51 — Session 6, wake word, briefing, gesture thresholds, in jarvis-test.html</h1>
+    <p class="sub">Session 6 of <code>jarvis/build-plan.html</code>: a "HEY JARVIS" always-listening switch, a "brief me" answer built from <code>daily-wire/feeds.json</code>, and checks that pin the hand-gesture thresholds. The user chose no weather and reported no gesture misfires, so no threshold changed. Built in the test copy only.</p>
+    <div class="meta">Review performed 2026-10-10 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>jarvis/build-plan.html</code> (Session 6 notes) · suite run: <code>jarvis-test</code> (482 passed, 409 before) · follows: <a href="50.html">50.html</a></div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 80%;"></div></div>
+    <div class="progress-label">10 items: 8 fixed or verified clean, 2 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security &amp; privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Always listening is opt-in, disclosed, and never left on</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The switch starts off on every visit and nothing about it is stored: the suite checks <code>localStorage</code> has no wake or listen key after switching it on. While it's on, a note under the input says, in amber, that everything the mic hears goes to the browser's online speech service until it's turned off, and that it works in Chrome and Edge only. Jarvis says the same when it's switched on. The mic button gets an amber ring, which stays visible over the projector (checked in Chromium: the ring is the topmost element at both sizes). It turns itself off when the tab is hidden, when the browser refuses the mic, and when recognition ends more than five times in ten seconds, instead of retrying in a loop. Where it isn't supported (no speech recognition, or no Chromium <code>userAgentData</code>, as in Safari and Firefox) the switch is hidden and asking for it says why.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">It still never opens a second mic stream</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Always listening is the same speech recognition object with <code>continuous</code> set, not a new stream. A grep finds two <code>getUserMedia(</code> calls in the page, both video-only (hand control and the threat scan). That keeps the rule from review 41: nothing opens the mic while recognition is running.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Jarvis can't wake himself</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>With recognition running all the time, it hears Jarvis's own answers. Anything heard while speech synthesis is speaking is ignored, and everything else has to start with the wake word, so an answer that mentions "Jarvis" mid-sentence can't trigger a command. Tested with a fake that reports <code>speaking</code>.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The briefing reads only this site, and headlines stay text</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>"Brief me" fetches <code>daily-wire/feeds.json</code> by relative URL, which <code>connect-src 'self'</code> already allows; the CSP meta tag is unchanged. In Chromium the only new request was to <code>127.0.0.1:8765/daily-wire/</code>. Headlines come from outside feeds, so they're treated as untrusted: they go into the chat log through <code>textContent</code> (in <code>add()</code>) and into speech, never into HTML, and are cut to 180 characters. No weather, as the user decided: the page has no <code>geolocation</code> call and no new host, and the suite checks that.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Live-stream spam in the local headlines</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Running the briefing against the real <code>feeds.json</code> picked a Southwest Florida "headline" that was live-stream bait in styled Unicode letters from a Russian-language site. <code>briefSpam()</code> now skips titles with fullwidth or maths-styled letters, Cyrillic, or "watch live" / "live stream" wording, and the briefing reads the next newest item. Ordinary titles like "Watch: the eclipse in pictures" and "Streaming prices rise again" still pass. The same items still show on My Daily Wire itself; dropping them there would be a change to <code>excludeSources</code> in <code>daily-wire/feeds.config.json</code>, which wasn't part of this session.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality &amp; accessibility</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The fake recognizer behaves like the real one</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Per CLAUDE.md, the new tests use a fake whose <code>start()</code> throws <code>InvalidStateError</code> while running and whose <code>onstart</code>/<code>onend</code> arrive later. That matters for one path in particular: tapping the mic while always listening is on must not call <code>start()</code> again, because the real one would throw. The tap now means "the next phrase is for Jarvis" with no name needed, and the suite checks the start count doesn't change.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Gesture thresholds pinned, not changed</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The user reported nothing misfiring and asked to keep the numbers. Seven checks now sit on each edge: a pinch closes below 0.26 of palm size and not at 0.27, stays closed to 0.41 and opens at 0.43, a swipe needs over 22% of the frame within 0.4 s, swipes are 0.9 s apart, and a fist under 150 ms isn't a squeeze. Moving the pinch to 0.28 and the swipe to 0.20 made two of them fail, so they really pin the values.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Readable at both sizes</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Headless Chromium at 1280×800 and 390×844: the switch fits beside the skin button, the page doesn't scroll sideways (scroll width 1280 and 390), and there were no page errors or CSP violations. Computed contrast for the amber note against the page background: 12.46:1 (Jarvis), 12.90:1 (Matrix), 10.13:1 (Panthers). The switch when on: 15.10:1, 15.18:1 and 7.66:1. It's a real button with <code>aria-pressed</code>, and its label follows the skin ("HEY MORPHEUS").</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not heard on a real device</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Headless Chromium has no real speech recognition, so always listening was tested with fakes. Real behaviour to try: how often Chrome ends a continuous session and restarts it, whether Android Chrome plays its listening sound on each restart (it often does), and how well it catches "Jarvis" from across a room.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The briefing is as fresh as the last feed refresh</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Headlines come from the file the Daily Wire workflow rebuilds every 6 hours, so they can be up to 6 hours old, and the briefing says so when they're over a day old. That's by design, to keep the page off outside hosts.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: the <code>jarvis-test</code> suite (482 passed), headless Chromium with a fake speech recognizer at 1280×800 and 390×844, computed WCAG contrast, the threshold checks run against deliberately changed numbers, and greps for unsafe sinks, <code>getUserMedia</code> and <code>geolocation</code>. See <a href="50.html">50.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>

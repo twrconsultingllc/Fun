@@ -50,9 +50,14 @@ button{font:inherit;cursor:pointer;border:1px solid var(--phos);background:trans
 button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 #mic{width:52px;border-radius:50%;font-size:1.3rem;padding:0}
 #mic.on{background:var(--phos);color:var(--void)}
+#mic.wake{box-shadow:0 0 0 3px var(--amber)} /* always listening is on: shown on the mic, which stays visible over the projector */
 #clock-box{text-align:right}
 #mic-note{max-width:640px;width:100%;margin:-8px auto 0;padding:0 18px 12px;font-size:.75rem;line-height:1.35;color:var(--label)}
 body.holo-on #mic-note{display:none}
+#wake{padding:3px 8px;font-size:.7rem;letter-spacing:.12em;font-weight:500}
+#wake[aria-pressed="true"]{background:var(--phos);color:var(--void)}
+#wake-note{max-width:640px;width:100%;margin:-8px auto 0;padding:0 18px 12px;font-size:.75rem;line-height:1.35;color:var(--amber)}
+body.holo-on #wake-note{display:none}
 
 /* ---------- Skins ---------- */
 :root[data-skin="matrix"]{--void:#000300;--deep:#001a06;--phos:#00ff41;--phos-dim:#0b6e26;--label:#2ec95a;--glass:rgba(0,255,65,.06);--text:#d4ffdc}
@@ -154,7 +159,7 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
 <canvas id="rain" aria-hidden="true" hidden></canvas>
 <header>
   <div><b><span id="who">J.A.R.V.I.S.</span><span class="test-tag">TEST</span></b>Test build · new features first · <a href="index.html">← Fun</a>
-    <span class="skin-row"><button type="button" id="skin" aria-label="Change skin">SKIN: JARVIS</button><select id="voice" aria-label="Voice" hidden></select></span></div>
+    <span class="skin-row"><button type="button" id="skin" aria-label="Change skin">SKIN: JARVIS</button><select id="voice" aria-label="Voice" hidden></select><button type="button" id="wake" aria-pressed="false" hidden>👂 HEY JARVIS: OFF</button></span></div>
   <div id="clock-box"><b id="clock">--:--</b><span id="date"></span></div>
 </header>
 
@@ -167,6 +172,7 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
   <input id="q" placeholder="Ask me something…" autocomplete="off" aria-label="Message">
   <button type="submit">Send</button>
 </form>
+<p id="wake-note" hidden>👂 Always listening is on. Everything the mic hears goes to your browser's online speech service until you turn it off. Start what you say with my name. Works in Chrome and Edge only.</p>
 <p id="mic-note" hidden>🎙 The mic uses your browser's online speech service. Typing stays on this device.</p>
 
 <div id="holo" role="region" aria-label="Holo-projector" hidden>
@@ -600,7 +606,7 @@ function brainKnown(raw){
   const s=raw.toLowerCase().trim(),name=userName?`, ${userName}`:'';
   let m;
   if((m=s.match(/\b(?:my name is|call me|i am|i'm) ([a-z]+)/))&&!notNames.has(m[1])){userName=m[1][0].toUpperCase()+m[1].slice(1);try{localStorage.setItem('jarvis-name',userName)}catch(e){}return `Nice to meet you, ${userName}. I'll remember that on this device.`}
-  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say show me your brain to watch me think, or suit up to build a suit of armour. Say show me Earth for the globe, or show me any country, US state or big city, like Florida or Tokyo. Say hand control to steer it with your hands through the camera, or scan the room for a threat scan. Say close to turn it off, or reboot to watch me power up again. Say switch to Matrix to talk to Morpheus, switch to Panthers for Stanley C. Panther, or back to Jarvis. If I don't understand you, tell me what you meant and I'll remember it on this device.";
+  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me the time or date, a joke, a fun fact, or some math like seven times eight. I can flip a coin, roll a die or start a launch countdown. For the holo-projector, say show me the galaxy, show me the planets, take me to Mars, make a heart, make a rocket, or write your name. Say show me your brain to watch me think, or suit up to build a suit of armour. Say show me Earth for the globe, or show me any country, US state or big city, like Florida or Tokyo. Say hand control to steer it with your hands through the camera, or scan the room for a threat scan. Say brief me for the time and the top headlines. In Chrome or Edge, turn on always listening with the HEY JARVIS switch, then start what you say with my name. Say close to turn it off, or reboot to watch me power up again. Say switch to Matrix to talk to Morpheus, switch to Panthers for Stanley C. Panther, or back to Jarvis. If I don't understand you, tell me what you meant and I'll remember it on this device.";
   if(/\b(hello|hi|hey|good (morning|afternoon|evening))\b/.test(s))return pick([`Hello${name}. All systems are online.`,`Good to see you${name}. How can I help?`]);
   if(/what.*\btime\b/.test(s))return `It's ${new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}${name}.`;
   if(/what.*(date|day)/.test(s))return `Today is ${new Date().toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'})}.`;
@@ -1776,6 +1782,7 @@ function setSkin(k){
   try{localStorage.setItem('jarvis-skin',k)}catch(e){}
   if(synth)pickVoice();
   rain(k==='matrix');
+  if(wakeBtn)wakeBtn.textContent=`👂 HEY ${S.short.toUpperCase()}: ${wakeOn?'ON':'OFF'}`;
   return was===k?`I'm already ${S.short}.`:S.hello;
 }
 skinBtn.addEventListener('click',()=>{const ks=Object.keys(SKINS);say(setSkin(ks[(ks.indexOf(skin)+1)%ks.length]))});
@@ -1802,6 +1809,44 @@ function flair(text){
   return n%3===0?`${S.open[(n/3|0)%S.open.length]} ${text}`:n%3===1?`${text} ${S.close[(n/3|0)%S.close.length]}`:text;
 }
 
+
+/* ---------- "Brief me": the time, then the newest headline from a few of My Daily Wire's categories ----------
+   daily-wire/feeds.json is a file on this site, refreshed every 6 hours, so connect-src 'self' already allows it.
+   No weather: that would need an outside service and your location, which the user decided against. */
+const BRIEF_CATS=[['news','In the news'],['swfl','In Southwest Florida'],['tech','In tech'],['science','In science and space']];
+// Live-stream spam slips into the local news searches: styled letters (fullwidth, maths bold), a
+// foreign-script publisher on an English headline, or "watch live" bait. Skip it and read the next one.
+function briefSpam(i){
+  const t=String(i.title)+' '+String(i.source||'');
+  return /[\uFF01-\uFF5E\u0400-\u04FF\u2295]|\uD835[\uDC00-\uDFFF]/.test(t)||/\b(?:watch|stream(?:ing|s)?) (?:live|online|free)\b|\blive ?streams?\b|\bhd live\b/i.test(t);
+}
+function briefingText(data,now=new Date()){
+  const parts=[`It's ${now.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})} on ${now.toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'})}.`];
+  const items=data&&Array.isArray(data.items)?data.items:[];
+  const time=i=>{const v=Date.parse(i.date);return isNaN(v)?0:v};
+  let n=0;
+  for(const [cat,lead] of BRIEF_CATS){
+    const top=items.filter(i=>i&&i.category===cat&&typeof i.title==='string'&&i.title.trim()&&!briefSpam(i)).sort((a,b)=>time(b)-time(a))[0];
+    if(!top)continue;
+    let title=top.title.replace(/\s+/g,' ').trim(),source=String(top.source||'');
+    // Google News titles end with " - Publisher": say the publisher, not the search it came from
+    if(/^Google News\b/.test(source)){const m=title.match(/^(.{12,}) [-–—] (.{2,60})$/);source='';if(m){title=m[1];source=m[2].trim()}}
+    if(title.length>180)title=title.slice(0,177).replace(/\s+\S*$/,'')+'…';
+    parts.push(`${lead}: ${title.replace(/[.!?…]*$/,'')}${source?`, from ${source}`:''}.`);n++;
+  }
+  if(!n)return parts[0]+" I couldn't find any headlines right now.";
+  const age=(now-Date.parse(data.generatedAt))/36e5;
+  if(age>=24)parts.push(`These headlines are ${Math.round(age/24)===1?'a day':Math.round(age/24)+' days'} old.`);
+  return parts.join(' ');
+}
+async function briefing(){
+  try{
+    const r=await fetch('daily-wire/feeds.json',{cache:'no-cache'});if(!r.ok)throw new Error(r.status);
+    return briefingText(await r.json());
+  }catch(e){return briefingText(null).replace(" I couldn't find any headlines right now."," I couldn't load the headlines just now.")}
+}
+const BRIEF_RE=/^(?:please )?(?:brief me|(?:give me |read me |start )?(?:my |the |a |your )?(?:morning |daily |evening |news )?briefing|(?:what's|what is|whats) (?:in )?the (?:news|headlines)|(?:give me |read me |tell me )?(?:the |today's )?(?:news|headlines)(?: today| please)?)$/;
+
 /* ---------- Learned phrases (this browser only) ---------- */
 // When Jarvis doesn't understand something, he asks what you meant. If that turns out to be something he
 // knows, the phrase is saved here, so saying it again just works. Stored in localStorage, nowhere else.
@@ -1818,11 +1863,12 @@ function learn(said,meant){
 }
 let pendingTeach=null; // the phrase Jarvis just didn't understand, while he waits to hear what it meant
 const NOPE=Symbol('not understood');
-const CAN_DO="Here's what I can do: tell the time or date, a joke, a fun fact or some math, flip a coin or roll a die, show you things on the holo-projector like Mars, Earth or your name, suit up, show my brain, run a threat scan, or switch to the Matrix or Panthers skin.";
+const CAN_DO="Here's what I can do: tell the time or date, a joke, a fun fact or some math, flip a coin or roll a die, show you things on the holo-projector like Mars, Earth or your name, suit up, show my brain, run a threat scan, give you a briefing, or switch to the Matrix or Panthers skin.";
 // One answer, or NOPE when nothing understood it. A learned phrase stands in for what it means.
 async function respond(text){
   const p=normPhrase(text);if(learned[p])text=learned[p];
   const sk=skinIntent(text);if(sk)return setSkin(sk);
+  if(BRIEF_RE.test(normPhrase(text).replace(/^(?:jarvis )/,'')))return await briefing();
   const it=intent(text);if(it)return await project(it);
   if(skin!=='jarvis'&&/who are you|your name|what are you/.test(normPhrase(text)))return SKINS[skin].who;
   const b=brainKnown(text);return b===null?NOPE:flair(b);
@@ -1830,6 +1876,7 @@ async function respond(text){
 const MEANT=/^(?:what\s+)?i\s+(?:was\s+(?:trying|going)\s+to\s+(?:say|ask)|tried\s+to\s+(?:say|ask)|wanted\s+to\s+(?:say|ask)|meant\s+to\s+(?:say|ask)|wanted\s+(?:you\s+)?to|want\s+(?:you\s+)?to|meant|mean)(?:\s+(?:was|is))?[\s,:]*/i;
 async function answer(text){
   const p=normPhrase(text);
+  const w=wakeIntent(text);if(w!==null)return setWake(w);
   if(/^(?:forget|clear|erase|wipe|reset|delete)\b.*\b(?:learned|learnt|taught|memory|phrases)\b/.test(p)){
     pendingTeach=null;const n=Object.keys(learned).length;learned=Object.create(null);saveLearned();
     return n?`Done. I've forgotten the ${n===1?'phrase':n+' phrases'} you taught me.`:"You haven't taught me anything yet.";
@@ -1865,21 +1912,80 @@ const f=document.getElementById('f'),q=document.getElementById('q'),mic=document
 f.addEventListener('submit',e=>{e.preventDefault();handle(q.value);q.value=''});
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const micNote=document.getElementById('mic-note');
+// "Hey Jarvis": with always listening on, recognition keeps running and only acts on what starts with the
+// wake word (Jarvis, or the current skin's name). Off by default, never saved, and off when the tab is hidden.
+const wakeBtn=document.getElementById('wake'),wakeNote=document.getElementById('wake-note');
+// Chrome and Edge (Chromium, which has userAgentData) are the browsers where continuous recognition works.
+const wakeOK=!!SR&&!!(navigator.userAgentData&&Array.isArray(navigator.userAgentData.brands)&&navigator.userAgentData.brands.some(b=>/Chrom|Edge/.test(b.brand)));
+let wakeOn=false,armedUntil=0,wakeRestarts=[];
+// What follows the wake word, '' for the wake word alone, or null when the phrase doesn't start with it.
+function wakeCommand(text,names='jarvis'){
+  const m=String(text).trim().match(new RegExp(`^(?:(?:hey|hi|hello|ok|okay|yo)[\\s,]+)?(?:${names})\\b[\\s,.:;!?-]*(.*)$`,'i'));
+  return m?m[1].trim():null;
+}
+const wakeNames=()=>['jarvis',SKINS[skin].short.toLowerCase()].filter((v,i,a)=>a.indexOf(v)===i).join('|');
+function wakeIntent(raw){
+  const s=normPhrase(raw);
+  if(/\b(?:stop|turn off|disable|end|no more|quit)\b.*\b(?:always listening|listening all the time|wake word|hey jarvis)\b|\b(?:always listening|wake word|hey jarvis)(?: mode)? off\b/.test(s))return false;
+  if(/\b(?:always listen(?:ing)?|listen all the time|keep listening|wake word|hey jarvis mode)\b/.test(s))return true;
+  return null;
+}
+let setWake=()=>"Always listening works in Chrome and Edge only, with a microphone.";
 if(SR){
   // Shown until the mic has been used once on this device.
   let noted=false;try{noted=!!localStorage.getItem('jarvis-mic-note')}catch(e){}
   if(!noted)micNote.hidden=false;
   const rec=new SR();rec.lang='en-US';rec.interimResults=false;
-  rec.onstart=()=>{hearing=false;mic.classList.add('on');setMode('listen');try{localStorage.setItem('jarvis-mic-note','1')}catch(e){}};
+  const armed=()=>performance.now()<armedUntil;
+  rec.onstart=()=>{hearing=false;try{localStorage.setItem('jarvis-mic-note','1')}catch(e){}if(wakeOn&&!armed())return;mic.classList.add('on');setMode('listen')};
   // The orb reacts to your voice through recognition's own events, so it never competes for the mic.
   rec.onspeechstart=()=>{hearing=true};rec.onspeechend=()=>{hearing=false};
-  rec.onend=()=>{hearing=false;mic.classList.remove('on');if(mode==='listen')setMode('idle')};
-  rec.onerror=()=>{hearing=false;mic.classList.remove('on');setMode('idle')};
-  rec.onresult=e=>handle(e.results[0][0].transcript);
-  mic.addEventListener('click',()=>{if(synth)synth.cancel();try{rec.start()}catch(e){rec.stop()}});
+  rec.onend=()=>{
+    hearing=false;mic.classList.remove('on');if(mode==='listen')setMode('idle');
+    if(!wakeOn)return;
+    // Chrome ends a continuous session after a silence or a network hiccup: start again, but not in a tight loop.
+    const now=performance.now();wakeRestarts=wakeRestarts.filter(x=>now-x<10000);wakeRestarts.push(now);
+    if(wakeRestarts.length>5){add(setWake(false,"Always listening stopped, because speech recognition kept ending. Tap the switch to try again."),'ai');return}
+    setTimeout(()=>{if(wakeOn)try{rec.start()}catch(e){}},300);
+  };
+  rec.onerror=e=>{
+    hearing=false;mic.classList.remove('on');if(mode==='listen')setMode('idle');
+    if(wakeOn&&/not-allowed|service-not-allowed|audio-capture/.test(e&&e.error))add(setWake(false,"Always listening is off: the browser wouldn't let me use the microphone."),'ai');
+  };
+  function heard(text){
+    if(synth&&synth.speaking)return; // don't act on Jarvis's own voice
+    const cmd=wakeCommand(text,wakeNames());
+    if(cmd===null){if(armed()){armedUntil=0;mic.classList.remove('on');handle(text)}return}
+    if(!cmd){armedUntil=performance.now()+8000;mic.classList.add('on');setMode('listen');blip(880,.08,.03);return} // "Jarvis" alone: listen for the next phrase
+    armedUntil=0;mic.classList.remove('on');handle(cmd);
+  }
+  rec.onresult=e=>{
+    if(!wakeOn){handle(e.results[0][0].transcript);return}
+    for(let i=e.resultIndex||0;i<e.results.length;i++)if(e.results[i].isFinal!==false)heard(e.results[i][0].transcript);
+  };
+  mic.addEventListener('click',()=>{
+    if(synth)synth.cancel();
+    // With always listening on, recognition is already running: a tap means "the next thing I say is for you".
+    if(wakeOn){armedUntil=performance.now()+8000;mic.classList.add('on');setMode('listen');return}
+    try{rec.start()}catch(e){rec.stop()}
+  });
+  if(wakeOK){
+    wakeBtn.hidden=false;
+    setWake=(on,why)=>{
+      if(on===wakeOn)return on?"Always listening is already on.":"Always listening is already off.";
+      wakeOn=on;armedUntil=0;wakeRestarts=[];rec.continuous=on;
+      wakeBtn.setAttribute('aria-pressed',String(on));wakeBtn.textContent=`👂 HEY ${SKINS[skin].short.toUpperCase()}: ${on?'ON':'OFF'}`;
+      wakeNote.hidden=!on;mic.classList.toggle('wake',on);
+      if(on){try{rec.start()}catch(e){}return `Always listening is on. Everything the mic hears goes to your browser's online speech service until you turn it off. Start with my name, like: Jarvis, what time is it?`}
+      try{rec.stop()}catch(e){}
+      return why||"Always listening is off.";
+    };
+    wakeBtn.addEventListener('click',()=>say(setWake(!wakeOn)));
+    document.addEventListener('visibilitychange',()=>{if(document.hidden&&wakeOn)add(setWake(false,"Always listening turned off when you left the page."),'ai')});
+  }
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing};
+window.__jarvis={speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing};
 setSkin(skin);
 showBoot();
 </script>
