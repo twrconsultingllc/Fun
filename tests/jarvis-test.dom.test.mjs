@@ -448,6 +448,25 @@ export default async function run(t, page) {
         t.ok('the cursor follows the thumb and index tips', cur.hands === 1 && Math.abs(cur.x - 0.23) < 0.005 && Math.abs(cur.y - 0.135) < 0.005);
         t.eq('no hands: the cursor hides', JSON.stringify(g([], 1).find((a) => a.type === 'cursor')), '{"type":"cursor","hands":0}');
 
+        t.section('Gesture thresholds, pinned (Session 6)');
+
+        // Session 6 tunes gestures from what misfired on the user's devices. On 2026-10-09 the user
+        // reported nothing misfiring and asked to keep the thresholds, so these pin them exactly,
+        // and any later change has to move a check here on purpose.
+        const pinchAt = (r, x = 0.5) => { const lm = hand('pinch', x); lm[4] = { x: lm[8].x - r * 0.15, y: lm[8].y, z: 0 }; return lm; };
+        t.ok('the pinch helper gives the ratio asked for', Math.abs(classifyHand(pinchAt(0.3)).pinchR - 0.3) < 1e-9);
+        const pinchedAfter = (rs) => { g = createGestures(); let on = false; rs.forEach((r, i) => { on = g([{ key: 'h', lm: pinchAt(r) }], i * 0.05).find((a) => a.type === 'grab').on; }); return on; };
+        t.ok('a pinch closes below 0.26 of palm size', pinchedAfter([0.25]) && !pinchedAfter([0.27]));
+        t.ok('a held pinch stays closed up to 0.42, so it doesn\'t flicker', pinchedAfter([0.2, 0.41]) && !pinchedAfter([0.2, 0.43]));
+        const swipeOf = (dx, dt) => { g = createGestures(); return run([[0, [hand('open', 0.6)]], [dt, [hand('open', 0.6 - dx)]]]).some((a) => a.type === 'swipe'); };
+        t.ok('a swipe needs over 22% of the frame', swipeOf(0.23, 0.3) && !swipeOf(0.21, 0.3));
+        t.ok('within 0.4 s', !swipeOf(0.3, 0.45));
+        g = createGestures();
+        acts = run([[0, [hand('open', 0.8)]], [0.1, [hand('open', 0.5)]], [0.3, [hand('open', 0.8)]], [0.4, [hand('open', 0.5)]]]);
+        t.eq('swipes are at least 0.9 s apart, so waving back doesn\'t undo one', acts.filter((a) => a.type === 'swipe').length, 1);
+        g = createGestures();
+        t.ok('a fist under 150 ms is not a squeeze', !run([[0, [hand('fist')]], [0.14, [hand('fist')]]]).some((a) => a.type === 'squeeze'));
+
         t.section('Threat scan (Session 5)');
 
         t.eq('"scan the room"', JSON.stringify(intent('Scan the room.')), '{"kind":"scan"}');
@@ -565,6 +584,8 @@ export default async function run(t, page) {
     }
 
     await voiceWiring(t, page);
+    await wakeWiring(t, page);
+    await briefingChecks(t, page);
     await speechWiring(t, page);
     await skinsAndMemory(t, page);
     await voicePicker(t, page);
@@ -883,4 +904,187 @@ async function androidVoices(t, page) {
     } finally {
         env.close();
     }
+}
+
+/* Session 6: "Hey Jarvis". A fake SpeechRecognition that behaves like the real one: start() throws
+ * InvalidStateError while it's already running, and onstart/onend arrive later, not inside the call
+ * (see CLAUDE.md, "A fake speech recognizer must behave like the real one"). */
+function fakeRecognizer({ chromium = true, speaking = () => false } = {}) {
+    const log = { recs: [], starts: 0 };
+    return {
+        log,
+        beforeParse(window) {
+            window.SpeechRecognition = class {
+                constructor() { this.running = false; this.continuous = false; log.recs.push(this); }
+                start() {
+                    if (this.running) throw new window.DOMException('already started', 'InvalidStateError');
+                    this.running = true; log.starts++; setTimeout(() => this.onstart?.(), 0);
+                }
+                stop() { if (!this.running) return; this.running = false; setTimeout(() => this.onend?.(), 0); }
+                // what Chrome does when a continuous session ends by itself (a silence, a network blip)
+                drop() { this.running = false; this.onend?.(); }
+                hear(text, final = true) { this.onresult?.({ resultIndex: 0, results: [Object.assign([{ transcript: text }], { isFinal: final })] }); }
+            };
+            if (chromium) Object.defineProperty(window.navigator, 'userAgentData', { configurable: true, value: { brands: [{ brand: 'Chromium', version: '130' }, { brand: 'Google Chrome', version: '130' }] } });
+            window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+            window.speechSynthesis = { getVoices: () => [], onvoiceschanged: null, get speaking() { return speaking(); }, speak() {}, cancel() {} };
+        }
+    };
+}
+
+async function wakeWiring(t, page) {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const open = async (opts) => {
+        const fake = fakeRecognizer(opts);
+        const env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/, beforeParse: fake.beforeParse });
+        return { ...env, log: fake.log };
+    };
+    t.section('"Hey Jarvis" (Session 6)');
+
+    const { wakeCommand, wakeIntent } = (await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ })).window.__jarvis;
+    t.eq('"Jarvis, what time is it" is for Jarvis', wakeCommand('Jarvis, what time is it?'), 'what time is it?');
+    t.eq('"hey Jarvis tell me a joke"', wakeCommand('hey Jarvis tell me a joke'), 'tell me a joke');
+    t.eq('"OK Jarvis" alone wakes him with nothing to do yet', wakeCommand('OK Jarvis'), '');
+    t.eq('a phrase that doesn\'t start with the name is ignored', wakeCommand('what time is it Jarvis'), null);
+    t.eq('"Jarvisville" is not the name', wakeCommand('Jarvisville is a town'), null);
+    t.eq('the current skin\'s name works too', wakeCommand('Morpheus, take the red pill', 'jarvis|morpheus'), 'take the red pill');
+    t.eq('"always listen" turns it on', wakeIntent('always listen'), true);
+    t.eq('"turn on the wake word"', wakeIntent('turn on the wake word'), true);
+    t.eq('"stop always listening" turns it off', wakeIntent('stop always listening'), false);
+    t.eq('"wake word off"', wakeIntent('wake word off'), false);
+    t.eq('"listen to this" is not the switch', wakeIntent('listen to this'), null);
+
+    let env = await open({ chromium: false });
+    try {
+        t.ok('outside Chrome and Edge, the switch is hidden', env.document.getElementById('wake').hidden);
+        t.ok('and asking for it says why', /Chrome and Edge only/.test(await env.window.__jarvis.answer('always listen')));
+        t.eq('and nothing starts listening', env.log.starts, 0);
+    } finally { env.close(); }
+
+    let speaking = false;
+    env = await open({ speaking: () => speaking });
+    try {
+        const { window, document, log } = env;
+        const rec = log.recs[0], btn = document.getElementById('wake'), note = document.getElementById('wake-note');
+        const said = () => [...document.querySelectorAll('#log .msg.me')].map((m) => m.textContent);
+        const last = () => [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? '';
+        t.eq('the page has no console errors with the switch', env.errors.length, 0);
+        t.ok('in Chrome, the switch shows, off', !btn.hidden && btn.getAttribute('aria-pressed') === 'false' && /OFF/.test(btn.textContent));
+        t.ok('off by default: nothing is listening', !rec.running && note.hidden);
+        btn.click();
+        await wait(5);
+        t.ok('switching it on starts continuous recognition', rec.running && rec.continuous === true);
+        t.ok('the button shows it is on', btn.getAttribute('aria-pressed') === 'true' && /ON/.test(btn.textContent));
+        t.ok('a note says plainly where the audio goes, and that it is Chrome and Edge only', !note.hidden && /online speech service/.test(note.textContent) && /Chrome and Edge only/.test(note.textContent));
+        t.ok('Jarvis says it too', /online speech service/.test(last()));
+        t.ok('the mic is ringed, so it shows over the projector too', document.getElementById('mic').classList.contains('wake'));
+        t.eq('waiting for the name is not LISTENING', document.getElementById('state').textContent !== 'LISTENING', true);
+        t.ok('nothing about it is saved', !Object.keys(window.localStorage).some((k) => /wake|listen/.test(k)));
+
+        rec.hear('what is two plus two');
+        t.ok('talk without the name is ignored', !said().includes('what is two plus two'));
+        rec.hear('Jarvis, what is three plus three');
+        t.ok('"Jarvis, …" is handled, without the name', said().includes('what is three plus three'));
+        rec.hear('Jarvis');
+        t.eq('the name alone: LISTENING for the next phrase', document.getElementById('state').textContent, 'LISTENING');
+        rec.hear('tell me a joke');
+        t.ok('and that next phrase is handled', said().includes('tell me a joke'));
+        rec.hear('tell me a fact');
+        t.ok('only that one phrase', !said().includes('tell me a fact'));
+        rec.hear('Jarvis, maybe', false);
+        t.ok('a result that isn\'t final yet is ignored', !said().includes('maybe'));
+
+        speaking = true;
+        rec.hear('Jarvis, flip a coin');
+        t.ok('while Jarvis is speaking, nothing is acted on (not even his own voice)', !said().includes('flip a coin'));
+        speaking = false;
+
+        let starts = log.starts;
+        document.getElementById('mic').click();
+        t.eq('tapping the mic while it is on doesn\'t restart recognition (which would throw)', log.starts, starts);
+        rec.hear('roll a die');
+        t.ok('the tap means the next phrase is for Jarvis, no name needed', said().includes('roll a die'));
+
+        rec.drop();
+        await wait(350);
+        t.ok('when Chrome ends the session by itself, it starts again', rec.running && log.starts === starts + 1);
+
+        rec.onerror({ error: 'not-allowed' }); rec.running = false;
+        await wait(5);
+        t.ok('if the mic is refused, it turns itself off', btn.getAttribute('aria-pressed') === 'false' && note.hidden && /wouldn't let me use the microphone/.test(last()));
+        await wait(350);
+        starts = log.starts;
+        t.ok('and does not keep trying', !rec.running);
+
+        btn.click(); await wait(5);
+        for (let i = 0; i < 6; i++) { rec.drop(); await wait(320); }
+        t.ok('if recognition keeps ending, it stops trying rather than loop', btn.getAttribute('aria-pressed') === 'false' && /kept ending/.test(last()));
+
+        btn.click(); await wait(5);
+        window.__jarvis.setSkin('matrix');
+        t.ok('the switch follows the skin\'s name', /HEY MORPHEUS: ON/.test(btn.textContent));
+        rec.hear('Morpheus, what is four plus four');
+        t.ok('and so does the wake word', said().includes('what is four plus four'));
+        window.__jarvis.setSkin('jarvis');
+
+        Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+        document.dispatchEvent(new window.Event('visibilitychange'));
+        await wait(5);
+        t.ok('leaving the page turns it off', btn.getAttribute('aria-pressed') === 'false' && !rec.running);
+        Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+
+        t.ok('typing "always listen" turns it on', /is on/.test(await window.__jarvis.answer('always listen')) && rec.running);
+        t.ok('and "stop always listening" off', /is off/.test(await window.__jarvis.answer('stop always listening')) && btn.getAttribute('aria-pressed') === 'false');
+        await wait(5);
+        t.ok('switching off stops recognition', !rec.running);
+        t.eq('no console errors through all that', env.errors.length, 0);
+    } finally { env.close(); }
+}
+
+async function briefingChecks(t, page) {
+    t.section('"Brief me" (Session 6)');
+    const env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ });
+    try {
+        const { briefingText, answer } = env.window.__jarvis;
+        const now = new Date('2026-10-09T20:00:00Z');
+        const item = (category, title, date, source = 'Some Wire') => ({ category, title, date, source });
+        const data = { generatedAt: '2026-10-09T18:00:00Z', items: [
+            item('news', 'Older story', '2026-10-09T10:00:00Z'),
+            item('news', 'Newest story!', '2026-10-09T17:00:00Z', 'BBC News'),
+            item('swfl', 'Bridge reopens on Estero Boulevard - Naples Daily News', '2026-10-09T16:00:00Z', 'Google News: Naples'),
+            item('tech', 'Chip maker ships new chip', '2026-10-09T15:00:00Z', 'The Verge'),
+            item('live', 'M 4.1 - somewhere', '2026-10-09T19:00:00Z', 'USGS Earthquakes'),
+            item('science', '', '2026-10-09T19:00:00Z'),
+            item('science', 'Probe reaches Jupiter', 'not a date', 'NASA')
+        ] };
+        const b = briefingText(data, now);
+        t.ok('starts with the time and date', /^It's .+ on .+\./.test(b));
+        t.ok('the newest news headline, with its source', /In the news: Newest story, from BBC News\./.test(b));
+        t.ok('a Google News headline names the publisher, not the search', /In Southwest Florida: Bridge reopens on Estero Boulevard, from Naples Daily News\./.test(b));
+        t.ok('tech and science follow, in that order', b.indexOf('In tech') > b.indexOf('Southwest Florida') && b.indexOf('In science and space: Probe reaches Jupiter') > b.indexOf('In tech'));
+        t.ok('live data (earthquakes) is left out, and an empty title is skipped', !/USGS|M 4\.1/.test(b));
+        const spam = { generatedAt: data.generatedAt, items: [
+            item('swfl', '⊕[ＷＡＴＣＨ ＬＩＶＥ ＮＯＷ]⊕ Marco Island vs Leonard 𝐋𝐈𝐕𝐄 Streams - Узнай Москву', '2026-10-09T19:00:00Z', 'Google News: Marco Island'),
+            item('swfl', 'Lely vs Naples Live Stream HD - Some Site', '2026-10-09T18:30:00Z', 'Google News: Naples'),
+            item('swfl', 'County opens new library branch - Fort Myers News-Press', '2026-10-09T12:00:00Z', 'Google News: Fort Myers')] };
+        t.ok('live-stream spam is skipped for the next real headline', /In Southwest Florida: County opens new library branch, from Fort Myers News-Press\./.test(briefingText(spam, now)) && !/Stream|ＷＡＴＣＨ/.test(briefingText(spam, now)));
+        t.ok('ordinary headlines are not spam', !env.window.__jarvis.briefSpam(item('news', 'Watch: the eclipse in pictures', '', 'BBC News')) && !env.window.__jarvis.briefSpam(item('tech', 'Streaming prices rise again', '', 'The Verge')));
+        t.ok('fresh headlines get no age warning', !/old\./.test(b));
+        t.ok('headlines over a day old say so', /These headlines are 3 days old\./.test(briefingText({ ...data, generatedAt: '2026-10-06T18:00:00Z' }, now)));
+        t.ok('no headlines: says so, after the time', /^It's .+ I couldn't find any headlines right now\.$/.test(briefingText({ items: [] }, now)));
+        t.ok('a very long headline is cut at a word', briefingText({ generatedAt: data.generatedAt, items: [item('news', 'word '.repeat(60), data.generatedAt)] }, now).length < 260);
+        t.ok('no weather: the briefing never asks for a location', !/geolocation/.test(page.html));
+        t.ok('"brief me" opens the briefing (here, without fetch, it says it couldn\'t load)', /^It's .+ I couldn't load the headlines just now\.$/.test(await answer('brief me')));
+        for (const q of ['Jarvis, brief me', 'give me my morning briefing', "what's in the news", 'read me the headlines', 'news please'])
+            t.ok(`"${q}" is the briefing`, /^It's .+ on /.test(await answer(q)));
+        t.ok('"the news is boring" is not', !/^It's .+ on /.test(await answer('the news is boring')));
+        t.ok('help mentions the briefing and always listening', /brief me/.test(env.window.__jarvis.brain('help')) && /always listening/.test(env.window.__jarvis.brain('help')));
+        t.ok('it reads daily-wire/feeds.json from this site', /fetch\('daily-wire\/feeds\.json'/.test(page.html));
+        if (page.url.startsWith('file:')) {
+            const real = JSON.parse(await readFile(fileURLToPath(new URL('daily-wire/feeds.json', page.url)), 'utf8'));
+            const rb = briefingText(real, new Date(real.generatedAt));
+            t.ok('the real feeds.json gives a headline for all four categories', ['In the news', 'In Southwest Florida', 'In tech', 'In science and space'].every((l) => rb.includes(l + ': ')));
+            t.note(rb);
+        }
+    } finally { env.close(); }
 }

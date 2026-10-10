@@ -372,7 +372,7 @@
   </header>
 
   <div class="callout warning" style="grid-column: 1 / -1;">
-    <strong class="label">Status: Sessions 1 to 4 and the interim session live in jarvis.html · Session 5 in test in jarvis-test.html</strong>
+    <strong class="label">Status: Sessions 1 to 4 and the interim session live in jarvis.html · Sessions 5 and 6 in test in jarvis-test.html</strong>
     Written 2026-10-09, after the boot sequence, holo-projector (galaxy,
     solar system, particle sculptor) and hand control were merged (PRs
     #61–#64). Sessions are numbered in the suggested order, but each one
@@ -466,14 +466,14 @@
           <tr><td>4</td><td><a href="#s4">Earth globe</a></td><td>Option 4</td><td>Medium</td><td><span class="badge done">Done</span></td></tr>
           <tr><td>i1</td><td><a href="#i1">Interim: skins, faces, voices, learned phrases</a></td><td>Asked for in chat, not from the options list</td><td>Medium</td><td><span class="badge done">Done</span></td></tr>
           <tr><td>5</td><td><a href="#s5">Threat scan</a></td><td>Option 11</td><td>Medium</td><td><span class="badge in-progress">In test</span></td></tr>
-          <tr><td>6</td><td><a href="#s6">Wake word, briefing, gesture tuning</a></td><td>Options 7 and 12, and the hand-control review item</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>6</td><td><a href="#s6">Wake word, briefing, gesture tuning</a></td><td>Options 7 and 12, and the hand-control review item</td><td>Medium</td><td><span class="badge in-progress">In test</span></td></tr>
         </tbody>
       </table></div>
     </section>
 
     <section id="map">
       <h2><span class="kicker">Read this before changing anything</span>Where things live</h2>
-      <p>Everything is in one page, plus the self-hosted hand tracker and its test suite. There are two copies of that page: build in <code>jarvis-test.html</code> (about 1,880 lines with Session 5), and leave <code>jarvis.html</code> alone until the user says to <a href="#test-first">promote</a>. The names below are the same in both.</p>
+      <p>Everything is in one page, plus the self-hosted hand tracker and its test suite. There are two copies of that page: build in <code>jarvis-test.html</code> (about 2,000 lines with Sessions 5 and 6), and leave <code>jarvis.html</code> alone until the user says to <a href="#test-first">promote</a>. The names below are the same in both.</p>
       <div class="table-wrap"><table>
         <thead><tr><th>Piece</th><th>Where</th><th>How to extend it</th></tr></thead>
         <tbody>
@@ -485,7 +485,7 @@
           <tr><td>Hand control</td><td><code>classifyHand</code>, <code>createGestures</code>, <code>startHands</code>; files in <code>jarvis/hands/</code></td><td>The vendored files are pinned by hash (see <a href="hands/README.md">hands/README.md</a>). <code>tasks-vision</code> 0.10.14 also has a face detector, which Session 5 can reuse.</td></tr>
           <tr><td>Orb</td><td><code>draw()</code>, <code>orbPulse()</code></td><td>Reads <code>mode</code>, <code>energy</code> and <code>bootP</code>. While listening, recognition's <code>speechstart</code>/<code>speechend</code> set <code>hearing</code>. Never open a mic stream here: it takes the mic from speech recognition. While speaking, <code>lastWord</code> (from <code>onboundary</code>) drives the pulse. Under reduced motion, <code>orbPulse</code> holds still.</td></tr>
           <tr><td>Privacy line</td><td>CSP meta tag</td><td><code>connect-src 'self'</code>. Anything that would widen it to an outside host is a decision for you, not the session.</td></tr>
-          <tr><td>Tests</td><td><code>tests/jarvis-test.dom.test.mjs</code> for the test copy (409 checks), <code>tests/jarvis.dom.test.mjs</code> for the main page (366)</td><td>jsdom has no WebGL, canvas or camera, so pure logic is exposed on <code>window.__jarvis</code> and tested directly.</td></tr>
+          <tr><td>Tests</td><td><code>tests/jarvis-test.dom.test.mjs</code> for the test copy (482 checks), <code>tests/jarvis.dom.test.mjs</code> for the main page (366)</td><td>jsdom has no WebGL, canvas or camera, so pure logic is exposed on <code>window.__jarvis</code> and tested directly.</td></tr>
         </tbody>
       </table></div>
 <pre><code>cd tests && node run.mjs --page=jarvis-test.html</code></pre>
@@ -600,7 +600,7 @@
 
     <section id="s6">
       <h2><span class="kicker">Session 6 · medium</span>Wake word, briefing, gesture tuning</h2>
-      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> you to have tried hand control on your own devices</span></div>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge in-progress">In test</span></span><span><strong>Needs:</strong> you to have tried hand control on your own devices</span><span><strong>Review:</strong> <a href="../tests/secrpts/51.html">51</a></span></div>
       <ol class="substeps">
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>"Hey Jarvis":</strong> an "always listening" switch that keeps speech recognition running and acts only on phrases that start with "Jarvis". It's off by default and resets each visit. The switch says plainly that the audio goes to the browser's speech service, and that it works in Chrome and Edge only. Where it isn't supported, the switch is hidden.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>"Brief me":</strong> reads the time, then the top headline from each of a few categories in <code>daily-wire/feeds.json</code>. That file is on this site, so <code>connect-src 'self'</code> already allows it. It's spoken and shown in the log.</li>
@@ -608,7 +608,13 @@
         <li><span class="who"><span class="badge you">You</span></span> <strong>Gesture feedback.</strong> Before this session, try hand control and note what misfired: pinches not registering, accidental swipes, a fist read as a pinch, lag on which device.</li>
         <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Gesture tuning</strong> from that feedback. The thresholds are in <code>createGestures</code> and <code>classifyHand</code> (pinch below 0.26 and released above 0.42 of palm size, a swipe of 22% of the frame in 0.4 s, a 150 ms fist). Add a synthetic-landmark test for each reported misfire before changing a number.</li>
       </ol>
-      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+      <div class="callout notes"><strong class="label">Session notes</strong>
+        <p>Built 2026-10-10 in commit <code>6052301</code>, in <code>jarvis-test.html</code> only, reviewed in <a href="../tests/secrpts/51.html">review 51</a>. Suite: 482 checks, up from 409.</p>
+        <p><strong>Your answers.</strong> No weather, so the page still fetches nothing from outside and never asks for a location. No gesture misfires to report, so every threshold stays as it was.</p>
+        <p><strong>How it works.</strong> "Hey Jarvis" is a <strong>👂 HEY JARVIS</strong> switch beside the skin button. It sets the existing speech recognition to <code>continuous</code> rather than opening anything new, and acts only on phrases that start with the wake word (<code>wakeCommand</code>): "Jarvis", "hey Jarvis" or "OK Jarvis", or the current skin's name, like "Morpheus". The name alone makes it listen for the next phrase for 8 seconds. Tapping the mic while it's on does the same, without restarting recognition. What it hears while Jarvis is speaking is ignored, so he can't wake himself. When Chrome ends the session it starts again after 0.3 s, and gives up after five ends in ten seconds. It's off on every visit, off when the tab is hidden, and off if the mic is refused. Typing "always listen" or "stop always listening" works too. "Brief me" (also "what's in the news", "read me the headlines", "news please") gives the time and date, then the newest headline in news, Southwest Florida, tech, and science and space from <code>daily-wire/feeds.json</code>, with each source. Google News items name the publisher. Headlines over a day old say so.</p>
+        <p><strong>Divergences from the plan.</strong> Against the real <code>feeds.json</code>, the Southwest Florida headline was live-stream spam in styled letters, so <code>briefSpam</code> skips that kind of item and reads the next one. The Daily Wire page itself still shows them. The switch's support check is Chromium's <code>navigator.userAgentData</code>, which Safari and Firefox don't have. Since nothing misfired, the gesture work became seven checks pinned to the current thresholds, which fail if a number moves (tried with the pinch at 0.28 and the swipe at 0.20). In Chromium, with a fake recognizer that throws like the real one, "Jarvis, brief me" read four headlines at both sizes, with no page errors, no CSP violations and no sideways scroll.</p>
+        <p><strong>Still open.</strong> Trying always listening with a real mic: how often Chrome restarts it, whether Android plays its listening sound on each restart, and how well it catches the name across a room. Headlines are as fresh as the last 6-hourly feed refresh.</p>
+      </div>
     </section>
 
     <section id="done">
