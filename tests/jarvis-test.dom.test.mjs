@@ -732,6 +732,7 @@ export default async function run(t, page) {
     await heRemembersYou(t, page);
     await meaningModule(t, page);
     await knowledgePack(t, page);
+    await fullBrain(t, page);
     await commandLinks(t, page);
 }
 
@@ -1115,7 +1116,7 @@ async function heRemembersYou(t, page) {
         const idb = await profile({ events: daysBack(60, (k) => (k < 5 ? [{ id: SCENES5[k], day: today - 1 - k, n: 1 }] : [])), totals: J.CAPABILITIES.filter((c) => (c.lock || 0) < 5).flatMap((c) => c.ids).filter((id) => id !== 'cmd:joke').map((id) => ({ id, n: 3 })) });
         env = await openDom(page.html, URL_, { ...quiet, idb }); J = env.window.__jarvis;
         try {
-            const NEEDS = { mic: 'a microphone', 'wake-word': 'speech recognition', voice: 'voices', restore: 'a file', 'qr-scan': 'a camera', 'house-party': 'WebGL', backup: 'a file download', teach: 'two turns', remember: 'no link: tested elsewhere', 'iron-man': 'level 5 (tested above)' };
+            const NEEDS = { mic: 'a microphone', 'wake-word': 'speech recognition', voice: 'voices', restore: 'a file', 'qr-scan': 'a camera', 'house-party': 'WebGL', backup: 'a file download', teach: 'two turns', remember: 'no link: tested elsewhere', 'iron-man': 'level 5 (tested above)', 'full-brain': 'WebGPU (counted in the full brain section)' };
             J.restoreBackup(JSON.stringify({ app: 'jarvis', backup: 1, kept: { 'jarvis-settings': '{"color":"blue"}' } })); // so there's something to put in a settings code
             await J.answer('create movie night protocol: make the orb purple, then open the galaxy');
             J.setPace(0.002);
@@ -3521,4 +3522,330 @@ async function knowledgePack(t, page) {
         for (const q of ['tell me about peru', 'how far is mars', 'tell me about gold', 'tell me about the mark 42', 'give me the lowdown on japan']) await typeIn(env, q);
         t.ok('a fact answer is never destructive: settings and protocols are untouched', JSON.stringify({ k: K.saved().kept, p: K.saved().protocols }) === before);
     } finally { env.close(); }
+}
+
+// Session 14 of jarvis/build-plan.html: the full brain (review 66). "Install your full brain" loads Qwen3-0.6B through
+// WebLLM from jarvis/llm/, on the graphics chip through WebGPU. jsdom has neither, so the page's loader is swapped for a
+// fake engine (setLlmLib) that behaves like WebLLM's: create() is asynchronous and resolves to an async stream of
+// chunks, each {choices:[{delta:{content}}]}; it can fail before streaming or halfway through; interruptGenerate() and
+// unload() exist. Every reply it gives is written by the test, so each rule (the format, the picks, the labels, the
+// facts) is hit on purpose, and every check goes through a typed turn. The real model is tried in Chromium.
+const LLM_FILES = {
+    'web-llm.js': '341bae95822bfee1d0fd6a0e6cd2db8613bb8edf809390ac142fba36ec17792c',
+    'Qwen3-0.6B-q4f16_1_cs1k-webgpu.wasm': '4db800b24119204e1a0386e8a12e084d5012aa60f77c5bffad362f20498df912',
+    'LICENSE-web-llm': 'd412ab9d5ac17e6931705aac01e5a0d323da5acd2e89a2c19aa8fc05becc59ad',
+    'worker.js': '63174cdf95486f8bb9ab18e49dcdfd48a5192a9a8b7d5f9d251d2592540d91e2'
+};
+export function fakeEngine({ reply = 'SAY: Hello there.\nDO: none\nKIND: chat', chunk = 5, loadFail = null } = {}) {
+    const tick = (ms) => new Promise((r) => setTimeout(r, ms));
+    const st = { loads: 0, calls: [], chunks: 0, interrupted: 0, unloaded: 0, fail: null, gate: null, reply };
+    const engine = {
+        chat: { completions: { create: async (req) => {
+            st.calls.push(JSON.parse(JSON.stringify(req)));
+            await tick(3);
+            if (st.fail === 'create') throw new Error('GPUValidationError: something went wrong');
+            const text = typeof st.reply === 'function' ? st.reply(req) : st.reply;
+            return (async function* () {
+                for (let i = 0; i < text.length; i += chunk) {
+                    if (st.gate) await st.gate;
+                    await tick(1);
+                    if (st.fail === 'lost' && i >= chunk) throw Object.assign(new Error('Device was lost'), { name: 'DeviceLostError' });
+                    st.chunks++;
+                    yield { choices: [{ delta: { content: text.slice(i, i + chunk) } }] };
+                }
+            })();
+        } } },
+        interruptGenerate() { st.interrupted++; },
+        async unload() { st.unloaded++; }
+    };
+    let release = null;
+    st.hold = () => { st.gate = new Promise((r) => { release = r; }); };
+    st.release = () => { st.gate = null; release?.(); };
+    let loadRelease = null, loadGate = null;
+    st.holdLoad = () => { loadGate = new Promise((r) => { loadRelease = r; }); };
+    st.releaseLoad = () => { loadRelease?.(); loadGate = null; };
+    st.lib = async (on) => {
+        st.loads++;
+        on(0.1); if (loadGate) await loadGate;
+        for (const p of [0.1, 0.5, 1]) { on(p); await tick(4); }
+        if (loadFail) throw Object.assign(new Error(loadFail.message), { name: loadFail.name });
+        return engine;
+    };
+    return st;
+}
+// A WebGPU that's there (or not): adapter null for "no chip", f16 false for a chip without half precision.
+const fakeGpu = ({ adapter = true, f16 = true } = {}) => (w) => {
+    Object.defineProperty(w.navigator, 'gpu', { configurable: true, value: { requestAdapter: async () => (adapter ? { features: new Set(f16 ? ['shader-f16'] : []) } : null) } });
+};
+export async function fullBrain(t, page) {
+    const URL_ = 'https://jarvis.test/jarvis.html', quiet = { ignore: /getContext|HTMLCanvasElement/ };
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const lastAi = (env) => [...env.document.querySelectorAll('#log .msg.ai')].pop();
+    const typeIn = async (env, text, ms = 560) => { const { document, window } = env; document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(ms); const m = lastAi(env); return m ? [...m.childNodes].filter((n) => !(n.classList && n.classList.contains('brain-tag'))).map((n) => n.textContent).join('') : ''; };
+    const tagged = (env) => !!lastAi(env)?.querySelector('.brain-tag');
+    const count = (J, id) => J.usageNow().n[id] || 0;
+    const MISSED = /What were you trying to say\?$/;
+    const fixed = (more) => ({ ...quiet, beforeParse(w) { w.Math.random = () => 0.42; more?.(w); } });
+    const src = page.html;
+
+    t.section('Full brain: the files (Session 14)');
+    if (page.url.startsWith('file:')) {
+        const dir = new URL('jarvis/llm/', page.url);
+        for (const [file, want] of Object.entries(LLM_FILES)) {
+            let got = 'missing';
+            try { got = createHash('sha256').update(await readFile(fileURLToPath(new URL(file, dir)))).digest('hex'); } catch { /* missing */ }
+            t.eq(`jarvis/llm/${file} is the pinned file`, got, want);
+        }
+        const readme = await readFile(fileURLToPath(new URL('README.md', dir)), 'utf8');
+        t.ok('the README lists the same hashes', Object.values(LLM_FILES).every((h) => readme.includes(h)));
+        const F = await import(new URL('fetch-model.mjs', dir).href);
+        const models = JSON.parse(await readFile(fileURLToPath(new URL('models.json', dir)), 'utf8'));
+        t.ok('models.json pins every model to a commit, with a hash for every file', !!F.checkManifest(models, { needPins: true }));
+        const q = models['qwen3-0.6b'];
+        t.ok('the model is Qwen3-0.6B in WebLLM\'s q4f16_1 build, from Qwen/Qwen3-0.6B, apache-2.0', q.repo === 'mlc-ai/Qwen3-0.6B-q4f16_1-MLC' && q.base === 'Qwen/Qwen3-0.6B' && q.licence === 'apache-2.0');
+        t.ok('and the fallback, Qwen2.5-0.5B, is pinned too', models['qwen2.5-0.5b']?.repo === 'mlc-ai/Qwen2.5-0.5B-Instruct-q4f16_1-MLC');
+        const sri = (hex) => 'sha256-' + Buffer.from(hex, 'hex').toString('base64');
+        const L = (await openDom(page.html, URL_, quiet)); const LL = L.window.__jarvis.LLM; L.close();
+        t.ok('the page has WebLLM check the config, the engine and the tokenizer against those same hashes', LL.integrity.config === sri(q.files['mlc-chat-config.json']) && LL.integrity.model_lib === sri(LLM_FILES[LL.lib]) && LL.integrity.tokenizer['tokenizer.json'] === sri(q.files['tokenizer.json']) && LL.integrity.onFailure === 'error');
+        t.ok('and loads them from the folder models.json names', 'jarvis/llm/' + LL.dir === q.dir + '/' && /(^|\/)resolve\/[^/]+\/$/.test(LL.dir));
+        let onDisk = null;
+        try { onDisk = await F.checkFiles('qwen3-0.6b', q, fileURLToPath(new URL('../../', dir))); } catch (e) { t.note(String(e.message)); }
+        t.ok('the weights in the repo match every pinned hash', onDisk !== null && onDisk < 400e6, onDisk);
+        const lic = await readFile(fileURLToPath(new URL(q.dir.replace(/^jarvis\/llm\//, '') + '/LICENSE', dir)), 'utf8').catch(() => '');
+        t.ok('with the base model\'s Apache 2.0 licence beside them', /Apache License\s+Version 2\.0, January 2004/.test(lic));
+        t.section('Full brain: the weights workflow refuses what it should (Session 14)');
+        const lines = [];
+        const refused = await F.dryRun(fileURLToPath(new URL('fixtures/jarvis-llm/', new URL('tests/', page.url))), (x) => lines.push(x));
+        t.eq('the dry run refuses all eleven bad cases', refused, 11);
+        for (const what of ['a changed chunk', 'a model whose licence is GPL', 'a base model whose licence is GPL', 'a file over the file limit', 'a site over the site limit', 'a file models.json does not list', 'a commit that is not pinned', 'a model card whose licence differs from its tags', 'a converted model with no licence whose card names another base', 'a file name with a folder in it', 'a changed chunk already on disk'])
+            t.ok(`it refuses ${what}`, lines.some((l) => l.startsWith(`dry run: refused ${what}:`)));
+        t.ok('and a converted model naming its pinned base inherits that licence', lines.some((l) => /inherits it$/.test(l)));
+        const wf = await readFile(fileURLToPath(new URL('.github/workflows/jarvis-llm.yml', page.url)), 'utf8');
+        t.ok('the workflow is run by hand only, with pinned actions', /^on:\n {2}workflow_dispatch:/m.test(wf) && !/^\s+(?:push|schedule|pull_request)/m.test(wf) && (wf.match(/uses: [\w/-]+@[0-9a-f]{40} /g) || []).length === 2);
+        t.ok('no token in git config while it downloads; only the commit step gets one', /persist-credentials: false/.test(wf) && (wf.match(/secrets\.GITHUB_TOKEN/g) || []).length === 1 && /- name: Commit the weights[\s\S]*secrets\.GITHUB_TOKEN/.test(wf));
+        t.ok('the dry run comes first', wf.indexOf('--dry-run') < wf.indexOf('--pin=') && wf.indexOf('--dry-run') < wf.indexOf('--model='));
+        t.ok('it commits as github-actions[bot], the identity CLAUDE.md allows', /git config user\.email '41898282\+github-actions\[bot\]@users\.noreply\.github\.com'/.test(wf));
+        t.ok('inputs reach the shell only through env, never pasted into a command', !/run:[^\n]*\$\{\{\s*inputs/.test(wf) && !/\n\s+(?:node|git)[^\n]*\$\{\{/.test(wf));
+    } else t.note('file and workflow checks skipped: not running against the working copy');
+    t.ok('WebLLM is imported in one place, from this site', (src.match(/import\(llmUrl\(/g) || []).length === 1 && /const LLM_DIR='jarvis\/llm\/';/.test(src) && !/huggingface\.co|raw\.githubusercontent|binary-mlc-llm-libs/.test(src));
+    t.ok('and that place is only run by installing it', (src.match(/\bllmLib\(/g) || []).length === 1 && /function startInstall\(\)\{[\s\S]*?await llmLib\(/.test(src));
+    // WebLLM's logging library saves its level in localStorage whenever an engine starts on the page itself (found in
+    // Chromium, review 66). In a worker there's no localStorage, so the engine only ever starts there.
+    t.ok('the engine only ever starts in its worker, jarvis/llm/worker.js', (src.match(/new Worker\(llmUrl\('worker\.js'\),\{type:'module'\}\)/g) || []).length === 1 && /webllm\.CreateWebWorkerMLCEngine\(worker,/.test(src) && !/\bCreateMLCEngine\(|new webllm\.MLCEngine|\.MLCEngine\(/.test(src));
+    t.ok('and the page never hands WebLLM a log level, which its main-thread client would save', !/logLevel|setLogLevel/.test(src));
+    t.ok('thinking mode is off for every question', /extra_body:\{enable_thinking:false\}/.test(src) && (src.match(/chat\.completions\.create\(/g) || []).length === 1);
+    t.ok('the half-precision feature is required, as the q4f16 build needs', /required_features:\['shader-f16'\]/.test(src));
+    t.eq('the CSP is exactly what it was before Session 8: no new outside host', env0Csp(src), CSP_BEFORE_S8);
+    const brainSrc = (src.match(/\/\* ---------- Full brain \(Session 14\)[\s\S]*?\n\/\* ---------- Follow-ups/) || [''])[0].replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    t.ok('the full brain\'s code never calls store() or save(), or touches localStorage or IndexedDB', brainSrc.length > 2000 && !/\bstore\(|\bsave\(|localStorage|indexedDB|\.transaction\(/.test(brainSrc));
+
+    t.section('Full brain: without WebGPU he stays as he is (Session 14)');
+    let env = await openDom(page.html, URL_, fixed()), J = env.window.__jarvis;
+    try {
+        J.finishBoot(); await wait(50);
+        const F = fakeEngine(); J.setLlmLib(F.lib);
+        for (const q of ['jarvis install your full brain please', 'Jarvis, install your full brain.', 'install your full brain', 'hey jarvis install your full brain please', 'please install your full brain jarvis', 'turn on your full brain', 'jarvis download the language model please'])
+            t.eq(`"${q}" asks for it`, J.fullBrainIntent(q), 'install');
+        for (const q of ['jarvis which brain are you using please', 'which brain are you using', 'what brain is this'])
+            t.eq(`"${q}" asks which brain`, J.fullBrainIntent(q), 'which');
+        t.eq('"jarvis turn off your full brain please" turns it off', J.fullBrainIntent('jarvis turn off your full brain please'), 'off');
+        for (const q of ['install your brain', 'upgrade your brain', 'show me your brain', 'full brain', 'my brain is full', 'install the app'])
+            t.eq(`"${q}" doesn't`, J.fullBrainIntent(q), null);
+        t.eq('(this window has no WebGPU)', await J.gpuCheck(), 'none');
+        const n = count(J, 'cmd:full-brain');
+        let r = await typeIn(env, 'jarvis install your full brain please');
+        t.eq('he says it needs WebGPU, and that he stays as he is', r, "My full brain needs WebGPU, and this browser doesn't have it. It works in desktop Chrome and Edge, Chrome on Android, and Safari on iOS 26. I'll stay as I am, with my standard brain.");
+        t.ok('nothing loads, nothing is counted, and it stays off', F.loads === 0 && count(J, 'cmd:full-brain') === n && J.full().state === 'off');
+        t.ok('"why?" says why', /^Because my full brain is a language model that runs on your graphics chip, through WebGPU/.test(await typeIn(env, 'why')));
+        t.eq('"which brain are you using" says the standard one', await typeIn(env, 'jarvis which brain are you using please'), "I'm using my built-in patterns. My full brain isn't running. Say install your full brain to add it.");
+        t.ok('and everything else works as before', /^It's /.test(await typeIn(env, 'what time is it')) && MISSED.test(await typeIn(env, 'what do you think about pancakes')));
+        await typeIn(env, 'never mind');
+        t.ok('the help answer links it, and "which brain"', J.chipCmds().includes('install your full brain') && J.chipCmds().includes('which brain are you using'));
+        t.ok('it has a capability, which needs WebGPU and is never needed for a level', J.CAPABILITIES.some((c) => c.key === 'full-brain' && c.can === 'webgpu' && c.optIn && c.ids.join() === 'cmd:full-brain,cmd:brain-chat' && c.cmds.includes('install your full brain')));
+        t.ok('its usage IDs are on the fixed list', ['cmd:full-brain', 'cmd:brain-chat'].every((id) => J.EVENT_IDS.includes(id)));
+    } finally { env.close(); }
+    for (const [what, gpu, line] of [['no graphics chip', { adapter: false }, "This browser has WebGPU, but it couldn't find a graphics chip for me to run on. I'll stay as I am, with my standard brain."],
+        ['a chip without half precision', { f16: false }, "Your graphics chip can't do the half-precision maths my full brain is built for. I'll stay as I am, with my standard brain."]]) {
+        env = await openDom(page.html, URL_, fixed(fakeGpu(gpu))); J = env.window.__jarvis;
+        try {
+            J.finishBoot(); await wait(50); const F = fakeEngine(); J.setLlmLib(F.lib);
+            t.eq(`${what}: he says so and stays as he is`, await typeIn(env, 'jarvis install your full brain please'), line);
+            t.ok('and loads nothing', F.loads === 0 && J.full().state === 'off');
+        } finally { env.close(); }
+    }
+
+    t.section('Full brain: installing it (Session 14)');
+    env = await openDom(page.html, URL_, fixed(fakeGpu())); J = env.window.__jarvis;
+    try {
+        J.finishBoot(); await wait(50);
+        let F = fakeEngine({ loadFail: { name: 'Error', message: 'Failed to fetch' } }); F.holdLoad(); J.setLlmLib(F.lib);
+        const n = count(J, 'cmd:full-brain');
+        let r = await typeIn(env, 'jarvis install your full brain please');
+        t.eq('he warns about the size first, and asks', r, "My full brain is Qwen3, a language model with 0.6 billion parameters. It's a download of about 350 megabytes from this site, and it needs about 1.4 gigabytes of graphics memory while it runs. Your browser keeps the files until you clear this site's data, so next time it loads much faster. Install it? Say yes or no.");
+        t.ok('nothing loads or counts until you answer', F.loads === 0 && count(J, 'cmd:full-brain') === n);
+        t.eq('"no": he stays as he is', await typeIn(env, 'no'), "All right. I'll stay with my standard brain.");
+        t.ok('and still nothing loaded', F.loads === 0 && J.full().state === 'off');
+        await typeIn(env, 'install your full brain');
+        r = await typeIn(env, 'yes', 470);
+        t.eq('"yes": he starts', r, 'Installing my full brain: about 350 megabytes, unless your browser already has it.');
+        t.eq('counted once, as cmd:full-brain', count(J, 'cmd:full-brain'), n + 1);
+        F.releaseLoad(); await wait(200);
+        t.eq('a failed download: he says so, and stays as he is', lastAi(env).textContent, "I couldn't install my full brain. Check your connection, then say install your full brain to try again. I'll stay as I am, with my standard brain.");
+        t.eq('and it\'s off', J.full().state, 'off');
+        F = fakeEngine({ loadFail: { name: 'ShaderF16SupportError', message: 'This model requires WebGPU extension shader-f16' } }); J.setLlmLib(F.lib);
+        await typeIn(env, 'install your full brain'); await typeIn(env, 'yes'); await wait(200);
+        t.eq('the engine refusing half precision says so too', lastAi(env).textContent, "Your graphics chip can't do the half-precision maths my full brain is built for. I'll stay as I am, with my standard brain.");
+        F = fakeEngine(); F.holdLoad(); J.setLlmLib(F.lib);
+        await typeIn(env, 'install your full brain'); await typeIn(env, 'yes');
+        const line = env.document.getElementById('proto');
+        t.ok('the progress shows over the orb while it loads', !line.hidden && /^INSTALLING FULL BRAIN · \d+%$/.test(line.textContent), line.textContent);
+        t.ok('asking again while it loads doesn\'t start a second load', /^I'm installing my full brain already/.test(await typeIn(env, 'install your full brain')) && F.loads === 1);
+        F.releaseLoad(); await wait(250);
+        t.eq('then he says he\'s online, and which brain', lastAi(env).textContent, "Full brain online: Qwen3 0.6B, running on your graphics chip. When I don't know something by heart, I'll think it through. When I'm only going from memory, I'll say so.");
+        t.ok('the line goes, and it\'s on', line.hidden && J.full().state === 'on');
+        t.ok('both lines go through say()', /say\(`Full brain online: \$\{LLM\.short\}/.test(src) && /say\(\/f16\/i\.test\(m\)\?GPU_LINES\.f16/.test(src));
+        t.ok('a third time: already running', /^My full brain is already running: Qwen3/.test(await typeIn(env, 'jarvis install your full brain please')) && F.loads === 1);
+        t.eq('"which brain are you using" names it', await typeIn(env, 'jarvis which brain are you using please'), 'I\'m using my built-in patterns and my full brain, Qwen3, a language model with 0.6 billion parameters, for anything those don\'t cover. Its answers are marked FULL BRAIN, and anything it says from its own memory starts "From memory, I may be wrong".');
+        t.ok('"what do you save" says its conversation is only in memory, and the files are the browser\'s cache', /My full brain's conversation is only in memory too, and nothing it says is saved\. Its model files are kept by your browser's cache, not by me/.test(await typeIn(env, 'what do you save')));
+
+        t.section('Full brain: asked last, in a fixed format (Session 14)');
+        const before = count(J, 'cmd:brain-chat');
+        F.reply = 'SAY: Pancakes are a fine choice for breakfast.\nDO: none\nKIND: chat';
+        r = await typeIn(env, 'what do you think about pancakes');
+        t.eq('something nothing else understood goes to it, and its answer is said', r, 'Pancakes are a fine choice for breakfast.');
+        t.ok('the chat line is marked FULL BRAIN · QWEN3 0.6B', tagged(env) && lastAi(env).querySelector('.brain-tag').textContent === 'FULL BRAIN · QWEN3 0.6B');
+        t.eq('counted as cmd:brain-chat, never by what was asked', count(J, 'cmd:brain-chat'), before + 1);
+        t.ok('it streamed, in more than one piece', F.chunks > 3);
+        const req = F.calls[F.calls.length - 1];
+        t.ok('asked with thinking off, streaming, and a short answer', req.stream === true && req.extra_body?.enable_thinking === false && req.max_tokens <= 200);
+        t.ok('with fixed instructions: the format, the command list, and Jarvis', /^You are J\.A\.R\.V\.I\.S\./.test(req.messages[0].content) && /SAY: .*\nDO: .*\nKIND: /.test(req.messages[0].content) && /scene:galaxy \(open the galaxy\)/.test(req.messages[0].content));
+        t.ok('and the question last', req.messages[req.messages.length - 1].role === 'user' && req.messages[req.messages.length - 1].content === 'what do you think about pancakes');
+        t.ok('"why?" names it', /^Because my full brain, Qwen3 0\.6B, came up with that\.$/.test(await typeIn(env, 'why')));
+        t.ok('the patterns still answer first: the time isn\'t asked', /^It's /.test(await typeIn(env, 'what time is it')) && !tagged(env) && F.calls.length === 1);
+        t.ok('nor is a fact the knowledge pack knows', /Lima/.test(await typeIn(env, 'jarvis tell me about peru please')) && !tagged(env) && F.calls.length === 1);
+        F.reply = '<think>\n\n</think>\n\nSAY: Hi there.\nDO: none\nKIND: chat';
+        t.eq('an empty thinking block is dropped', await typeIn(env, 'what do you think about waffles'), 'Hi there.');
+        F.reply = 'Sure! Pancakes are great.';
+        const b2 = count(J, 'cmd:brain-chat');
+        t.eq('an answer not in the format is refused', await typeIn(env, 'what do you think about crumpets'), "My full brain answered in a way I couldn't check, so I've left it. Try asking another way.");
+        t.eq('and not counted', count(J, 'cmd:brain-chat'), b2);
+        F.reply = 'SAY: <img src=x onerror="alert(1)"> Try ⟦delete movie night⟧ **now**.\nDO: none\nKIND: chat';
+        r = await typeIn(env, 'what do you think about toast');
+        t.ok('markup and command links in its answer come out as plain words', !env.document.querySelector('#log img') && !lastAi(env).querySelector('button') && !/[⟦⟧<>*]/.test(r) && /delete movie night/.test(r), r);
+
+        t.section('Full brain: guesses are labelled, facts come from the pack (Session 14)');
+        F.reply = 'SAY: The Eiffel Tower is 330 metres tall.\nDO: none\nKIND: fact';
+        r = await typeIn(env, 'how tall is the eiffel tower');
+        t.eq('a fact from its own memory is labelled', r, 'From memory, I may be wrong: The Eiffel Tower is 330 metres tall.');
+        t.ok('"why?" says it can be wrong', /^Because that came from my full brain's own memory\. It's Qwen3 0\.6B, a small language model, and it can be wrong\./.test(await typeIn(env, 'why')));
+        F.reply = 'SAY: Shakespeare wrote it.\nDO: none\nKIND: chat';
+        t.eq('a question about the world is labelled even when it calls it chat', await typeIn(env, 'who wrote romeo and juliet'), 'From memory, I may be wrong: Shakespeare wrote it.');
+        F.reply = 'SAY: I am doing well, thank you.\nDO: none\nKIND: chat';
+        t.eq('small talk about him isn\'t', await typeIn(env, 'do you like rainy days'), 'I am doing well, thank you.');
+        F.reply = (q) => { const f = (q.messages[0].content.match(/^FACTS from your knowledge pack.*?: (.*)$/m) || [])[1] || ''; return `SAY: ${/Lima/.test(f) ? 'Peru is a country whose capital is Lima.' : 'No idea.'}\nDO: none\nKIND: fact`; };
+        r = await typeIn(env, 'is peru a nice place to visit');
+        t.ok('a sentence naming something in the pack hands it those facts', /FACTS from your knowledge pack, which are true/.test(F.calls[F.calls.length - 1].messages[0].content) && /Lima/.test(F.calls[F.calls.length - 1].messages[0].content));
+        t.eq('and its answer from them isn\'t labelled', r, 'Peru is a country whose capital is Lima.');
+        t.eq('"why?" says it came from the pack', await typeIn(env, 'why'), 'Because my full brain, Qwen3 0.6B, put facts from my knowledge pack into words.');
+        F.reply = 'SAY: Peru has 9999 volcanoes and its capital is Lima.\nDO: none\nKIND: fact';
+        t.ok('a number it adds that isn\'t in the facts is labelled', /^From memory, I may be wrong: Peru has 9999 volcanoes/.test(await typeIn(env, 'is peru a nice place to visit')));
+        F.reply = 'SAY: Some facts.\nDO: none\nKIND: fact';
+        await typeIn(env, 'what do you think of the mark 42');
+        t.ok('suits are handed over too, marked fan knowledge', /Fan knowledge, not an official source/.test(F.calls[F.calls.length - 1].messages[0].content));
+
+        t.section('Full brain: every pick is checked (Session 14)');
+        t.ok('it can pick only protocol step IDs', J.BRAIN_PICKS.length > 40 && J.BRAIN_PICKS.every((id) => J.STEPS[id]));
+        t.ok('never a wait', !J.BRAIN_PICKS.some((id) => id.startsWith('wait:')));
+        t.ok('nothing that deletes, forgets, resets or reboots', !J.BRAIN_PICKS.some((id) => J.DESTRUCTIVE.test(id) || J.DESTRUCTIVE.test(J.STEPS[id].text)));
+        t.ok('nothing that starts the camera or the mic', !J.BRAIN_PICKS.some((id) => J.asksFirst(J.STEPS[id].text)));
+        let c = count(J, 'cmd:coin');
+        F.reply = 'SAY: Let fate decide.\nDO: say:coin\nKIND: chat';
+        r = await typeIn(env, 'should i have tea or coffee');
+        t.ok('a pick on the list runs, as its own command', /^Let fate decide\. It's (?:heads|tails)\.$/.test(r) && count(J, 'cmd:coin') === c + 1, r);
+        F.reply = 'SAY: Purple it is.\nDO: orb:purple\nKIND: chat';
+        await typeIn(env, 'i fancy a change of colour');
+        t.eq('a setting pick applies, through the usual settings path', J.settings().color, 'purple');
+        for (const [what, id] of [['an invented command', 'launch:missiles'], ['a destructive one', 'forget:everything'], ['a protocol delete', 'protocol:delete'], ['a wait', 'wait:5'], ['the camera', 'cmd:scan'], ['a reboot', 'sys:boot'], ['a lookalike', 'say:coin;orb:red']]) {
+            F.reply = `SAY: Done.\nDO: ${id}\nKIND: chat`;
+            c = count(J, 'cmd:coin');
+            const was = JSON.stringify(J.settings()), scans = count(J, 'cmd:scan');
+            r = await typeIn(env, 'surprise me with something');
+            t.eq(`${what} (${id}) is refused, and nothing runs`, r, "Done. My full brain asked for a command that isn't on my list, so I didn't run it.");
+            t.ok('(nothing changed)', JSON.stringify(J.settings()) === was && count(J, 'cmd:coin') === c && count(J, 'cmd:scan') === scans && J.full().state === 'on');
+        }
+        t.eq('"why?" explains', await typeIn(env, 'why'), 'Because my full brain can only pick from my fixed list of commands, the same list protocols use, and I check every pick before running it.');
+
+        t.section('Full brain: memory only, never stored (Session 14)');
+        await typeIn(env, 'my dog is rex');
+        F.reply = 'SAY: Rex sounds lovely.\nDO: none\nKIND: chat';
+        await typeIn(env, 'what should we do this weekend');
+        const last = F.calls[F.calls.length - 1];
+        t.ok('this visit\'s short-term memories go to it', /The user told you this visit: .*your dog is rex/.test(last.messages[0].content));
+        t.ok('and the conversation so far, a few turns of it', last.messages.some((m) => m.role === 'assistant' && /^SAY: /.test(m.content)) && last.messages.filter((m) => m.role !== 'system').length <= 7);
+        await J.answer('switch to matrix'); await wait(30);
+        await typeIn(env, 'what should we do tomorrow');
+        t.ok('each skin has its own fixed instructions: Morpheus', /^You are Morpheus/.test(F.calls[F.calls.length - 1].messages[0].content));
+        await J.answer('switch to panthers'); await typeIn(env, 'what should we do tonight');
+        t.ok('and Stanley', /^You are Stanley C\. Panther/.test(F.calls[F.calls.length - 1].messages[0].content));
+        await J.answer('back to jarvis');
+        const dump = JSON.stringify(await dbDump(env.idb));
+        t.ok('nothing it said or was asked is in the database', !/Pancakes|Eiffel|Rex sounds|volcano|weekend|Let fate|crumpets|SAY:/i.test(dump));
+        t.ok('nor anywhere in localStorage', !/Pancakes|Eiffel|SAY:/i.test(JSON.stringify({ ...env.window.localStorage })));
+        t.ok('the page\'s saving still has one readwrite transaction, in flush()', (src.match(/'readwrite'/g) || []).length === 1);
+
+        t.section('Full brain: failures fall back cleanly (Session 14)');
+        F.fail = 'create';
+        r = await typeIn(env, 'what do you think about jam');
+        t.eq('an error before it answers: he says so, and stays on', r, "My full brain didn't answer that time. Ask me again, or try one of my usual commands.");
+        t.ok('(still on)', J.full().state === 'on');
+        F.fail = null; F.reply = 'SAY: Thinking.\nDO: none\nKIND: chat'; F.hold();
+        await typeIn(env, 'what do you think about honey');
+        t.eq('asked again while it\'s still answering: he says so', await typeIn(env, 'what do you think about marmalade'), "I'm still thinking about your last question. Give me a moment.");
+        F.release(); await wait(200);
+        F.fail = 'lost';
+        r = await typeIn(env, 'what do you think about butter');
+        t.eq('the graphics chip losing it mid-answer: back to the standard brain', r, "My full brain stopped: the graphics chip lost it, usually from running out of memory. I'm back on my standard brain.");
+        t.ok('it\'s off, and the next miss is the usual line', J.full().state === 'off' && MISSED.test(await typeIn(env, 'what do you think about bread')));
+        await typeIn(env, 'never mind');
+        F.fail = null;
+        await typeIn(env, 'install your full brain'); await typeIn(env, 'yes'); await wait(250);
+        t.ok('(installed again)', J.full().state === 'on');
+        t.eq('"turn off your full brain"', await typeIn(env, 'jarvis turn off your full brain please'), "Full brain off. I'm back on my standard brain. Its files stay in your browser, so it comes back quickly.");
+        t.ok('unloads it', F.unloaded === 1 && J.full().state === 'off');
+    } finally { env.close(); }
+    const again = await openDom(page.html, URL_, fixed(fakeGpu()));
+    try { t.eq('a reload starts without it, and remembers no conversation', again.window.__jarvis.full().state + again.window.__jarvis.full().turns.length, 'off0'); } finally { again.close(); }
+
+    t.section('Full brain: the patterns, the pack and the meaning module always win (Session 14)');
+    // One window whose full brain answers everything, one without one: every command understood today answers the same.
+    const plain = await openDom(page.html, URL_, fixed(fakeGpu())), P = plain.window.__jarvis;
+    const adv = await openDom(page.html, URL_, fixed(fakeGpu())), A = adv.window.__jarvis;
+    try {
+        P.finishBoot(); A.finishBoot(); await wait(50);
+        const FA = fakeEngine({ reply: 'SAY: The full brain answered.\nDO: say:joke\nKIND: chat' }), FP = fakeEngine();
+        A.setLlmLib(FA.lib); P.setLlmLib(FP.lib);
+        for (const [e, x] of [[adv, A], [plain, P]]) { await typeIn(e, 'install your full brain'); await typeIn(e, 'yes'); }
+        await wait(250);
+        P.full().state = 'off'; // installed, so the discovery count matches, but never asked
+        t.ok('(one full brain answers everything, the other window has none running)', A.full().state === 'on' && /The full brain answered/.test(await typeIn(adv, 'blah blah blah')));
+        const phrases = [...P.chipCmds(), 'jarvis show me the galaxy please', 'take me to mars', 'now jupiter', 'what is seven times eight', 'my dog is rex', 'what do you know about me',
+            'speak slower', 'make the orb purple', 'how well do you know me', 'whats my favourite', 'what havent i tried', 'show me florida', 'thank you', 'how far is the moon',
+            'delete movie night', 'forget my name', 'reset my settings', 'list my protocols', 'brief me', 'how are you', 'tell me about peru', 'how far is mars', 'what is the capital of australia',
+            'tell me about gold', 'when did voyager 1 launch'].filter((q) => !/^(?:upgrade your brain|install your full brain|which brain are you using|reboot|wake up daddy's home|house party|scan settings|restore my settings|back up my settings)$/i.test(q));
+        const diff = [], n0 = FA.calls.length;
+        for (const q of phrases) {
+            const [a, b0] = await Promise.all([typeIn(plain, q), typeIn(adv, q)]);
+            // The privacy answers say the running brain's conversation is only in memory: that sentence is the one difference allowed.
+            const b = b0.replace(" My full brain's conversation is only in memory too, and nothing it says is saved. Its model files are kept by your browser's cache, not by me, until you clear this site's data.", '');
+            if (a !== b) diff.push(`${q}: "${a.slice(0, 60)}" vs "${b.slice(0, 60)}"`);
+            if (/Say yes or no\.$/.test(a)) await Promise.all([typeIn(plain, 'no'), typeIn(adv, 'no')]);
+        }
+        t.eq(`all ${phrases.length} command links and pinned phrasings answer exactly as without it`, diff.join(' | '), '');
+        t.eq('and none of them reached it', FA.calls.length, n0);
+        // The meaning module comes before it too.
+        A.setTextLib(fakeMind(A, { everything: 'tell me a joke' }).lib); await typeIn(adv, 'upgrade your brain'); await wait(200);
+        const jokes = count(A, 'cmd:joke'), n1 = FA.calls.length;
+        const said = await typeIn(adv, 'blah blah blah');
+        t.ok('with the meaning module online, it answers first, and the full brain isn\'t asked', (said === 'Did you mean a joke? Say yes or no.' || count(A, 'cmd:joke') === jokes + 1) && FA.calls.length === n1);
+    } finally { plain.close(); adv.close(); }
 }

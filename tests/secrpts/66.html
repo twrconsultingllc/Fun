@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #66 — J.A.R.V.I.S. Session 14: the full brain</title>
+<meta name="description" content="Review of Session 14 of the J.A.R.V.I.S. build plan in the test copy: an opt-in small language model, Qwen3-0.6B through a self-hosted WebLLM in a worker, weights brought in by a hand-run workflow pinned by hash, asked only after the patterns, the knowledge pack and the meaning module, picking only checked protocol commands, with guesses labelled and nothing stored.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #66 — J.A.R.V.I.S. Session 14: the full brain</h1>
+    <p class="sub">Say "Jarvis, install your full brain" and, where the browser has WebGPU, the test copy offers to download a small open language model, Qwen3-0.6B, from this site: 351.5 MB, kept by the browser. Once it's running, anything nothing else understood goes to it. It answers in a fixed format and can only pick commands from the protocols' list, which the page checks before running anything. Facts come from the knowledge pack, and its own guesses are labelled. Nothing it says is stored.</p>
+    <div class="meta">Review performed 2026-10-10 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>jarvis/llm/</code> (code, <code>models.json</code>, <code>fetch-model.mjs</code>, the weights), <code>.github/workflows/jarvis-llm.yml</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>tests/jarvis-test.chromium.mjs</code>, <code>tests/fixtures/jarvis-llm/</code>, <code>jarvis/build-plan.html</code>, <code>CLAUDE.md</code> · suites run: <code>jarvis-test-dom</code> (1718 checks) and <code>tests/jarvis-test.chromium.mjs</code> (198 checks), one after the other</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 86%;"></div></div>
+    <div class="progress-label">22 items: 19 verified clean or fixed, 3 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security and privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">CSP unchanged: no new outside host</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The suite still pins the whole CSP string to what it was before Session 8. WebLLM, its worker, the engine and the weights all come from <code>jarvis/llm/</code> on this site. The page has no Hugging Face, <code>raw.githubusercontent.com</code> or <code>binary-mlc-llm-libs</code> address (grep, and a suite check), and the model record passes only addresses built from <code>location.href</code>. The worker is same-origin, so <code>script-src 'self'</code> covers it, and the WebAssembly needs only the <code>'wasm-unsafe-eval'</code> that was already there. In Chromium, the request log for the whole step held nothing from outside the local server, and no CSP violation was logged.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">WebLLM wrote to localStorage</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The first Chromium run failed "no localStorage written". WebLLM bundles the <code>loglevel</code> library, and every engine started on the page's main thread calls <code>log.setLevel()</code>, which saves <code>loglevel = WARN</code> in localStorage (or, failing that, a cookie). It isn't personal, but the test copy never writes localStorage (Session 9), and it shares that storage with <code>jarvis.html</code>. The CSP can't stop it, and patching the vendored file would break its pinned hash.</p></div>
+      <div class="fix-note"><b>Fix:</b> The engine now runs in a worker, <code>jarvis/llm/worker.js</code> (our own few lines, pinned by hash). A worker has no <code>window</code>, so <code>loglevel</code> persists nothing. The page never passes a log level, which would make WebLLM's main-thread side save one. The suite checks the engine is only ever created through <code>CreateWebWorkerMLCEngine</code> with that worker, and a copy of the page creating it on the main thread fails that check. In Chromium, after the page's own loader ran the real WebLLM, localStorage was empty.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Nothing the model says or hears is stored</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The suite reads the full brain's code, comments removed, and fails if it calls <code>store()</code> or <code>save()</code> or touches <code>localStorage</code>, <code>indexedDB</code> or a transaction. Copies of the page that wrote the conversation to localStorage, or a count of it to <code>meta</code>, each failed that check. After pancakes, the Eiffel Tower, Peru, a pick and a failure, the jsdom database and localStorage held none of the words. In real IndexedDB, before and after differed only in usage counts and the public knowledge pack, which the first fact question copies in, as in Session 13. The one-place-that-saves checks pass unchanged: no localStorage write call in the page, and one <code>'readwrite'</code> transaction, in <code>flush()</code>. A reload starts with the brain off and no conversation.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What it's given is in memory only</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Each question carries the skin's fixed instructions, the knowledge pack's answer when the sentence names something in it, this visit's short-term memories and your name (both already in memory only, Sessions 7 and 11), and at most the last three exchanges, kept in <code>full.turns</code>. Nothing leaves the device: the model runs on the graphics chip. "What do you save" says the conversation is in memory only, and that the model files are the browser's cache.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Every pick is checked, and nothing destructive is on the list</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>BRAIN_PICKS</code> is every protocol step ID except the 30 waits. The suite checks that none deletes, forgets, resets or reboots (the meaning module's <code>DESTRUCTIVE</code> test), none starts the camera or the mic (<code>asksFirst</code>), and each is a real <code>STEPS</code> ID. <code>checkPick()</code> runs only an exact match, through the same path as a protocol step. Invented (<code>launch:missiles</code>), destructive (<code>forget:everything</code>), <code>protocol:delete</code>, <code>wait:5</code>, <code>cmd:scan</code>, <code>sys:boot</code> and a two-in-one lookalike were each refused, with nothing changed and the refusal said. Accepting any <code>STEPS</code> ID, or not checking at all, made those checks fail (1 and 8 failures).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Its words can't become markup or a command button</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Answers reach the chat through <code>add()</code>, which builds text nodes; the page still has no <code>innerHTML</code>. <code>cleanSay()</code> also removes <code>⟦ ⟧ &lt; &gt;</code>, backticks and markdown, and cuts the answer to a sentence or two. A reply carrying <code>&lt;img onerror&gt;</code> and <code>⟦delete movie night⟧</code> produced no element and no button, only plain words. A copy without the clean-up failed. The "FULL BRAIN" tag is built with <code>textContent</code>.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The weights workflow</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>.github/workflows/jarvis-llm.yml</code> is run by hand only, uses the same SHA-pinned <code>actions/checkout</code> and <code>actions/setup-node</code> as the other workflows, keeps no token in git config while downloading, and gives <code>GITHUB_TOKEN</code> only to the commit step. Its inputs are choices and reach the shell through <code>env</code>, never pasted into a command (the suite checks all of this). <code>fetch-model.mjs</code> downloads only from <code>huggingface.co</code> at a pinned 40-character commit. It refuses any file name that isn't flat and plain, so nothing can be written outside the model's folder, and it checks every SHA-256 against <code>models.json</code>. The dry run against <code>tests/fixtures/jarvis-llm/</code> runs first and must refuse eleven bad cases. The suite runs it too.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The licence: mlc-ai's build states none of its own</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The first pin runs refused both models, as specified: <code>mlc-ai/Qwen3-0.6B-q4f16_1-MLC</code> (and the Qwen2.5 build) has no licence tag and no licence line on its card. Its card names <code>base_model: Qwen/Qwen3-0.6B</code>.</p></div>
+      <div class="fix-note"><b>Fix:</b> Put to the user, who chose "inherit from base". A converted model that states no licence of its own is accepted only when its card names exactly the pinned base model. That base must say <code>apache-2.0</code> in its tag and on its card, and its <code>LICENSE</code> must be the Apache License 2.0 (all three hold for <code>Qwen/Qwen3-0.6B</code> at <code>c1899de</code>). Anything a model does state must also be <code>apache-2.0</code>. The dry run gained a model that inherits and passes, and one naming another base that's refused. The GPL-base case now reaches the base check, not the name check. The base model's licence is committed beside the weights.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The engine's repository has no licence file</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p><code>Qwen3-0.6B-q4f16_1_cs1k-webgpu.wasm</code> comes from <code>mlc-ai/binary-mlc-llm-libs</code>, pinned to commit <code>025bcaf</code>, which has no licence file (its GitHub record shows none). It's MLC LLM's compiled output, and MLC LLM and Apache TVM are Apache-2.0. The same team publishes it for exactly this use: WebLLM's own model list loads it from there. Every WebLLM site does the same, so this is low risk, but it isn't written down anywhere. Noted in <code>jarvis/llm/README.md</code>, for the user to decide whether that's enough.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Hashes checked as it loads, in the browser too</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The page gives WebLLM SHA-256 integrity hashes for the engine, <code>mlc-chat-config.json</code> and <code>tokenizer.json</code> (<code>onFailure: 'error'</code>), and the suite checks they're the same hashes as <code>models.json</code> and the README. In Chromium, a config with one byte changed was refused by WebLLM's own check. WebLLM doesn't check the weight chunks themselves; they're checked by the workflow on the way in and by <code>fetch-model.mjs --check</code> and the suite in the repo, where all 17 files and the licence match.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A new kind of bot commit, and the identity</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The fetch run committed the weights as <code>github-actions[bot] &lt;41898282+github-actions[bot]@users.noreply.github.com&gt;</code> (author and committer), checked with <code>git log</code>. That's an identity <code>CLAUDE.md</code> already allows, but only for two other workflows.</p></div>
+      <div class="fix-note"><b>Fix:</b> <code>CLAUDE.md</code>'s Full Monty section now lists the "J.A.R.V.I.S.: bring in the language model (…)" commits from <code>jarvis-llm.yml</code> as expected, so a later sweep doesn't flag them.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The fixtures are public, like everything under tests/</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>tests/fixtures/jarvis-llm/</code> is 31 KB of made-up model repositories: deterministic random bytes for "weights", tiny JSON files, made-up model cards, and the first lines of the Apache License. <code>make-fixtures.mjs</code> rebuilds them byte-for-byte. A grep for email addresses, tokens and personal names found nothing.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The real model can't run in this container</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Headless Chromium here has WebGPU through SwiftShader's software adapter, but that adapter has no <code>shader-f16</code>, which the q4f16 build needs. So no real answer from Qwen3 could be produced or timed here. What was checked with the real files: the page reads the adapter correctly and says the chip can't do half precision, fetching nothing. The page's own loader starts WebLLM 0.2.85 in its worker, which checks the config and engine hashes and stops at <code>shader-f16</code> before reading the tokenizer or a single weight. WebLLM's own model list names this exact engine for this model, from the <code>v0_2_84/base</code> set the library was built for. Real speed and the quality of answers on a PC and a phone are for the user to judge, as the plan says.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">"Should I…" questions labelled as guesses about the world</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The first run labelled "should I have tea or coffee" "From memory, I may be wrong", because <code>should</code>, <code>would</code> and <code>could</code> counted as questions about the world.</p></div>
+      <div class="fix-note"><b>Fix:</b> Advice words are no longer in <code>ABOUT_WORLD</code>. Questions starting with who, what, when, where, which, why, how, is, are, does, can and the like still are, unless they're about him. Pinned both ways.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Opt-in, with WebGPU checked first</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Nothing loads at start-up: one <code>import()</code> of <code>web-llm.js</code>, reached only from <code>startInstall()</code>, which only "yes" to the size warning reaches. Chromium confirmed nothing from <code>jarvis/llm/</code> was requested on load at either size. No WebGPU, no adapter and no half precision each get their own line, then "I'll stay as I am, with my standard brain", and nothing loads. A failed download and the engine's own half-precision error are both said. All phrasings are pinned unpunctuated, with "jarvis" in front and "please" after.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Asked last: the patterns, the pack and the meaning module win</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>In <code>answerCore()</code>, the full brain is the very last thing tried, after the meaning module and just before the "didn't understand" line. The patterns-win check typed 87 command links and pinned phrasings, including five knowledge-pack questions, into a window whose full brain answers everything (with a pick) and one without. Every answer was identical, apart from the privacy answer's sentence that the brain's conversation is in memory, and the full brain was asked none of them. With the meaning module online, it answered first. Copies asking the brain before the patterns, or before the meaning module, failed 13 checks and 1.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Fixed format, thinking off, guesses labelled</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Every request sets <code>extra_body: {enable_thinking: false}</code>, streams, and asks for at most 160 tokens. Any empty <code>&lt;think&gt;</code> block is dropped. An answer without a <code>SAY:</code> line is refused and not counted. "From memory, I may be wrong:" goes on an answer about the world with no pack facts behind it, or one that adds a number the facts didn't have. Small talk about him has no label. Guesses not labelled, numbers not checked, or the small-talk exemption widened to any "chat" each failed the checks.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Failures fall back cleanly</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>An error before it answers says so, and the brain stays on. A second question while it's still streaming gets "I'm still thinking". The graphics chip lost halfway through turns the brain off, with "I'm back on my standard brain", and the next miss is the usual line. A 45-second limit interrupts a runaway answer. "Turn off your full brain" unloads it and ends the worker.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Fits the discovery log, the counts and the help</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Two usage IDs (53 now): <code>cmd:full-brain</code> for installing, and <code>cmd:brain-chat</code> for an answer, never by what was asked. One capability, which needs WebGPU and is marked <code>optIn</code>, so a 350 MB download is never needed for a clearance level. Session 11's "each capability's first command counts it" check failed until the new command was handled: jsdom has no WebGPU, so it's listed there with house party's WebGL, and counted for real in the full-brain section. The help answer links "install your full brain" and "which brain are you using" (the second is in <code>NOT_COUNTED</code>). Everything spoken goes through <code>say()</code>.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The suite fails when the page is broken</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Twenty-five copies of the page, each with one deliberate bug, were run against the full-brain checks, and all 25 were caught: any <code>STEPS</code> ID accepted (1 failure), picks not checked (8), waits allowed (2), guesses not labelled (3), added numbers not checked (1), any "chat" exempt (1), the brain before the patterns (13), before the meaning module (1), the conversation in localStorage (1) or in <code>meta</code> (1), no WebGPU check (4), no half-precision check (1), no size warning (7), thinking left on (2), markup kept (1), no fixed format (2), no busy guard (1), a lost device left on (1), no chat tag (1), no pack facts (4), one prompt for every skin (2), memories not handed over (1), not counted (1), the engine on the main thread (1), and loading at start-up, which crashed the run (jsdom can't import the library).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A Session 8 check that waits a fixed 80 ms</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>One full run failed "a good file is restored" (the settings backup, Session 8), which this session doesn't touch. Run alone three times, that section passed every time, and the next full run with nothing else running passed all 1718 checks. The check waits a fixed 80 ms for a file to be read and saved to IndexedDB before reading the answer, and that run shared the machine with two of my old wait loops. So it's a timing-sensitive check, not a page bug. Waiting for the answer to appear instead of a fixed time would settle it. That's a change to Session 8's test, left for its own piece of work.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The fake engine behaves like WebLLM's</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>As <code>CLAUDE.md</code> asks for fakes: <code>create()</code> is asynchronous and resolves to an async stream of <code>{choices:[{delta:{content}}]}</code> chunks, several per answer. It can fail before streaming or partway through (with WebLLM's "Device was lost" error), loading reports progress and can be held, and <code>interruptGenerate()</code> and <code>unload()</code> exist. Every check goes through a typed turn.</p></div>
+    </div>
+  </section>
+  <footer>Previous review: <a href="65.html">#65</a> (Session 13, knowledge pack). The build plan's Session 14 notes record the same findings.</footer>
+</div>
+</body>
+</html>

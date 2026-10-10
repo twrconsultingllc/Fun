@@ -1,0 +1,30 @@
+{
+  "id": "sample-org/Silent-MLC",
+  "sha": "7777777777777777777777777777777777777777",
+  "tags": [
+    "mlc-llm"
+  ],
+  "siblings": [
+    {
+      "rfilename": ".gitattributes"
+    },
+    {
+      "rfilename": "mlc-chat-config.json"
+    },
+    {
+      "rfilename": "ndarray-cache.json"
+    },
+    {
+      "rfilename": "params_shard_0.bin"
+    },
+    {
+      "rfilename": "params_shard_1.bin"
+    },
+    {
+      "rfilename": "tokenizer.json"
+    },
+    {
+      "rfilename": "README.md"
+    }
+  ]
+}

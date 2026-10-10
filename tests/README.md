@@ -100,6 +100,16 @@ mark 42" opens the suit, with screenshots of each, and the pack lands in
 real IndexedDB at version 3 with the older tables unchanged. Its server hands out the pack
 built from `fixtures/jarvis-knowledge/` (the one the jsdom suite uses), so
 its pinned answers don't change when the committed `pack.json` is rebuilt.
+Since Session 14 it also checks the full brain, with WebGPU turned on
+(SwiftShader's software adapter). That adapter has no `shader-f16`, so the
+real Qwen3 model can't run here. The check prints what the adapter offers, and
+confirms three things: the page says so and fetches nothing; the page's own
+loader starts the real WebLLM in its worker and stops at `shader-f16` before
+reading any weight; and a config with one byte changed is refused. A fake
+engine then shows the install line and a labelled answer, screenshotted at both
+sizes. The jsdom suite's full-brain checks use a fake engine that streams and
+can fail like WebLLM's. `jarvis/llm/fetch-model.mjs --dry-run` (run by the
+suite too) checks the weights fetcher against `fixtures/jarvis-llm/`.
 Run it after the jsdom suite, not alongside it: its timing waits fail when
 the two compete for the CPU.
 
