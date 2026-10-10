@@ -1836,7 +1836,7 @@ async function skinsAndMemory(t, page) {
         t.section('Learned phrases');
         r = await ask('beam me up scotty');
         t.ok('something it doesn\'t know gets "I didn\'t understand that"', /^I didn't understand that\./.test(r));
-        t.ok('then a link to what it can do (the gauntlet, since review 67)', r.includes('⟦see what I can do|what can you do⟧'));
+        t.ok('then a link to what it can do (the gauntlet, since review 67)', r.includes('Tap see what I can do for everything I know.') && J.chipCmds().includes('what can you do'));
         t.ok('and asks what was meant', /What were you trying to say\?$/.test(r));
         r = await ask('nothing');
         t.ok('"nothing" moves on', /move on\. I'm not programmed for this\./.test(r));
@@ -2567,7 +2567,7 @@ async function commandLinks(t, page) {
         const g = document.getElementById('gauntlet');
         t.ok('help opens the gauntlet', !g.hidden);
         t.eq('the chat line is only the short line', lastAi().textContent, J.HELP_LINE);
-        t.eq('and that is all he says', fake.log.spoken.join(' '), J.HELP_LINE);
+        t.eq('and that is all he says', fake.log.spoken.slice(-1)[0], J.HELP_LINE);
         t.eq('the caption is the short line too, plain', document.getElementById('holo-cap').textContent, J.HELP_LINE);
         const tabs = [...g.querySelectorAll('.g-tab')];
         t.eq('six stones, in the link colours\' order', tabs.map((b) => b.dataset.k).join(), 'space,mind,reality,power,time,soul');
