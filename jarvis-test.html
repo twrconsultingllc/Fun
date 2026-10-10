@@ -1137,8 +1137,8 @@ const GAUNTLET=[
    note:'A protocol runs several commands with one phrase: make one, then say its name to run it. In Chrome or Edge, turn on always listening with the HEY JARVIS switch, then start what you say with my name. Reboot to watch me power up again.'},
   {k:'time',name:'Time',theme:'follow-ups and memory',links:[['now Jupiter'],['bigger'],['slower'],['again'],['go back'],['why'],['show me your memory'],['what do you know about me'],['what do you save'],['back up my settings'],['restore my settings'],['send my settings to my phone'],['scan settings']],
    note:"Talk in fragments after a scene, and ask why after an answer. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit. Leave me alone for a few minutes and I'll dream. I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, so back them up to keep a copy, or send them to another device."},
-  {k:'soul',name:'Soul',theme:'you and me',links:[['switch to Matrix'],['switch to Panthers'],['back to Jarvis'],['make the orb blue'],['speak faster'],['use imperial units'],['open with the galaxy'],['how well do you know me'],["what's my favourite"],["what haven't I tried"],['stop putting my favourites first']],
-   note:"Settings like my orb and my voice stay on this device. If I don't understand you, tell me what you meant and I'll remember it. The more we talk, the better I know you."},
+  {k:'soul',name:'Soul',theme:'you and me',links:[['switch to Matrix'],['switch to Panthers'],['back to Jarvis'],['make the orb blue'],['speak faster'],['use imperial units'],['open with the galaxy'],['learn that'],['how well do you know me'],["what's my favourite"],["what haven't I tried"],['stop putting my favourites first']],
+   note:"Settings like my orb and my voice stay on this device. If I don't understand you, say learn that and tell me what you meant, or teach me straight out: when I say beam me up, I mean show me the galaxy. I only learn a phrase when you ask me to. The more we talk, the better I know you."},
 ];
 const HELP_LINE="Here's what I can do. Pick a stone.",HELP_MARK='⁣';
 const chip=([label,cmd])=>cmd?`⟦${label}|${cmd}⟧`:`⟦${label}⟧`;
@@ -3141,7 +3141,7 @@ function memoryForget(raw){
 }
 
 /* ---------- Learned phrases (this browser only) ---------- */
-// When Jarvis doesn't understand something, he asks what you meant. If that turns out to be something he
+// Only when you ask: "learn that" after a miss, or "when I say X, I mean Y". If what you meant is something he
 // knows, the phrase is saved here, so saying it again just works. Stored in this browser's database, nowhere else.
 function normPhrase(t){return String(t).toLowerCase().replace(/[^a-z0-9' ]+/g,' ').replace(/\s+/g,' ').trim()}
 const LEARN_MAX=200;
@@ -3197,7 +3197,7 @@ const CAPABILITIES=[
   {key:'help',name:'the help list',ids:['cmd:help'],cmds:['help','what can you do'],hint:"I can show you everything I do, one Infinity Stone at a time. Say ⟦help⟧."},
   {key:'settings',name:'settings',ids:['cmd:setting'],cmds:['make the orb blue','speak faster','use imperial units','open with the galaxy','stop putting my favourites first'],hint:"I can change my colour and keep it. Say ⟦make the orb blue⟧."},
   {key:'remember',name:'short-term memory',ids:['cmd:remember'],cmds:[],hint:"Tell me something, like my dog is Rex, and I'll remember it for this visit."},
-  {key:'teach',name:'teaching me phrases',ids:['cmd:teach'],cmds:[],hint:"When I don't understand you, tell me what you meant, and I'll learn the phrase."},
+  {key:'teach',name:'teaching me phrases',ids:['cmd:teach'],cmds:[],hint:"Teach me your own phrases. After I miss one, say ⟦learn that⟧, or say when I say, the phrase, then I mean, and what it means."},
   {key:'matrix',name:'Morpheus',ids:['skin:matrix'],cmds:['switch to Matrix'],hint:"I have another face. Say ⟦switch to Matrix⟧."},
   {key:'panther',name:'Stanley C. Panther',ids:['skin:panther'],cmds:['switch to Panthers'],hint:"Hockey fan? Say ⟦switch to Panthers⟧."},
   {key:'protocol',name:'protocols',ids:['cmd:protocol'],cmds:['movie night','create movie night protocol: make the orb purple, then open the galaxy'],hint:"One phrase can run several commands. Make ⟦a movie night protocol|create movie night protocol: make the orb purple, then open the galaxy⟧, then say ⟦movie night⟧."},
@@ -3455,11 +3455,13 @@ function capabilityStars(){
       state==='locked'?`Locked. Clearance level ${inWords(c.lock)}, ${LEVELS[c.lock].name}, opens it.`:"Something you haven't found yet. Ask what haven't I tried for a hint."};
   });
 }
-let pendingTeach=null; // the phrase Jarvis just didn't understand, while he waits to hear what it meant
+let pendingTeach=null; // the phrase you asked Jarvis to learn, while he waits to hear what it meant
+let lastMiss=null; // the phrase from the turn just before, if he didn't understand it: what "learn that" teaches
 const NOPE=Symbol('not understood');
 const CAN_DO="Tap ⟦see what I can do|what can you do⟧ for everything I know.";
+const LEARN_IT="If you'd like me to learn it, say ⟦learn that⟧.";
 // Every link he can ever show: the help (with every extra open), the fallback, the hints, and the favourites.
-CHIP_CMDS=chipCommands(brainKnown('help'),CAN_DO,unlockLine(5),...CAPABILITIES.map(c=>c.hint),...FAV_IDS.map(favChip));
+CHIP_CMDS=chipCommands(brainKnown('help'),CAN_DO,LEARN_IT,unlockLine(5),...CAPABILITIES.map(c=>c.hint),...FAV_IDS.map(favChip));
 /* ---------- Protocols (Session 10): one phrase runs a saved chain of commands ----------
    "Create movie night protocol: make the orb purple, speak slower, then open the galaxy." Each step is saved as a
    fixed command ID from STEPS (orb:purple, speed:slow, scene:galaxy), never as your words, and runs that ID's own
@@ -4096,7 +4098,7 @@ function meaningOf(raw){
 }
 async function byMeaning(m,said){
   if(m.sure){const r=await m.c.run();return typeof r==='string'?because(r,`Because what you said means much the same as ${m.c.what}.`):r}
-  return ask(`Did you mean ${m.c.what}? Say yes or no.`,()=>m.c.run(),()=>{pendingTeach=said;return "Then tell me what you meant, and I'll remember it."});
+  return ask(`Did you mean ${m.c.what}? Say yes or no.`,()=>m.c.run(),()=>{lastMiss=said.length<=120?said:null;return `All right. ${LEARN_IT}`});
 }
 
 /* ---------- Full brain (Session 14): a small language model on your graphics chip, opt-in ----------
@@ -4422,6 +4424,9 @@ function intentEvent(it){const id=it.kind==='scan'?'cmd:scan':it.kind==='hands'?
 const CHAT_EVENTS=[['cmd:help',/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do/],['cmd:time',/what.*\btime\b/],['cmd:date',/what.*(?:date|day)/],
   ['cmd:joke',/joke|funny/],['cmd:fact',/fact|tell me something/],['cmd:coin',/flip.*coin|heads or tails/],['cmd:die',/roll.*di(?:c)?e/]];
 function chatEvent(raw){const s=String(raw).toLowerCase();for(const [id,re] of CHAT_EVENTS)if(re.test(s))return id;return mathAnswer(s)?'cmd:math':'cmd:chat'}
+// "When I say X, I mean Y", typed or spoken (so no comma is needed), and "learn that" after a miss.
+const WHEN_I_SAY=/^(?:jarvis )?(?:when|whenever|if) i say (.+?) (?:i mean|i meant|it means|that means|i want you to|you should|please) (.+)$/;
+const LEARN_THAT=/^(?:jarvis )?(?:please )?(?:learn (?:that|it|this|that one|what that means)|teach you (?:that|this|it)|let me teach you(?: that| this| it)?|i(?:'ll| will) teach you(?: that| this| it)?|remember what that means)(?: please)?$/;
 const MEANT=/^(?:what\s+)?i\s+(?:was\s+(?:trying|going)\s+to\s+(?:say|ask)|tried\s+to\s+(?:say|ask)|wanted\s+to\s+(?:say|ask)|meant\s+to\s+(?:say|ask)|wanted\s+(?:you\s+)?to|want\s+(?:you\s+)?to|meant|mean)(?:\s+(?:was|is))?[\s,:]*/i;
 // One turn. The follow-up context is updated here: what was said, and the reason behind it for "why?".
 async function answer(text){
@@ -4432,6 +4437,8 @@ async function answer(text){
 }
 async function answerCore(text){
   const p=normPhrase(text),q=talk.question;talk.question=null;
+  const missed=lastMiss;lastMiss=null; // only the turn just before can be taught
+
   // Anything said while a protocol runs stops it first.
   if(stopProtocol()&&/^(?:stop|cancel|abort|end|halt|enough|that's enough|stop it|stop that)(?: (?:the )?(?:protocol|party|house party))?(?: please| now)?$/.test(p))return "Protocol stopped.";
   const fu=await followUp(p,q);if(fu!==null)return fu;
@@ -4455,23 +4462,27 @@ async function answerCore(text){
     return n?`Done. I've forgotten the ${n===1?'phrase':n+' phrases'} you taught me.`:"You haven't taught me anything yet.";
   }
   if(/^what (?:have you|did you|has jarvis) (?:learned|learnt)|^what (?:have i|did i) (?:taught|teach) you/.test(p)){
-    const ks=Object.keys(learned);if(!ks.length)return "Nothing yet. When I don't understand you, tell me what you meant and I'll remember it.";
+    const ks=Object.keys(learned);if(!ks.length)return "Nothing yet. To teach me one, say when I say, the phrase, then I mean, and what it means.";
     return `You've taught me ${ks.length===1?'one phrase':ks.length+' phrases'}. `+ks.slice(-5).map(k=>`"${k}" means "${learned[k]}".`).join(' ');
+  }
+  // Teaching is only ever something you ask for: "learn that" after a miss, or "when I say X, I mean Y".
+  const ws=WHEN_I_SAY.exec(p);
+  if(ws){const said=ws[1].trim(),meant=ws[2].trim(),r=await respond(meant);
+    if(r===NOPE)return `I don't know "${meant}" either, so I haven't learned that.`;
+    return taught(said,meant,r)}
+  if(LEARN_THAT.test(p)){
+    if(missed===null)return "There's nothing to learn just now. To teach me a phrase, say when I say, the phrase, then I mean, and what it means.";
+    pendingTeach=missed;return `What did you mean by "${missed}"?`;
   }
   if(pendingTeach!==null){
     const said=pendingTeach;pendingTeach=null;
     if(/^(?:nothing|never ?mind|forget it|no|nope|nah|cancel|skip|move on|it doesn't matter|doesn't matter)\b/.test(p))
-      return "Then we'll have to move on. I'm not programmed for this.";
+      return "All right, I'll leave it.";
     const meant=text.trim().replace(MEANT,'').replace(/[.!]+$/,'').trim();
     const r=meant?await respond(meant):NOPE;
     if(helpSplit(r)){pendingTeach=said;return r} // "see what I can do" isn't what you meant: look, then tell me
-    if(r===NOPE)return "I don't understand that either, so we'll have to move on. I'm not programmed for this.";
-    const why=personal(said)||personal(meant);
-    if(why)return because(`I did it this time, but I won't save that phrase, because it has ${why} in it.${r?' '+r:''}`,"Because nothing personal is ever saved in this browser, and anything that looks personal is left out.");
-    if(memoryTell(meant)||memoryAsk(meant)!==null)return r; // short-term memory is never saved, not even as a taught phrase
-    if(normPhrase(meant)!==said)learn(said,meant);
-    const got=`Got it. Next time you say "${said}", I'll know you mean "${meant}".`;
-    return r?`${got} ${r}`:got;
+    if(r===NOPE)return "I don't understand that either, so I haven't learned anything.";
+    return taught(said,meant,r);
   }
   const r=await respond(text);
   if(r!==NOPE)return r;
@@ -4482,11 +4493,24 @@ async function answerCore(text){
   // Last of all, and only once the brain is upgraded: what it means, rather than how it's said (Session 12). The
   // knowledge pack is read first, so a fact question in your own words can name anything in it (Session 13).
   if(mind.state==='on'&&!packGone)await packReady();
-  const mn=meaningOf(text);if(mn)return await byMeaning(mn,p);
+  // With the full brain running, the meaning module only acts when it's sure: an unsure match would ask
+  // "Did you mean …?" about something the full brain can simply answer. Without it, it asks as before.
+  const mn=meaningOf(text),brainOn=full.state==='on'&&!!full.engine;
+  if(mn&&(mn.sure||!brainOn))return await byMeaning(mn,p);
+  if(p&&p.length<=120)lastMiss=p; // no pattern knew it, so "learn that" can teach it next turn
   // And only after all of that, the full brain, if it's running (Session 14).
   const fa=await askBrain(text);if(fa!==null)return fa;
-  if(p&&p.length<=120)pendingTeach=p;
-  return because(`${missLine()} ${favLead}${CAN_DO} What were you trying to say?`,"Because I only know the commands I was built with and the phrases you've taught me. Tell me what you meant and I'll learn it for next time.");
+  if(mn)return await byMeaning(mn,p);
+  return because(`${missLine()} ${favLead}${CAN_DO} ${LEARN_IT}`,"Because I only know the commands I was built with and the phrases you've taught me. Say learn that and tell me what you meant, and I'll know it next time.");
+}
+// A taught phrase, once what it means has been understood and done: saved, unless it's personal.
+function taught(said,meant,r){
+  const why=personal(said)||personal(meant);
+  if(why)return because(`I did it this time, but I won't save that phrase, because it has ${why} in it.${r?' '+r:''}`,"Because nothing personal is ever saved in this browser, and anything that looks personal is left out.");
+  if(memoryTell(meant)||memoryAsk(meant)!==null)return r; // short-term memory is never saved, not even as a taught phrase
+  if(normPhrase(meant)!==said)learn(said,meant);
+  const got=`Got it. Next time you say "${said}", I'll know you mean "${meant}".`;
+  return r?`${got} ${r}`:got;
 }
 
 function handle(text){

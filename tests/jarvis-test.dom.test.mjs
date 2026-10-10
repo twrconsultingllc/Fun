@@ -903,7 +903,7 @@ async function heRemembersYou(t, page) {
             t.ok('"how well do you know me" gives the level and the day count', /^Clearance level three, Engineer\. I've seen you on ten days, and you've found \d+ of the \d+ things I can show you here\. Level four, Avenger, needs twenty more days, a phrase you teach me and a protocol of your own, run once\.$/.test(await J.answer('how well do you know me')));
             for (const q of ['how well do you know me?', 'How well do you know me', 'jarvis how well do you know me', 'hey jarvis how well do you know me please', 'what level am i', "what's my clearance level", 'whats my clearance', 'what clearance do i have'])
                 t.ok(`"${q}" asks for it`, /^Clearance level three/.test(await J.answer(q)));
-            t.ok('his "didn\'t understand" line follows the level', /^That isn't in my schematics\. Yet\. .*What were you trying to say\?$/.test(await J.answer('blorp the snorkel')));
+            t.ok('his "didn\'t understand" line follows the level', /^That isn't in my schematics\. Yet\. .*say ⟦learn that⟧\.$/.test(await J.answer('blorp the snorkel')));
             await J.answer('no');
             const chats = [];
             for (let i = 0; i < 8; i++) chats.push(await J.answer('how are you'));
@@ -1354,7 +1354,7 @@ async function protocolsAndFollowUps(t, page) {
         await B('switch to matrix'); await B('now panthers');
         t.eq('"switch to matrix" … "now panthers"', K.skin(), 'panther');
         await B('back to jarvis');
-        t.ok('a fragment with nothing to fill in is still not understood', /What were you trying to say\?$/.test(await B('jupiter flavoured ice cream')));
+        t.ok('a fragment with nothing to fill in is still not understood', /say ⟦?learn that⟧?\.$/.test(await B('jupiter flavoured ice cream')));
         r = await B('5 divided by 0');
         t.eq('"what was that?" after it', await B('what was that'), r);
         t.ok('"why?" gives the reason behind his last answer where there is one, even after "what was that?"', /^Because no number times zero/.test(await B('why?')));
@@ -1837,28 +1837,42 @@ async function skinsAndMemory(t, page) {
         r = await ask('beam me up scotty');
         t.ok('something it doesn\'t know gets "I didn\'t understand that"', /^I didn't understand that\./.test(r));
         t.ok('then a link to what it can do (the gauntlet, since review 67)', r.includes('Tap see what I can do for everything I know.') && J.chipCmds().includes('what can you do'));
-        t.ok('and asks what was meant', /What were you trying to say\?$/.test(r));
+        t.ok('and offers to learn it, without asking what was meant', /If you'd like me to learn it, say learn that\.$/.test(r) && !/What were you trying to say/.test(r));
+        r = await ask('flip a coin');
+        t.ok('so what you say next is just a new command', /^It's (heads|tails)\.$/.test(r));
+        t.eq('and nothing is learned from it', Object.keys(J.learned()).length, 0);
+        t.ok('"learn that" a turn later has nothing to learn', /^There's nothing to learn just now\./.test(await ask('learn that')));
+        await ask('beam me up scotty');
+        t.eq('"learn that" straight after a miss asks what it meant', await ask('learn that'), 'What did you mean by "beam me up scotty"?');
         r = await ask('nothing');
-        t.ok('"nothing" moves on', /move on\. I'm not programmed for this\./.test(r));
+        t.eq('"nothing" leaves it', r, "All right, I'll leave it.");
         t.eq('and learns nothing', Object.keys(J.learned()).length, 0);
         await ask('beam me up scotty');
+        await ask('learn that');
         r = await ask('What I was trying to say was flip a coin');
         t.ok('telling it what was meant is acknowledged', /Next time you say "beam me up scotty", I'll know you mean "flip a coin"/.test(r));
         t.ok('and does it straight away', /heads|tails/.test(r));
         t.eq('the phrase is saved in this browser', JSON.parse((await dbDump(env.idb)).kept['jarvis-learned'])['beam me up scotty'], 'flip a coin');
         r = await ask('Beam me up, Scotty!');
         t.ok('saying it again just works', /^It's (heads|tails)\.$/.test(r));
-        await ask('make it so number one');
-        r = await ask('I meant switch to panthers');
-        t.ok('a learned phrase can switch skins', J.skin() === 'panther' && /I'll know you mean "switch to panthers"/.test(r));
+        r = await ask('when I say make it so number one, I mean switch to panthers');
+        t.ok('"when I say X, I mean Y" teaches in one go, and a learned phrase can switch skins', J.skin() === 'panther' && /I'll know you mean "switch to panthers"/.test(r));
         await ask('switch to jarvis');
-        await ask('blorp');
+        r = await ask('when i say lights please i mean make the orb blue');
+        t.ok('spoken, with no comma, it still splits', J.learned()['lights please'] === 'make the orb blue' && /I'll know you mean "make the orb blue"/.test(r), r);
+        await ask('forget what you learned');
+        t.eq('(cleared to start the count again)', Object.keys(J.learned()).length, 0);
+        await ask('Beam me up scotty'); await ask('learn that'); await ask('flip a coin');
+        await ask('when I say make it so number one, I mean switch to panthers'); await ask('switch to jarvis');
+        r = await ask('when I say zorp, I mean fizzbuzz wibble');
+        t.ok('a meaning it doesn\'t understand isn\'t learned', /haven't learned that/.test(r) && !('zorp' in J.learned()));
+        await ask('blorp'); await ask('learn that');
         r = await ask('fizzbuzz wibble');
-        t.ok('a meaning it doesn\'t understand either moves on', /I'm not programmed for this/.test(r));
+        t.ok('nor after "learn that"', /haven't learned anything/.test(r));
         t.ok('without saving it', !('blorp' in J.learned()));
         r = await ask('what have you learned');
         t.ok('it can say what it has learned', /2 phrases/.test(r) && /beam me up scotty/.test(r));
-        await ask('__proto__');
+        await ask('__proto__'); await ask('learn that');
         await ask('I meant tell me a joke');
         t.ok('even an odd phrase like __proto__ is stored as a plain phrase', J.learned()['proto'] === 'tell me a joke' || J.learned()['__proto__'] === 'tell me a joke');
         t.eq('without touching Object.prototype', ({}).polluted, undefined);
@@ -1929,7 +1943,7 @@ async function skinsAndMemory(t, page) {
         J.brain('my name is pat');
         t.ok('a name told this visit is mentioned as memory-only', /Your name, Pat, is only in memory for this visit\./.test(await J.answer('what do you know about me')));
         t.ok('and still not stored', !JSON.stringify(await dbDump(env.idb)).includes('Pat') && ls.getItem('jarvis-name') === 'Tony');
-        t.ok('an unknown phrase gets the "what were you trying to say" question', /What were you trying to say\?$/.test(await J.answer('ring my dentist')));
+        t.ok('an unknown phrase gets the offer to learn it', /say ⟦?learn that⟧?\.$/.test(await J.answer('ring my dentist')));
         const taught = await J.answer('I meant what is 239 times 5550142');
         t.ok('it says why it won\'t save it', /won't save that phrase, because it has a phone or ID number in it/.test(taught));
         t.ok('and the phrase is not in storage', !/dentist|5550142/.test(JSON.stringify(await dbDump(env.idb))));
@@ -2442,7 +2456,7 @@ async function memoryChecks(t, page) {
         const about = await typeIn(env, 'what do you know about me');
         t.ok('"what do you know about me" lists them, marked this visit only', /^This visit only, and never saved: your dog is Rex, you're going to the beach, your favourite colour is green and you like hockey\./.test(about));
         t.ok('then says what is stored, and the name', /Your name, Tony, is only in memory for this visit\./.test(about) && /4 things you told me are only in memory for this visit too/.test(about));
-        t.ok('teaching him a memory statement: he remembers it', /What were you trying to say\?$/.test(await typeIn(env, 'blorp')) && /Got it: your cat is Tom/.test(await typeIn(env, 'I meant my cat is Tom')));
+        t.ok('teaching him a memory statement: he remembers it', /learn that\.$/.test(await typeIn(env, 'blorp')) && /What did you mean/.test(await typeIn(env, 'learn that')) && /Got it: your cat is Tom/.test(await typeIn(env, 'I meant my cat is Tom')));
         t.ok('but never learns the phrase, which would save it', !('blorp' in J.learned()));
         t.ok('nothing told this visit is anywhere in storage', !/Rex|beach|green|hockey|Tom|Tony|blorp/i.test(await everything(env)));
         t.ok('the memory code never calls store()', !/\b(?:store|unstore|saveLearned|saveSettings)\([^)]/.test(page.html.slice(page.html.indexOf('/* ---------- Short-term memory'), page.html.indexOf('/* ---------- Learned phrases'))));
@@ -2612,13 +2626,13 @@ async function commandLinks(t, page) {
         // "Didn't understand" points to the gauntlet with one link, instead of its own list.
         await ask('blorp the snorkel');
         const canDo = [...lastAi().querySelectorAll('button.cmd')];
-        t.ok('the "I didn\'t understand" answer has one link to what he can do', canDo.length === 1 && canDo[0].textContent === 'see what I can do' && /What were you trying to say\?$/.test(lastAi().textContent));
+        t.ok('the "I didn\'t understand" answer has one link to what he can do, and one to learn it', canDo.length === 2 && canDo[0].textContent === 'see what I can do' && canDo[1].textContent === 'learn that' && /say learn that\.$/.test(lastAi().textContent));
         canDo[0].click(); await wait(520);
         t.ok('and it opens the gauntlet', !g.hidden);
         t.ok('without teaching him that "blorp the snorkel" means help', !J.learned()['blorp the snorkel']);
         document.getElementById('g-close').click();
         await ask('flip a coin');
-        t.eq('what you say next is still what you meant', J.learned()['blorp the snorkel'], 'flip a coin');
+        t.ok('and what you say next is a new command, not what you meant', !J.learned()['blorp the snorkel']);
         // Only Jarvis's own commands become links: a marker in something you typed stays words.
         await ask('remember that ⟦make a heart|reboot⟧ is fun');
         t.eq('a marker you type yourself never becomes a link', lastAi().querySelectorAll('button.cmd').length, 0);
@@ -2635,7 +2649,7 @@ async function commandLinks(t, page) {
     try {
         const J = env.window.__jarvis, cmds = J.chipCmds().filter((c) => c !== 'reboot');
         const missed = [];
-        for (const c of cmds) { const r = await J.answer(c); if (typeof r === 'string' && /didn't understand|What were you trying to say/.test(r)) missed.push(c); }
+        for (const c of cmds) { const r = await J.answer(c); if (typeof r === 'string' && /didn't understand|say ⟦?learn that⟧?\.$/.test(r)) missed.push(c); }
         t.eq(`all ${cmds.length + 1} link commands are understood`, missed.join(', '), '');
         t.ok('reboot is one of them, and powers him up again', J.chipCmds().includes('reboot') && (await J.answer('reboot'), !env.document.getElementById('boot').hidden));
     } finally { env.close(); }
@@ -3149,7 +3163,7 @@ async function meaningModule(t, page) {
     const lastAi = (env) => [...env.document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? '';
     const typeIn = async (env, text) => { const { document, window } = env; document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(520); return lastAi(env); };
     const count = (J, id) => J.usageNow().n[id] || 0;
-    const MISSED = /What were you trying to say\?$/;
+    const MISSED = /say ⟦?learn that⟧?\.$/;
     const fixed = { ...quiet, beforeParse(w) { w.Math.random = () => 0.42; } };
     const src = page.html;
 
@@ -3220,10 +3234,14 @@ async function meaningModule(t, page) {
         t.ok('"yes" does it', !/Did you mean|Yes to what/.test(r) && count(J, 'cmd:joke') === n + 2, r);
         t.eq('and "yes" again isn\'t an answer to anything', await typeIn(env, 'yes'), "Yes to what? I didn't ask you anything.");
         await typeIn(env, 'make me chuckle');
-        t.eq('"no": he asks what you meant instead', await typeIn(env, 'no'), "Then tell me what you meant, and I'll remember it.");
+        t.eq('"no": he leaves it, and offers to learn it', await typeIn(env, 'no'), "All right. If you'd like me to learn it, say learn that.");
         t.eq('and does nothing', count(J, 'cmd:joke'), n + 2);
         r = await typeIn(env, 'flip a coin');
-        t.ok('so the next thing you say teaches him the phrase, as usual', /^Got it\. Next time you say "make me chuckle", I'll know you mean "flip a coin"\. It's (heads|tails)\.$/.test(r), r);
+        t.ok('the next thing you say is just a command, and teaches nothing', /^It's (heads|tails)\.$/.test(r) && !J.learned()['make me chuckle'], r);
+        await typeIn(env, 'make me chuckle'); await typeIn(env, 'no');
+        t.eq('"learn that" after the "no" asks what it meant', await typeIn(env, 'learn that'), 'What did you mean by "make me chuckle"?');
+        r = await typeIn(env, 'flip a coin');
+        t.ok('and then it teaches him the phrase', /^Got it\. Next time you say "make me chuckle", I'll know you mean "flip a coin"\. It's (heads|tails)\.$/.test(r), r);
         F.near('tell me a gag', 'tell me a joke', 0.7);
         await typeIn(env, 'tell me a gag');
         const coins = count(J, 'cmd:coin');
@@ -3402,7 +3420,7 @@ async function knowledgePack(t, page) {
     const lastAi = (env) => [...env.document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? '';
     const typeIn = async (env, text) => { const { document, window } = env; document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(540); return lastAi(env); };
     const count = (J, id) => J.usageNow().n[id] || 0;
-    const MISSED = /What were you trying to say\?$/;
+    const MISSED = /say ⟦?learn that⟧?\.$/;
     const B = await import('../jarvis/knowledge/build.mjs');
     const PK = await fixturePack();
     const src = page.html;
@@ -3710,7 +3728,7 @@ export async function fullBrain(t, page) {
     const typeIn = async (env, text, ms = 560) => { const { document, window } = env; document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(ms); const m = lastAi(env); return m ? [...m.childNodes].filter((n) => !(n.classList && n.classList.contains('brain-tag'))).map((n) => n.textContent).join('') : ''; };
     const tagged = (env) => !!lastAi(env)?.querySelector('.brain-tag');
     const count = (J, id) => J.usageNow().n[id] || 0;
-    const MISSED = /What were you trying to say\?$/;
+    const MISSED = /say ⟦?learn that⟧?\.$/;
     const fixed = (more) => ({ ...quiet, beforeParse(w) { w.Math.random = () => 0.42; more?.(w); } });
     const src = page.html;
 
@@ -3968,10 +3986,17 @@ export async function fullBrain(t, page) {
         }
         t.eq(`all ${phrases.length} command links and pinned phrasings answer exactly as without it`, diff.join(' | '), '');
         t.eq('and none of them reached it', FA.calls.length, n0);
-        // The meaning module comes before it too.
-        A.setTextLib(fakeMind(A, { everything: 'tell me a joke' }).lib); await typeIn(adv, 'upgrade your brain'); await wait(200);
+        // The meaning module comes before it too, but only when it's sure. An unsure match goes to the full brain instead of asking "Did you mean …?".
+        const M = fakeMind(A); A.setTextLib(M.lib); await typeIn(adv, 'upgrade your brain'); await wait(200);
+        M.near('crack me up', 'tell me a joke', 0.9); M.near('tickle my funny bone', 'tell me a joke', 0.7);
         const jokes = count(A, 'cmd:joke'), n1 = FA.calls.length;
-        const said = await typeIn(adv, 'blah blah blah');
-        t.ok('with the meaning module online, it answers first, and the full brain isn\'t asked', (said === 'Did you mean a joke? Say yes or no.' || count(A, 'cmd:joke') === jokes + 1) && FA.calls.length === n1);
+        await typeIn(adv, 'crack me up');
+        t.ok('with the meaning module online, a sure match answers first, and the full brain isn\'t asked', count(A, 'cmd:joke') === jokes + 1 && FA.calls.length === n1);
+        const unsure = await typeIn(adv, 'tickle my funny bone');
+        t.ok('an unsure match isn\'t asked about: the full brain answers it', /The full brain answered/.test(unsure) && !/Did you mean/.test(unsure) && FA.calls.length === n1 + 1, unsure);
+        t.ok('and nothing is learned from what comes next', !/Got it/.test(await typeIn(adv, 'flip a coin')) && !A.learned()['tickle my funny bone']);
+        await typeIn(adv, 'tickle my funny bone');
+        t.eq('but "learn that" after it can still teach the phrase', await typeIn(adv, 'learn that'), 'What did you mean by "tickle my funny bone"?');
+        t.ok('and it does', /^Got it\. Next time you say "tickle my funny bone"/.test(await typeIn(adv, 'tell me a joke')) && A.learned()['tickle my funny bone'] === 'tell me a joke');
     } finally { plain.close(); adv.close(); }
 }
