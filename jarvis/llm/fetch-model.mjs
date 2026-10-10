@@ -125,6 +125,8 @@ export function checkLicence(info, readme, who) {
     const card = cardLicence(readme);
     const facts = `tags [${tags.join(', ')}], model card ${card || 'no licence line'}`;
     console.log(`  ${who}: ${facts}`);
+    const front = String(readme || '').match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    console.log(`  ${who}: model card front matter: ${front ? JSON.stringify(front[1].slice(0, 600)) : 'none'}; first line: ${JSON.stringify(String(readme || '').replace(/^---[\s\S]*?---\s*/, '').split('\n')[0].slice(0, 120))}`);
     if (tags.length !== 1 || tags[0] !== LICENCE) refuse(`${who}: its licence tags are [${tags.join(', ')}], not exactly ${LICENCE} (${facts})`);
     if (card !== LICENCE) refuse(`${who}: its model card says the licence is ${card || 'nothing'}, not ${LICENCE} (${facts})`);
 }
