@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<meta name="description" content="J.A.R.V.I.S. Test: the trial copy of the J.A.R.V.I.S. Demo, where new features are tried before they go to the main page. A talking assistant that runs in your browser, with a boot-up sequence, an animated orb with a face, voice in and out, three skins (Jarvis, Morpheus from The Matrix and Stanley C. Panther of the Florida Panthers), phrases it learns from you, settings it remembers on your device, things you tell it remembered for one visit only, and a holo-projector that shows a 3D galaxy, the solar system, the Earth, a suit schematic, its own neural network and its memory core, which you can steer with hand gestures.">
+<meta name="description" content="J.A.R.V.I.S. Test: the trial copy of the J.A.R.V.I.S. Demo, where new features are tried before they go to the main page. A talking assistant that runs in your browser, with a boot-up sequence, an animated orb with a face, voice in and out, three skins (Jarvis, Morpheus from The Matrix and Stanley C. Panther of the Florida Panthers), phrases it learns from you, settings it remembers on your device, things you tell it remembered for one visit only, protocols that run several commands with one phrase, follow-ups like again, go back and why, and a holo-projector that shows a 3D galaxy, the solar system, the Earth, a suit schematic, its own neural network and its memory core, which you can steer with hand gestures.">
 <title>J.A.R.V.I.S. Test</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%23020a06'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%2339ff88' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%2339ff88'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -115,6 +115,11 @@ body.holo-on #wake-note{display:none}
 #holo-title{margin-right:150px;font-size:.8rem;letter-spacing:.22em;color:var(--phos);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #holo-stat{margin:5px 150px 0 0;font-size:.75rem;letter-spacing:.08em;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #holo-stat:empty::before{content:"\a0"}
+/* A protocol running (Session 10): "PROTOCOL: MOVIE NIGHT · 2/3", over the orb and in the projector's top lines */
+.proto-line{font-size:.75rem;font-weight:500;letter-spacing:.14em;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proto-line[hidden]{display:none}
+#proto{position:absolute;top:2%;left:50%;transform:translateX(-50%);max-width:calc(100vw - 32px);padding:4px 10px;border:1px solid var(--amber);background:rgba(2,10,6,.8)}
+#holo-proto{margin-top:5px;width:max-content;max-width:calc(100% - 170px)} /* only as wide as its text, clear of CLOSE and HANDS */
 #holo-hint{margin:5px 160px 0 0;font-size:.72rem;color:var(--label)}
 #holo-hands{position:absolute;top:58px;right:56px;padding:8px 14px;background:rgba(2,10,6,.7);font-size:.8rem;letter-spacing:.1em}
 #holo-hands[aria-pressed="true"]{background:var(--phos);color:var(--void)}
@@ -128,6 +133,7 @@ body.scan-on #stage{cursor:crosshair}
 #reticle.pinch{width:18px;height:18px;margin:-9px 0 0 -9px;border-color:var(--amber);background:rgba(255,194,74,.35)}
 @media (max-width:600px){
   #holo-top{padding-left:24px}#holo-title{margin-right:196px;letter-spacing:.12em}#holo-stat{margin-right:196px}
+  #holo-proto{max-width:calc(100% - 16px);letter-spacing:.08em}body.hands-on #holo-proto{max-width:calc(100% - 148px)} /* below the buttons, beside the camera preview */
   #holo #holo-close{top:14px;right:16px;padding:7px 10px}#holo #holo-hands{top:14px;right:102px;padding:7px 10px}
   #hand-cam{top:58px;width:120px;height:90px}#holo-hint{margin:9px 148px 0 0;font-size:.68rem}
 }
@@ -175,7 +181,7 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
   <div id="clock-box"><b id="clock">--:--</b><span id="date"></span></div>
 </header>
 
-<div id="core"><canvas id="orb" width="840" height="840"></canvas><div id="state">STANDBY</div></div>
+<div id="core"><canvas id="orb" width="840" height="840"></canvas><div id="state">STANDBY</div><div class="proto-line" id="proto" role="status" hidden></div></div>
 
 <div id="log" aria-live="polite"></div>
 
@@ -192,6 +198,7 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
   <div class="hud" id="holo-top">
     <div id="holo-title"></div>
     <div id="holo-stat"></div>
+    <div class="proto-line" id="holo-proto" hidden></div>
     <div id="holo-hint"></div>
   </div>
   <div class="scan hud"></div>
@@ -260,13 +267,15 @@ function personal(text){const s=String(text);for(const [why,re] of PERSONAL)if(r
 const DB_NAME='jarvis-test'; // the test copy's own database. Promotion changes it, like the TEST tag.
 // One step per database version. A later session adds a step, so older saves are upgraded, never deleted.
 const DB_UPGRADES=[
-  db=>{db.createObjectStore('kept');db.createObjectStore('events',{keyPath:['id','day']});db.createObjectStore('totals',{keyPath:'id'});db.createObjectStore('meta')}
+  db=>{db.createObjectStore('kept');db.createObjectStore('events',{keyPath:['id','day']});db.createObjectStore('totals',{keyPath:'id'});db.createObjectStore('meta')},
+  // Version 2 (Session 10): protocols, keyed by name, each {steps:[command IDs]}. Version 1's tables are kept as they are.
+  db=>{db.createObjectStore('protocols')}
 ];
-const TABLES=['kept','events','totals','meta'];
+const TABLES=['kept','events','totals','meta','protocols'];
 // The only things ever counted. Later sessions add IDs here; nothing outside this list can be saved as an event.
 const EVENT_IDS=['app:visit',
   ...['galaxy','solar','globe','neural','suit','particles','memory'].map(k=>'scene:'+k),
-  ...['scan','briefing','setting','remember','teach','help','time','date','joke','fact','coin','die','math','chat'].map(k=>'cmd:'+k),
+  ...['scan','briefing','setting','remember','teach','help','time','date','joke','fact','coin','die','math','chat','protocol','house-party','wake-up'].map(k=>'cmd:'+k),
   ...['jarvis','matrix','panther'].map(k=>'skin:'+k),
   ...['mic','wake-word','hands','voice'].map(k=>'feature:'+k)];
 // Days are counted from a fixed start, so a day is stored as a small number such as 282, never as a date.
@@ -276,7 +285,7 @@ const isDay=v=>Number.isInteger(v)&&v>=0&&v<=99999;
 const isCount=(v,max=MAX_COUNT)=>Number.isInteger(v)&&v>=1&&v<=max;
 const exactly=(o,ks)=>!!o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).sort().join()===ks.join();
 // What's saved, also held in memory so reading never waits. Filled from the database once, at start-up.
-const kept=new Map(),events=new Map(),totals=new Map(),meta=new Map(),TABLE_MAPS={kept,events,totals,meta};
+const kept=new Map(),events=new Map(),totals=new Map(),meta=new Map(),protocols=new Map(),TABLE_MAPS={kept,events,totals,meta,protocols};
 const evKey=(id,day)=>id+'|'+day;
 let readDone=false,loaded=false,dbOK=false,visitedBefore=false,early=[],pending=[],flushing=false,firstTime=true,streak={days:1};
 function openDb(){
@@ -313,6 +322,8 @@ function fits(table,key,rec){
     case 'events':return exactly(rec,['day','id','n'])&&EVENT_IDS.includes(rec.id)&&isDay(rec.day)&&isCount(rec.n)&&Array.isArray(key)&&key[0]===rec.id&&key[1]===rec.day;
     case 'totals':return exactly(rec,['id','n'])&&EVENT_IDS.includes(rec.id)&&isCount(rec.n,1e9)&&key===rec.id;
     case 'meta':return key==='copied'?rec===1:key==='rolled'?isDay(rec):key==='carry'?Number.isInteger(rec)&&rec>=0&&rec<=9999:false;
+    // A protocol: a name that passes personal(), and steps that are fixed command IDs only (see protoProblem), at most PROTO_MAX of them.
+    case 'protocols':return exactly(rec,['steps'])&&protoFits(key,rec.steps)&&(protocols.has(key)||protocols.size<PROTO_MAX);
   }
   return false;
 }
@@ -412,6 +423,7 @@ function scrubStore(){
   for(const r of [...events.values()])if(!fits('events',[r.id,r.day],r))save('events',[r.id,r.day],undefined);
   for(const r of [...totals.values()])if(!fits('totals',r.id,r))save('totals',r.id,undefined);
   for(const [k,v] of [...meta])if(!fits('meta',k,v))save('meta',k,undefined);
+  let np=0;for(const [k,v] of [...protocols])if(!fits('protocols',k,v)||++np>PROTO_MAX)save('protocols',k,undefined);
 }
 // Once something is saved, ask the browser not to clear it when space runs low. Only in Chrome and Edge, which
 // decide quietly: Firefox would pop up a permission prompt for it. Safari on iPhone still deletes a site's
@@ -429,12 +441,18 @@ async function startUp(){
   if(meta.get('copied')!==1)copyIn();
   scrubStore();
   // Nothing kept at all: a first visit, or Safari cleared it after 7 days away. A page can't tell which.
-  firstTime=!kept.size&&!events.size&&!totals.size&&!visitedBefore;
+  firstTime=!kept.size&&!events.size&&!totals.size&&!protocols.size&&!visitedBefore;
   for(const [id,day] of early.splice(0))track(id,day);
   track('app:visit');rollUp();
   streak={days:streakDays()};
 }
 let settings={};
+/* Follow-ups (Session 10): a running context of this visit, kept in memory only. What he last did and said, so
+   fragments work: "again", "go back", "bigger", "now Jupiter", "yes", "why". It's never passed to save() or store(),
+   and a reload starts it empty. */
+const talk={lastCmd:null,frame:null,scenes:[],lastAnswer:null,why:null,question:null};
+let nextWhy=null; // the reason behind the answer being given now, for "why?"
+const because=(text,why)=>{nextWhy=why;return text};
 function saveSettings(){if(Object.keys(settings).length)store('jarvis-settings',JSON.stringify(settings));else unstore('jarvis-settings')}
 // "What do you save?": exactly what's in this browser, read back from what was saved rather than from the page.
 function storedSummary(){
@@ -445,6 +463,7 @@ function storedSummary(){
   if(get('jarvis-mic-note'))parts.push("that you've seen the mic note");
   let st={};try{st=cleanSettings(JSON.parse(get('jarvis-settings')||'{}'))}catch(e){}
   if(Object.keys(st).length)parts.push(`your settings (${settingsWords(st).join(', ')})`);
+  const np=protocols.size;if(np)parts.push(`${np===1?'one protocol':np+' protocols'} you made (a name and my own command codes for each)`);
   const counted=events.size||totals.size;
   const list=!dbOK?"This browser won't let me save anything, so nothing is kept after you close the page.":
     parts.length?`Here's everything I keep in this browser: ${parts.length>1?parts.slice(0,-1).join(', ')+' and '+parts[parts.length-1]:parts[0]}.`:
@@ -874,6 +893,7 @@ function speechChunks(text,max=160){
 let sayGen=0; // which answer is being spoken, so a cancelled one can't switch the orb back to idle
 function say(text){
   text=inUnits(text);wakeUp();
+  talk.lastAnswer=plainText(text);talk.why=nextWhy;nextWhy=null;
   add(text,'ai');
   if(H&&H.onAnswer)H.onAnswer(); // the neural network lights its output layer for each answer
   if(!synth){setMode('idle');return}
@@ -932,7 +952,7 @@ function settingsIntent(raw){
 function applySetting({key,value}){
   if(key==='all'){const had=Object.keys(settings).length;settings={};saveSettings();orbColours();return had?"Done. My settings are back to normal.":"My settings are already the defaults."}
   if(key==='speed'&&(value==='+'||value==='-')){const order=['slow','normal','fast'],i=order.indexOf(settings.speed||'normal'),j=clamp(i+(value==='+'?1:-1),0,2);
-    if(i===j)return value==='+'?"That's as fast as I go.":"That's as slow as I go.";value=order[j]==='normal'?null:order[j]}
+    if(i===j)return because(value==='+'?"That's as fast as I go.":"That's as slow as I go.","Because I have three speeds, slow, normal and fast, so every word stays clear.");value=order[j]==='normal'?null:order[j]}
   if(value===null)delete settings[key];else settings[key]=value;
   saveSettings();if(key==='color')orbColours();
   const words={color:value?`My orb is ${value} now.`:"My orb is back to my skin's own colour.",speed:value?`I'll speak ${value==='slow'?'more slowly':'faster'}.`:"Back to my normal speed.",
@@ -984,13 +1004,13 @@ function mathAnswer(s){
      .replace(/\b(times|multiplied by|x)\b/g,'*').replace(/\b(plus|add)\b/g,'+').replace(/\b(minus|take away)\b/g,'-').replace(/\b(divided by|over)\b/g,'/');
   const m=s.match(/(-?\d+(?:\.\d+)?)\s*([+\-*/])\s*(-?\d+(?:\.\d+)?)/);if(!m)return null;
   const a=+m[1],b=+m[3],r={'+':a+b,'-':a-b,'*':a*b,'/':b===0?null:a/b}[m[2]];
-  return r===null?"Dividing by zero would tear a hole in the universe. Let's not.":`That would be ${+r.toFixed(4)}.`;
+  return r===null?because("Dividing by zero would tear a hole in the universe. Let's not.","Because no number times zero gives you anything but zero, so dividing by zero has no answer at all."):`That would be ${+r.toFixed(4)}.`;
 }
 function brainKnown(raw){
   const s=raw.toLowerCase().trim(),name=userName?`, ${userName}`:'';
   let m;
-  if((m=s.match(/\b(?:my name is|call me|i am|i'm) ([a-z]+)/))&&!notNames.has(m[1])){userName=m[1][0].toUpperCase()+m[1].slice(1);return `Nice to meet you, ${userName}. I'll remember that until you close this page. I never save names.`}
-  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧, or some math like ⟦seven times eight|what is seven times eight⟧. I can ⟦flip a coin⟧, ⟦roll a die⟧ or start a ⟦launch countdown⟧. For the holo-projector, say ⟦show me the galaxy⟧, ⟦show me the planets⟧, ⟦take me to Mars⟧, ⟦make a heart⟧, ⟦make a rocket⟧, or ⟦write your name|write my name⟧. Say ⟦show me your brain⟧ to watch me think, or ⟦suit up⟧ to build a suit of armour. Say ⟦show me Earth⟧ for the globe, or show me any country, US state or big city, like ⟦Florida|show me Florida⟧ or ⟦Tokyo|show me Tokyo⟧. Say ⟦hand control⟧ to steer it with your hands through the camera, or ⟦scan the room⟧ for a threat scan. Say ⟦brief me⟧ for the time and the top headlines. In Chrome or Edge, turn on ⟦always listening|always listen⟧ with the HEY JARVIS switch, then start what you say with my name. Say ⟦close⟧ to turn it off, or ⟦reboot⟧ to watch me power up again. Say ⟦switch to Matrix⟧ to talk to Morpheus, ⟦switch to Panthers⟧ for Stanley C. Panther, or ⟦back to Jarvis⟧. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit, whichever skin I'm in. Ask ⟦what do you know about me⟧ to hear them back. I can also remember settings on this device: say ⟦make the orb blue⟧, ⟦speak faster⟧, ⟦use imperial units⟧, or ⟦open with the galaxy⟧. Say ⟦show me your memory⟧ to see everything I keep as stars, and tap one to hear it or say forget that. Leave me alone for a few minutes and I'll dream. Ask ⟦what do you save⟧ to see what I keep, and I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, and a settings backup file is coming. If I don't understand you, tell me what you meant and I'll remember it on this device.";
+  if((m=s.match(/\b(?:my name is|call me|i am|i'm) ([a-z]+)/))&&!notNames.has(m[1])){userName=m[1][0].toUpperCase()+m[1].slice(1);return because(`Nice to meet you, ${userName}. I'll remember that until you close this page. I never save names.`,"Because nothing personal is ever saved in this browser. Your name stays in memory for this visit and is gone when you close the page.")}
+  if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return "Ask me ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧, or some math like ⟦seven times eight|what is seven times eight⟧. I can ⟦flip a coin⟧, ⟦roll a die⟧ or start a ⟦launch countdown⟧. For the holo-projector, say ⟦show me the galaxy⟧, ⟦show me the planets⟧, ⟦take me to Mars⟧, ⟦make a heart⟧, ⟦make a rocket⟧, or ⟦write your name|write my name⟧. Say ⟦show me your brain⟧ to watch me think, or ⟦suit up⟧ to build a suit of armour. Say ⟦show me Earth⟧ for the globe, or show me any country, US state or big city, like ⟦Florida|show me Florida⟧ or ⟦Tokyo|show me Tokyo⟧. Say ⟦hand control⟧ to steer it with your hands through the camera, or ⟦scan the room⟧ for a threat scan. Say ⟦brief me⟧ for the time and the top headlines. In Chrome or Edge, turn on ⟦always listening|always listen⟧ with the HEY JARVIS switch, then start what you say with my name. Say ⟦close⟧ to turn it off, or ⟦reboot⟧ to watch me power up again. Say ⟦switch to Matrix⟧ to talk to Morpheus, ⟦switch to Panthers⟧ for Stanley C. Panther, or ⟦back to Jarvis⟧. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit, whichever skin I'm in. Ask ⟦what do you know about me⟧ to hear them back. I can also remember settings on this device: say ⟦make the orb blue⟧, ⟦speak faster⟧, ⟦use imperial units⟧, or ⟦open with the galaxy⟧. Say ⟦show me your memory⟧ to see everything I keep as stars, and tap one to hear it or say forget that. Make a protocol to run several commands with one phrase, like ⟦a movie night protocol|create movie night protocol: make the orb purple, then open the galaxy⟧, then say ⟦movie night⟧ to run it. Say ⟦list my protocols⟧, or try ⟦house party⟧ or ⟦wake up, daddy's home|wake up daddy's home⟧. You can talk in fragments too: after ⟦take me to Mars⟧, say ⟦now Jupiter⟧, ⟦bigger⟧, ⟦slower⟧, ⟦again⟧ or ⟦go back⟧, and ask ⟦why⟧ after an answer. Leave me alone for a few minutes and I'll dream. Ask ⟦what do you save⟧ to see what I keep, and I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, and a settings backup file is coming. If I don't understand you, tell me what you meant and I'll remember it on this device.";
   if(/^(?:please )?(?:forget|clear|delete|erase) my name\b/.test(s)){const had=userName;userName=null;return had?"Done. I've forgotten your name.":"I don't know your name yet, so there's nothing to forget."}
   if(/\bwhat(?:'s| is) my name\b|\bwho am i\b|\bdo you (?:know|remember) (?:my name|me|who i am)\b|\bsay my name\b/.test(s))return userName?`Your name is ${userName}. I'll remember it whichever skin I'm wearing, until you close this page. I never save it.`:"You haven't told me your name yet. Say my name is, then your name, and I'll remember it until you close this page.";
   if(/\b(hello|hi|hey|good (morning|afternoon|evening))\b/.test(s))return pick([`Hello${name}. All systems are online.`,`Good to see you${name}. How can I help?`]);
@@ -1153,8 +1173,8 @@ function fitDist(hw,hh){const t=Math.tan(27.5*Math.PI/180);return Math.max(hh/t,
 function makeRig(T,camera,o){
   const r={az:o.az||0,el:o.el,elGoal:o.elGoal??o.el,dist:o.dist,goal:o.goal??o.dist,min:o.min,max:o.max,spin:o.spin||0,
     target:new T.Vector3(),want:new T.Vector3(),dragging:false,kick:0,
-    update(dt){
-      if(!r.dragging)r.az+=r.spin*dt*amb;
+    update(dt,pace=1){
+      if(!r.dragging)r.az+=r.spin*dt*amb*pace;
       r.az+=r.kick*dt;r.kick*=Math.pow(.15,dt);
       const e=1-Math.pow(.08,dt);
       r.dist+=(r.goal-r.dist)*e;if(!r.dragging)r.el+=(r.elGoal-r.el)*e;r.target.lerp(r.want,1-Math.pow(.02,dt));
@@ -1200,6 +1220,7 @@ function buildGalaxy(T){
   const rig=makeRig(T,camera,{dist:280,goal:Math.max(95,fitDist(55,30)),el:1.15,elGoal:.38,min:6,max:420,spin:.04});
   return {scene,camera,rig,title:'SPIRAL GALAXY',stat:`${(N+NC*PER).toLocaleString()} STARS · ${NC} GLOBULAR CLUSTERS`,
     hint:'Drag to rotate · scroll or pinch to zoom · say "fly in" or "zoom out"',
+    adjust:adjuster(rig,{thing:'the galaxy',moving:'The galaxy turns'}),
     intro:`Projecting a spiral galaxy with ${(N+NC*PER).toLocaleString()} stars. That's less than a millionth of the stars in the real Milky Way.`,
     update(dt){group.rotation.y+=dt*.05*amb}};
 }
@@ -1264,6 +1285,7 @@ function buildSolar(T){
   const order=['sun',...BODIES.map(b=>b.key)];let current=null;
   const go=k=>{current=k;return setArg(k)};
   return {scene,camera,rig,title:'SOLAR SYSTEM',stat:'',hint:'Drag to rotate · scroll or pinch to zoom · tap a planet · say "take me to Saturn"',setArg:go,
+    adjust:adjuster(rig,{thing:'the solar system',moving:'The planets move'}),
     next(dir){const i=current?order.indexOf(current):-1;return go(order[(i+dir+order.length)%order.length])},
     pick(ndc){ray.setFromCamera(ndc,camera);const hit=ray.intersectObjects(picks,false)[0];return hit?go(hit.object.userData.key):null},
     update(dt){
@@ -1300,7 +1322,11 @@ function buildParticles(T){
     if(a.text)return `Writing ${a.text} in lights.`;
     return SHAPE_LINES[a.shape]||SHAPE_LINES.sphere;
   }
+  // Bigger and smaller grow and shrink the sculpture itself, rather than moving the camera.
+  const grow=k=>{const was=group.scale.x,s=clamp(was*k,.4,2.5);if(Math.abs(s-was)<1e-6)return k>1?"That's as big as I can sculpt it.":"That's as small as I can sculpt it.";
+    group.scale.setScalar(s);return k>1?'Growing the sculpture.':'Shrinking the sculpture.'};
   return {scene,camera,rig,title:'PARTICLE SCULPTOR',stat:'',hint:'Drag to rotate · say "make a rocket", "make a heart", "make an arc reactor" or "write" any word',setArg,
+    adjust:adjuster(rig,{thing:'the sculpture',moving:'The particles move'},{bigger:()=>grow(1.3),smaller:()=>grow(1/1.3)}),
     next(dir){const i=SEQ.indexOf(current);return setArg({shape:SEQ[(i+dir+SEQ.length)%SEQ.length]})},
     squeeze(on){if(on===squeezed)return;squeezed=on;if(!on)for(let i=0;i<N*3;i++)pos[i]*=1+R()*.6;blip(on?180:520,.15,.03,'sawtooth')},
     update(dt,t){
@@ -1380,6 +1406,7 @@ function buildNeural(T){
   build(0);
   return {scene,camera,rig,title:'NEURAL NETWORK',stat:`${net.shape.length} LAYERS · ${net.nodes.length} NEURONS · ${net.edges.length} CONNECTIONS`,
     hint:'Drag to rotate · tap a node to learn what its layer does · ask me anything and watch me think',
+    adjust:adjuster(rig,{thing:'the network',moving:'The signals fire'}),
     intro:"This is a tiny neural network, a toy version of how I think. Ask me something and watch the signals fire. Tap a node to find out what it does.",
     next(dir){return build(shapeIdx+dir)},
     squeeze(on){if(on){sim.fireAll();blip(220,.25,.03,'sawtooth')}},
@@ -1547,6 +1574,7 @@ function buildSuit(T){
   const ray=new T.Raycaster();
   return {scene,camera,rig,title:'SUIT SCHEMATIC',stat:ready,
     hint:'Drag to rotate · tap a label or a part · say "suit up" to watch it assemble',setArg,
+    adjust:adjuster(rig,{thing:'the suit',moving:'The suit turns'}),
     next(dir){focus=(focus+dir+SUIT_CALLOUTS.length*2)%SUIT_CALLOUTS.length;return calloutLine(focus)},
     squeeze(on){squeezed=on;if(on){fire=1;blip(1500,.3,.035,'sawtooth');blip(320,.4,.03,'square',.05)}},
     pick(ndc){
@@ -1716,6 +1744,8 @@ function buildGlobe(T){
   const ray=new T.Raycaster();
   return {scene,camera,rig,title:'EARTH',stat:stat(),
     hint:'Drag to spin · tap a place · say "show me Florida" or "take me to Tokyo"',setArg,
+    // While it's holding still on a place, faster and slower have nothing to change, so it says how to set it turning.
+    adjust:adjuster(rig,{thing:'the Earth',moving:'The Earth turns'},Object.fromEntries(['faster','slower'].map(k=>[k,()=>rig.spin?null:`I'm holding the Earth still on ${focus?focus.name:'that place'}. Say show me Earth to set it turning again.`]))),
     next(dir){tour=(tour+dir+CONTINENTS.length*2)%CONTINENTS.length;return go({...CONTINENTS[tour],kind:'continent'})},
     squeeze(on){spinning=on;if(on){fly=null;blip(240,.3,.03,'sawtooth')}},
     pick(ndc){
@@ -1757,6 +1787,8 @@ function memoryStars(){
   for(const k of Object.keys(learned).reverse())out.push({type:'phrase',key:k,label:`"${k}"`,text:`A phrase you taught me: "${k}" means "${learned[k]}".`});
   for(const k of Object.keys(voicePicks))if(Object.hasOwn(SKINS,k))
     out.push({type:'voice',skin:k,label:`Voice for ${wakeName(k)}`,text:`A saved setting: ${shortName(voicePicks[k])} is the voice for ${SKINS[k].short}.`});
+  // A protocol (Session 10) is a star with a small cluster of linked stars round it, one for each step.
+  for(const [n,r] of protocols)out.push({type:'protocol',key:n,steps:r.steps.length,label:`Protocol: ${cap(n)}`,text:`A protocol you made: ${cap(n)}. It will ${stepWords(r.steps)}.`});
   if(keptGet('jarvis-mic-note'))out.push({type:'micnote',label:'Mic note seen',text:"A saved setting: you've seen the note about the mic, so I don't show it again."});
   // The usage counts (Session 9) are one star. Nothing you say is in them, and only clearing the site's data removes them.
   if(events.size||totals.size){const n=new Set([...events.values()].map(e=>e.day)).size;
@@ -1773,6 +1805,7 @@ function forgetStar(st){
     case 'phrase':delete learned[st.key];saveLearned();return `Forgotten. "${st.key}" doesn't mean anything to me now.`;
     case 'voice':delete voicePicks[st.skin];if(Object.keys(voicePicks).length)store('jarvis-voices',JSON.stringify(voicePicks));else unstore('jarvis-voices');if(synth)pickVoice();
       return `Forgotten. ${SKINS[st.skin].short} goes back to the automatic voice.`;
+    case 'protocol':return deleteProtocol(st.key)?`Forgotten. The ${st.key} protocol is deleted.`:`The ${st.key} protocol was already gone.`;
     case 'history':return "I can't forget the usage counts from here. Only clearing this site's data in your browser removes them.";
     case 'micnote':unstore('jarvis-mic-note');return "Forgotten. I'll show the mic note again next visit.";
   }
@@ -1826,6 +1859,10 @@ function buildMemory(T){
     const seg=[];
     for(const set of [saved,visit])constellationLinks(set.map(i=>pos[i])).forEach(([a,b])=>seg.push(...pos[set[a]],...pos[set[b]]));
     saved.slice(0,6).forEach(i=>seg.push(0,0,0,...pos[i])); // the core feeds the nearest settings
+    // Each protocol gets a ring of small stars, one per step, linked to it and to each other in order. They aren't labelled or tapped.
+    stars.forEach((st,i)=>{if(st.type!=='protocol')return;const [x,y,z]=pos[i];let prev=null;
+      for(let k=0;k<st.steps;k++){const a=k/st.steps*TAU,p=[x+Math.cos(a)*1.4,y+Math.sin(a)*1.1,z+Math.sin(a)*.7],m=sprite(phos,.6,1.1);
+        m.position.set(...p);objs.push(m);seg.push(...pos[i],...p);if(prev)seg.push(...prev,...p);prev=p}});
     if(seg.length){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(seg,3));
       objs.push(new T.LineSegments(g,new T.LineBasicMaterial({color:phos,transparent:true,opacity:.22,depthWrite:false})))}
     group.add(...objs);
@@ -1864,6 +1901,7 @@ function buildMemory(T){
   const intro=stars.length?"This is my memory core. Each bright star is something saved in this browser, and the amber ones are what you told me this visit. They fade when you close the page. Tap a star to hear it, or say forget that.":
     "My memory core is empty. Nothing is saved in this browser, and you haven't told me anything this visit.";
   return {scene,camera,rig,title:'MEMORY CORE',stat:holoStat.textContent,hint:MEM_HINT,intro,
+    adjust:adjuster(rig,{thing:'my memory core',moving:'The memory core turns'}),
     pick(ndc){
       const x=(ndc.x+1)/2*innerWidth,y=(1-ndc.y)/2*innerHeight;
       let i=boxes.findIndex(o=>x>=o.x&&x<=o.x+o.w&&y>=o.y&&y<=o.y+o.h);if(i<0)i=nearest(x,y,44);
@@ -1890,8 +1928,8 @@ const BUILDERS={galaxy:buildGalaxy,solar:buildSolar,particles:buildParticles,neu
 function resizeHolo(){if(!H||!H.renderer)return;H.renderer.setSize(innerWidth,innerHeight,false);H.camera.aspect=innerWidth/innerHeight;H.camera.updateProjectionMatrix()}
 function loop(now){
   if(!H)return;
-  const dt=Math.min(.05,H.last?(now-H.last)/1000:0);H.last=now;H.t+=dt;
-  H.update(dt,H.t);H.rig.update(dt);H.renderer.render(H.scene,H.camera);
+  const dt=Math.min(.05,H.last?(now-H.last)/1000:0),p=H.pace||1;H.last=now;H.t+=dt*p; // pace: "faster" and "slower" (Session 10)
+  H.update(dt*p,H.t);H.rig.update(dt,p);H.renderer.render(H.scene,H.camera);
   H.raf=requestAnimationFrame(loop);
 }
 function startHolo(T,kind,arg){
@@ -1927,14 +1965,16 @@ async function project(it){
     if(H.kind==='scan')return "The scanner doesn't zoom. Step closer instead.";
     const r=H.rig;r.goal=clamp(r.goal*(it.arg==='in'?.3:2.5),r.min,r.max);return it.arg==='in'?"Taking us in.":"Pulling back.";
   }
-  if(!hasWebGL())return "My holo-projector needs WebGL, and this browser doesn't have it turned on.";
+  if(!hasWebGL())return because("My holo-projector needs WebGL, and this browser doesn't have it turned on.",WEBGL_WHY);
   let T;
   try{T=await loadThree()}catch(e){return "Holo-projector offline. I couldn't load the 3D engine, so check your internet connection."}
-  if(H&&H.kind===it.kind)return H.setArg?H.setArg(it.arg):"It's already on the projector.";
-  closeHolo(true);
-  return startHolo(T,it.kind,it.arg);
+  let r;
+  if(H&&H.kind===it.kind)r=H.setArg?H.setArg(it.arg):"It's already on the projector.";
+  else{closeHolo(true);r=startHolo(T,it.kind,it.arg)}
+  if(H&&H.kind===it.kind)noteScene(it);
+  return r;
 }
-document.getElementById('holo-close').addEventListener('click',()=>{const k=H&&H.kind;closeHolo();say(k==='scan'?SCAN_OFF:"Projector off.")});
+document.getElementById('holo-close').addEventListener('click',()=>{const k=H&&H.kind;stopProtocol();closeHolo();say(k==='scan'?SCAN_OFF:"Projector off.")});
 addEventListener('resize',resizeHolo);
 
 /* Drag to orbit, pinch or scroll to zoom, tap to pick. */
@@ -2304,7 +2344,7 @@ document.getElementById('boot-skip').addEventListener('click',finishBoot);
 addEventListener('resize',placeBootButton);
 addEventListener('keydown',e=>{
   if(e.key!=='Escape')return;
-  const k=H&&H.kind;if(!boot.hidden)finishBoot();else if(closeHolo())say(k==='scan'?SCAN_OFF:"Projector off.");
+  const k=H&&H.kind;if(!boot.hidden)finishBoot();else if(stopProtocol()|closeHolo())say(k==='scan'?SCAN_OFF:"Projector off.");
 });
 
 /* ---------- Skin switching ---------- */
@@ -2475,20 +2515,378 @@ function learn(said,meant){
 }
 let pendingTeach=null; // the phrase Jarvis just didn't understand, while he waits to hear what it meant
 const NOPE=Symbol('not understood');
-const CAN_DO="Here's what I can do: tell ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧ or some math, ⟦flip a coin⟧ or ⟦roll a die⟧, show you things on the holo-projector like ⟦Mars|take me to Mars⟧, ⟦Earth|show me Earth⟧ or ⟦your name|write my name⟧, ⟦suit up⟧, show ⟦my brain|show me your brain⟧ or ⟦my memory|show me your memory⟧, run a ⟦threat scan|scan the room⟧, give you a ⟦briefing|brief me⟧, remember what you tell me this visit, change my settings, or switch to the ⟦Matrix|switch to Matrix⟧ or ⟦Panthers|switch to Panthers⟧ skin.";
+const CAN_DO="Here's what I can do: tell ⟦the time|what time is it⟧ or ⟦date|what's the date⟧, ⟦a joke|tell me a joke⟧, ⟦a fun fact|tell me a fun fact⟧ or some math, ⟦flip a coin⟧ or ⟦roll a die⟧, show you things on the holo-projector like ⟦Mars|take me to Mars⟧, ⟦Earth|show me Earth⟧ or ⟦your name|write my name⟧, ⟦suit up⟧, show ⟦my brain|show me your brain⟧ or ⟦my memory|show me your memory⟧, run a ⟦threat scan|scan the room⟧, give you a ⟦briefing|brief me⟧, run ⟦protocols|list my protocols⟧, remember what you tell me this visit, change my settings, or switch to the ⟦Matrix|switch to Matrix⟧ or ⟦Panthers|switch to Panthers⟧ skin.";
 CHIP_CMDS=chipCommands(brainKnown('help'),CAN_DO);
+/* ---------- Protocols (Session 10): one phrase runs a saved chain of commands ----------
+   "Create movie night protocol: make the orb purple, speak slower, then open the galaxy." Each step is saved as a
+   fixed command ID from STEPS (orb:purple, speed:slow, scene:galaxy), never as your words, and runs that ID's own
+   command, so a step can only do what the command already does. The name is the only text kept, and it has to pass
+   personal() like a taught phrase. Limits: 6 steps, 20 protocols, one scene each, no protocol inside another, and
+   nothing that deletes anything or starts the camera or the mic. Places on the globe are left out too, because a
+   saved place could give away where you live. Deleting one protocol by name is allowed; deleting them all isn't. */
+const PROTO_MAX=20,PROTO_STEPS=6,PROTO_WAIT=30;
+const STEPS=Object.create(null);
+// id: what's saved. text: a command that means it (and parses back to the same ID). label: how he says it.
+// quiet: a setting change, shown rather than spoken. scene: opens a scene (one per protocol). run: done directly.
+const step=(id,text,label,o={})=>{STEPS[id]={text,label,...o}};
+for(const c of Object.keys(ORB_COLOURS))step('orb:'+c,`make the orb ${c}`,`make the orb ${c}`,{quiet:true,run:()=>applySetting({key:'color',value:c})});
+step('orb:default','use the default orb colour',"put the orb back to the skin's colour",{quiet:true,run:()=>applySetting({key:'color',value:null})});
+for(const [k,text,label] of [['slow','speak slower','speak slowly'],['fast','speak faster','speak fast'],['normal','speak normally','speak at normal speed']])
+  step('speed:'+k,text,label,{quiet:true,run:()=>applySetting({key:'speed',value:k==='normal'?null:k})});
+for(const u of ['metric','imperial'])step('units:'+u,`use ${u} units`,`use ${u} units`,{quiet:true,run:()=>applySetting({key:'units',value:u})});
+for(const [k,text,label] of [['jarvis','switch to jarvis','switch to Jarvis'],['matrix','switch to matrix','switch to Morpheus'],['panther','switch to panthers','switch to Stanley C. Panther']])
+  step('skin:'+k,text,label,{quiet:true,run:()=>setSkin(k)});
+for(const [k,text,label] of [['galaxy','show me the galaxy','open the galaxy'],['solar','show me the solar system','open the solar system'],['globe','show me earth','open the Earth'],
+  ['neural','show me your brain','open my neural network'],['suit','show me the suit','open the suit schematic'],['memory','show me your memory','open my memory core']])
+  step('scene:'+k,text,label,{scene:true});
+for(const p of PLANETS.split('|'))step('planet:'+p,`take me to ${p}`,`fly to ${p==='sun'?'the Sun':cap(p)}`,{scene:true});
+step('suit:assemble','suit up','build the suit',{scene:true});
+for(const [k,w,label] of [['heart','heart','a heart'],['rocket','rocket','a rocket'],['star','star','a star'],['sphere','sphere','a sphere'],['dna','double helix','a double helix'],['reactor','arc reactor','an arc reactor']])
+  step('shape:'+k,`make ${/^[aeiou]/.test(w)?'an':'a'} ${w}`,`make ${label} in particles`,{scene:true});
+step('holo:close','close','close the projector');
+step('zoom:in','zoom in','zoom in');step('zoom:out','zoom out','zoom out');
+const SAY_STEPS=[['say:time','what time is it','tell the time',/what.*\btime\b|^(?:tell me )?the time$/],['say:date',"what's the date",'tell the date',/what.*\b(?:date|day)\b|^(?:tell me )?the date$/],
+  ['say:joke','tell me a joke','tell a joke',/\bjoke\b/],['say:fact','tell me a fun fact','tell a fun fact',/\bfacts?\b/],['say:coin','flip a coin','flip a coin',/flip.*coin|heads or tails/],
+  ['say:die','roll a die','roll a die',/roll.*di(?:c)?e/],['say:countdown','start a launch countdown','count down to launch',/launch|countdown|blast ?off/],
+  ['say:hello','hello','say hello',/^(?:say )?(?:hello|hi|hey|good (?:morning|afternoon|evening))$/]];
+for(const [id,text,label] of SAY_STEPS)step(id,text,label);
+step('say:briefing','brief me','give the briefing');
+for(let n=1;n<=PROTO_WAIT;n++)step('wait:'+n,`wait ${n} second${n>1?'s':''}`,`wait ${n} second${n>1?'s':''}`);
+const NUM_WORDS={a:1,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,fifteen:15,twenty:20,thirty:30};
+// Built in, not saved, and allowed more than one scene. They use step IDs too, plus sys:boot, which no saved protocol can have.
+const BUILTIN={
+  'house party':{event:'cmd:house-party',each:true,steps:['scene:galaxy','scene:solar','scene:globe','scene:neural','suit:assemble','shape:heart'],
+    about:'House party opens each of my scenes in turn: the galaxy, the solar system, the Earth, my neural network, the suit being built, then a heart in particles.',
+    end:"That's the house party. Say house party to go again."},
+  'wake up':{event:'cmd:wake-up',each:true,steps:['sys:boot','suit:assemble'],first:'Welcome home.',
+    about:"Wake up, daddy's home: I power down, run my boot sequence, then build the suit."}
+};
+// A protocol's name as it's saved: your words, lower case, without "the", "my" or "protocol" round it.
+function protoName(raw){
+  let n=normPhrase(raw),was;
+  do{was=n;n=n.replace(/^(?:the|my|a|an|protocol) /,'').replace(/ protocol$/,'').trim()}while(n!==was);
+  return n;
+}
+// Why a name can't be saved, or null. It's the one piece of your own text a protocol keeps, so it's checked like a taught phrase.
+function nameProblem(n){
+  if(!n)return 'empty';
+  const why=personal(n);if(why)return why;
+  if(n.length>30||n.split(' ').length>4)return 'long';
+  if(Object.hasOwn(BUILTIN,n))return 'builtin';
+  return null;
+}
+// Why a list of steps can't be saved, or null. Checked again inside save(), through fits().
+function protoProblem(steps){
+  if(!Array.isArray(steps)||!steps.length)return 'empty';
+  if(steps.length>PROTO_STEPS)return 'long';
+  if(!steps.every(id=>typeof id==='string'&&Object.hasOwn(STEPS,id)))return 'unknown';
+  if(steps.filter(id=>STEPS[id].scene).length>1)return 'scenes';
+  if(steps.every(id=>id.startsWith('wait:')))return 'empty';
+  return null;
+}
+const protoFits=(n,steps)=>typeof n==='string'&&protoName(n)===n&&nameProblem(n)===null&&protoProblem(steps)===null;
+const stepWords=steps=>listWords(steps.map(id=>STEPS[id]?STEPS[id].label:id==='sys:boot'?'run my boot sequence':id));
+const NUMW=['no','one','two','three','four','five','six'];
+// The name of the protocol a phrase asks to run, or null. "Run movie night", "engage the movie night protocol".
+function protoRunName(p){
+  const m=p.match(/^(?:please )?(?:run|start|begin|engage|activate|initiate|execute|launch|do|play|trigger|fire up|kick off)(?: up)?(?: the| my)?(?: protocol)? (.+?)(?: protocol)?(?: please| now)?$/)||
+    p.match(/^protocol (.+)$/)||p.match(/^(.+?) protocol(?: please| now| go| engage| activate)?$/);
+  if(/^(?:jarvis )?(?:wake up(?:,)? daddy'?s home|daddy'?s home)$/.test(p))return 'wake up';
+  return m?protoName(m[1]):null;
+}
+// One part of a new protocol, as {id} (a step it can save) or {no} (why it can't), or null when it doesn't parse.
+function stepOf(raw){
+  // "…that makes the orb blue and speaks slower": the leading words go, and "makes" reads as "make".
+  const c=normPhrase(raw).replace(/^(?:(?:and|then|first|next|finally|lastly|also|after that|and then|please|that|which|to|it|you|will|should|can)\s+)+/,'').replace(/ please$/,'')
+    .replace(/^(make|speak|open|show|switch|turn|tell|flip|roll|play|take|zoom|use|change|build|give|go|fly|start)(?:e?s)\b/,'$1');
+  if(!c)return null;
+  if(/^(?:forget|delete|erase|clear|wipe|reset|remove|unlearn|destroy)\b/.test(c))return {no:'destructive'};
+  let m=c.match(/^(?:wait|pause|hold on|hold)(?: for)?(?: (\d+|[a-z]+) (?:seconds?|secs?)| a (moment|bit|second|sec))?$/);
+  if(m){const n=m[2]?(m[2].startsWith('sec')?1:3):!m[1]?3:/^\d+$/.test(m[1])?+m[1]:NUM_WORDS[m[1]];return Number.isInteger(n)&&n>=1&&n<=PROTO_WAIT?{id:'wait:'+n}:{no:'wait'}}
+  const rn=protoRunName(c),pn=protoName(c);
+  if((rn!==null&&(protocols.has(rn)||Object.hasOwn(BUILTIN,rn)||/\bprotocol\b/.test(c)))||protocols.has(pn)||Object.hasOwn(BUILTIN,pn))return {no:'nested'};
+  const se=settingsIntent(c);
+  if(se){
+    if(se.key==='all')return {no:'destructive'};
+    if(se.key==='color')return {id:'orb:'+(se.value||'default')};
+    if(se.key==='speed')return {id:'speed:'+({'+':'fast','-':'slow'}[se.value]||'normal')};
+    if(se.key==='units')return {id:'units:'+se.value};
+    return {no:'startup'};
+  }
+  const sk=skinIntent(c);if(sk)return {id:'skin:'+sk};
+  if(BRIEF_RE.test(c))return {id:'say:briefing'};
+  if(wakeIntent(c)!==null)return {no:'mic'};
+  const it=intent(c);
+  if(it)switch(it.kind){
+    case 'hands':case 'scan':return {no:'camera'};
+    case 'boot':return {no:'boot'};
+    case 'close':return {id:'holo:close'};
+    case 'zoom':return {id:'zoom:'+it.arg};
+    case 'solar':return {id:it.arg?'planet:'+it.arg:'scene:solar'};
+    case 'globe':return it.arg?{no:'place'}:{id:'scene:globe'};
+    case 'suit':return {id:it.arg==='assemble'?'suit:assemble':'scene:suit'};
+    case 'particles':return it.arg&&it.arg.shape?{id:'shape:'+it.arg.shape}:{no:'words'};
+    default:return Object.hasOwn(STEPS,'scene:'+it.kind)?{id:'scene:'+it.kind}:null;
+  }
+  for(const [id,,,re] of SAY_STEPS)if(re.test(c))return {id};
+  return null;
+}
+const PRIVACY_WHY="Because nothing personal is ever saved in this browser. A protocol keeps its name and my own command codes, and the name is checked the same way a taught phrase is.";
+const STEP_NO={
+  destructive:[p=>`I can't put "${p}" in a protocol, because nothing in one may delete anything.`,"Because a protocol runs with one phrase, and one phrase said by mistake shouldn't be able to wipe anything. Deleting stays something you ask for yourself."],
+  nested:[p=>`"${p}" is a protocol, and a protocol can't run another one.`,"Because protocols running protocols could loop for ever, or grow far past six steps without you seeing it."],
+  camera:[p=>`"${p}" uses the camera, so it can't go in a protocol.`,"Because the camera should only ever start when you ask for it yourself, not from a saved shortcut."],
+  mic:[p=>`"${p}" changes how I listen, so it can't go in a protocol.`,"Because always listening sends what the mic hears to your browser's speech service, so it only turns on when you switch it on yourself."],
+  place:[()=>"I can't save a place in a protocol, but show me Earth works.","Because a saved place could give away where you live, and nothing personal is saved in this browser."],
+  words:[p=>`"${p}" would save your own words, and a protocol keeps only my commands.`,"Because a protocol stores fixed command codes, never what you said, so nothing personal can hide in one."],
+  boot:[()=>"A reboot can't go in a protocol. Try wake up, daddy's home.","Because a reboot clears the screen and would cut the rest of the protocol off."],
+  startup:[()=>"The scene I open with is a setting of its own, so it can't go in a protocol.","Because it's saved once and used every time I start up, not something to run now."],
+  wait:[()=>`A wait can be up to ${PROTO_WAIT} seconds.`,"Because a longer pause would look like I'd stopped working."]
+};
+// The words a step starts with. Spoken steps run together with no commas ("make the orb purple speak slower"), so a
+// new step starts at each of these.
+// Not words that also sit inside a step ("suit" in "show me the suit", "launch" in "start a launch countdown").
+const STEP_VERB="(?:make|speak|talk|open|show|switch|turn|tell|flip|roll|wait|pause|take|fly|zoom|use|brief|close|say|start|write|what|what's|change|build|give|slow|run|delete|forget|reset|erase|clear|go|engage)";
+// "Create movie night protocol: …": the name and the text of its steps, or null when it isn't a new protocol.
+function protoCreate(raw){
+  const t=String(raw).trim().replace(/[.!]+$/,'');let head=t,tail='';
+  const colon=t.indexOf(':');if(colon>=0){head=t.slice(0,colon);tail=t.slice(colon+1)}
+  const V='(?:please\\s+)?(?:create|make|new|save|set up|setup|add|build|program|record)\\s+(?:a\\s+|an\\s+|the\\s+)?(?:new\\s+)?'; // "my" stays with the name, so personal() sees "my mom"
+  let m;
+  if(colon>=0)m=head.match(new RegExp(`^${V}(?:protocol\\s+(?:called\\s+|named\\s+)?(.{1,60})|(.{1,60}?)\\s+protocol)\\s*$`,'i'));
+  else{
+    // Speech has no colons or commas: "create movie night protocol make the orb purple…". After "X protocol" the steps can
+    // simply follow, and after "protocol called X" the name ends where the first step's verb starts.
+    m=t.match(new RegExp(`^${V}(.{1,60}?)\\s+protocol\\b\\s*(?:,|\\bthat\\b|\\bwhich\\b|\\bto\\b|\\bwhere\\b|\\bas\\b)?\\s*(.*)$`,'i'));
+    if(m&&(/^protocol\b|^(?:a|an|the|new)$/i.test(m[1].trim())||/^(?:called|named)\b/i.test(m[2])))m=null; // "make a protocol called X" is the other form
+    if(m)m=[m[0],null,m[1],m[2]];
+    else if(m=t.match(new RegExp(`^${V}protocol\\s+(?:called\\s+|named\\s+)?(.{1,60}?)(?:\\s*(?:,|\\bthat\\b|\\bwhich\\b|\\bwhere\\b|\\bas\\b)\\s*|\\s+(?=${STEP_VERB}\\b)|$)(.*)$`,'i')))m=[m[0],m[1],null,m[2]];
+  }
+  if(!m)return /^(?:please\s+)?(?:create|make|new|set up|add|build)\s+(?:a\s+|an\s+)?(?:new\s+)?protocols?$/i.test(t)?{name:'',parts:[]}:null;
+  const said=(m[1]||m[2]||'').trim(),name=protoName(said);
+  if(colon<0)tail=m[3]||'';
+  const parts=tail.split(/\s*(?:[,;]|\.\s+|\band then\b|\bthen\b|\band after that\b|\bafter that\b|\band\b|\bnext\b|\bfinally\b|\blastly\b)\s*/i)
+    .flatMap(x=>x.split(new RegExp(`\\s+(?=${STEP_VERB}\\b)`,'i'))).map(x=>x.trim()).filter(x=>normPhrase(x));
+  return {name,said,parts};
+}
+function newProtocol(raw){
+  const pc=protoCreate(raw);if(!pc)return null;
+  // The name as you said it is checked too, so "my mom" isn't saved as "mom".
+  const {name,parts}=pc,np=personal(pc.said||'')||nameProblem(name);
+  const example="create movie night protocol: make the orb purple, speak slower, then open the galaxy";
+  if(np==='empty')return `What should I call it? Say it like this: ${example}.`;
+  if(np==='long')return "Keep the name to four words or fewer, like movie night.";
+  if(np==='builtin')return `${cap(name)} is one of my built-in protocols. Pick another name.`;
+  if(np)return because(`I won't save a protocol called that, because it has ${np} in it.`,PRIVACY_WHY);
+  if(!parts.length)return `What should ${name} do? Say it like this: ${example}.`;
+  const good=[],bad=[];
+  // A part is said back in quotes, without any ⟦…⟧ markers, so your own words can never become a command link.
+  for(const p of parts){const s=stepOf(p);if(s&&s.id)good.push(s.id);else bad.push([p.replace(/[⟦⟧]/g,'').replace(/\|/g,' ').replace(/[.!?]+$/,''),s&&s.no])}
+  if(bad.length){
+    const [p,no]=bad[0],line=no?STEP_NO[no][0](p):`I didn't follow "${p}".`;
+    if(no)nextWhy=STEP_NO[no][1];
+    const more=bad.length>1?` ${bad.length===2?'One other part':cap(NUMW[bad.length-1]||String(bad.length-1))+' other parts'} can't go in either.`:'';
+    if(!good.length)return `${line}${more} So there's nothing to save yet.`;
+    return ask(`${line}${more} Save the other ${good.length===1?'step':(NUMW[good.length]||good.length)+' steps'}?`,()=>finishProtocol(name,good),()=>"All right. I haven't saved it.");
+  }
+  return finishProtocol(name,good);
+}
+function finishProtocol(name,steps){
+  const pp=protoProblem(steps);
+  if(pp==='long')return because(`A protocol can have at most ${PROTO_STEPS} steps, and that one has ${steps.length}. Nothing saved.`,"Because a protocol you can't remember the steps of is hard to trust. Six is enough for one phrase.");
+  if(pp==='scenes'){const sc=steps.filter(id=>STEPS[id].scene);
+    return because(`A protocol can open one scene, and that one opens ${NUMW[sc.length]||sc.length}: ${stepWords(sc)}. Nothing saved.`,"Because each scene replaces the last one straight away, so only the final one would ever be seen. House party is the one that opens them in turn.")}
+  if(pp)return "A protocol needs at least one command besides waiting.";
+  if(!protocols.has(name)&&protocols.size>=PROTO_MAX)
+    return because(`You have ${PROTO_MAX} protocols, the most I keep. Delete one first, like: delete ${[...protocols.keys()][0]}.`,"Because twenty is plenty to remember, and it keeps what I save in this browser small.");
+  const save1=()=>{
+    if(!save('protocols',name,{steps:steps.slice()}))return "I couldn't save that protocol.";
+    return `Protocol saved: ${cap(name)}, ${steps.length===1?'one step':NUMW[steps.length]+' steps'}: ${stepWords(steps)}. Say "run ${name}", or just "${name}", to start it. I keep its name and my own command codes, never your words.`;
+  };
+  if(protocols.has(name)&&JSON.stringify(protocols.get(name).steps)!==JSON.stringify(steps))
+    return ask(`You already have a ${name} protocol. Replace it?`,save1,()=>`All right. ${cap(name)} stays as it was.`);
+  return save1();
+}
+function deleteProtocol(name){
+  if(!protocols.has(name))return false;
+  save('protocols',name,undefined);return true;
+}
+function protoList(){
+  const ns=[...protocols.keys()],bi="I have two built in: house party, and wake up, daddy's home.";
+  if(!ns.length)return `You haven't made any protocols yet. Try: create movie night protocol: make the orb purple, speak slower, then open the galaxy. ${bi}`;
+  return `You have ${ns.length===1?'one protocol':NUMW[ns.length]?NUMW[ns.length]+' protocols':ns.length+' protocols'}: ${listWords(ns.map(n=>`${n} (${protocols.get(n).steps.length===1?'one step':protocols.get(n).steps.length+' steps'})`))}. ${bi}`;
+}
+function protoAbout(name){
+  if(Object.hasOwn(BUILTIN,name))return BUILTIN[name].about;
+  const r=protocols.get(name);return r?`${cap(name)} will ${stepWords(r.steps)}.`:null;
+}
+// Protocol commands that come before everything else: make, list, describe, delete and run.
+function protoCommand(p,raw){
+  const made=newProtocol(raw);if(made!==null)return made;
+  if(/^(?:(?:list|show|tell me|read|name)(?: me)?(?: all)? (?:of )?(?:my|the|your) protocols|(?:what|which) protocols (?:do i have|have i (?:got|made)|are there|do you (?:have|know))|(?:my |your )?protocols)$/.test(p))return protoList();
+  let m=p.match(/^what (?:does|will|would) (?:the |my )?(.+?)(?: protocol)? do$|^what(?:'s| is) (?:in )?(?:the |my )?(.+?) protocol$|^describe (?:the |my )?(.+?)(?: protocol)?$/);
+  if(m){const n=protoName(m[1]||m[2]||m[3]),a=protoAbout(n==="wake up daddy's home"||n==="daddy's home"?'wake up':n);if(a)return a;if(/protocol/.test(p))return `I don't have a protocol called ${n}.`}
+  if(/^(?:please )?(?:delete|remove|forget|erase|clear|wipe|reset|drop|get rid of)\b.*(?:\bprotocols\b|\b(?:all|every|each)\b.*\bprotocol\b)/.test(p))
+    return because("I only delete protocols one at a time, by name, like: delete movie night.","Because you decided there'd be no wipe commands, so nothing said by mistake can clear everything at once.");
+  if(m=p.match(/^(?:please )?(?:delete|remove|forget|erase|drop|get rid of) (?:the |my )?(.+?)$/)){
+    const n=protoName(m[1]);
+    if(Object.hasOwn(BUILTIN,n))return `${cap(n)} is built in, so there's nothing to delete.`;
+    if(protocols.has(n))return ask(`Delete the ${n} protocol? Say yes or no.`,()=>deleteProtocol(n)?`Deleted. ${cap(n)} is gone.`:`${cap(n)} was already gone.`,()=>`All right. I've kept ${n}.`);
+    if(/\bprotocol\b/.test(m[1]))return `I don't have a protocol called ${n}.`;
+  }
+  const bn=protoName(p);if(bn==='house party')return runBuiltin(bn); // "wake up" on its own isn't enough: see answerCore
+  const rn=protoRunName(p);
+  if(rn!==null){
+    if(Object.hasOwn(BUILTIN,rn))return runBuiltin(rn);
+    if(protocols.has(rn))return runProtocol(rn);
+    if(/\bprotocol\b/.test(p))return `I don't have a protocol called ${rn}. ${protocols.size?'Say list my protocols to hear yours.':'Say list my protocols to hear how to make one.'}`;
+  }
+  return null;
+}
+
+/* Running one. Each step runs its own command in turn, and the HUD shows "PROTOCOL: MOVIE NIGHT · 2/3".
+   Anything you say or type stops it first. Setting changes are shown, not spoken; everything else is said together
+   at the end, or before a wait. A built-in protocol says each scene in turn and waits for it. */
+let running=null,runP=Promise.resolve(),pace=1;
+const PROTO_GAP=900,PARTY_HOLD=7000;
+const protoHud=['proto','holo-proto'].map(id=>document.getElementById(id));
+function showProto(){
+  const t=running?`PROTOCOL: ${running.label.toUpperCase()} · ${running.i+1}/${running.steps.length}`:'';
+  for(const e of protoHud){e.textContent=t;e.hidden=!t}
+}
+function stopProtocol(){const was=!!running;running=null;showProto();return was}
+const later=ms=>new Promise(r=>setTimeout(r,ms*pace));
+// Wait while he's still talking, up to max ms, so a scene's intro isn't cut off by the next one.
+async function quietNow(me,max){const t0=performance.now();while(running===me&&synth&&synth.speaking&&performance.now()-t0<max*pace)await later(250)}
+function runSteps(name,steps,event,opts={}){
+  stopProtocol();
+  const me={label:name,steps,i:0};running=me;track(event);talk.lastCmd='run '+name;talk.frame=null;
+  runP=(async()=>{
+    const said=[opts.each?'':`${cap(name)} protocol.`];
+    const speak=()=>{const t=said.join(' ').trim();said.length=0;if(running===me&&t)say(t)};
+    for(let i=0;i<steps.length&&running===me;i++){
+      me.i=i;showProto();const id=steps[i],S=STEPS[id];
+      if(id==='sys:boot'){
+        closeHolo();showBoot();runBoot();const t0=performance.now();
+        while(running===me&&!(boot.hidden&&!booting)&&performance.now()-t0<15000)await later(200);
+        await quietNow(me,12000);continue;
+      }
+      if(id.startsWith('wait:')){speak();await later(+id.slice(5)*1000);continue}
+      const r=S.run?S.run():await respond(S.text,true);
+      if(running!==me)return;
+      if(!S.quiet&&typeof r==='string'&&r&&r!==NOPE)said.push(i===0||!opts.first?r:`${opts.first} ${r}`);
+      if(opts.each){speak();await later(1500);await quietNow(me,30000);await later(PARTY_HOLD);continue}
+      if(i<steps.length-1)await later(PROTO_GAP);
+    }
+    if(running!==me)return;
+    if(opts.end)said.push(opts.end);
+    speak();await later(1500);if(running===me)stopProtocol();
+  })();
+  return null;
+}
+function runProtocol(name){const r=protocols.get(name);return r?runSteps(name,r.steps,'cmd:protocol'):null}
+function runBuiltin(name){
+  const B=BUILTIN[name];
+  if(name==='house party'&&!hasWebGL())return because("House party needs my holo-projector, and this browser doesn't have WebGL turned on.",WEBGL_WHY);
+  return runSteps(name,B.steps,B.event,{each:B.each,end:B.end,first:B.first});
+}
+
+/* ---------- Follow-ups (Session 10): see talk, near the top ---------- */
+// A question that "yes" or "no" answers on the very next turn. Anything else said drops it.
+function ask(text,yes,no){talk.question={yes,no};return text}
+const WEBGL_WHY="Because my holo-projector draws in 3D with WebGL, and this browser has it turned off or doesn't have it.";
+const SCENE_KINDS=['galaxy','solar','globe','neural','suit','particles','memory'];
+// The scenes opened this visit, newest last, so "go back" can reopen the one before.
+function noteScene(it){
+  if(!SCENE_KINDS.includes(it.kind))return;
+  const e={kind:it.kind,arg:it.arg===undefined?null:it.arg},top=talk.scenes[talk.scenes.length-1];
+  if(top&&JSON.stringify(top)===JSON.stringify(e))return;
+  talk.scenes.push(e);if(talk.scenes.length>10)talk.scenes.shift();
+}
+async function goBack(){
+  talk.scenes.pop();const prev=talk.scenes[talk.scenes.length-1];
+  const r=await project({kind:prev.kind,arg:prev.arg});
+  return typeof r==='string'?`Going back. ${r}`:r;
+}
+// Fragments, after nothing else understood them: "now Jupiter" after Mars, "what about Japan" after Florida.
+const FRAMES={
+  solar:x=>{const it=intent('take me to '+x);return it&&it.kind==='solar'&&it.arg?'take me to '+x:null},
+  globe:x=>{const it=intent('show me '+x);return it&&it.kind==='globe'&&it.arg?'show me '+x:null},
+  particles:x=>Object.hasOwn(SHAPE_WORDS,x)?`make ${/^[aeiou]/.test(x)?'an':'a'} ${x}`:null,
+  skin:x=>skinIntent('switch to '+x)?'switch to '+x:null,
+  color:x=>{const s=settingsIntent('make the orb '+x);return s&&s.key==='color'&&s.value?'make the orb '+x:null}
+};
+async function fragment(raw){
+  const m=normPhrase(raw).match(/^((?:(?:and|now|ok|okay|so|then|what about|how about|try|do)\s+)*)(?:(?:the|a|an)\s+)?(.+?)(?:\s+(?:now|instead|please|too|next))?$/);
+  if(!m)return null;
+  const lead=!!m[1],x=m[2];if(!lead&&x.split(' ').length>3)return null;
+  const frames=talk.frame&&FRAMES[talk.frame]?[talk.frame]:[];
+  if(lead)for(const f of Object.keys(FRAMES))if(!frames.includes(f))frames.push(f);
+  for(const f of frames){const c=FRAMES[f](x);if(c){const r=await respond(c);if(r!==NOPE)return r}}
+  return null;
+}
+const YES_RE=/^(?:yes|yeah|yep|yup|sure|ok|okay|do it|go ahead|please do|yes please|affirmative|correct|right|go for it)$/;
+const NO_RE=/^(?:no|nope|nah|no thanks|no thank you|don't|do not|cancel|never ?mind|negative|leave it)$/;
+const WHY_RE=/^(?:why|why not|how come|why is that|why's that|why did you (?:say|do) that|but why)$/;
+const WHAT_RE=/^(?:what was that|what did you (?:just )?say|say (?:that|it) again|repeat (?:that|it|yourself)|pardon(?: me)?|come again|sorry what|what)$/;
+const AGAIN_RE=/^(?:again|do (?:that|it) again|(?:one )?more time|once more|same again|repeat (?:the )?last (?:one|command|thing)|another one|another|encore)(?: please)?$/;
+const BACK_RE=/^(?:go back|back|the one before|the previous one|previous|go back one|last one)(?: please)?$/;
+const ADJ_RE=/^(?:(?:make (?:it|that|this)|go|a (?:bit|little)|even|much|bit) )*(bigger|larger|smaller|faster|quicker|slower)(?: please| still| again| than that)?$/;
+const ADJ_WORD={bigger:'bigger',larger:'bigger',smaller:'smaller',faster:'faster',quicker:'faster',slower:'slower'};
+// A follow-up that only makes sense after something else, or null to carry on as normal.
+async function followUp(p,q){
+  if(YES_RE.test(p)){if(q)return await q.yes();if(pendingTeach===null&&!/^(?:ok|okay|right)$/.test(p))return "Yes to what? I didn't ask you anything."}
+  if(NO_RE.test(p)){if(q)return await q.no();if(pendingTeach===null&&/^(?:no|nope|nah)$/.test(p))return "All right."}
+  if(WHY_RE.test(p)){nextWhy=talk.why;return talk.why||(talk.lastAnswer?"There's no deeper reason behind that one. It's just what I know.":"Why what? I haven't said anything yet.")}
+  if(WHAT_RE.test(p)){nextWhy=talk.why;return talk.lastAnswer||(H&&H.title?`That's ${H.title.toLowerCase()} on my holo-projector.`:"I haven't said anything yet.")}
+  if(AGAIN_RE.test(p))return talk.lastCmd?await answerCore(talk.lastCmd):"Again? I haven't done anything yet this visit. Ask me something first.";
+  if(BACK_RE.test(p)&&talk.scenes.length>1)return await goBack();
+  const m=p.match(ADJ_RE);if(m)return adjustScene(ADJ_WORD[m[1]]);
+  return null;
+}
+// "Bigger", "smaller", "faster", "slower": whatever's on the projector, as its builder's adjust() says.
+function adjustScene(kind){
+  const sp=kind==='faster'||kind==='slower';
+  if(!H){
+    if(sp&&talk.frame==='speed')return applySetting({key:'speed',value:kind==='faster'?'+':'-'});
+    return `There's nothing on the projector to make ${kind}. Ask me for a scene first${sp?`, or say speak ${kind} to change my voice`:''}.`;
+  }
+  if(!H.adjust)return "The threat scan stays as it is. It can't be made bigger, smaller, faster or slower.";
+  return H.adjust(kind);
+}
+// The usual meaning, for a scene's adjust(): bigger and smaller move the camera in and out, faster and slower
+// change how fast everything in it moves. thing names it ("the galaxy"), moving says what moves ("The galaxy turns").
+// own replaces any of the four with what it means for that scene.
+const PACE_MIN=.25,PACE_MAX=4;
+function adjuster(rig,{thing,moving},own={}){
+  return kind=>{
+    if(own[kind]){const r=own[kind]();if(r)return r}
+    if(kind==='bigger'||kind==='smaller'){
+      const g=clamp(rig.goal*(kind==='bigger'?.7:1.45),rig.min,rig.max);
+      if(Math.abs(g-rig.goal)<1e-6)return kind==='bigger'?"That's as close as I go.":"That's as far out as I go.";
+      rig.goal=g;return kind==='bigger'?`Moving in on ${thing}.`:`Pulling back from ${thing}.`;
+    }
+    const was=H&&H.pace||1,p=clamp(was*(kind==='faster'?1.6:1/1.6),PACE_MIN,PACE_MAX);
+    if(Math.abs(p-was)<1e-6)return `That's as ${kind==='faster'?'fast':'slow'} as it goes.`;
+    if(H)H.pace=p;return `${moving} ${kind} now.`;
+  };
+}
+
 // One answer, or NOPE when nothing understood it. A learned phrase stands in for what it means.
-async function respond(text){
-  const p=normPhrase(text);if(learned[p])text=learned[p];
+// inner: a protocol step, which runs the command as written (no taught phrase) and leaves the follow-up context alone.
+async function respond(text,inner=false){
+  const p=normPhrase(text);if(!inner&&learned[p])text=learned[p];
+  // What a follow-up acts on: the command to do "again", and what a fragment like "now Jupiter" fills in.
+  const note=(frame)=>{if(!inner){talk.lastCmd=text;talk.frame=frame}};
   const mt=memoryTell(text);if(mt){track('cmd:remember');return remember(mt)}
   const ma=memoryAsk(text);if(ma!==null)return ma;
-  const se=settingsIntent(text);if(se){track('cmd:setting');return applySetting(se)}
-  const sk=skinIntent(text);if(sk)return setSkin(sk);
-  if(BRIEF_RE.test(normPhrase(text).replace(/^(?:jarvis )/,''))){track('cmd:briefing');return await briefing()}
-  const it=intent(text);if(it){track(intentEvent(it));return await project(it)}
+  const se=settingsIntent(text);if(se){track('cmd:setting');note(se.key==='color'||se.key==='speed'?se.key:null);return applySetting(se)}
+  const sk=skinIntent(text);if(sk){note('skin');return setSkin(sk)}
+  if(BRIEF_RE.test(normPhrase(text).replace(/^(?:jarvis )/,''))){track('cmd:briefing');note(null);return await briefing()}
+  const it=intent(text);if(it){track(intentEvent(it));note(FRAMES[it.kind]?it.kind:null);return await project(it)}
   if(skin!=='jarvis'&&/who are you|your name|what are you/.test(normPhrase(text)))return SKINS[skin].who;
   const b=brainKnown(text);if(b===null)return NOPE;
-  track(chatEvent(text));return flair(b);
+  track(chatEvent(text));note(null);return flair(b);
 }
 // What a command counts as in the usage counts: only its kind, from EVENT_IDS, never the words.
 function intentEvent(it){const id=it.kind==='scan'?'cmd:scan':it.kind==='hands'?(it.arg?'feature:hands':''):'scene:'+it.kind;return EVENT_IDS.includes(id)?id:null}
@@ -2496,8 +2894,19 @@ const CHAT_EVENTS=[['cmd:help',/\bhelp\b|what (?:else )?(?:can|do) you (?:do|kno
   ['cmd:joke',/joke|funny/],['cmd:fact',/fact|tell me something/],['cmd:coin',/flip.*coin|heads or tails/],['cmd:die',/roll.*di(?:c)?e/]];
 function chatEvent(raw){const s=String(raw).toLowerCase();for(const [id,re] of CHAT_EVENTS)if(re.test(s))return id;return mathAnswer(s)?'cmd:math':'cmd:chat'}
 const MEANT=/^(?:what\s+)?i\s+(?:was\s+(?:trying|going)\s+to\s+(?:say|ask)|tried\s+to\s+(?:say|ask)|wanted\s+to\s+(?:say|ask)|meant\s+to\s+(?:say|ask)|wanted\s+(?:you\s+)?to|want\s+(?:you\s+)?to|meant|mean)(?:\s+(?:was|is))?[\s,:]*/i;
+// One turn. The follow-up context is updated here: what was said, and the reason behind it for "why?".
 async function answer(text){
-  const p=normPhrase(text);
+  nextWhy=null;
+  const r=await answerCore(text);
+  if(typeof r==='string'){talk.lastAnswer=plainText(r);talk.why=nextWhy}
+  return r;
+}
+async function answerCore(text){
+  const p=normPhrase(text),q=talk.question;talk.question=null;
+  // Anything said while a protocol runs stops it first.
+  if(stopProtocol()&&/^(?:stop|cancel|abort|end|halt|enough|that's enough|stop it|stop that)(?: (?:the )?(?:protocol|party|house party))?(?: please| now)?$/.test(p))return "Protocol stopped.";
+  const fu=await followUp(p,q);if(fu!==null)return fu;
+  const pc=protoCommand(p,text);if(pc!==null||running)return pc;
   if(/^(?:jarvis )?(?:what do you know about me|what (?:do|did) you (?:know|remember) about me)\b/.test(p))
     return `${memory.length?`This visit only, and never saved: ${listWords(memory.map(x=>x.text))}.`:"You haven't told me anything about you this visit."} ${storedSummary()}`;
   if(/^(?:jarvis )?(?:what (?:do|did|will) you (?:save|store|keep)|what (?:have you|do you have) (?:saved|stored)|what(?:'s| is) (?:saved|stored)|privacy check)\b/.test(p))return storedSummary();
@@ -2524,7 +2933,7 @@ async function answer(text){
     const r=meant?await respond(meant):NOPE;
     if(r===NOPE)return "I don't understand that either, so we'll have to move on. I'm not programmed for this.";
     const why=personal(said)||personal(meant);
-    if(why)return `I did it this time, but I won't save that phrase, because it has ${why} in it.${r?' '+r:''}`;
+    if(why)return because(`I did it this time, but I won't save that phrase, because it has ${why} in it.${r?' '+r:''}`,"Because nothing personal is ever saved in this browser, and anything that looks personal is left out.");
     if(memoryTell(meant)||memoryAsk(meant)!==null)return r; // short-term memory is never saved, not even as a taught phrase
     if(normPhrase(meant)!==said)learn(said,meant);
     const got=`Got it. Next time you say "${said}", I'll know you mean "${meant}".`;
@@ -2532,8 +2941,12 @@ async function answer(text){
   }
   const r=await respond(text);
   if(r!==NOPE)return r;
+  // A protocol's name on its own runs it, and a fragment fills in what came before.
+  const pn=protoName(text);if(protocols.has(pn))return runProtocol(pn);
+  const fr=await fragment(text);if(fr!==null)return fr;
+  if(/^(?:jarvis )?wake up$/.test(p))return "I'm awake. Say wake up, daddy's home, for my whole boot protocol.";
   if(p&&p.length<=120)pendingTeach=p;
-  return `${skin==='jarvis'?"I didn't understand that.":SKINS[skin].miss} ${CAN_DO} What were you trying to say?`;
+  return because(`${skin==='jarvis'?"I didn't understand that.":SKINS[skin].miss} ${CAN_DO} What were you trying to say?`,"Because I only know the commands I was built with and the phrases you've taught me. Tell me what you meant and I'll learn it for next time.");
 }
 
 function handle(text){
@@ -2632,8 +3045,11 @@ if(SR){
 window.__jarvis={micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
   SETTING_CHOICES,cleanSettings,cleanStreak,streakLine,settingsIntent,applySetting,settings:()=>({...settings}),inUnits,ORB_COLOURS,ring:()=>ringRGB,SPEEDS,
   memoryTell,memoryAsk,memoryForget,memory:()=>memory.map(x=>({...x})),memoryStars,forgetStar,constellation,constellationLinks,get firstTime(){return firstTime},streak:()=>({...streak}),
+  STEPS,BUILTIN,PROTO_MAX,PROTO_STEPS,stepOf,protoName,nameProblem,protoProblem,protoCreate,adjuster,noteScene,fragment,
+  protocols:()=>Object.fromEntries([...protocols].map(([k,v])=>[k,{steps:[...v.steps]}])),running:()=>running&&{label:running.label,i:running.i,n:running.steps.length},
+  protocolDone:()=>runP,setPace:v=>{pace=v},context:()=>JSON.parse(JSON.stringify({...talk,question:!!talk.question})),
   DB_NAME,EVENT_IDS,KEEP_DAYS,dayNumber,fits,track,rollUp,streakDays,carryStreak,cleanKept,intentEvent,chatEvent,ready:null,loaded:()=>loaded,dbOK:()=>dbOK,
-  saved:()=>({kept:Object.fromEntries(kept),events:[...events.values()].map(e=>({...e})),totals:[...totals.values()].map(e=>({...e})),meta:Object.fromEntries(meta)}),persisted:()=>persisted,
+  saved:()=>({kept:Object.fromEntries(kept),events:[...events.values()].map(e=>({...e})),totals:[...totals.values()].map(e=>({...e})),meta:Object.fromEntries(meta),protocols:Object.fromEntries(protocols)}),persisted:()=>persisted,
   applyGesture,dreamDue,dreamCheck,setDream,dreaming:()=>dreaming,DREAM_AFTER,idleFor:ms=>{lastActive=performance.now()-ms;return dreamCheck()},mode:()=>mode};
 setSkin(skin,false); // the skin on load is only saved once you pick one
 showBoot();

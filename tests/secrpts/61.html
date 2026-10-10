@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #61 — J.A.R.V.I.S. Session 10: protocols and follow-ups</title>
+<meta name="description" content="Review of Session 10 of the J.A.R.V.I.S. build plan in the test copy: protocols saved as a checked name and fixed command IDs in a new IndexedDB table (database version 2), the built-in House Party and boot protocols, the protocol HUD line, and follow-ups (again, go back, bigger, yes, no, why, fragments) kept in memory only.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Review #61 — J.A.R.V.I.S. Session 10: protocols and follow-ups</h1>
+    <p class="sub">The test copy can now save protocols: one phrase that runs up to six of its own commands in turn. A protocol is kept as a name checked by <code>personal()</code> and a list of fixed command IDs, in a new <code>protocols</code> table that version 2 of the database adds. Two are built in, House Party and "wake up, daddy's home". A HUD line shows a run's progress. Follow-ups (again, go back, bigger, smaller, faster, slower, what was that, yes, no, why, and fragments like "now Jupiter") use a context kept in memory only.</p>
+    <div class="meta">Review performed 2026-10-10 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>tests/jarvis-test.chromium.mjs</code>, <code>tests/README.md</code>, <code>jarvis/build-plan.html</code> · suites run: <code>jarvis-test</code> (997 checks, all passing), and <code>tests/jarvis-test.chromium.mjs</code> (45 checks, all passing). <code>jarvis.html</code> is unchanged, so its suite wasn't run.</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 77%;"></div></div>
+    <div class="progress-label">22 items: 17 verified clean or fixed, 5 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security and privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Head block and CSP unchanged</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>git diff</code> of <code>jarvis-test.html</code> touches no <code>&lt;meta&gt;</code> line except the description, which now mentions protocols and follow-ups. The CSP, referrer policy and charset are what they were. Nothing new is fetched: protocols and follow-ups are plain script, and IndexedDB isn't governed by the CSP. <code>personal()</code> and its patterns have no changed line.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">One place that saves, still</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The suite's Session 9 checks pass unchanged: no <code>localStorage</code> write anywhere, exactly one <code>'readwrite'</code> transaction, in <code>flush()</code>, only <code>save()</code> queues a write, and <code>save()</code> calls <code>fits()</code> on every record. Protocols get a new case in <code>fits()</code>, and the page saves them in exactly one place (<code>finishProtocol</code>) and removes them in two (delete by name, the scrub), which the suite pins by counting <code>save('protocols',</code> calls.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A protocol holds a checked name and fixed command IDs, nothing else</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>A record is exactly <code>{steps:[…]}</code>. <code>fits()</code> refuses words as a step, an extra field, a seventh step, two scenes, a name that isn't in its saved form, a personal name, the built-in-only <code>sys:boot</code>, and a 21st name. The 82 step IDs are fixed <code>kind:name</code> codes that pass <code>personal()</code>, and every ID's own command text parses back to the same ID through the page's own parsers. After the suite made protocols from thirteen sentences, the database held only names and IDs: none of the sentences' words (for example <code>make the orb</code>, <code>tell me a joke</code>, <code>sparkly</code>, a phone number) was in it. In Chromium, a protocol read back from real IndexedDB after a reload was <code>{"steps":["orb:purple","speed:slow","scene:galaxy"]}</code>.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The name goes through personal(), as said</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The name is checked twice: as you said it, so "my mom" isn't saved as "mom" once "my" is trimmed, and in its saved form inside <code>fits()</code>. A phone number and "my mom" were refused in the suite, with the reason given by "why?". A name is at most four words and 30 characters, and can't be a built-in name.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Nothing destructive, no camera, mic, places or your words in a protocol</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>A part that starts with forget, delete, erase, clear, wipe, reset, remove or unlearn, or means "reset my settings", is refused. So are the threat scan and hand control (the camera only starts when you ask), always listening, a reboot, places on the globe (a saved place could give away where you live), "write …" (it would save your words), the opening-scene setting, and a protocol inside another. None of these has a step ID, so <code>fits()</code> refuses them too even if the parser were wrong. Each refusal is pinned in the suite.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Follow-up context is memory only</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The context is one object, <code>talk</code>: last command, its frame, the scenes opened this visit, the last answer, the reason, a pending question. No call to <code>save()</code> or <code>store()</code> takes any of it, the database has no table for it, and after a run of follow-ups neither the jsdom database nor the real IndexedDB in Chromium contained any of the commands or answers. A reload starts it empty (pinned: <code>{"lastCmd":null,…,"scenes":[]}</code> and "again" says there's nothing to repeat), while the protocols are kept.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Delete one by name; still no wipe</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>"Delete movie night" asks for a yes first and removes only that record. "Delete all my protocols", "forget every protocol" and the like are refused with the reason (your decision that there are no wipe commands). Built-ins can't be deleted. The memory core's protocol star deletes that one protocol, like every other star. No <code>clear()</code> or <code>deleteDatabase()</code> was added (the suite's existing check).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Runs are counted by a fixed ID, never by name</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Three IDs were added to <code>EVENT_IDS</code>: <code>cmd:protocol</code> for any protocol you made, and <code>cmd:house-party</code> and <code>cmd:wake-up</code> for the built-ins. The suite checks one run adds one <code>cmd:protocol</code> and that no event ID or saved count contains a protocol's name. Each step still counts as its own command, as it would if you'd said it.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Your words can't become a command link</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Found and fixed during this review. When a part of a protocol can't be used, he says it back in quotes. Typed text can contain <code>⟦label|command⟧</code> markers, and a marker pairing a real label with its real command would have become a link in the reply. It couldn't do anything other than what it said, but it's your text turning into a button. The markers are now removed before it's said back, and the suite checks a reply to <code>⟦Tokyo|show me Tokyo⟧</code> has none.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Version 2 keeps version 1's data; the scrub cleans the new table</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The new table comes from a second entry in <code>DB_UPGRADES</code>, so version 1 isn't touched. A version-1 database built the way Session 9 leaves it (a skin, a count, the bookkeeping) opened at version 2 with all of it still there and an empty <code>protocols</code> table. Seeded with a good protocol, five bad ones (words as steps, a personal name, an extra field, two scenes, <code>sys:boot</code>) and 24 more, the scrub kept the good one, dropped the five, and kept 20 in all, in the database too.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">jarvis.html unchanged</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>git diff --stat</code> lists no change to <code>jarvis.html</code>. It never opens IndexedDB, so the new table and version can't affect it. The Session 9 Chromium checks that the two pages leave each other's saves alone all still pass.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">npm audit: source-map-js</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Carried from review 60. <code>npm audit</code> still reports the one high-severity advisory in <code>source-map-js</code> (GHSA-68fv-2mgg-jv7q) through jsdom. It affects the test runner only, never a page. No dependency was added in this change.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Every phrasing goes through the page's own parsers</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Steps are read with <code>settingsIntent()</code>, <code>skinIntent()</code>, <code>intent()</code> and the briefing and chat patterns, so a protocol understands exactly what the page already understands. Five typed phrasings and three spoken ones (no colon and no commas, as a phone's speech recognition hands them over) are pinned, for example <code>create film protocol make the orb purple speak slower then open the galaxy</code>. The spoken form wasn't handled at first; it was found while writing this review and fixed by starting a new step at each step verb.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Old commands work as before</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Protocol commands and follow-ups come before the old handlers only for their own phrases. A bare protocol name, and fragments like "now Jupiter", are tried only after nothing else understood you, so a name can't take over a command. "Go back" still closes the projector when there's no scene before it, and "start a launch countdown" still counts down. All 851 checks from before this session still pass, among them every help link being understood (now 46).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Each scene declares what bigger, smaller, faster and slower mean</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>All seven builders return an <code>adjust()</code> made by one shared <code>adjuster()</code>: bigger and smaller move the camera in and out within the scene's own limits, and faster and slower change a pace between 0.25× and 4× that the render loop applies to the scene and its turning. The particle sculptor grows and shrinks the sculpture instead, and the globe says how to set it turning when it's holding still on a place. The suite checks every builder has one and checks the shared rule's numbers. In Chromium, "bigger", "faster" and "slower" gave the solar system's own lines.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The suite fails when the code is broken</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Each of these twelve changes to the final page was run against the suite, which failed every time. The number of failing checks is in brackets, and "stopped" means the suite stopped with an error part way through: dropping the step-ID check in <code>protoProblem()</code> (stopped), allowing 7 steps (2), allowing two scenes (3), dropping the name's <code>personal()</code> check (1), letting a protocol contain another (4), letting a destructive step through (4), saving a reason into the database (4), letting "delete all my protocols" wipe them (14, and stopped), skipping the protocols scrub (4), counting a run under its protocol's name (1), saying a part back with its link markers (1), and leaving out the version 2 upgrade step (2, and stopped).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Rendered at both sizes</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Headless Chromium (SwiftShader, three.js r128 from npm in place of cdnjs, with the SRI check on), over a local HTTP server, at 1280×800 and 390×844: the HUD line "PROTOCOL: MOVIE NIGHT · 3/3" over the galaxy and "PROTOCOL: ORB ONLY · 2/3" over the orb, and House Party on the solar system (2/6) and the suit being built (5/6). The first phone screenshot showed the line cut off as "PROTOCOL: MOVIE NI…" beside the buttons. It sits below them, so on phones it now uses the full width, and it's only as wide as its text on desktop, clear of CLOSE and HANDS (checked by measuring). House Party opened all six scenes in order with the HUD counting 1/6 to 6/6. No page errors and no CSP violations in 45 checks.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Contrast of the HUD line</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Amber <code>#ffc24a</code>, computed with the WCAG formula: 12.46:1 on the page background <code>#020a06</code>, 11.28:1 on the projector's <code>#031a0e</code>, and at worst 7.86:1 where the line's 80% panel sits over the bright orb ring (7.99:1 over the Matrix rain). AA needs 4.5:1.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A protocol can't be named in the usage counts</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>By design (you asked for runs to count as a fixed ID), so Session 11's "favourite protocol" and a recap naming one can't be worked out from the counts. Recorded in the build plan as a decision for Session 11, for example a run count kept on the protocol's own record.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Chat answers are counted by an approximate kind</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Carried from review 60, unchanged.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A save that fails is not reported</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Carried from review 60. This now covers protocols too: if the browser refuses the write, "Protocol saved" is still said and the protocol works for this visit, but the next visit won't have it.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not tested on a real phone</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Carried from review 60, and now including Session 10's own check: making a protocol by voice, where speech recognition decides the punctuation, then running it and talking in fragments. Headless Chromium has no speech recognition and no voices, so how long each House Party scene holds while he speaks wasn't heard either.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    This is a static snapshot, not a live check. Checks: the <code>jarvis-test</code> suite in jsdom with <code>fake-indexeddb</code>, twelve deliberate breakages of the page, and <code>tests/jarvis-test.chromium.mjs</code> in headless Chromium with real WebGL and real IndexedDB over a local HTTP server, with screenshots at two sizes. Speech recognition and voices weren't available, so nothing here was spoken or heard. See <a href="60.html">60.html</a> for the previous review.
+  </footer>
+
+</div>
+</body>
+</html>

@@ -698,6 +698,7 @@ export default async function run(t, page) {
     await memoryChecks(t, page);
     await memoryFoundation(t, page);
     await keptApart(t, page);
+    await protocolsAndFollowUps(t, page);
     await commandLinks(t, page);
 }
 
@@ -715,6 +716,283 @@ function gatedFactory(real, gate) {
             return out;
         }
     };
+}
+
+// Session 10 of jarvis/build-plan.html: protocols and follow-ups (review 61). A protocol is a saved name and a
+// list of fixed command IDs, checked inside save() like every other record. The follow-up context (again, go back,
+// bigger, yes, why…) is memory only: it never reaches the database and a reload starts it empty.
+async function protocolsAndFollowUps(t, page) {
+    const URL_ = 'https://jarvis.test/jarvis.html', quiet = { ignore: /getContext|HTMLCanvasElement/ };
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    let env = await openDom(page.html, URL_, quiet);
+    const J = env.window.__jarvis, A = (x) => J.answer(x);
+    J.setPace(0.002); // protocol gaps and waits, shrunk so the suite doesn't sit through them
+    const logText = () => [...env.document.querySelectorAll('#log .msg.ai')].map((m) => m.textContent);
+    try {
+        t.section('Protocols: the fixed command list (Session 10)');
+        const ids = Object.keys(J.STEPS);
+        t.ok('every step ID is a fixed kind:name code, nothing personal', ids.every((id) => /^(?:orb|speed|units|skin|scene|planet|suit|shape|holo|zoom|say|wait):[a-z0-9-]+$/.test(id) && !J.personal(id)));
+        const roundTrip = ids.filter((id) => J.stepOf(J.STEPS[id].text)?.id !== id);
+        t.eq('every step\'s own command parses back to the same ID, so each is something he already understands', roundTrip.join(', '), '');
+        t.ok('no step can start the camera or the mic, reboot, or show a place', !ids.some((id) => /scan|hands|camera|mic|wake|boot|place/.test(id)));
+        t.ok('every scene a protocol can open is one of the page\'s own scenes', ids.filter((id) => id.startsWith('scene:')).every((id) => J.EVENT_IDS.includes(id)));
+        t.eq('waits go from 1 to 30 seconds', [J.stepOf('wait 5 seconds')?.id, J.stepOf('pause for ten seconds')?.id, J.stepOf('wait a moment')?.id, J.stepOf('wait 31 seconds')?.no].join(), 'wait:5,wait:10,wait:3,wait');
+        for (const [q, no] of [['forget my name', 'destructive'], ['reset my settings', 'destructive'], ['delete movie night', 'destructive'], ['scan the room', 'camera'], ['hand control', 'camera'],
+            ['always listen', 'mic'], ['reboot', 'boot'], ['show me Florida', 'place'], ['write my name', 'words'], ['open with the galaxy', 'startup'], ['run house party', 'nested'], ['house party', 'nested']])
+            t.eq(`"${q}" can't be a step (${no})`, J.stepOf(q)?.no, no);
+        t.eq('a step that doesn\'t parse is null', J.stepOf('make it cosy'), null);
+
+        t.section('Protocols: making one (Session 10)');
+        const before = JSON.stringify(J.protocols());
+        let r = await A('Create movie night protocol: make the orb purple, speak slower, then open the galaxy.');
+        t.ok('"create movie night protocol: …" saves it', /^Protocol saved: Movie night, three steps: make the orb purple, speak slowly and open the galaxy\./.test(r), r);
+        t.eq('as three fixed IDs, never the words', JSON.stringify(J.protocols()['movie night']), '{"steps":["orb:purple","speed:slow","scene:galaxy"]}');
+        t.eq('nothing changed while it was being made', JSON.stringify(J.settings()), '{}');
+        for (const [q, name, steps] of [
+            ['make a protocol called bedtime, that makes the orb blue and speaks slower', 'bedtime', 'orb:blue,speed:slow'],
+            ['new protocol named morning: what time is it, then brief me', 'morning', 'say:time,say:briefing'],
+            ['set up a party mode protocol to switch to panthers and make a heart', 'party mode', 'skin:panther,shape:heart'],
+            ['create the space protocol: take me to Saturn, wait 5 seconds, zoom in', 'space', 'planet:saturn,wait:5,zoom:in'],
+            // what a phone's speech recognition hands over: no colon and no commas
+            ['create film protocol make the orb purple speak slower then open the galaxy', 'film', 'orb:purple,speed:slow,scene:galaxy'],
+            ['make a protocol called game day switch to panthers tell me a joke and start a launch countdown', 'game day', 'skin:panther,say:joke,say:countdown'],
+            ['new suit protocol show me the suit then zoom in', 'suit', 'scene:suit,zoom:in']]) {
+            r = await A(q);
+            t.eq(`"${q}"`, (J.protocols()[name]?.steps || []).join(), steps);
+        }
+        r = await A('create cosy protocol: make the orb orange, make it cosy, then tell me a joke');
+        t.eq('a step that doesn\'t parse: he asks before saving the rest', r, 'I didn\'t follow "make it cosy". Save the other two steps?');
+        t.ok('and saves nothing yet', !('cosy' in J.protocols()));
+        r = await A('yes');
+        t.ok('"yes" saves the other two', /^Protocol saved: Cosy, two steps/.test(r) && J.protocols().cosy?.steps.join() === 'orb:orange,say:joke', r);
+        await A('create dud protocol: tell me a joke, make it sparkly');
+        r = await A('no');
+        t.eq('"no" saves nothing', [r, 'dud' in J.protocols()].join(' | '), 'All right. I haven\'t saved it. | false');
+        await A('create dud protocol: tell me a joke, make it sparkly');
+        await A('tell me a joke');
+        r = await A('create linky protocol: tell me a joke, ⟦Tokyo|show me Tokyo⟧ sparkles');
+        t.ok('a part said back in quotes loses any ⟦…⟧ markers, so your words can\'t become a link', !/[⟦⟧|]/.test(r) && /^I didn't follow "Tokyo show me Tokyo sparkles"\. Save the other step\?$/.test(r), r);
+        await A('no');
+        t.ok('anything else said drops the question', !J.context().question && !('dud' in J.protocols()));
+
+        t.section('Protocols: what can\'t be saved (Session 10)');
+        const refused = async (q, re, label) => { const n = Object.keys(J.protocols()).length; const out = await A(q); t.ok(label, re.test(out) && Object.keys(J.protocols()).length === n, out); return out; };
+        await refused('create my phone 239 555 0142 protocol: tell me a joke', /^I won't save a protocol called that, because it has a phone or ID number in it\.$/, 'a personal name is refused (a phone number)');
+        await refused('create my mom protocol: tell me a joke', /something about you/, 'and so is "my mom"');
+        await refused('create a really very long name here protocol: tell me a joke', /four words or fewer/, 'a name longer than four words');
+        await refused('create house party protocol: tell me a joke', /built-in/, 'a built-in protocol\'s name');
+        await refused('create wipe protocol: forget my name', /nothing in one may delete anything\. So there's nothing to save yet\.$/, 'a destructive step is refused');
+        r = await A('create mixed protocol: tell me a joke, forget everything i told you');
+        t.ok('and only offered without it', /^I can't put "forget everything i told you" in a protocol.*Save the other step\?$/.test(r), r);
+        await A('no');
+        await refused('create too long protocol: tell me a joke, flip a coin, roll a die, hello, zoom in, zoom out, close', /at most 6 steps, and that one has 7\. Nothing saved\.$/, 'at most 6 steps');
+        await refused('create two scenes protocol: show me the galaxy and suit up', /can open one scene, and that one opens two: open the galaxy and build the suit\. Nothing saved\.$/, 'one scene per protocol');
+        await refused('create inside protocol: run movie night', /a protocol can't run another one/, 'no protocol inside another');
+        await refused('create inside protocol: movie night protocol', /a protocol can't run another one/, 'however it\'s put');
+        await refused('create cam protocol: scan the room', /uses the camera/, 'nothing that starts the camera');
+        await refused('create where protocol: show me Tokyo', /can't save a place/, 'and no places, which could give away where you live');
+        await refused('create waiting protocol: wait 5 seconds', /at least one command besides waiting/, 'a protocol that only waits');
+        r = await A('create movie night protocol: make the orb red, then show me the solar system');
+        t.eq('an existing name asks first', r, 'You already have a movie night protocol. Replace it?');
+        await A('no');
+        t.eq('and "no" keeps it as it was', J.protocols()['movie night'].steps.join(), 'orb:purple,speed:slow,scene:galaxy');
+        for (let i = Object.keys(J.protocols()).length; i < J.PROTO_MAX; i++) await A(`create filler ${'abcdefghijklmnopqrstuvwxyz'[i]} protocol: flip a coin`);
+        t.eq(`${J.PROTO_MAX} protocols is the most`, Object.keys(J.protocols()).length, 20);
+        await refused('create one more protocol: flip a coin', /You have 20 protocols, the most I keep\. Delete one first/, 'a 21st is refused');
+        t.ok('every refusal has a reason for "why"', /^Because /.test(await A('why')));
+
+        t.section('Protocols: stored as IDs only (Session 10)');
+        let d = await dbDump(env.idb);
+        t.eq('the database holds exactly the protocols the page has', JSON.stringify(Object.keys(d.protocols).sort()), JSON.stringify(Object.keys(J.protocols()).sort()));
+        t.ok('each record is {steps:[IDs]} and nothing else', Object.values(d.protocols).every((p) => Object.keys(p).join() === 'steps' && p.steps.every((s) => s in J.STEPS)));
+        t.ok('none of the words you said is in the database, only names', !/purple, speak|make the orb|tell me a joke|then open|sparkly|0142|my mom/.test(JSON.stringify(d)));
+        const { fits } = J;
+        t.eq('fits(): a protocol', fits('protocols', 'movie night', { steps: ['orb:purple', 'scene:galaxy'] }), true);
+        t.eq('fits(): words as a step', fits('protocols', 'movie night', { steps: ['make the orb purple'] }), false);
+        t.eq('fits(): seven steps', fits('protocols', 'movie night', { steps: Array(7).fill('say:joke') }), false);
+        t.eq('fits(): two scenes', fits('protocols', 'movie night', { steps: ['scene:galaxy', 'scene:globe'] }), false);
+        t.eq('fits(): a personal name', fits('protocols', 'call 239 555 0142', { steps: ['say:joke'] }), false);
+        t.eq('fits(): a name not in its saved form', fits('protocols', 'The Movie Night protocol', { steps: ['say:joke'] }), false);
+        t.eq('fits(): an extra field riding along', fits('protocols', 'movie night', { steps: ['say:joke'], said: 'make the orb purple' }), false);
+        t.eq('fits(): sys:boot, which only the built-in wake up may use', fits('protocols', 'boot me', { steps: ['sys:boot'] }), false);
+        t.eq('fits(): a 21st name', fits('protocols', 'brand new', { steps: ['say:joke'] }), false);
+        t.eq('protocols are saved in one place, and removed in two (delete by name, the scrub)', [(page.html.match(/save\('protocols',/g) || []).length, page.html.includes("save('protocols',name,{steps:steps.slice()})"),
+            page.html.includes("save('protocols',name,undefined)"), page.html.includes("save('protocols',k,undefined)")].join(), '3,true,true,true');
+
+        t.section('Protocols: list, describe, run, delete (Session 10)');
+        r = await A('list my protocols');
+        t.ok('"list my protocols" names them and the built-ins', /^You have 20 protocols: movie night \(3 steps\), bedtime \(2 steps\)/.test(r) && /house party, and wake up, daddy's home\.$/.test(r), r);
+        t.eq('"what does movie night do?"', await A('what does movie night do?'), 'Movie night will make the orb purple, speak slowly and open the galaxy.');
+        t.ok('and the built-ins', /^House party opens each of my scenes in turn/.test(await A('what does the house party protocol do')) && /boot sequence/.test(await A("what does wake up daddy's home do")));
+        const counted = () => (J.saved().events.find((e) => e.id === 'cmd:protocol' && e.day === dayOf()) || { n: 0 }).n;
+        const c0 = counted();
+        r = await A('movie night');
+        t.eq('saying the name runs it (the run speaks for itself)', r, null);
+        const hud = env.document.getElementById('proto');
+        t.eq('the HUD shows it running', [hud.hidden, hud.textContent].join(' '), 'false PROTOCOL: MOVIE NIGHT · 1/3');
+        t.ok('and the projector\'s top lines do too', env.document.getElementById('holo-proto').textContent === hud.textContent);
+        await J.protocolDone();
+        t.eq('its steps ran in turn', JSON.stringify(J.settings()), '{"color":"purple","speed":"slow"}');
+        t.ok('settings changes are shown, not spoken; the rest is said once at the end', /^Movie night protocol\. My holo-projector needs WebGL/.test(logText().pop()));
+        t.ok('and the HUD clears when it ends', hud.hidden && hud.textContent === '');
+        t.eq('running counts once as cmd:protocol, never by its name', counted(), c0 + 1);
+        t.ok('no event ID carries a protocol name', !J.saved().events.some((e) => /movie|night|bedtime/.test(e.id)) && !J.EVENT_IDS.some((id) => /movie|night/.test(id)));
+        t.ok('the run IDs are on the fixed list', ['cmd:protocol', 'cmd:house-party', 'cmd:wake-up'].every((id) => J.EVENT_IDS.includes(id)));
+        for (const q of ['run movie night', 'engage the movie night protocol', 'movie night protocol', 'initiate protocol movie night']) {
+            await A(q); t.ok(`"${q}" runs it`, J.running()?.label === 'movie night'); await J.protocolDone();
+        }
+        await A('run space');
+        const spaceHud = env.document.getElementById('proto').textContent;
+        r = await A('stop');
+        t.ok('"stop" while one runs stops it', r === 'Protocol stopped.' && !J.running() && env.document.getElementById('proto').hidden, `${spaceHud} → ${r}`);
+        await A('run space'); await A('tell me a joke');
+        t.ok('and anything else said stops it too', !J.running());
+        r = await A('run cosy');await J.protocolDone();
+        t.ok('a joke step is spoken', /^Cosy protocol\. \S/.test(logText().pop()));
+        t.eq('a name he doesn\'t have', await A('run the picnic protocol'), "I don't have a protocol called picnic. Say list my protocols to hear yours.");
+        t.ok('"start" still means its usual commands when no protocol has that name', /Liftoff!$/.test(await A('start a launch countdown')));
+        t.eq('house party needs the projector, and says so without it', await A('house party'), "House party needs my holo-projector, and this browser doesn't have WebGL turned on.");
+        r = await A('delete all my protocols');
+        t.eq('no wipe: "delete all my protocols"', r, 'I only delete protocols one at a time, by name, like: delete movie night.');
+        t.ok('and nothing went', Object.keys(J.protocols()).length === 20);
+        t.ok('"forget every protocol" too', /one at a time/.test(await A('forget every protocol')));
+        t.eq('a built-in can\'t be deleted', await A('delete house party'), 'House party is built in, so there\'s nothing to delete.');
+        r = await A('delete movie night');
+        t.eq('deleting one by name asks first', r, 'Delete the movie night protocol? Say yes or no.');
+        t.eq('"no" keeps it', [await A('no'), 'movie night' in J.protocols()].join(' | '), "All right. I've kept movie night. | true");
+        await A('delete the movie night protocol');
+        t.eq('"yes" deletes it', [await A('yes'), 'movie night' in J.protocols()].join(' | '), 'Deleted. Movie night is gone. | false');
+        d = await dbDump(env.idb);
+        t.ok('from the database too', !('movie night' in d.protocols) && Object.keys(d.protocols).length === 19);
+        t.ok('"what do you save" counts protocols', /19 protocols you made \(a name and my own command codes for each\)/.test(await A('what do you save')));
+        const stars = J.memoryStars().filter((s) => s.type === 'protocol');
+        t.ok('each protocol is a star in the memory core, with one small star per step', stars.length === 19 && stars.find((s) => s.key === 'bedtime')?.steps === 2);
+        t.eq('forgetting its star deletes it', J.forgetStar(stars.find((s) => s.key === 'bedtime')), 'Forgotten. The bedtime protocol is deleted.');
+        await wait(40);
+        t.ok('for real', !('bedtime' in J.protocols()) && !('bedtime' in (await dbDump(env.idb)).protocols));
+
+        t.section('Follow-ups (Session 10)');
+        // A fresh window: no protocols running, an empty context.
+        env.close();
+        env = await openDom(page.html, URL_, quiet);
+        const K = env.window.__jarvis, B = (x) => K.answer(x);
+        t.eq('"why" with nothing before it', await B('why'), "Why what? I haven't said anything yet.");
+        t.eq('"again" with nothing before it', await B('again'), "Again? I haven't done anything yet this visit. Ask me something first.");
+        t.eq('"yes" with no question', await B('yes'), "Yes to what? I didn't ask you anything.");
+        t.eq('"no" with no question', await B('no'), 'All right.');
+        r = await B('tell me a joke');
+        t.eq('"what was that?" repeats the last answer', await B('what was that?'), r);
+        t.eq('"why?" when there\'s no reason', await B('why?'), "There's no deeper reason behind that one. It's just what I know.");
+        const jokes = new Set([r]); for (let i = 0; i < 12; i++) jokes.add(await B('again'));
+        t.ok('"again" does it again (another joke)', jokes.size > 1 && [...jokes].every((j) => !/Again\?/.test(j)));
+        t.ok('"do that again" and "one more time" too', !/Again\?/.test(await B('do that again')) && !/Again\?/.test(await B('one more time')));
+        await B('make the orb red');
+        await B('now blue');
+        t.eq('a fragment fills in what came before: "make the orb red" … "now blue"', K.settings().color, 'blue');
+        await B('what about gold');
+        t.eq('"what about gold"', K.settings().color, 'gold');
+        await B('take me to Mars');
+        await B('now Jupiter');
+        t.eq('"show me Mars" … "now Jupiter"', K.context().lastCmd, 'take me to jupiter');
+        await B('saturn');
+        t.eq('a single word, once the solar system is the subject', K.context().lastCmd, 'take me to saturn');
+        await B('show me Florida'); await B('what about Japan');
+        t.eq('"show me Florida" … "what about Japan"', K.context().lastCmd, 'show me japan');
+        await B('make a heart'); await B('now a rocket');
+        t.eq('"make a heart" … "now a rocket"', K.context().lastCmd, 'make a rocket');
+        await B('switch to matrix'); await B('now panthers');
+        t.eq('"switch to matrix" … "now panthers"', K.skin(), 'panther');
+        await B('back to jarvis');
+        t.ok('a fragment with nothing to fill in is still not understood', /What were you trying to say\?$/.test(await B('jupiter flavoured ice cream')));
+        r = await B('5 divided by 0');
+        t.eq('"what was that?" after it', await B('what was that'), r);
+        t.ok('"why?" gives the reason behind his last answer where there is one, even after "what was that?"', /^Because no number times zero/.test(await B('why?')));
+        await B('speak fast'); await B('speak faster');
+        r = await B('why');
+        t.ok('"That\'s as fast as I go" has a reason too', /three speeds/.test(r), r);
+        await B('speak normally'); await B('speak faster');
+        await B('slower');
+        t.eq('"slower" with nothing on the projector, after a speed change, changes how fast he talks', K.settings().speed, undefined);
+        await B('tell me a joke');
+        t.eq('"bigger" with nothing on the projector', await B('bigger'), "There's nothing on the projector to make bigger. Ask me for a scene first.");
+        t.ok('"faster" too', /speak faster to change my voice/.test(await B('faster')));
+        t.eq('"smaller" too', await B('smaller'), "There's nothing on the projector to make smaller. Ask me for a scene first.");
+        t.eq('"go back" with no scene before it still closes the projector, as it always has', await B('go back'), "The projector's already off.");
+        K.noteScene({ kind: 'solar', arg: 'mars' }); K.noteScene({ kind: 'solar', arg: 'jupiter' });
+        r = await B('go back');
+        t.ok('"go back" reopens the scene before', /^Going back\. My holo-projector needs WebGL/.test(r) && JSON.stringify(K.context().scenes) === '[{"kind":"solar","arg":"mars"}]', r);
+        K.noteScene({ kind: 'globe', arg: null });
+        t.ok('"the one before" too', /^Going back/.test(await B('the one before')));
+        // bigger, smaller, faster and slower on a scene: each builder declares adjust(); the shared rule, on a stand-in rig
+        const rig = { goal: 100, min: 10, max: 400 }, adj = K.adjuster(rig, { thing: 'the galaxy', moving: 'The galaxy turns' });
+        t.eq('"bigger" moves the camera in', [adj('bigger'), Math.round(rig.goal)].join(' '), 'Moving in on the galaxy. 70');
+        t.eq('"smaller" moves it out', [adj('smaller'), Math.round(rig.goal)].join(' '), 'Pulling back from the galaxy. 102');
+        rig.goal = 10;
+        t.eq('up to a limit', adj('bigger'), "That's as close as I go.");
+        t.eq('"faster" and "slower" change the pace', [adj('faster'), adj('slower')].join(' '), 'The galaxy turns faster now. The galaxy turns slower now.');
+        const builders = page.html.match(/function build(?:Galaxy|Solar|Particles|Neural|Suit|Globe|Memory)\(T\)\{[\s\S]*?\n\}\n/g) || [];
+        t.ok('every scene builder declares what bigger, smaller, faster and slower mean for it', builders.length === 7 && builders.every((b) => /\badjust:adjuster\(/.test(b)), builders.length);
+        t.ok('and the projector runs each scene at its pace', /H\.update\(dt\*p,H\.t\);H\.rig\.update\(dt,p\)/.test(page.html));
+        r = await B('create test protocol: make the orb green, then tell me a joke');
+        await B('test');
+        await K.protocolDone();
+        t.eq('"again" after a protocol runs it again', [await B('again'), K.running()?.label].join(' | '), ' | test');
+        await K.protocolDone();
+
+        t.section('Follow-ups: memory only (Session 10)');
+        const ctx = K.context();
+        t.ok('the context holds this visit', ctx.lastCmd === 'run test' && ctx.lastAnswer && ctx.scenes.length >= 1, JSON.stringify(ctx));
+        await wait(40);
+        d = await dbDump(env.idb);
+        const dump = JSON.stringify(d);
+        t.ok('none of it is in the database', !/lastCmd|lastAnswer|take me to|show me japan|now jupiter|what about|Going back|deeper reason/.test(dump), dump.slice(0, 300));
+        t.ok('only five tables, none for the context', Object.keys(d).sort().join() === 'events,kept,meta,protocols,totals');
+        t.ok('and the page never passes it to save() or store()', !/(?:save|store)\([^)]*talk\b/.test(page.html) && !/talk\.[a-zA-Z]+[^;]*\b(?:save|store)\(/.test(page.html.match(/const talk=[^\n]*/)?.[0] || ''));
+        const idb = env.idb;
+        env.close();
+        env = await openDom(page.html, URL_, { ...quiet, idb });
+        const L = env.window.__jarvis;
+        t.eq('a reload forgets it', JSON.stringify(L.context()), '{"lastCmd":null,"frame":null,"scenes":[],"lastAnswer":null,"why":null,"question":false}');
+        t.eq('"again" after a reload', await L.answer('again'), "Again? I haven't done anything yet this visit. Ask me something first.");
+        t.ok('while the protocols are kept', 'test' in L.protocols() && 'cosy' in L.protocols() === false);
+    } finally { env.close(); }
+
+    t.section('Protocols: the version 2 upgrade (Session 10)');
+    // A browser that ran Session 9 has version 1: four tables. Opening Session 10 adds the protocols table and keeps the rest.
+    const idb = new (await import('fake-indexeddb')).IDBFactory(), today = dayOf();
+    await new Promise((res, rej) => { const rq = idb.open('jarvis-test', 1);
+        rq.onupgradeneeded = () => { const db = rq.result; db.createObjectStore('kept'); db.createObjectStore('events', { keyPath: ['id', 'day'] }); db.createObjectStore('totals', { keyPath: 'id' }); db.createObjectStore('meta'); };
+        rq.onsuccess = () => { const db = rq.result, tx = db.transaction(['kept', 'events', 'meta'], 'readwrite');
+            tx.objectStore('kept').put('matrix', 'jarvis-skin'); tx.objectStore('events').put({ id: 'scene:globe', day: today - 1, n: 4 });
+            tx.objectStore('meta').put(1, 'copied'); tx.objectStore('meta').put(today - 90, 'rolled'); tx.objectStore('meta').put(0, 'carry');
+            tx.oncomplete = () => { db.close(); res(); }; tx.onerror = () => rej(tx.error); }; rq.onerror = () => rej(rq.error); });
+    env = await openDom(page.html, URL_, { ...quiet, idb });
+    try {
+        const U = env.window.__jarvis;
+        t.eq('the database goes up to version 2', JSON.stringify((await idb.databases()).map((x) => [x.name, x.version])), '[["jarvis-test",2]]');
+        const d = await dbDump(idb);
+        t.ok('version 1\'s records are all still there', d.kept['jarvis-skin'] === 'matrix' && Object.values(d.events).some((e) => e.id === 'scene:globe' && e.n === 4) && U.skin() === 'matrix');
+        t.ok('and there\'s an empty protocols table', JSON.stringify(d.protocols) === '{}');
+    } finally { env.close(); }
+
+    t.section('Protocols: the scrub (Session 10)');
+    // Whatever is in the table that wouldn't pass today's rules goes on load, and never more than 20 are kept.
+    const idb2 = new (await import('fake-indexeddb')).IDBFactory();
+    env = await openDom(page.html, URL_, { ...quiet, idb: idb2 }); env.close(); await wait(40);
+    await new Promise((res) => { const rq = idb2.open('jarvis-test'); rq.onsuccess = () => { const db = rq.result, tx = db.transaction(['protocols'], 'readwrite'), os = tx.objectStore('protocols');
+        os.put({ steps: ['say:joke'] }, 'good one'); os.put({ steps: ['make the orb purple'] }, 'words'); os.put({ steps: ['say:joke'] }, 'ring 239 555 0142'); os.put({ steps: ['say:joke'], note: 'x' }, 'extra');
+        os.put({ steps: ['scene:galaxy', 'scene:globe'] }, 'two scenes'); os.put({ steps: ['sys:boot'] }, 'boot');
+        for (let i = 0; i < 24; i++) os.put({ steps: ['say:coin'] }, 'z filler ' + 'abcdefghijklmnopqrstuvwx'[i]);
+        tx.oncomplete = () => { db.close(); res(); }; }; });
+    env = await openDom(page.html, URL_, { ...quiet, idb: idb2 });
+    try {
+        const S = env.window.__jarvis, kept = Object.keys(S.protocols());
+        t.ok('a good protocol stays', kept.includes('good one'));
+        t.ok('words as steps, a personal name, an extra field, two scenes and sys:boot all go', !['words', 'ring 239 555 0142', 'extra', 'two scenes', 'boot'].some((k) => kept.includes(k)), kept.join());
+        t.eq('and at most 20 are kept', kept.length, 20);
+        await wait(40);
+        t.eq('from the database too', Object.keys((await dbDump(idb2)).protocols).length, 20);
+    } finally { env.close(); }
 }
 
 // Session 9 of jarvis/build-plan.html: the memory foundation. Saved data lives in IndexedDB, with usage
@@ -742,9 +1020,9 @@ async function memoryFoundation(t, page) {
         t.eq('the test copy has its own database', J.DB_NAME, 'jarvis-test');
         t.ok('and the page knows it was saved there', J.dbOK() && J.loaded());
         const dbs = await env.idb.databases();
-        t.eq('it is the only database this page opens', JSON.stringify(dbs.map((d) => [d.name, d.version])), '[["jarvis-test",1]]');
+        t.eq('it is the only database this page opens, at version 2 since Session 10 added protocols', JSON.stringify(dbs.map((d) => [d.name, d.version])), '[["jarvis-test",2]]');
         const d = await dbDump(env.idb);
-        t.eq('version 1 has four tables', Object.keys(d).sort().join(), 'events,kept,meta,totals');
+        t.eq('version 2 has five tables: Session 9\'s four and protocols', Object.keys(d).sort().join(), 'events,kept,meta,protocols,totals');
         t.ok('the database version is the number of upgrade steps, so later sessions add a step instead of starting again', /indexedDB\.open\(DB_NAME,DB_UPGRADES\.length\)/.test(page.html) && /for\(let v=e\.oldVersion;v<DB_UPGRADES\.length;v\+\+\)DB_UPGRADES\[v\]/.test(page.html));
         t.eq('a first visit saves only the copy-done mark, the visit count and the roll-up bookkeeping', JSON.stringify({ kept: d.kept, events: Object.values(d.events), totals: d.totals, meta: d.meta }),
             JSON.stringify({ kept: {}, events: [{ id: 'app:visit', day: today, n: 1 }], totals: {}, meta: { carry: 0, copied: 1, rolled: today - 89 } }));
