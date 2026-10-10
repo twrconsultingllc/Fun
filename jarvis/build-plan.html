@@ -363,7 +363,7 @@
     <h1>J.A.R.V.I.S. — Build Plan</h1>
     <p class="tagline">
       Every feature still to add to <a href="../jarvis.html">jarvis.html</a>,
-      split into six self-contained sessions. Each session is sized to fit
+      split into self-contained sessions (six to start with, then two on memory). Each session is sized to fit
       one fresh Claude Code session and ends merged and live, the same way
       <a href="../droid/build-plan.html">the Sentinel build plan</a> and
       <a href="../study/build-plan.html">the Claude Architect Lab build plan</a>
@@ -372,7 +372,7 @@
   </header>
 
   <div class="callout warning" style="grid-column: 1 / -1;">
-    <strong class="label">Status: Sessions 1 to 4 and the interim session live in jarvis.html · Sessions 5 and 6 in test in jarvis-test.html</strong>
+    <strong class="label">Status: Sessions 1 to 4 and the interim session live in jarvis.html · Sessions 5 and 6 in test in jarvis-test.html · Sessions 7 and 8 (memory) planned</strong>
     Written 2026-10-09, after the boot sequence, holo-projector (galaxy,
     solar system, particle sculptor) and hand control were merged (PRs
     #61–#64). Sessions are numbered in the suggested order, but each one
@@ -403,6 +403,8 @@
       <li><a href="#i1">Interim: skins, faces, voices, learned phrases</a></li>
       <li><a href="#s5">Threat scan</a></li>
       <li><a href="#s6">Wake word, briefing, gesture tuning</a></li>
+      <li><a href="#s7">Memory, without the personal</a></li>
+      <li><a href="#s8">Moving your settings to another device</a></li>
       <li><a href="#done">Every session ends the same way</a></li>
     </ol>
   </nav>
@@ -457,7 +459,7 @@
     <section id="index">
       <h2><span class="kicker">At a glance</span>Session index</h2>
       <div class="table-wrap"><table>
-        <caption>Six sessions, smallest first. Original option numbers from the first features chat in brackets.</caption>
+        <caption>Eight sessions, smallest first, then the two memory sessions. Original option numbers from the first features chat in brackets.</caption>
         <thead><tr><th>#</th><th>Session</th><th>Covers</th><th>Size</th><th>Status</th></tr></thead>
         <tbody>
           <tr><td>1</td><td><a href="#s1">Polish and voice-reactive orb</a></td><td>Option 8 and four open review items</td><td>Small</td><td><span class="badge done">Done</span></td></tr>
@@ -467,6 +469,8 @@
           <tr><td>i1</td><td><a href="#i1">Interim: skins, faces, voices, learned phrases</a></td><td>Asked for in chat, not from the options list</td><td>Medium</td><td><span class="badge done">Done</span></td></tr>
           <tr><td>5</td><td><a href="#s5">Threat scan</a></td><td>Option 11</td><td>Medium</td><td><span class="badge in-progress">In test</span></td></tr>
           <tr><td>6</td><td><a href="#s6">Wake word, briefing, gesture tuning</a></td><td>Options 7 and 12, and the hand-control review item</td><td>Medium</td><td><span class="badge in-progress">In test</span></td></tr>
+          <tr><td>7</td><td><a href="#s7">Memory, without the personal</a></td><td>Memory options 1, 2, 3, 4, 6 and 9, picked on 2026-10-10</td><td>Medium–large</td><td><span class="badge">Not started</span></td></tr>
+          <tr><td>8</td><td><a href="#s8">Moving your settings to another device</a></td><td>Memory options 7 and 8</td><td>Medium</td><td><span class="badge">Not started</span></td></tr>
         </tbody>
       </table></div>
     </section>
@@ -617,6 +621,37 @@
         <p><strong>Divergences from the plan.</strong> Against the real <code>feeds.json</code>, the Southwest Florida headline was live-stream spam in styled letters, so <code>briefSpam</code> skips that kind of item and reads the next one. The Daily Wire page itself still shows them. The switch's support check is Chromium's <code>navigator.userAgentData</code>, which Safari and Firefox don't have. Since nothing misfired, the gesture work became seven checks pinned to the current thresholds, which fail if a number moves (tried with the pinch at 0.28 and the swipe at 0.20). In Chromium, with a fake recognizer that throws like the real one, "Jarvis, brief me" read four headlines at both sizes, with no page errors, no CSP violations and no sideways scroll.</p>
         <p><strong>Still open.</strong> Trying always listening with a real mic: how often Chrome restarts it, whether Android plays its listening sound on each restart, and how well it catches the name across a room. Headlines are as fresh as the last 6-hourly feed refresh.</p>
       </div>
+    </section>
+
+    <section id="s7">
+      <h2><span class="kicker">Session 7 · medium–large</span>Memory, without the personal</h2>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> nothing</span></div>
+      <div class="callout warning"><strong class="label">The rule every step follows</strong>Nothing personal is ever stored (<a href="../tests/secrpts/53.html">review 53</a>, and the "Jarvis never stores personal data" paragraph in <code>CLAUDE.md</code>). Anything saved goes through <code>store()</code>. A new key joins <code>STORE_KEYS</code> only if it can never hold personal data, and the suites' "exactly one <code>localStorage.setItem</code>" check must still pass.</div>
+      <p>On 2026-10-10 you went through nine memory ideas one at a time. You picked eight; these six are this session. Tab sync (option 5) was a no.</p>
+      <ol class="substeps">
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Settings memory</strong> (option 1). Jarvis remembers how you like him set up: orb colour, speaking speed, metric or imperial units, and a favourite scene to open with ("open with the galaxy"). Saved as one <code>jarvis-settings</code> key holding fixed choices only, never free text. "What do you save" lists them.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Short-term memory</strong> (option 2). Things you tell him ("my dog is Rex", "I'm going to the beach") are kept in memory, shared by every skin, and answered later ("what's my dog's name?"). They're gone when the page closes and are never passed to <code>store()</code>. A test must prove a reload forgets them. "What do you know about me" lists them, marked "this visit only".</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Memory core scene</strong> (option 3). "Show me your memory" opens a holo-projector constellation: one glowing star per saved setting and taught phrase, and this visit's short-term memories in a second colour that fades on close. A tap reads one out. A fist crush, or "forget that", deletes the one under the reticle. The labels reuse <code>layoutCallouts()</code> and are removed in <code>dispose()</code>, per CLAUDE.md.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Dreaming</strong> (option 4). After a few idle minutes with nothing open, the orb dims, the state reads "PROCESSING MEMORIES", and taught phrases drift across it as light pulses, re-using the neural network's pulse logic. Any tap, key or word wakes him. Nothing runs while the tab is hidden. Under reduced motion it's a still, dimmed orb.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Keeping settings from being wiped</strong> (option 6). Call <code>navigator.storage.persist()</code> once something has been saved, where the browser allows it (Chrome and Edge). Safari on iPhone deletes a site's storage after 7 days without a visit, and a page can't tell that apart from a first visit. So, honestly: Jarvis says "This looks like my first time on this device" when nothing is stored, and the help mentions the 7-day rule and the backup file (Session 8).</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Streaks</strong> (option 9). "Third day in a row!" Stored as <code>jarvis-streak</code> holding only a day count and the date of the last visit, nothing about what you did. The date must be stored in a form <code>personal()</code> accepts, or <code>personal()</code> must allow this one structured key. Decide which in the session, and test it either way.</li>
+        <li><span class="who"><span class="badge you">You</span></span> Try it on the live test copy. In particular, say whether short-term memory feels useful when it forgets on close, and whether dreaming kicks in too soon.</li>
+      </ol>
+      <p><strong>Checks:</strong> the suite covers each <code>personal()</code> decision, that short-term memories never reach storage (and a reload forgets them), that the scrub leaves the new keys alone when clean, and that the streak count works across a missed day. Chromium screenshots of the memory core and of dreaming at 1280×800 and 390×844, and the memory core's labels measured on screen, as for the suit.</p>
+      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
+    </section>
+
+    <section id="s8">
+      <h2><span class="kicker">Session 8 · medium</span>Moving your settings to another device</h2>
+      <div class="session-meta"><span><strong>Status:</strong> <span class="badge">Not started</span></span><span><strong>Needs:</strong> Session 7, so there are settings worth moving</span></div>
+      <p>Browser storage stays on one device, and there's no server. These are the two ways to carry settings and taught phrases across, both run through the same <code>personal()</code> filter on the way out and on the way in.</p>
+      <ol class="substeps">
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>Settings backup file</strong> (option 7). "Back up my settings" downloads a small <code>jarvis-settings.json</code> holding only the <code>STORE_KEYS</code> values. A "Restore" button or "restore my settings" loads one. On the way in, every value is validated and filtered as if it were being saved for the first time, so a hand-edited or hostile file can't add a key, a personal phrase or anything oversized. No encryption is needed, since nothing personal can be in it.</li>
+        <li><span class="who"><span class="badge claude">Claude</span></span> <strong>QR handoff</strong> (option 8). "Send my settings to my phone" shows a QR code holding the same data. On the other device, "scan settings" opens the camera and reads it. It goes straight across, with no cloud and no file. Generating the code needs a small QR encoder, self-hosted and pinned by hash like the hand tracker. Reading it uses the browser's <code>BarcodeDetector</code> where it exists (Chrome on Android). iPhone Safari doesn't have it, so a self-hosted decoder is needed there, or the session falls back to the backup file on iPhone. Decide in the session. The camera follows the threat scan's rules: on only while scanning, video only, off on close.</li>
+        <li><span class="who"><span class="badge you">You</span></span> Move settings from your PC to your phone both ways, and say which one you'd actually use.</li>
+      </ol>
+      <p><strong>Checks:</strong> a backup round trip; a hostile file (extra keys, a phone number, a 1 MB value, broken JSON) restores nothing bad; the QR payload is under the size a phone camera reads easily; headless Chromium with the fake camera fed a generated QR code; no new outside host in the CSP.</p>
+      <div class="callout notes"><strong class="label">Session notes</strong><p>None yet.</p></div>
     </section>
 
     <section id="done">
