@@ -205,7 +205,7 @@ export function parseMoons(html) {
             radius = num(row[head.findIndex((c) => /radius/i.test(c)) + off]); density = num(row[head.findIndex((c) => /density/i.test(c)) + off]);
         }
         if (!(Math.abs(radius - about) <= about * 0.15)) { const n = row.slice(at + 1).map(num).filter(Number.isFinite); radius = n[1]; density = n[2]; } // GM, radius, density
-        if (!(Math.abs(radius - about) <= about * 0.15)) throw new Error(`moons: ${name} radius ${radius}, expected about ${about}`);
+        if (!(Math.abs(radius - about) <= about * 0.15)) throw new Error(`moons: ${name} radius ${radius}, expected about ${about}. The table's header row: ${JSON.stringify(head)}; ${name}'s row: ${JSON.stringify(row)}`);
         sane(`${name} density`, density, 0.3, 6);
         out.push({ kind: 'moon', name, planet, radius: round(radius, 1), density: round(density, 3) });
     }
@@ -386,14 +386,20 @@ export function parseSuits(json) {
 
 // get(url, {binary}) returns the text (or bytes) at a URL. The real build fetches; the dry run reads fixtures.
 export async function buildPack(get, suitsJson) {
+    // Every source is tried even when one fails, so a single run names every page that didn't parse.
+    const problems = [], part = async (what, f) => { try { return await f(); } catch (e) { problems.push(e.message); return []; } };
+    const parts = [
+        await part('planets', async () => parsePlanets(await get(SOURCES[0].url))),
+        await part('moons', async () => parseMoons(await get(SOURCES[1].url))),
+        await part('stars', async () => parseStars(await get(SOURCES[2].url, { binary: true }))),
+        await part('missions', async () => Promise.all(MISSIONS.map(async (m) => parseMission(await get(missionUrl(m[1])), m)))),
+        await part('elements', async () => parseElements(await get(SOURCES[4].url))),
+        await part('countries', async () => Promise.all(COUNTRIES.map(async (c) => parseCountry(await get(factbookUrl(c[1])), c)))),
+        await part('suits', async () => parseSuits(suitsJson))
+    ];
+    if (problems.length) throw new Error(problems.join('\n'));
     const records = [
-        ...parsePlanets(await get(SOURCES[0].url)),
-        ...parseMoons(await get(SOURCES[1].url)),
-        ...parseStars(await get(SOURCES[2].url, { binary: true })),
-        ...(await Promise.all(MISSIONS.map(async (m) => parseMission(await get(missionUrl(m[1])), m)))),
-        ...parseElements(await get(SOURCES[4].url)),
-        ...(await Promise.all(COUNTRIES.map(async (c) => parseCountry(await get(factbookUrl(c[1])), c)))),
-        ...parseSuits(suitsJson)
+        ...parts.flat()
     ].sort((a, b) => (a.kind === b.kind ? (a.name < b.name ? -1 : 1) : a.kind < b.kind ? -1 : 1));
     // The version is worked out from the records, so the page fetches a new pack only when the facts change.
     const version = parseInt(createHash('sha256').update(JSON.stringify(records)).digest('hex').slice(0, 8), 16) || 1;
