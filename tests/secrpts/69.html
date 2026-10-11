@@ -193,7 +193,7 @@
     <h2><span class="num">02</span>Code quality</h2>
     <div class="item">
       <div class="item-head"><div class="item-title">The suite</div><span class="badge fixed">Confirmed clean</span></div>
-      <div class="item-body"><p>jarvis-test (jsdom): 1787 checks, all passing. One new check: after a failed answer, "why?" reads "The error was: Error: GPUValidationError: something went wrong" from the fake engine's error. The whole reason is pinned, so one without the error text cannot pass (not run as a broken copy, since that is true by construction).</p></div>
+      <div class="item-body"><p>jarvis-test (jsdom): 1790 checks, all passing. New checks: after a failed answer, "why?" reads out the fake engine's error. The exact Chrome error from your device, thrown mid-answer, leaves the full brain off and unloaded, with the same answer as a lost chip, and "why?" names it. A lost chip now unloads the engine too. These pin the full text of each answer, so a page that kept the old handling cannot pass them. That is true by construction, so it was not run as a broken copy. The context window is a number in WebLLM's loader record, which neither jsdom nor this container's Chromium can exercise past the half-precision check, so the Chromium check was not re-run for it.</p></div>
     </div>
     <div class="item">
       <div class="item-head"><div class="item-title">The failure: a GPU read cut off mid-answer</div><span class="badge partial">Partial</span></div>
