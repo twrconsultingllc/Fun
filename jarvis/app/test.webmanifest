@@ -1,0 +1,18 @@
+{
+  "id": "jarvis-test.html",
+  "name": "J.A.R.V.I.S. Test",
+  "short_name": "Jarvis Test",
+  "description": "The trial copy of J.A.R.V.I.S., where new features are tried first.",
+  "start_url": "../../jarvis-test.html",
+  "scope": "../../jarvis-test.html",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#020a06",
+  "theme_color": "#020a06",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

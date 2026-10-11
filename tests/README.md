@@ -61,8 +61,8 @@ its settings, the test copy copies them in once and keeps its own across a
 reload in real IndexedDB, and `jarvis.html` then still has its own settings,
 with the test copy's database unchanged. It takes screenshots of the page
 and the memory core at 1280×800 and 390×844, and fails on any page error or
-CSP violation. three.js comes from npm, because cdnjs is often blocked in
-those containers. Since Session 10 it also checks protocols with real WebGL
+CSP violation. three.js and the font are hosted on the site since Session
+17, so nothing comes from cdnjs or Google Fonts. Since Session 10 it also checks protocols with real WebGL
 and real IndexedDB: one kept across a reload (database version 2, command
 IDs only), the "PROTOCOL: … · 2/3" HUD line over a scene and over the orb,
 House Party opening all six scenes in turn, the "wake up, daddy's home" boot
@@ -116,12 +116,27 @@ Infinity Gauntlet help popup fits on screen, with every link reachable. It also
 checks that the projector caption is a two-line peek that MORE opens and HIDE
 tucks away, that the memory core's labels don't overlap and stay clear of the
 caption, and that the settings code stays clear of it too.
+Since Session 17 it also checks the supercharger, offline and install, at
+1280×800 and 390×844. Every context routes the proxy's real address
+(`jarvis-cloud-gamma.vercel.app`) to the real `jarvis/cloud/lib/core.js` with
+a fake Gemini behind it, so the page's real CSP and CORS apply. It checks
+that the service worker caches only its own files and never the proxy, that
+Chromium finds the page installable, that the page, the font and three.js
+load offline, and that a new deploy shows on the next online load.
 Run it after the jsdom suite, not alongside it: its timing waits fail when
 the two compete for the CPU.
 
+The page side of the supercharger is checked in `jarvis-test.dom.test.mjs`
+against the same real proxy code (`fakeProxy()`). The service worker and the
+install manifest have their own suite, `jarvis-test-sw.test.mjs`
+(`--only=jarvis-test-sw`). It runs the worker in a `node:vm` sandbox with a
+fake Cache Storage and network. It also recomputes `LIB_HASH` from the
+library files it keeps, so changing one of them without changing `LIB_HASH`
+fails the suite.
+
 ```bash
 node jarvis-test.chromium.mjs                     # screenshots go to a new temp folder
-node jarvis-test.chromium.mjs --out=../shots --three=/path/to/three.min.js
+node jarvis-test.chromium.mjs --out=../shots
 ```
 
 Exit code is 0 when everything passes, 1 on any failure, 2 if the page could

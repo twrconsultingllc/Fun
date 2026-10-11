@@ -172,7 +172,8 @@ export default async function run(t, page) {
         const csp = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
         t.ok('has a CSP meta tag', !!csp);
         // Hand control fetches its own model and WebAssembly from jarvis/hands/, and nothing else.
-        t.ok('the CSP only allows fetches from this site (connect-src \'self\')', !!csp && /connect-src 'self';/.test(csp.content));
+        // Since Session 17, plus exactly one other address: the supercharger proxy on Vercel.
+        t.ok('the CSP allows fetches only from this site and the supercharger proxy', !!csp && /connect-src 'self' https:\/\/jarvis-cloud-gamma\.vercel\.app;/.test(csp.content));
         t.eq('has a referrer policy', document.querySelector('meta[name="referrer"]')?.content, 'strict-origin-when-cross-origin');
         t.ok('has a description', !!document.querySelector('meta[name="description"]')?.content);
         t.eq('loads no external scripts', document.querySelectorAll('script[src]').length, 0);
@@ -504,7 +505,8 @@ export default async function run(t, page) {
         t.ok('zoom with nothing open says so', /Nothing on the projector/.test(await window.__jarvis.project({ kind: 'zoom', arg: 'in' })));
         const holoCsp = document.querySelector('meta[http-equiv="Content-Security-Policy"]').content;
         const scriptSrc = holoCsp.match(/script-src ([^;]+)/)[1].trim();
-        t.eq('script-src allows only itself, WebAssembly (hand tracking) and cdnjs (three.js)', scriptSrc, "'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com");
+        t.eq('script-src allows only itself and WebAssembly (hand tracking); three.js is hosted here since Session 17', scriptSrc, "'self' 'unsafe-inline' 'wasm-unsafe-eval'");
+        t.ok('three.js loads from this site', /THREE_SRC='jarvis\/vendor\/three\.min\.js'/.test(page.html));
         const src = page.html;
         t.ok('three.js is loaded with an SRI hash', /THREE_SRI='sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1\/ey98U3t2vZ0qQ=='/.test(src) && /s\.integrity=THREE_SRI/.test(src));
 
@@ -733,6 +735,8 @@ export default async function run(t, page) {
     await meaningModule(t, page);
     await knowledgePack(t, page);
     await fullBrain(t, page);
+    await supercharger(t, page);
+    await installAndUpdate(t, page);
     await commandLinks(t, page);
     await screens(t, page);
 }
@@ -2643,6 +2647,7 @@ async function commandLinks(t, page) {
     env = await openDom(page.html, 'https://jarvis.test/jarvis.html', { ignore: /getContext|HTMLCanvasElement/ });
     try {
         const J = env.window.__jarvis, cmds = J.chipCmds().filter((c) => c !== 'reboot');
+        J.setReload(() => {}); // "update Jarvis" reloads the page (Session 17), which jsdom can't do
         const missed = [];
         for (const c of cmds) { const r = await J.answer(c); if (typeof r === 'string' && /didn't understand|say ⟦?learn that⟧?\.$/.test(r)) missed.push(c); }
         t.eq(`all ${cmds.length + 1} link commands are understood`, missed.join(', '), '');
@@ -2775,7 +2780,10 @@ const QR_FILES = {
     'qrcode.js': '18ae399f81182bc9de916e9c77b195df20cc58d6f2d55a62b085a299f1bf1780',
     'jsQR.js': 'bc40c8a15196236b2314db0856f72ca0b49980cd5413b8c852a7349f5fee0859'
 };
-const CSP_BEFORE_S8 = "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'";
+// The CSP, pinned. Sessions 8 to 14 kept it exactly as it was before Session 8. Session 17 changed it on purpose, and
+// only this way: cdnjs and Google Fonts gone (three.js and the font are hosted here), and connect-src gaining exactly
+// the supercharger proxy.
+const CSP_S17 = "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://jarvis-cloud-gamma.vercel.app; object-src 'none'; base-uri 'none'; form-action 'none'";
 // A camera that records what was asked of it, and whether every track was stopped.
 function fakeCamera() {
     const log = { calls: [], tracks: [] };
@@ -3094,7 +3102,7 @@ async function backupAndQr(t, page) {
 
     t.section('Settings transfer: self-hosted QR files, pinned (Session 8)');
     const csp = /http-equiv="Content-Security-Policy" content="([^"]+)"/.exec(page.html)?.[1];
-    t.eq('no new outside host in the CSP: it is exactly what it was before Session 8', csp, CSP_BEFORE_S8);
+    t.eq('no new outside host in the CSP: it is exactly the Session 17 policy', csp, CSP_S17);
     t.ok('the encoder and decoder load from jarvis/qr/ on this site, with SRI', /enc:\['jarvis\/qr\/qrcode\.js','sha384-[A-Za-z0-9+/=]{64}','qrcode'\]/.test(page.html) && /dec:\['jarvis\/qr\/jsQR\.js','sha384-[A-Za-z0-9+/=]{64}','jsQR'\]/.test(page.html) && /s\.integrity=sri;/.test(page.html));
     t.ok('they are loaded only when a code is shown or scanned, never at start-up', !/<script[^>]+jarvis\/qr\//.test(page.html) && (page.html.match(/loadQrLib\(/g) || []).length === 3);
     if (page.url.startsWith('file:')) {
@@ -3175,7 +3183,7 @@ async function meaningModule(t, page) {
     t.ok('the page loads the module from jarvis/text/ on this site', /const TEXT_DIR='jarvis\/text\/';/.test(src) && /new URL\(TEXT_DIR\+f,location\.href\)/.test(src) && !/cdn\.jsdelivr|storage\.googleapis|tfhub|kaggle/.test(src));
     t.eq('it is imported in one place', (src.match(/import\(textUrl\(/g) || []).length, 1);
     t.ok('and that place is only run by "upgrade your brain"', (src.match(/\btextLib\(/g) || []).length === 1 && /async function upgradeBrain\(\)\{[\s\S]*?const embed=await textLib\(/.test(src));
-    t.eq('the CSP is exactly what it was before Session 8: no new outside host', env0Csp(src), CSP_BEFORE_S8);
+    t.eq('the CSP is exactly the Session 17 policy: no new outside host', env0Csp(src), CSP_S17);
 
     let env = await openDom(page.html, URL_, fixed), J = env.window.__jarvis;
     try {
@@ -3270,6 +3278,7 @@ async function meaningModule(t, page) {
             t.ok('(the always-a-joke brain is online, and so is one that never matches)', A.mind().state === 'on' && P.mind().state === 'on');
             await typeIn(plain, 'blah blah'); await typeIn(plain, 'never mind');
             t.ok('(and it does turn anything else into a joke)', !MISSED.test(await typeIn(adv, 'blah blah')) && count(A, 'cmd:joke') === 1);
+            P.setReload(() => {}); A.setReload(() => {});
             const phrases = [...P.chipCmds(), 'jarvis show me the galaxy please', 'take me to mars', 'now jupiter', 'what is seven times eight', 'my dog is rex', 'what do you know about me',
                 'speak slower', 'make the orb purple', 'how well do you know me', 'whats my favourite', 'what havent i tried', 'show me florida', 'thank you', 'how far is the moon',
                 'delete movie night', 'forget my name', 'reset my settings', 'list my protocols', 'brief me', 'how are you'].filter((q) => !/^(?:upgrade your brain|reboot|wake up daddy's home|house party|scan settings|restore my settings|back up my settings)$/i.test(q));
@@ -3778,7 +3787,7 @@ export async function fullBrain(t, page) {
     t.ok('and the page never hands WebLLM a log level, which its main-thread client would save', !/logLevel|setLogLevel/.test(src));
     t.ok('thinking mode is off for every question', /extra_body:\{enable_thinking:false\}/.test(src) && (src.match(/chat\.completions\.create\(/g) || []).length === 1);
     t.ok('the half-precision feature is required, as the q4f16 build needs', /required_features:\['shader-f16'\]/.test(src));
-    t.eq('the CSP is exactly what it was before Session 8: no new outside host', env0Csp(src), CSP_BEFORE_S8);
+    t.eq('the CSP is exactly the Session 17 policy: no new outside host', env0Csp(src), CSP_S17);
     const brainSrc = (src.match(/\/\* ---------- Full brain \(Session 14\)[\s\S]*?\n\/\* ---------- Follow-ups/) || [''])[0].replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
     t.ok('the full brain\'s code never calls store() or save(), or touches localStorage or IndexedDB', brainSrc.length > 2000 && !/\bstore\(|\bsave\(|localStorage|indexedDB|\.transaction\(/.test(brainSrc));
 
@@ -3979,6 +3988,7 @@ export async function fullBrain(t, page) {
         for (const [e, x] of [[adv, A], [plain, P]]) { await typeIn(e, 'install your full brain'); await typeIn(e, 'yes'); }
         await wait(250);
         P.full().state = 'off'; // installed, so the discovery count matches, but never asked
+        P.setReload(() => {}); A.setReload(() => {});
         t.ok('(one full brain answers everything, the other window has none running)', A.full().state === 'on' && /The full brain answered/.test(await typeIn(adv, 'blah blah blah')));
         const phrases = [...P.chipCmds(), 'jarvis show me the galaxy please', 'take me to mars', 'now jupiter', 'what is seven times eight', 'my dog is rex', 'what do you know about me',
             'speak slower', 'make the orb purple', 'how well do you know me', 'whats my favourite', 'what havent i tried', 'show me florida', 'thank you', 'how far is the moon',
@@ -4007,4 +4017,349 @@ export async function fullBrain(t, page) {
         t.eq('but "learn that" after it can still teach the phrase', await typeIn(adv, 'learn that'), 'What did you mean by "make me chuckle"?');
         t.ok('and it does', /^Got it\. Next time you say "make me chuckle"/.test(await typeIn(adv, 'tell me a joke')) && A.learned()['make me chuckle'] === 'tell me a joke');
     } finally { plain.close(); adv.close(); }
+}
+
+/* Session 17 of jarvis/build-plan.html: the supercharger, the page side (review 73). The page talks to a fake proxy
+ * that is the real one: jarvis/cloud/lib/core.js, as Vercel runs it, with a fake Gemini behind it answering in Gemini's
+ * real shapes. So when the proxy is off it answers 503 {off}, when Gemini is busy 429, when Gemini fails 502, when it's
+ * blocked {blocked}, exactly as deployed, and the page's request has to pass the proxy's own field checks. raw and
+ * statusRaw bypass it, to check what the page does with an answer the real proxy would never send. down: the network
+ * is gone (fetch throws a TypeError, as a browser's does). */
+const PROXY_URL = 'https://jarvis-cloud-gamma.vercel.app';
+export async function fakeProxy({ on = true, owner = 'Tony', model = 'gemini-3.5-flash' } = {}) {
+    const core = await import('../jarvis/cloud/lib/core.js');
+    const jres = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => JSON.parse(JSON.stringify(body)) });
+    const st = { on, owner, model, down: false, slow: false, online: true, raw: null, statusRaw: null, gemini: null, fixedIp: null, gate: null, calls: [], asked: [] };
+    let release = null;
+    st.hold = () => { st.gate = new Promise((r) => { release = r; }); };
+    st.release = () => { st.gate = null; release?.(); };
+    const gemini = async (url, init = {}) => {
+        if (/\/models\?/.test(url)) return jres(200, { models: ['gemini-3.5-flash', 'gemini-3.5-flash-lite'].map((m) => ({ name: 'models/' + m, supportedGenerationMethods: ['generateContent', 'countTokens'] })) });
+        const body = JSON.parse(init.body);
+        st.asked.push(body);
+        if (st.gate) await st.gate;
+        const g = typeof st.gemini === 'function' ? st.gemini(body) : st.gemini || { say: 'Gemini here.', do: [], kind: 'chat' };
+        if (g.status) return jres(g.status, { error: { code: g.status, message: g.message || 'failed', status: g.statusText || 'INTERNAL' } });
+        if (g.blocked) return jres(200, { candidates: [{ finishReason: 'SAFETY', content: { parts: [] }, index: 0 }], usageMetadata: { promptTokenCount: 50 } });
+        const text = g.text !== undefined ? g.text : JSON.stringify(g);
+        return jres(200, { candidates: [{ content: { role: 'model', parts: [{ text }] }, finishReason: 'STOP', index: 0 }], usageMetadata: { promptTokenCount: 120, candidatesTokenCount: 18, totalTokenCount: 138 }, modelVersion: st.model });
+    };
+    // A change to the switch is a redeploy here: the real proxy reads its environment variables once per 30 seconds.
+    st.redeploy = () => { st.app = core.createApp({ env: { GEMINI_API_KEY: 'test-key', SUPERCHARGE: st.on ? 'true' : 'false', OWNER_NAME: st.owner, JARVIS_MODEL: st.model }, fetchImpl: gemini, log: () => {} }); };
+    st.redeploy();
+    st.status = () => st.calls.filter((c) => c.url === PROXY_URL + '/api/status').length;
+    st.brain = () => st.calls.filter((c) => c.url === PROXY_URL + '/api/brain');
+    st.install = (w) => {
+        Object.defineProperty(w.navigator, 'onLine', { configurable: true, get: () => st.online });
+        const prev = w.fetch;
+        w.fetch = async (u, opts = {}) => {
+            const url = String(u);
+            if (!url.startsWith(PROXY_URL)) return prev(u, opts);
+            st.calls.push({ url, method: opts.method || 'GET', credentials: opts.credentials, referrerPolicy: opts.referrerPolicy, cache: opts.cache, headers: opts.headers, body: opts.body, signal: !!opts.signal });
+            await new Promise((r) => setTimeout(r, 3));
+            if (st.down) throw new w.TypeError('Failed to fetch');
+            if (st.slow && url.endsWith('/api/brain')) throw new w.DOMException('signal is aborted without reason', 'AbortError');
+            const path = new URL(url).pathname;
+            if (path === '/api/status' && st.statusRaw) return jres(200, st.statusRaw);
+            if (path === '/api/brain' && st.raw) return jres(200, st.raw);
+            const fn = { '/api/status': 'status', '/api/brain': 'brain' }[path];
+            if (!fn) return jres(404, {});
+            const out = await st.app[fn]({ method: opts.method || 'GET', headers: { origin: 'https://twrconsultingllc.github.io', 'x-forwarded-for': st.fixedIp || `203.0.113.${st.calls.length % 250}` }, body: opts.body });
+            return { ok: out.status >= 200 && out.status < 300, status: out.status, json: async () => JSON.parse(out.body) };
+        };
+    };
+    return st;
+}
+
+export async function supercharger(t, page) {
+    const URL_ = 'https://jarvis.test/jarvis.html', quiet = { ignore: /getContext|HTMLCanvasElement/ };
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const lastAi = (env) => [...env.document.querySelectorAll('#log .msg.ai')].pop();
+    const typeIn = async (env, text, ms = 600) => { const { document, window } = env; document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(ms); const m = lastAi(env); return m ? [...m.childNodes].filter((n) => !(n.classList && n.classList.contains('brain-tag'))).map((n) => n.textContent).join('') : ''; };
+    const tagOf = (env) => lastAi(env)?.querySelector('.brain-tag');
+    const logText = (env) => env.document.getElementById('log').textContent;
+    const MISSED = /say ⟦?learn that⟧?\.$|say learn that\.$/;
+    const open = async (proxy, more) => openDom(page.html, URL_, { ...quiet, beforeParse(w) { w.Math.random = () => 0.42; proxy.install(w); more?.(w); } });
+    const src = page.html;
+    const ON_LINE = "Tony has turned on my supercharger for you. While it's on, anything I can't answer on this device goes to Google's Gemini, with the last few things we said, and those answers are marked cloud.";
+
+    t.section('Supercharger: the address and the CSP (Session 17)');
+    t.ok('the page names exactly one proxy address', (src.match(/https:\/\/[a-z0-9-]+\.vercel\.app/g) || []).every((u) => u === PROXY_URL) && /const CLOUD='https:\/\/jarvis-cloud-gamma\.vercel\.app'/.test(src));
+    t.eq('connect-src is this site and that address, nothing else', (env0Csp(src).match(/connect-src ([^;]+)/) || [])[1], "'self' " + PROXY_URL);
+    t.ok('no other directive names it', env0Csp(src).split(';').filter((d) => d.includes('vercel')).length === 1);
+    t.ok('the only fetches to it are /api/status and /api/brain, through cloudFetch()', (src.match(/cloudFetch\('\/api\/[a-z]+'/g) || []).sort().join() === "cloudFetch('/api/brain',cloudFetch('/api/status'" && (src.match(/fetch\(CLOUD/g) || []).length === 1);
+    t.ok('the switch can only be read: nothing on the page sends "on"', !/supercharge['"]?\s*:\s*(?:true|'on')|\/api\/(?:switch|on|set)/.test(src));
+    const cloudSrc = (src.match(/\/\* ---------- The supercharger \(Session 17\)[\s\S]*?\n\/\* ---------- Offline and install/) || [''])[0].replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    t.ok('its code never stores anything: no store(), save(), localStorage or IndexedDB', cloudSrc.length > 2000 && !/\bstore\(|\bsave\(|localStorage|indexedDB|\.transaction\(/.test(cloudSrc));
+    t.ok('the status is asked at load, every minute while the page is visible, when it comes back, and when the network does', /\ncloudCheck\(\);\n/.test(src) && /setInterval\(\(\)=>\{if\(!document\.hidden\)cloudCheck\(\)\},CLOUD_EVERY\)/.test(src) && /CLOUD_EVERY=60000/.test(src) && /addEventListener\('online',\(\)=>cloudCheck\(\)\)/.test(src));
+
+    t.section('Supercharger: off, which is the usual state (Session 17)');
+    const offP = await fakeProxy({ on: false });
+    let env = await open(offP);
+    try {
+        const J = env.window.__jarvis; J.finishBoot(); await wait(80);
+        t.ok('the page asked /api/status once when it loaded', offP.status() === 1);
+        const c = offP.calls[0];
+        t.ok('with no cookies, no referrer, and not from the browser cache', c.credentials === 'omit' && c.referrerPolicy === 'no-referrer' && c.cache === 'no-store' && c.method === 'GET' && c.signal);
+        t.ok('off: no supercharged look, no tag', !('supercharged' in env.document.documentElement.dataset) && J.charger.on === false);
+        t.ok('and nothing said about it', !/supercharger/i.test(logText(env)));
+        const r = await typeIn(env, 'what do you think about jam');
+        t.ok('a miss is the usual line', MISSED.test(r), r);
+        t.eq('and nothing went to /api/brain', offP.brain().length, 0);
+        t.eq('"which brain are you using" doesn\'t mention it', /supercharger/i.test(await typeIn(env, 'which brain are you using')), false);
+        t.eq('"is your supercharger on"', await typeIn(env, 'is your supercharger on'), 'My supercharger is off. Everything I say comes from this device.');
+        t.eq('"turn on your supercharger": only the owner can', await typeIn(env, 'jarvis turn on your supercharger'), "My supercharger is off. Only My owner can turn it on, and not from this page.".replace('Only My owner', 'Only Tony'));
+        t.eq('(still off, and the page never asked)', offP.brain().length + String(J.charger.on), '0false');
+    } finally { env.close(); }
+    const downP = await fakeProxy(); downP.down = true;
+    env = await open(downP);
+    try {
+        env.window.__jarvis.finishBoot(); await wait(80);
+        t.ok('when the proxy can\'t be reached at load, it reads as off, silently', env.window.__jarvis.charger.on === false && !/supercharger/i.test(logText(env)) && downP.status() === 1);
+    } finally { env.close(); }
+
+    t.section('Supercharger: on (Session 17)');
+    const P = await fakeProxy({ on: true });
+    env = await open(P);
+    try {
+        const J = env.window.__jarvis, root = env.document.documentElement;
+        await wait(30); J.finishBoot(); await wait(120);
+        t.ok('he says the owner turned it on, by the name from the switch, and that questions now go to Gemini', logText(env).includes(ON_LINE));
+        t.ok('the HUD takes on the supercharged colours', 'supercharged' in root.dataset);
+        t.ok('a SUPERCHARGED tag in the header, shown only while it\'s on', env.document.getElementById('sc-tag')?.textContent === 'SUPERCHARGED' && /:root\[data-supercharged\] \.sc-tag\{display:inline-block\}/.test(src) && /\.sc-tag\{display:none;/.test(src));
+        t.eq('the orb takes them on too', J.ring(), '111,211,255');
+        t.ok('the supercharged look wins over the skin and the gold-and-red HUD (its CSS comes after both)', src.indexOf(':root[data-supercharged]{') > src.indexOf(':root[data-hud="hotrod"]{') && src.indexOf(':root[data-supercharged]{') > src.indexOf(':root[data-skin="panther"]{'));
+        await typeIn(env, 'make the orb purple');
+        t.eq('an orb colour you chose still wins', J.ring(), '170,100,255');
+        await typeIn(env, 'use the default orb colour');
+        t.eq('and the supercharged one comes back without it', J.ring(), '111,211,255');
+
+        P.gemini = { say: 'Paris is lovely in spring, sir.', do: [], kind: 'chat' };
+        let r = await typeIn(env, 'what do you think about paris');
+        t.eq('a question nothing on the device understands goes to Gemini', r, 'Paris is lovely in spring, sir.');
+        t.ok('its chat line is tagged CLOUD · GEMINI', tagOf(env)?.textContent === 'CLOUD · GEMINI' && tagOf(env)?.classList.contains('cloud'));
+        const b = P.brain()[0];
+        t.ok('POST to /api/brain, no cookies, no referrer, the body a plain string (text/plain: no CORS preflight)', b.method === 'POST' && b.credentials === 'omit' && b.referrerPolicy === 'no-referrer' && typeof b.body === 'string' && !b.headers);
+        const body = JSON.parse(b.body);
+        t.eq('it sends the question, the skin, and nothing about earlier turns yet', [body.q, body.skin, body.turns.length].join('|'), 'what do you think about paris|jarvis|0');
+        t.ok('the actions it may pick are BRAIN_PICKS, with their labels', JSON.stringify(body.actions) === JSON.stringify(J.BRAIN_PICKS.map((id) => [id, J.STEPS ? J.STEPS[id].label : body.actions.find((a) => a[0] === id)[1]])) && body.actions.length === J.BRAIN_PICKS.length);
+        t.ok('none of them deletes anything, and none is a wait', !body.actions.some(([id, label]) => J.DESTRUCTIVE.test(id) || J.DESTRUCTIVE.test(label) || id.startsWith('wait:')));
+        t.ok('every field passed the real proxy\'s checks (it answered)', P.asked.length === 1 && P.asked[0].contents.at(-1).parts[0].text === 'what do you think about paris');
+        t.ok('"why?" says where it came from, naming the model', /went to Google's Gemini 3\.5 Flash\.$/.test(await typeIn(env, 'why')));
+
+        P.gemini = (req) => ({ say: req.contents.length > 2 ? 'You asked about Paris before.' : 'No memory.', do: [], kind: 'chat' });
+        r = await typeIn(env, 'what do you make of rome');
+        t.eq('the last few exchanges go with the next question', r, 'You asked about Paris before.');
+        t.ok('as question and answer pairs', JSON.stringify(JSON.parse(P.brain()[1]?.body || '{}').turns) === JSON.stringify([{ q: 'what do you think about paris', a: 'Paris is lovely in spring, sir.' }]));
+        await typeIn(env, 'my name is tony'); await typeIn(env, 'my dog is rex');
+        P.gemini = { say: 'Hello again.', do: [], kind: 'chat' };
+        await typeIn(env, 'what do you think about dogs');
+        const b3 = JSON.parse(P.brain().at(-1).body);
+        t.ok('what you told him this visit goes too, as the full brain gets it', b3.name === 'Tony' && b3.told.some((x) => /rex/i.test(x)));
+        t.ok('and the proxy put it in the prompt, flattened', /The user's name is Tony\./.test(P.asked.at(-1).systemInstruction.parts[0].text));
+        P.gemini = { say: 'Gold is element 79.', do: [], kind: 'fact' };
+        await typeIn(env, 'is gold heavier than iron do you reckon');
+        const b4 = JSON.parse(P.brain().at(-1).body);
+        t.ok('facts from the knowledge pack go with a question that names something in it', typeof b4.facts === 'string' && /gold/i.test(b4.facts) && b4.facts.length <= 1500);
+        t.ok('six turns at most', JSON.parse(P.brain().at(-1).body).turns.length <= 6);
+
+        t.section('Supercharger: what Gemini picks is checked (Session 17)');
+        P.gemini = { say: 'Here you go.', do: ['say:joke', 'scene:galaxy', 'planet:mars'], kind: 'chat' };
+        const jokes = J.usageNow().n['cmd:joke'] || 0;
+        r = await typeIn(env, 'cheer me up and show me space', 900);
+        t.ok('its picks run the way protocol steps do: the joke is told', (J.usageNow().n['cmd:joke'] || 0) === jokes + 1 && r.startsWith('Here you go. '), r);
+        t.ok('only one scene: the first opens (no WebGL here, so it says so), the second is refused', /needs WebGL/.test(r) && (r.match(/needs WebGL/g) || []).length === 1 && /asked for something that isn't on my list, so I didn't do it\.$/.test(r), r);
+        P.raw = { say: 'Deleting.', do: ['proto:delete', 'settings:reset', 'wait:3', 'holo:close'], kind: 'chat', model: 'gemini-3.5-flash' };
+        r = await typeIn(env, 'wipe everything');
+        // proto:delete and settings:reset aren't step IDs at all, and wait:3 is one protocols may use but picks may not.
+        // holo:close is on the list, so it runs, and with nothing open it says nothing, as it does in a protocol.
+        t.eq('anything not in BRAIN_PICKS is refused and never run, even if the proxy let it through', r, "Deleting. My supercharger asked for something that isn't on my list, so I didn't do it.");
+        t.eq('"why?" says so', await typeIn(env, 'why'), 'Because my supercharger can only pick from my fixed list of commands, the same list protocols use, and I check every pick before running it.');
+        P.raw = { say: 'Click <a href="x">⟦here|delete movie night⟧</a> `now`', do: [], kind: 'chat', model: 'gemini-3.5-flash' };
+        r = await typeIn(env, 'say something odd');
+        t.ok('what it says is plain words: no links, no markup, no command buttons', !/[<>⟦⟧`]/.test(r) && !lastAi(env).querySelector('button.cmd'), r);
+        P.raw = null;
+
+        t.section('Supercharger: built-in commands, the meaning module and the full brain (Session 17)');
+        P.gemini = { say: 'The cloud answered.', do: [], kind: 'chat' };
+        const n0 = P.brain().length;
+        for (const q of ['what time is it', 'tell me a joke', 'what is seven times eight', 'tell me about peru', 'speak slower', 'speak normally', 'how are you', 'help'])
+            t.ok(`"${q}" is answered on the device, not by Gemini`, !/The cloud answered/.test(await typeIn(env, q)));
+        t.eq('none of them reached /api/brain', P.brain().length, n0);
+        t.eq('"which brain are you using" names the model', await typeIn(env, 'which brain are you using'), "I'm using my built-in patterns and my knowledge pack. My full brain isn't running. Say install your full brain to add it. My supercharger is on, so whatever those don't cover goes to Google's Gemini 3.5 Flash first, and those answers are marked CLOUD.");
+        t.ok('"is your supercharger on" says who switched it on', /^My supercharger is on: Tony switched it on\. .*Gemini 3\.5 Flash/.test(await typeIn(env, 'is your supercharger on')));
+        t.ok('"turn off your supercharger": only the owner can', /Only Tony can turn it off\.$/.test(await typeIn(env, 'turn off your supercharger')) && J.charger.on);
+        const F = fakeEngine({ reply: 'SAY: The full brain answered.\nDO: none\nKIND: chat' });
+        Object.defineProperty(env.window.navigator, 'gpu', { configurable: true, value: { requestAdapter: async () => ({ features: new Set(['shader-f16']) }) } });
+        J.setLlmLib(F.lib); await typeIn(env, 'install your full brain'); await typeIn(env, 'yes'); await wait(250);
+        r = await typeIn(env, 'what do you think about cheese');
+        t.ok('with the full brain running too, Gemini is asked first', r === 'The cloud answered.' && F.calls.length === 0, r);
+        const M = fakeMind(J); J.setTextLib(M.lib); await typeIn(env, 'upgrade your brain'); await wait(200);
+        M.near('crack me up', 'tell me a joke', 0.9);
+        r = await typeIn(env, 'crack me up');
+        t.ok('and before the meaning module, even a sure match', r === 'The cloud answered.', r);
+
+        t.section('Supercharger: failures fall back to the device (Session 17)');
+        P.gemini = { status: 500, message: 'Internal error' };
+        r = await typeIn(env, 'what do you think about toast');
+        t.eq('Gemini failing (the proxy says 502): he says so, and the device answers (here, the full brain)', r, "My supercharger didn't answer that time, so I answered on this device. The full brain answered.");
+        t.ok('the full brain was asked, and the supercharger stays on', F.calls.length === 1 && J.charger.on);
+        P.gemini = { status: 429, message: 'Resource has been exhausted', statusText: 'RESOURCE_EXHAUSTED' };
+        r = await typeIn(env, 'what do you think about scones');
+        t.ok('Gemini\'s quota used up (429): busy, answered here', r.startsWith('My supercharger is busy just now, so I answered that on this device. '), r);
+        P.gemini = { text: 'Sure! Here is my answer.' };
+        r = await typeIn(env, 'what do you think about tea');
+        t.ok('an answer that isn\'t the JSON asked for (the proxy says 502): answered here', r.startsWith("My supercharger didn't answer that time"), r);
+        P.gemini = { blocked: true };
+        r = await typeIn(env, 'something rude');
+        t.eq('blocked by Google\'s safety filter: he says he can\'t help', r, "I can't help with that one.");
+        t.ok('tagged, since it came from the cloud, and the device isn\'t asked', tagOf(env)?.textContent === 'CLOUD · GEMINI' && F.calls.length === 3);
+        P.gemini = { say: 'Slow answer.', do: [], kind: 'chat' }; P.hold();
+        const pending = typeIn(env, 'what do you think about honey');
+        await wait(200);
+        t.eq('asked again while it\'s answering: he says so', await typeIn(env, 'what do you think about marmalade'), "I'm still thinking about your last question. Give me a moment.");
+        P.release(); await pending; await wait(100);
+        P.fixedIp = '198.51.100.9';
+        const before = P.brain().length; let limited = 0;
+        for (let i = 0; i < 13; i++) { J.charger.lead = ''; const x = await J.askCloud('what do you think about number ' + i); if (x === null && /busy just now/.test(J.charger.lead)) limited++; }
+        t.ok('the proxy\'s rate limit (12 a minute for one address) reads as busy', limited >= 1 && P.brain().length - before === 13, limited);
+        P.fixedIp = null; J.charger.lead = '';
+
+        t.section('Supercharger: turning off, offline, and back on (Session 17)');
+        await wait(200); // the status checks the loop above started finish first, while it's still on
+        P.on = false; P.redeploy();
+        r = await typeIn(env, 'what do you think about crumpets');
+        t.eq('switched off between questions: the proxy answers 503, he says so and the device answers (the full brain)', r, 'My supercharger has just been turned off, so I answered that on this device. The full brain answered.');
+        t.ok('the colours and the tag go', !('supercharged' in root.dataset) && J.ring() !== '111,211,255' && J.charger.on === false);
+        t.ok('the conversation with it is dropped', J.charger.turns.length === 0);
+        const nb = P.brain().length;
+        await typeIn(env, 'what do you think about muffins');
+        t.eq('the next question doesn\'t go to the proxy at all', P.brain().length, nb);
+        P.on = true; P.redeploy();
+        await J.cloudCheck(); await wait(1200);
+        t.ok('switched on again: the status check notices, and he says so', logText(env).split(ON_LINE).length === 3 && J.charger.on);
+        P.on = false; P.redeploy();
+        await J.cloudCheck(); await wait(1200);
+        t.ok('switched off from Vercel: the status check notices, and he says that nothing goes to Gemini', logText(env).includes("My supercharger has been turned off. I'm back on my on-device brain, and nothing you ask goes to Gemini.") && !J.charger.on);
+        P.on = true; P.redeploy(); await J.cloudCheck(); await wait(1200);
+        P.down = true; P.online = false;
+        await J.cloudCheck(); await wait(1200);
+        t.ok('offline: the status read fails, it reads as off, and he says it\'s unavailable offline', logText(env).includes("My supercharger is unavailable offline. I'm on my on-device brain.") && !J.charger.on && !('supercharged' in root.dataset));
+        t.eq('"is your supercharger on" says so too', await typeIn(env, 'is your supercharger on'), 'My supercharger is off, and it is unavailable offline. Everything I say comes from this device.');
+        P.down = false; P.online = true;
+        const s0 = P.status();
+        env.window.dispatchEvent(new env.window.Event('online')); await wait(1200);
+        t.ok('back online: checked again at once, and on', P.status() === s0 + 1 && J.charger.on);
+        // Too slow: the page gives up after CLOUD_WAIT with an AbortError, as a browser's fetch does, and stays on.
+        P.slow = true;
+        r = await typeIn(env, 'what do you think about waffles');
+        t.ok('an answer that takes too long: answered here, and it stays on', r.startsWith('My supercharger took too long, so I answered that on this device. ') && J.charger.on, r);
+        P.slow = false;
+        P.down = true;
+        r = await typeIn(env, 'what do you think about pancakes');
+        t.ok('the network dropping mid-question: off, and answered here', /^I couldn't reach my supercharger, so it's off for now and I answered on this device\. /.test(r) && !J.charger.on, r);
+        P.down = false;
+
+        t.section('Supercharger: what the page accepts from the proxy (Session 17)');
+        P.statusRaw = { on: true, owner: '<img src=x onerror=alert(1)>', model: 'gemini"><script>' };
+        await J.cloudCheck(); await wait(1200);
+        t.ok('an owner name that isn\'t a plain name is never said or shown', J.charger.on && logText(env).includes("My owner has turned on my supercharger for you.") && !/<img|onerror/.test(env.document.getElementById('log').innerHTML));
+        t.ok('nor a model name that isn\'t a model name', J.charger.model === null && J.modelName('gemini"><script>') === 'Gemini');
+        P.statusRaw = { on: 'true' };
+        await J.cloudCheck(); await wait(1200);
+        t.ok('only on: true means on', J.charger.on === false);
+        P.statusRaw = null;
+    } finally { env.close(); }
+
+    t.section('Supercharger: nothing is stored (Session 17)');
+    const SP = await fakeProxy({ on: true });
+    env = await open(SP);
+    try {
+        const J = env.window.__jarvis; J.finishBoot(); await wait(80);
+        SP.gemini = { say: 'Volcanoes are hot, Tony.', do: [], kind: 'chat' };
+        await typeIn(env, 'my name is tony'); await typeIn(env, 'what do you think about volcanoes');
+        const db = await dbDump(env.idb), dump = JSON.stringify({ ...db, pack: null }); // the knowledge pack's suit facts name Tony Stark
+        t.ok('nothing it said or was asked is in the database', Object.keys(db).length > 0 && !/Volcanoes|volcanoes|Tony|Gemini|supercharg/i.test(dump), dump.slice(0, 200));
+        t.ok('nor anywhere in localStorage', !/olcano|Tony|Gemini/i.test(JSON.stringify({ ...env.window.localStorage })));
+        t.ok('the page\'s saving still has one readwrite transaction, in flush()', (src.match(/'readwrite'/g) || []).length === 1);
+    } finally { env.close(); }
+    const again = await open(SP);
+    try { again.window.__jarvis.finishBoot(); await wait(80); t.eq('a reload remembers no conversation with it', again.window.__jarvis.charger.turns.length, 0); } finally { again.close(); }
+
+    t.section('Supercharger: every built-in command answers exactly as with it off (Session 17)');
+    const offQ = await fakeProxy({ on: false }), onQ = await fakeProxy({ on: true });
+    onQ.gemini = { say: 'The cloud answered.', do: [], kind: 'chat' };
+    const plain = await open(offQ), sup = await open(onQ), A = sup.window.__jarvis, Pl = plain.window.__jarvis;
+    try {
+        Pl.finishBoot(); A.finishBoot(); await wait(100);
+        Pl.setReload(() => {}); A.setReload(() => {});
+        t.ok('(one window supercharged, one not)', A.charger.on && !Pl.charger.on);
+        const phrases = [...Pl.chipCmds(), 'jarvis show me the galaxy please', 'take me to mars', 'now jupiter', 'what is seven times eight', 'my dog is rex', 'what do you know about me',
+            'speak slower', 'make the orb purple', 'how well do you know me', 'whats my favourite', 'what havent i tried', 'show me florida', 'thank you', 'how far is the moon',
+            'delete movie night', 'forget my name', 'reset my settings', 'list my protocols', 'brief me', 'how are you', 'tell me about peru', 'how far is mars', 'what is the capital of australia',
+            'tell me about gold', 'when did voyager 1 launch'].filter((q) => !/^(?:which brain are you using|is your supercharger on|update jarvis|reboot|wake up daddy's home|house party|scan settings|restore my settings|back up my settings)$/i.test(q));
+        const diff = [], n0 = onQ.brain().length;
+        for (const q of phrases) {
+            const [a, b] = await Promise.all([typeIn(plain, q), typeIn(sup, q)]);
+            if (a !== b) diff.push(`${q}: "${a.slice(0, 60)}" vs "${b.slice(0, 60)}"`);
+            if (/Say yes or no\.$/.test(a)) await Promise.all([typeIn(plain, 'no'), typeIn(sup, 'no')]);
+        }
+        t.eq(`all ${phrases.length} command links and pinned phrasings answer exactly as without it`, diff.join(' | '), '');
+        t.eq('and none of them reached Gemini', onQ.brain().length, n0);
+    } finally { plain.close(); sup.close(); }
+}
+
+/* Session 17: install to home screen, and "update Jarvis" (review 73). The service worker itself is in
+ * tests/jarvis-test-sw.test.mjs; here, the page's side of it. */
+export async function installAndUpdate(t, page) {
+    const URL_ = 'https://jarvis.test/jarvis.html', quiet = { ignore: /getContext|HTMLCanvasElement/ };
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const lastAi = (env) => [...env.document.querySelectorAll('#log .msg.ai')].pop()?.textContent ?? '';
+    const typeIn = async (env, text) => { const { document, window } = env; document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); await wait(560); return lastAi(env); };
+    const src = page.html;
+
+    t.section('Offline and install: the page (Session 17)');
+    t.ok('no Google Fonts and no cdnjs anywhere in the page', !/fonts\.googleapis|fonts\.gstatic|cdnjs/.test(src));
+    t.eq('the font is hosted here, in its three weights', (src.match(/@font-face\{font-family:"Chakra Petch";font-style:normal;font-weight:(\d+);font-display:swap;src:url\(jarvis\/vendor\/fonts\/chakra-petch-latin-\1-normal\.woff2\) format\("woff2"\)\}/g) || []).length, 3);
+    if (page.url.startsWith('file:')) {
+        const root = new URL('./', page.url);
+        const three = await readFile(fileURLToPath(new URL('jarvis/vendor/three.min.js', root)));
+        t.eq('jarvis/vendor/three.min.js is three.js r128, matching the SRI hash cdnjs\'s copy had', 'sha512-' + createHash('sha512').update(three).digest('base64'), (src.match(/THREE_SRI='([^']+)'/) || [])[1]);
+        for (const w of [300, 500, 700]) {
+            const f = await readFile(fileURLToPath(new URL(`jarvis/vendor/fonts/chakra-petch-latin-${w}-normal.woff2`, root)));
+            t.ok(`the ${w} weight is a real WOFF2 file, under 30 KB`, f.subarray(0, 4).toString('latin1') === 'wOF2' && f.length < 30000);
+        }
+        t.ok('with the font\'s licence (SIL Open Font License) and three.js\'s (MIT) beside them', /SIL Open Font License/.test(await readFile(fileURLToPath(new URL('jarvis/vendor/fonts/OFL.txt', root)), 'utf8')) && /MIT License|Permission is hereby granted/.test(await readFile(fileURLToPath(new URL('jarvis/vendor/three.LICENSE', root)), 'utf8')));
+    } else t.note('file checks skipped: not running against the working copy');
+    t.ok('the service worker is registered only where it can be, after load', /if\(window\.isSecureContext&&navigator\.serviceWorker\)addEventListener\('load'/.test(src));
+    t.ok('the install prompt is kept for "install Jarvis" rather than shown at once', /addEventListener\('beforeinstallprompt',e=>\{e\.preventDefault\(\);installPrompt=e\}\)/.test(src));
+
+    const env = await openDom(page.html, URL_, { ...quiet, beforeParse(w) {
+        const deleted = [];
+        w.__deleted = deleted;
+        w.caches = { keys: async () => ['jarvis-test-shell', 'jarvis-test-lib-abc', 'jarvis-shell', 'webllm/model'], delete: async (k) => { deleted.push(k); return true; } };
+        Object.defineProperty(w.navigator, 'onLine', { configurable: true, get: () => w.__online !== false });
+    } });
+    try {
+        const J = env.window.__jarvis; J.finishBoot(); await wait(50);
+        let reloads = 0; J.setReload(() => { reloads++; });
+        t.eq('"install Jarvis" without a browser prompt: where to find it', await typeIn(env, 'install jarvis'), "Open your browser's menu and choose Install app, or Add to Home screen. Not every browser offers it. After one visit I work offline either way.");
+        let prompted = 0; J.setInstallPrompt({ prompt() { prompted++; } });
+        t.ok('with one (Chrome, Edge, Samsung Internet): it shows the browser\'s own', /^Your browser will ask you to install me\./.test(await typeIn(env, 'add jarvis to my home screen')) && prompted === 1);
+        t.ok('only once: a prompt can\'t be shown twice', !/^Your browser will ask/.test(await typeIn(env, 'install jarvis')) && prompted === 1);
+        Object.defineProperty(env.window.navigator, 'userAgent', { configurable: true, get: () => 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1' });
+        t.eq('on an iPhone: Share, Add to Home Screen, and that it starts with its own storage', await typeIn(env, 'how do i install you'), "In Safari, tap the Share button, then Add to Home Screen. On an iPhone, the installed Jarvis keeps its own storage, separate from Safari's, so it starts fresh. Back up your settings first if you want them there.");
+        t.ok('"install your full brain" is still the full brain', /full brain|WebGPU|graphics/i.test(await typeIn(env, 'install your full brain')) && !/Home Screen|Install app/.test(lastAi(env)));
+        await typeIn(env, 'no');
+        t.ok('the help (the Power stone) says so, iPhone storage included', J.GAUNTLET.find((g) => g.k === 'power').links.some((l) => l[0] === 'install Jarvis') && /installed Jarvis has its own storage, separate from Safari's/.test(J.GAUNTLET.find((g) => g.k === 'power').note));
+        env.window.__online = false;
+        t.eq('"update Jarvis" offline: can\'t, and says when it will', await typeIn(env, 'update jarvis'), "I can't update while you're offline. I'll pick up the latest version the next time you open me with a connection.");
+        t.eq('(nothing deleted, no reload)', env.window.__deleted.length + reloads, 0);
+        env.window.__online = true;
+        t.eq('"update Jarvis" online', await typeIn(env, 'update yourself'), "Updating. I've cleared my saved copy, and I'll reload with the latest version in a moment.");
+        t.eq('it deletes only its own caches, not the main page\'s or the full brain\'s', env.window.__deleted.join(), 'jarvis-test-shell,jarvis-test-lib-abc');
+        await wait(2700);
+        t.eq('then reloads', reloads, 1);
+        t.ok('"upgrade your brain" is still the meaning module, not an update', !/Updating/.test(await typeIn(env, 'upgrade your brain')));
+    } finally { env.close(); }
 }
