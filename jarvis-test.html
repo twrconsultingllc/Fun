@@ -4129,7 +4129,7 @@ let llmLib=async on=>{
   // The engine runs in a worker (jarvis/llm/worker.js). There, WebLLM's logging can't reach localStorage, and paths
   // resolve against the site's origin, so every address here is a full one.
   const record={model:llmUrl(LLM.dir),model_id:LLM.id,model_lib:llmUrl(LLM.lib),required_features:['shader-f16'],
-    overrides:{context_window_size:4096},integrity:LLM.integrity};
+    overrides:{context_window_size:2048},integrity:LLM.integrity};
   const worker=new Worker(llmUrl('worker.js'),{type:'module'});
   try{
     const engine=await webllm.CreateWebWorkerMLCEngine(worker,LLM.id,{appConfig:{model_list:[record],cacheBackend:'cache'},
@@ -4283,11 +4283,16 @@ async function askBrain(text){
   full.busy=false;
   if(!running)for(const e of protoHud){e.textContent='';e.hidden=true}
   if(failed){
-    if(/lost/i.test(String(failed&&(failed.name+' '+failed.message)))){full.state='off';full.engine=null;full.turns=[];
-      return because("My full brain stopped: the graphics chip lost it, usually from running out of memory. I'm back on my standard brain.",GPU_WHY)}
     // "Why?" names the error, so it can be reported: plain text only, never a link, and cut short.
     try{console.error('Full brain error:',failed)}catch(e){}
     const what=String(failed&&(failed.name&&failed.message?failed.name+': '+failed.message:failed.message||failed)||'unknown').replace(/[⟦⟧<>]/g,'').replace(/\s+/g,' ').trim().slice(0,200);
+    // A lost device, or a GPU read cut off (WebLLM destroys its device when the chip runs out of memory, which cancels
+    // every read in flight): the engine can't be trusted after either, so it's unloaded to free the memory.
+    if(/lost|AbortError|mapAsync|unmapped|destroyed/i.test(String(failed&&(failed.name+' '+failed.message)))){
+      const e=full.engine;full.state='off';full.engine=null;full.turns=[];
+      try{if(e&&e.unload)await e.unload()}catch(x){}
+      return because("My full brain stopped: the graphics chip lost it, usually from running out of memory. I'm back on my standard brain. Close other tabs, then say install your full brain to try again.",`${GPU_WHY} The error was: ${what}`);
+    }
     return because("My full brain didn't answer that time. Ask me again, or try one of my usual commands. Ask why to hear the error.",`Because the language model on your graphics chip hit an error, so there was nothing I could check. The error was: ${what}`);
   }
   const r=parseBrain(out);
