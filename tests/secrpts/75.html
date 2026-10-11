@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #75 — My Daily Wire: the 6-hour refresh turned off</title>
+<meta name="description" content="Review of turning off the Daily Wire feed workflow's 6-hour schedule on 2026-10-11, and the page saying it is updated by hand.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #75 — My Daily Wire: the 6-hour refresh turned off</h1>
+    <p class="sub">You asked to turn off the Daily Wire's 6-hour refresh. Each run commits the new <code>feeds.json</code>, and every commit redeploys every Vercel project connected to this repo, which used up the account's daily deployment limit on 2026-10-11 and blocked the supercharger proxy's deploy. The workflow now runs only when you start it from the Actions tab.</p>
+    <div class="meta">Review performed 2026-10-11 · scope: <code>.github/workflows/daily-wire.yml</code>, <code>daily-wire.html</code>, <code>daily-wire/feeds.config.json</code>, <code>daily-wire/feeds.json</code>, <code>daily-wire/fetch-feeds.mjs</code> (a comment), <code>daily-wire/README.md</code>, <code>CLAUDE.md</code>, <code>tests/daily-wire.core.test.mjs</code>, <code>tests/daily-wire.dom.test.mjs</code> · suites run: <code>wire-core</code> and <code>wire-dom</code> (<code>--page=daily-wire.html</code>).</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 75%;"></div></div>
+    <div class="progress-label">4 items: 3 verified clean or fixed, 1 open.</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The workflow</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Only the <code>schedule</code> trigger was removed. <code>workflow_dispatch</code>, the permissions (<code>contents: write</code>), the pinned actions and the steps are unchanged, so a run by hand works exactly as before and commits as <code>github-actions[bot]</code>. Nothing new can start it. The header comment says how to bring the schedule back.</p></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The page says what's true</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The page's stamp said "checks every 6 h", its empty-list notice said it "updates on a schedule every few hours", and its description said "refreshed every six hours". All three would have been wrong.</p></div>
+      <div class="fix-note"><b>Fix:</b> <code>refreshHours</code> is now 0 in <code>feeds.config.json</code> and in the current <code>feeds.json</code>, and 0 means no schedule. The stamp then reads "Updated … · updated by hand". Any other value still shows "checks every N h", and a missing value still shows 6. The notice and the description no longer promise a schedule. The change is text and one condition in the page's script, with no new markup, link or style.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Tests, and broken on purpose</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>wire-core</code> 107 checks and <code>wire-dom</code> 100, all passing (207 in all, 1 more each). The old "refresh is 6 hours" check now expects 0. A new check reads the workflow and fails if it has a <code>schedule</code> or <code>cron</code>; with the schedule put back, it failed (1). The page suite checks the "updated by hand" stamp; with the page's old stamp put back, it failed (1). Both copies were restored. The check that expects "checks every 6 h" still runs, so a schedule brought back later still shows correctly.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Headlines now go stale until you run it</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>This is what you asked for, recorded so it isn't mistaken for a fault. The headlines stay as they were at the last run until you start "Daily Wire feeds" from the Actions tab. The page shows when they were updated. <code>jarvis.html</code> and <code>jarvis-test.html</code> have a code comment that still says <code>feeds.json</code> is "refreshed every 6 hours". It's only a comment, the briefing reads the file either way, and it's left for the next Jarvis change rather than starting a Jarvis review for one word.</p></div>
+    </div>
+  </section>
+  <footer>Previous review: <a href="74.html">#74</a> (the supercharger on by default).</footer>
+</div>
+</body>
+</html>

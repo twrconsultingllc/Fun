@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' https://ichef.bbci.co.uk https://media.npr.org https://i.guim.co.uk https://static01.nyt.com https://cdn.arstechnica.net https://platform.theverge.com https://media.wired.com https://techcrunch.com https://github.blog https://static.simonwillison.net https://www.nasa.gov https://www.quantamagazine.org https://www.sciencedaily.com https://media.springernature.com https://krebsonsecurity.com https://imgs.xkcd.com https://*.ytimg.com https://npr.brightspotcdn.com https://d3i6fh83elv35t.cloudfront.net https://assets.science.nasa.gov https://images-assets.nasa.gov; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
-<meta name="description" content="My Daily Wire: a personal news reader. Southwest Florida local news plus headlines from BBC, NPR, Ars Technica, NASA, CISA, USGS, xkcd and more, refreshed every six hours as magazine cards under NASA's Image of the Day.">
+<meta name="description" content="My Daily Wire: a personal news reader. Southwest Florida local news plus headlines from BBC, NPR, Ars Technica, NASA, CISA, USGS, xkcd and more, refreshed when its owner runs the update, as magazine cards under NASA's Image of the Day.">
 <title>My Daily Wire</title>
 <script>
     /* Apply a saved Theme choice before first paint, so there's no flash. */
@@ -551,9 +551,10 @@
 
     function renderStamp() {
         const g = state.data && Date.parse(state.data.generatedAt);
+        // refreshHours 0: no schedule, the update is run by hand (since 2026-10-11).
         const hours = state.data && Number.isInteger(state.data.refreshHours) ? state.data.refreshHours : 6;
         $('stamp').textContent = Number.isFinite(g)
-            ? 'Updated ' + new Date(g).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' · checks every ' + hours + ' h'
+            ? 'Updated ' + new Date(g).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + (hours > 0 ? ' · checks every ' + hours + ' h' : ' · updated by hand')
             : 'Waiting for the first update';
     }
 
@@ -592,7 +593,7 @@
         } else if (!state.items.length) {
             showNotice(state.data ? 'No headlines yet' : 'Headlines could not be loaded',
                 state.data
-                    ? 'The feed list updates on a schedule every few hours. Once the first update has run, headlines appear here.'
+                    ? 'The feed list hasn\'t been updated yet. Once the first update has run, headlines appear here.'
                     : 'The headline file did not load. Check your connection and reload the page.');
         } else if (!list.length) {
             showNotice('Nothing matches', state.unreadOnly ? 'You have read everything here. Turn off "Unread only" to see it again.' : 'Try a different search or category.');

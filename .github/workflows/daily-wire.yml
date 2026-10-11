@@ -1,18 +1,20 @@
-# My Daily Wire: refresh daily-wire/feeds.json every 6 hours.
+# My Daily Wire: refresh daily-wire/feeds.json, run by hand.
+#
+# It used to run every 6 hours. The owner turned the schedule off on
+# 2026-10-11: each run's commit redeploys every Vercel project connected to
+# this repo, and that used up the account's daily deployment limit.
 #
 # Fetches every feed in daily-wire/feeds.config.json on GitHub's servers,
 # writes the cleaned result to daily-wire/feeds.json, and commits it only if
 # the headlines changed. GitHub Pages then redeploys the site with it.
 #
-# Run it by hand from the Actions tab ("Daily Wire feeds" → Run workflow).
-# Scheduled runs only happen on the default branch, and GitHub may start
-# them a few minutes late.
+# Run it from the Actions tab ("Daily Wire feeds" → Run workflow). To bring
+# the schedule back, add under "on:" a schedule with cron '17 */6 * * *', and
+# set refreshHours back to 6 in daily-wire/feeds.config.json.
 
 name: Daily Wire feeds
 
 on:
-  schedule:
-    - cron: '17 */6 * * *'
   workflow_dispatch:
 
 permissions:

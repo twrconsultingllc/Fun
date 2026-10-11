@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* My Daily Wire — feed fetcher.
  *
- * Runs in GitHub Actions (.github/workflows/daily-wire.yml) every 6 hours:
+ * Runs in GitHub Actions (.github/workflows/daily-wire.yml), started by hand:
  * fetches every feed in feeds.config.json, reduces each item to plain text
  * plus a vetted link and image, and writes feeds.json for daily-wire.html.
  *

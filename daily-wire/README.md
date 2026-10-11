@@ -6,8 +6,13 @@ directly: browsers block cross-site feed requests, and the page's CSP only
 allows `connect-src 'self'`.
 
 `feeds.json` is written by `fetch-feeds.mjs`, which the
-`.github/workflows/daily-wire.yml` workflow runs every 6 hours on GitHub's
-servers. The workflow commits the file only when the headlines changed, as
+`.github/workflows/daily-wire.yml` workflow runs on GitHub's servers when
+it's started by hand from the Actions tab ("Daily Wire feeds" → Run
+workflow). It ran every 6 hours until 2026-10-11, when the schedule was
+turned off: each run's commit redeployed every Vercel project connected to
+this repo, which used up the account's daily deployment limit. To bring it
+back, add the `schedule` (cron `17 */6 * * *`) to the workflow again and set
+`refreshHours` back to 6 in `feeds.config.json`. The workflow commits the file only when the headlines changed, as
 `github-actions[bot]`, and GitHub Pages redeploys the site.
 
 The top of the page is a full-width picture from the `nasa-iotd` feed
@@ -96,6 +101,6 @@ doesn't go blank. The page's footer (**Feed status**) lists every feed with
 its item count or its error. If every feed fails, the fetcher leaves
 `feeds.json` untouched and the workflow run goes red.
 
-GitHub turns off scheduled workflows in a public repo after 60 days with no
-repository activity. If headlines stop updating, check the Actions tab and
-re-enable the workflow there.
+If the schedule is ever brought back: GitHub turns off scheduled workflows
+in a public repo after 60 days with no repository activity. If headlines
+stop updating, check the Actions tab and re-enable the workflow there.

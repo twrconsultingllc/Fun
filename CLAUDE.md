@@ -267,9 +267,10 @@ easy to skip because they don't look like "a page":
   as committer of web-UI commits is also fine. So is
   `github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>`,
   as author and committer of the "Daily Wire: refresh feeds" commits that
-  `.github/workflows/daily-wire.yml` makes every 6 hours (the user agreed
+  `.github/workflows/daily-wire.yml` makes when it's run (the user agreed
   to these on 2026-09-26 when choosing the commit-based refresh for
-  `daily-wire.html`). The same bot identity is also expected as author and
+  `daily-wire.html`; it ran every 6 hours until 2026-10-11, and is run by
+  hand since). The same bot identity is also expected as author and
   committer of the "J.A.R.V.I.S.: build the knowledge pack" commits that
   `.github/workflows/jarvis-knowledge.yml` makes when it's run by hand from
   the Actions tab (the user agreed to these on 2026-10-10, Session 13 of
@@ -633,9 +634,13 @@ Opening and merging pull requests does work, through the GitHub tools.
 ## My Daily Wire (`daily-wire.html`): two traps
 
 `daily-wire.html` is a news reader whose headlines come from
-`daily-wire/feeds.json`, rebuilt every 6 hours by
-`.github/workflows/daily-wire.yml` running `daily-wire/fetch-feeds.mjs`
-(see `daily-wire/README.md`). Two things about it aren't obvious:
+`daily-wire/feeds.json`, rebuilt by `.github/workflows/daily-wire.yml`
+running `daily-wire/fetch-feeds.mjs` (see `daily-wire/README.md`). Since
+2026-10-11 the workflow is run by hand only, from the Actions tab: the user
+turned off its 6-hour schedule because each run's commit redeployed every
+Vercel project connected to this repo and used up the account's daily
+deployment limit. `refreshHours` is 0 to match, and the page then says
+"updated by hand". Two things about it aren't obvious:
 
 - **Feeds can't be fetched from a claude.ai/code container.** Its egress
   proxy answers CONNECT 403 for news and feed hosts (BBC, NPR, xkcd,

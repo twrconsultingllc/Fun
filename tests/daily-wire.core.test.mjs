@@ -45,7 +45,12 @@ export default async function run(t) {
     t.ok('YouTube channel ids are well-formed (UC + 22 chars)', yt.every((f) => /channel_id=UC[A-Za-z0-9_-]{22}$/.test(f.url)));
     t.ok('weather alerts are for Florida', config.feeds.some((f) => f.url === 'https://api.weather.gov/alerts/active.atom?area=FL'));
     t.ok('image hosts are bare hostnames (optionally *.)', config.imageHosts.every((h) => /^(\*\.)?[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(h)));
-    t.ok('refresh is 6 hours', config.refreshHours === 6);
+    // 0: no schedule. The owner turned the 6-hour run off on 2026-10-11, and the workflow is run by hand.
+    t.eq('refresh is by hand (0)', config.refreshHours, 0);
+    {
+        const wf = await readFile(new URL('../.github/workflows/daily-wire.yml', import.meta.url), 'utf8');
+        t.ok('the workflow has no schedule, only the Run workflow button', /^on:\n {2}workflow_dispatch:\n/m.test(wf) && !/^\s*schedule:|cron:\s*'/m.test(wf));
+    }
     const swfl = config.feeds.filter((f) => f.category === 'swfl');
     const gnFeeds = swfl.filter((f) => new URL(f.url).hostname === 'news.google.com');
     t.eq('four Google News searches cover Naples, Bonita/Estero, Collier and Lee', gnFeeds.map((f) => f.id).join(','), 'gn-naples,gn-bonita,gn-collier,gn-lee');
