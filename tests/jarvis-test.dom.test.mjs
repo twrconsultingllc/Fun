@@ -3695,8 +3695,9 @@ export function fakeEngine({ reply = 'SAY: Hello there.\nDO: none\nKIND: chat', 
                     if (st.gate) await st.gate;
                     await tick(1);
                     if (st.fail === 'lost' && i >= chunk) throw Object.assign(new Error('Device was lost'), { name: 'DeviceLostError' });
-                    // What Chrome gave on the user's device on 2026-10-11, mid-answer.
-                    if (st.fail === 'abort' && i >= chunk) throw new DOMException("Failed to execute 'mapAsync' on 'GPUBuffer': Buffer was unmapped before mapping was resolved.", 'AbortError');
+                    // What Chrome gave on the user's device on 2026-10-11, mid-answer. WebLLM's worker sends errors back as
+                    // err.toString(), so the page gets a plain string, not an Error (web-llm.js, kind "throw").
+                    if (st.fail === 'abort' && i >= chunk) throw String(new DOMException("Failed to execute 'mapAsync' on 'GPUBuffer': Buffer was unmapped before mapping was resolved.", 'AbortError'));
                     st.chunks++;
                     yield { choices: [{ delta: { content: text.slice(i, i + chunk) } }] };
                 }
@@ -3715,7 +3716,8 @@ export function fakeEngine({ reply = 'SAY: Hello there.\nDO: none\nKIND: chat', 
         st.loads++;
         on(0.1); if (loadGate) await loadGate;
         for (const p of [0.1, 0.5, 1]) { on(p); await tick(4); }
-        if (loadFail) throw Object.assign(new Error(loadFail.message), { name: loadFail.name });
+        // Through the worker a load error arrives as a string too, unless the test asks for an Error object.
+        if (loadFail) throw loadFail.object ? Object.assign(new Error(loadFail.message), { name: loadFail.name }) : `${loadFail.name}: ${loadFail.message}`;
         return engine;
     };
     return st;
@@ -3825,7 +3827,7 @@ export async function fullBrain(t, page) {
     env = await openDom(page.html, URL_, fixed(fakeGpu())); J = env.window.__jarvis;
     try {
         J.finishBoot(); await wait(50);
-        let F = fakeEngine({ loadFail: { name: 'Error', message: 'Failed to fetch' } }); F.holdLoad(); J.setLlmLib(F.lib);
+        let F = fakeEngine({ loadFail: { name: 'Error', message: 'Failed to fetch', object: true } }); F.holdLoad(); J.setLlmLib(F.lib);
         const n = count(J, 'cmd:full-brain');
         let r = await typeIn(env, 'jarvis install your full brain please');
         t.eq('he warns about the size first, and asks', r, "My full brain is Qwen3, a language model with 0.6 billion parameters. It's a download of about 350 megabytes from this site, and it needs about 1.4 gigabytes of graphics memory while it runs. Your browser keeps the files until you clear this site's data, so next time it loads much faster. Install it? Say yes or no.");
