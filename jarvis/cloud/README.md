@@ -36,6 +36,20 @@ Without Edge Config, the same settings come from the environment variables
 `SUPERCHARGE`, `SUPERCHARGE_UNTIL`, `OWNER_NAME` and `JARVIS_MODEL`, and a
 change needs a redeploy. If Edge Config can't be read, it's off.
 
+## Setting up the Vercel project
+
+The project's **Root Directory** must be `jarvis/cloud` (Settings → Build and
+Deployment), with the Framework Preset **Other**. From the repo's top folder
+Vercel finds no `api/`, and every address answers `404 NOT_FOUND`. The proxy
+has no home page either, so its bare address always answers 404. Check it at
+`/api/status`. The test copy uses `https://jarvis-cloud-gamma.vercel.app`.
+
+A change to the environment variables only reaches the function on a new
+deployment (Deployments → the latest one → Redeploy). `vercel.json` skips a
+Git-triggered build when nothing under `jarvis/cloud/` changed, so the Daily
+Wire's commits don't redeploy it. A commit that does change this folder
+deploys it.
+
 ## Environment variables
 
 | Name | What |
