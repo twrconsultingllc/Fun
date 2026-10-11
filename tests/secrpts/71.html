@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #71 — J.A.R.V.I.S.: Sessions 8 to 14 promoted to the main page</title>
+<meta name="description" content="Review of the promotion of jarvis-test.html into jarvis.html on 2026-10-11: Sessions 8 to 14 and the work since go to the main page, which now saves to its own IndexedDB database so the two copies never share saves.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #71 — J.A.R.V.I.S.: Sessions 8 to 14 promoted to the main page</h1>
+    <p class="sub">You asked for the test copy to go to the main page. <code>jarvis.html</code> is now <code>jarvis-test.html</code> without the TEST tag, title and description, and with its own database name. Its suite is the test copy's, without the two sections about the test copy.</p>
+    <div class="meta">Review performed 2026-10-11 · scope: <code>jarvis.html</code>, <code>jarvis-test.html</code> (comment and description), <code>tests/jarvis.dom.test.mjs</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>tests/jarvis-test.chromium.mjs</code>, <code>jarvis/build-plan.html</code> · suites run: <code>jarvis</code> and <code>jarvis-test</code> (jsdom), one after the other, then the Chromium check</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 86%;"></div></div>
+    <div class="progress-label">7 items: 6 verified clean or fixed, 1 open.</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Security and privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Nothing new on the main page that the test copy didn't already have</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Apart from the database name and the test markings, <code>jarvis.html</code> is the test copy byte for byte: a diff of the two, with <code>jarvis-test</code> written the same in both, shows only the title, the description, the TEST tag and its style, the header line, the database name and three comments. Everything else was reviewed as it was built, in reviews 60 to 70. The CSP meta tag is the same as the main page's before (<code>'wasm-unsafe-eval'</code>, which the language module and the full brain need, was already there for hand control), and the same as the test copy's. The page still has no <code>innerHTML</code>, and every file it loads from <code>jarvis/</code> is checked against a pinned hash by the suite.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The two copies never share saves</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Both pages are on the same origin, so they share localStorage and IndexedDB. Before this, <code>jarvis.html</code> used localStorage and the test copy its own database, <code>jarvis-test</code>. Copied over as it was, the main page would have opened <code>jarvis-test</code> too, and the two would have shared one database.</p></div>
+      <div class="fix-note"><b>Fix:</b> The promoted page's <code>DB_NAME</code> is <code>jarvis</code>. The test copy's suite now checks that the two names differ, that neither page writes localStorage, and, in one profile, that each page copies the old localStorage values into its own database, that a save on the main page leaves the test copy's database as it was, and that the profile ends with exactly the databases <code>jarvis</code> and <code>jarvis-test</code>. Broken on purpose (the main page given <code>DB_NAME='jarvis-test'</code>), that suite fails 2 checks (the names, and the main page copying the old settings into its own database), and the rest of that section stops with an error. The Chromium check does the same in a real browser's IndexedDB.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What older versions left in localStorage stays there</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>On its first run each page copies the old <code>jarvis-*</code> values in, read-only, and never deletes them. They are only settings (skin, voice picks, taught phrases, the mic note, settings and the streak). Every older <code>jarvis.html</code> ran its scrub on each load, deleting anything that failed <code>personal()</code>, and the copy checks each value again before saving it. So what stays is what already passed. Deleting them would also delete them for a browser still holding an old cached copy of the page, so it's left as it is, on purpose. A later session could remove them once the copy is done.</p></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The suites</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>jarvis (jsdom): 1774 checks, all passing. That's the test copy's 1790 checks without its "Test copy" section (the tab, the TEST tag, the description) and its "kept apart" section, with the database name set to <code>jarvis</code> throughout. jarvis-test (jsdom): 1788 checks, all passing, with the "kept apart" section rewritten for two databases. They were run one after the other, never at the same time. The full brain's error checks from review 70 come across with it, so the main page has them too.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The Chromium check</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>257 checks, all passing, with no page errors or CSP refusals. Steps 1 and 3 had relied on <code>jarvis.html</code> saving to localStorage, which it no longer does. Step 1 now puts the values an older version left into localStorage from <code>index.html</code>, which saves nothing. Step 3 opens <code>jarvis.html</code> in the same profile and checks its own database, the test copy's database left as it was, and localStorage unchanged. It also screenshots <code>jarvis.html</code> at 1280×800 and 390×844, with no TEST tag, the title "J.A.R.V.I.S. Demo" and no sideways scroll at phone size.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Build plan and notes</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Sessions 8 to 14 are Done in both the session index and each session's own row, and Session 14's notes record the promotion and the devices you tried. CLAUDE.md's storage notes now describe both copies saving through <code>save()</code> to their own databases. They also say a promotion must keep the database name different.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Descriptions</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Both pages' description meta tags now mention the optional full brain, which Session 14 added without updating them.</p></div>
+    </div>
+  </section>
+  <footer>Previous review: <a href="70.html">#70</a> (the full brain's errors arrive as strings).</footer>
+</div>
+</body>
+</html>

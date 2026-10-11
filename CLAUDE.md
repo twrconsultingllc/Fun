@@ -505,21 +505,19 @@ Chrome then logs "Failed to set the 'voice' property" for each utterance,
 because a plain object isn't a real voice. That's the fake, not a page bug.
 
 Jarvis never stores personal data in the browser. The user set this on
-2026-10-10: browser storage is too easy to read. Every `localStorage` write in
-`jarvis.html` and `jarvis-test.html` goes through `store()`, which only takes
-the four keys in `STORE_KEYS` (skin, voice picks, taught phrases, mic note)
-and refuses any text that `personal()` flags: emails, phone and ID numbers,
-long numbers, dates, street and web addresses, and "my name / my birthday /
-I live…" disclosures. `scrubStore()` runs on every load and deletes anything
-an older version saved that doesn't pass, touching only `jarvis-*` keys,
-since other pages on the site share the storage. The user's name lives in
-memory for one visit only. A new feature that wants to remember something
-must go through `store()`, add its key to `STORE_KEYS` only if it can never
-hold personal data, and pass the suites' "exactly one `localStorage.setItem`"
-check. In the test copy, since Session 9, saves go to IndexedDB instead,
-through one function, `save()`, which checks every record itself; its suite's
-check is "no localStorage write at all, and exactly one readwrite
-transaction". Facts about the user (birthdays, family, a diary) aren't stored at
+2026-10-10: browser storage is too easy to read. Since Session 9 (and in
+`jarvis.html` since the promotion on 2026-10-11), every save in both copies
+goes to IndexedDB through one function, `save()`, which checks every record
+itself: settings only under the keys in `STORE_KEYS`, holding no text that
+`personal()` flags (emails, phone and ID numbers, long numbers, dates, street
+and web addresses, and "my name / my birthday / I live…" disclosures), and
+usage counts only as an ID from `EVENT_IDS`, a day number and a count.
+Neither page writes localStorage any more. On its first run each copies in
+the `jarvis-*` values older versions left there, read-only. The user's name
+lives in memory for one visit only. A new feature that wants to remember
+something must go through `save()`, add its key to `STORE_KEYS` only if it
+can never hold personal data, and pass both suites' check: "no localStorage
+write at all, and exactly one readwrite transaction". Facts about the user (birthdays, family, a diary) aren't stored at
 all. "What do you save" makes Jarvis read back what's actually stored.
 
 `jarvis.html` and `jarvis-test.html` share their browser storage. Both are
@@ -532,10 +530,10 @@ until the promotion on 2026-10-10, opening `jarvis.html` deleted the test
 copy's `jarvis-settings` and `jarvis-streak`, with no error. Session 9 of
 `jarvis/build-plan.html` fixed it on 2026-10-10 (review 60): the test copy
 keeps its own IndexedDB database, `jarvis-test`, copies the localStorage
-values in once, and never writes localStorage. `jarvis.html` needed no
-change, because it never opens IndexedDB and its scrub only touches
-localStorage. When Session 9 is promoted, the main page gets a database of
-its own name (for example `jarvis`), so the two copies stay apart.
+values in once, and never writes localStorage. The promotion on 2026-10-11
+gave `jarvis.html` the same code with `DB_NAME` set to `jarvis`, so the two
+copies stay apart. A promotion must keep that one line different, like the
+TEST tag. The test copy's suite checks it ("kept apart from jarvis.html").
 
 Speech recognition on a phone sends commands without punctuation. "Create
 movie night protocol: make the orb purple, speak slower, then open the
@@ -577,6 +575,15 @@ fake engine threw a real `DOMException`. Review 69 had called the check
 Two lessons: a fake of a library must fail the way the real one does, down
 to the shape of what it throws (the same as the fake speech recognizer
 above), and no check is exempt from being run against a broken copy.
+
+Which devices can run the full brain isn't a matter of age alone. On
+2026-10-11 the user tried it on a Galaxy S24 (SM-S921U, a 2024 phone).
+Chrome on Android reported WebGPU but gave no graphics adapter, and Samsung
+Internet loaded the model but lost the GPU device mid-answer (the `mapAsync`
+`AbortError`). On a Galaxy Tab S11 Ultra it installed and answered. So
+browser and driver support count as much as memory. Don't promise that a
+device will work from its specs. What to do for phones that can't run it
+was left for a planning session. No change was made for them.
 
 In `jarvis-test.html`, "help" no longer has a hand-written paragraph. It
 opens the Infinity Gauntlet, built from the `GAUNTLET` list: six stones (Space,

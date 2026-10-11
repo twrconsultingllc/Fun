@@ -1596,53 +1596,47 @@ async function memoryFoundation(t, page) {
     } finally { env.close(); }
 }
 
-// The test copy and jarvis.html share an origin, so they share localStorage. Since Session 9 the test copy keeps
-// its own database and only ever reads localStorage, so neither page can change the other's saves. This section
-// is about the two copies, so it goes when the page is promoted (the promoted page renames its database).
+// The test copy and jarvis.html share an origin, so they share localStorage and IndexedDB. Since Session 9 the test
+// copy keeps its own database, and since the promotion on 2026-10-11 jarvis.html keeps one of its own name. Each only
+// ever reads localStorage, so neither page can change the other's saves. This section is about the two copies, so it
+// isn't copied into tests/jarvis.dom.test.mjs on a promotion.
 async function keptApart(t, page) {
     const URL_ = 'https://jarvis.test/jarvis.html', quiet = { ignore: /getContext|HTMLCanvasElement/ };
-    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     t.section('Test copy: kept apart from jarvis.html (Session 9)');
     const mainUrl = new URL('jarvis.html', page.url);
     const mainHtml = mainUrl.protocol === 'file:' ? await readFile(fileURLToPath(mainUrl), 'utf8') : await (await fetch(mainUrl)).text();
-    t.ok('jarvis.html never opens IndexedDB, so it can\'t touch the test copy\'s database', !/indexedDB|IDBFactory/.test(mainHtml));
-    t.ok('its scrub only removes jarvis-* localStorage keys, which the test copy never writes', /if\(k&&k\.startsWith\('jarvis-'\)&&!STORE_KEYS\.includes\(k\)\)ls\.removeItem\(k\)/.test(mainHtml));
-    t.ok('and has no localStorage write call anywhere', !/localStorage\.(?:setItem|removeItem|clear)|\bls\.(?:setItem|removeItem|clear)/.test(page.html));
+    t.ok('the two copies name different databases', /const DB_NAME='jarvis-test';/.test(page.html) && /const DB_NAME='jarvis';/.test(mainHtml));
+    t.ok('neither has a localStorage write call anywhere', [page.html, mainHtml].every((h) => !/localStorage\.(?:setItem|removeItem|clear)|\bls\.(?:setItem|removeItem|clear)/.test(h)));
 
-    // One profile, as in one browser: jarvis.html's saves in localStorage, then the test copy, then the main page again.
+    // One profile, as in one browser: what an older jarvis.html saved in localStorage, then the test copy, then the main page.
     const mainSaved = { 'jarvis-skin': 'panther', 'jarvis-settings': '{"color":"pink"}', 'jarvis-learned': '{"lights":"make a star"}', 'jarvis-streak': '{"days":2,"y":2026,"m":1,"d":1}' };
     const fill = (w, o) => { for (const [k, v] of Object.entries(o)) w.localStorage.setItem(k, v); };
     let env = await openDom(page.html, URL_, { ...quiet, beforeParse(w) { fill(w, mainSaved); } });
     const idb = env.idb;
-    let lsAfterTest, dbAfterTest;
+    let dbAfterTest;
     try {
         const J = env.window.__jarvis;
-        t.eq('the first run copies the main page\'s settings in', [J.skin(), J.settings().color, J.learned().lights].join(), 'panther,pink,make a star');
+        t.eq('the first run copies the old settings in', [J.skin(), J.settings().color, J.learned().lights].join(), 'panther,pink,make a star');
         t.eq('and marks the copy as done', (await dbDump(idb)).meta.copied, 1);
         await J.answer('switch to the matrix'); await J.answer('make the orb blue'); await J.answer('reset my settings');
         await J.answer('forget what you learned');
-        lsAfterTest = { ...env.window.localStorage };
         dbAfterTest = await dbDump(idb);
-        t.eq('changing and forgetting things in the test copy leaves localStorage exactly as the main page left it', JSON.stringify(lsAfterTest), JSON.stringify(mainSaved));
-    } finally { env.close(); }
-    // The main page changes its own settings later; the test copy copied once and doesn't copy again.
-    env = await openDom(page.html, URL_, { ...quiet, idb, beforeParse(w) { fill(w, { ...mainSaved, 'jarvis-skin': 'jarvis', 'jarvis-settings': '{"color":"red"}' }); } });
-    try {
-        const J = env.window.__jarvis;
-        t.eq('the copy happens once: the test copy keeps its own skin and settings', [J.skin(), J.settings().color ?? 'none'].join(), 'matrix,none');
+        t.eq('changing and forgetting things in the test copy leaves localStorage exactly as it was', JSON.stringify({ ...env.window.localStorage }), JSON.stringify(mainSaved));
     } finally { env.close(); }
     // Now jarvis.html itself, in the same profile.
-    const before = await dbDump(idb);
-    env = await openPage(mainHtml, URL_, { ...quiet, beforeParse(w) { w.indexedDB = idb; fill(w, mainSaved); } });
+    env = await openDom(mainHtml, URL_, { ...quiet, idb, beforeParse(w) { fill(w, mainSaved); } });
     try {
-        const { window } = env, J = window.__jarvis;
-        await wait(40);
-        t.eq('jarvis.html still has its own skin', J.skin(), 'panther');
-        t.eq('its own settings', J.settings().color, 'pink');
-        t.eq('and its own taught phrases', J.learned().lights, 'make a star');
-        t.eq('opening it leaves the test copy\'s database untouched, usage counts and all', JSON.stringify(await dbDump(idb)), JSON.stringify(before));
-        t.eq('and the test copy\'s own settings are still the ones it saved', JSON.stringify(before.kept), JSON.stringify(dbAfterTest.kept));
-        t.eq('the profile still has just the test copy\'s database', JSON.stringify((await idb.databases()).map((x) => x.name)), '["jarvis-test"]');
+        const J = env.window.__jarvis;
+        t.eq('jarvis.html copies the old settings into its own database, not the test copy\'s changes', [J.skin(), J.settings().color, J.learned().lights].join(), 'panther,pink,make a star');
+        await J.answer('make the orb gold');
+        t.eq('its saves go to its own database', JSON.parse((await dbDump(idb, 'jarvis')).kept['jarvis-settings']).color, 'gold');
+        t.eq('and leave the test copy\'s database as the test copy left it', JSON.stringify((await dbDump(idb)).kept), JSON.stringify(dbAfterTest.kept));
+        t.eq('localStorage is still exactly as it was', JSON.stringify({ ...env.window.localStorage }), JSON.stringify(mainSaved));
+        t.eq('the profile has one database per copy', JSON.stringify((await idb.databases()).map((x) => x.name).sort()), '["jarvis","jarvis-test"]');
+    } finally { env.close(); }
+    env = await openDom(page.html, URL_, { ...quiet, idb, beforeParse(w) { fill(w, mainSaved); } });
+    try {
+        t.eq('back in the test copy, its own skin is still the one it saved', env.window.__jarvis.skin(), 'matrix');
     } finally { env.close(); }
 }
 

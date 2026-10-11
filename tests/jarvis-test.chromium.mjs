@@ -2,11 +2,12 @@
  *
  * jsdom has no IndexedDB, so jarvis-test.dom.test.mjs uses fake-indexeddb. This script checks the real one,
  * in one browser profile, the way you'd use the two pages in one browser:
- *   1. jarvis.html saves a skin, an orb colour and a taught phrase in localStorage.
+ *   1. localStorage holds a skin, an orb colour, a taught phrase and a streak, as an older jarvis.html left
+ *      them. (Since the promotion on 2026-10-11 jarvis.html saves to its own database, 'jarvis', instead.)
  *   2. jarvis-test.html copies them in once, saves its own changes to its own database, and keeps them
- *      across a reload, while localStorage stays exactly as jarvis.html left it.
- *   3. jarvis.html, opened again in the same profile, still has its own settings, and the test copy's
- *      database reads back the same before and after.
+ *      across a reload, while localStorage stays exactly as it was.
+ *   3. jarvis.html, opened in the same profile, copies the same old values into its own database, not the
+ *      test copy's changes, and the test copy's database reads back the same before and after.
  * It also takes screenshots of the booted page and the memory core at 1280×800 and 390×844, and fails on
  * any page error or CSP violation.
  *
@@ -129,7 +130,7 @@ async function open(file, size = { width: 1280, height: 800 }, on = ctx) {
     const MEDIAPIPE_LOG = /^(?:INFO: Created TensorFlow Lite XNNPACK delegate for CPU\.|WARNING: Attempting to use a delegate that only supports static-sized tensors with a graph that has dynamic-sized tensors \(tensor#\d+ is a dynamic-sized tensor\)\.)$/;
     page.on('console', (m) => { if ((m.type() === 'error' && !MEDIAPIPE_LOG.test(m.text())) || /Refused/.test(m.text())) problems.push(`${file} console: ${m.text()}`); });
     await page.goto(BASE + file); await page.waitForFunction(() => window.__jarvis);
-    if (file === 'jarvis-test.html') await page.evaluate(() => window.__jarvis.ready);
+    await page.evaluate(() => window.__jarvis.ready);
     return page;
 }
 const lsOf = (p) => p.evaluate(() => { const o = {}; for (let i = 0; i < localStorage.length; i++) o[localStorage.key(i)] = localStorage.getItem(localStorage.key(i)); return o; });
@@ -148,13 +149,15 @@ const memoryCore = async (page, shot) => {
 };
 
 try {
-    // 1. jarvis.html saves its settings the way a person would.
-    let main = await open('jarvis.html');
-    await main.evaluate(async () => { const J = window.__jarvis; await J.answer('switch to panthers'); await J.answer('make the orb pink'); await J.answer('beam me up'); await J.answer('I meant flip a coin'); });
-    const mainLS = await lsOf(main);
-    ok('jarvis.html saves its settings in localStorage', mainLS['jarvis-skin'] === 'panther' && /pink/.test(mainLS['jarvis-settings']) && /beam me up/.test(mainLS['jarvis-learned']), sorted(mainLS));
-    ok('jarvis.html makes no database', !(await main.evaluate(async () => (await indexedDB.databases()).length)));
-    await main.close();
+    // 1. What an older jarvis.html left in localStorage, put there from a page on the same origin that doesn't save.
+    const seed = await ctx.newPage(); await seed.goto(BASE + 'index.html');
+    await seed.evaluate(() => { const d = new Date();
+        localStorage.setItem('jarvis-skin', 'panther'); localStorage.setItem('jarvis-settings', '{"color":"pink"}');
+        localStorage.setItem('jarvis-learned', '{"beam me up":"flip a coin"}');
+        localStorage.setItem('jarvis-streak', JSON.stringify({ days: 1, y: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate() })); });
+    const mainLS = await lsOf(seed);
+    ok('the profile starts with no database', !(await seed.evaluate(async () => (await indexedDB.databases()).length)));
+    await seed.close();
 
     // 2. The test copy.
     let test = await open('jarvis-test.html');
@@ -178,14 +181,23 @@ try {
     const dbBefore = JSON.stringify(await dbOf(test));
     await test.close();
 
-    // 3. jarvis.html again, in the same profile.
-    main = await open('jarvis.html');
-    const m2 = await main.evaluate(() => ({ skin: window.__jarvis.skin(), color: window.__jarvis.settings().color, learned: window.__jarvis.learned()['beam me up'] }));
-    ok('jarvis.html still has its own skin, colour and taught phrase', m2.skin === 'panther' && m2.color === 'pink' && m2.learned === 'flip a coin', JSON.stringify(m2));
-    await main.waitForTimeout(500);
-    ok('its localStorage is unchanged', sorted(await lsOf(main)) === sorted(mainLS), sorted(await lsOf(main)));
-    ok('and the test copy\'s database is untouched by it', JSON.stringify(await dbOf(main)) === dbBefore);
+    // 3. jarvis.html, in the same profile.
+    const main = await open('jarvis.html');
+    const m2 = await main.evaluate(() => ({ skin: window.__jarvis.skin(), color: window.__jarvis.settings().color, learned: window.__jarvis.learned()['beam me up'], db: window.__jarvis.DB_NAME }));
+    ok('jarvis.html copies the old skin, colour and taught phrase into its own database', m2.skin === 'panther' && m2.color === 'pink' && m2.learned === 'flip a coin' && m2.db === 'jarvis', JSON.stringify(m2));
+    await main.evaluate(async () => { await window.__jarvis.answer('make the orb gold'); }); await main.waitForTimeout(500);
+    ok('localStorage is unchanged', sorted(await lsOf(main)) === sorted(mainLS), sorted(await lsOf(main)));
+    ok('the test copy\'s database is untouched by it', JSON.stringify({ ...(await dbOf(main)), names: undefined }) === JSON.stringify({ ...JSON.parse(dbBefore), names: undefined }));
+    ok('the profile has one database per copy', (await main.evaluate(async () => (await indexedDB.databases()).map((d) => d.name).sort().join())) === 'jarvis,jarvis-test');
+    await main.click('#boot-skip'); await main.waitForTimeout(1500);
+    await main.screenshot({ path: join(OUT, 'jarvis-1280.png') });
+    ok('jarvis.html has no TEST tag', !(await main.evaluate(() => !!document.querySelector('.test-tag'))) && (await main.title()) === 'J.A.R.V.I.S. Demo');
     await main.close();
+    const main390 = await open('jarvis.html', { width: 390, height: 844 });
+    await main390.click('#boot-skip'); await main390.waitForTimeout(1500);
+    await main390.screenshot({ path: join(OUT, 'jarvis-390.png') });
+    ok('jarvis.html: no sideways scroll at phone size', await main390.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await main390.close();
 
     // Phone size.
     test = await open('jarvis-test.html', { width: 390, height: 844 });
