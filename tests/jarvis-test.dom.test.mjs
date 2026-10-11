@@ -1944,6 +1944,7 @@ async function skinsAndMemory(t, page) {
         t.ok('a name told this visit is mentioned as memory-only', /Your name, Pat, is only in memory for this visit\./.test(await J.answer('what do you know about me')));
         t.ok('and still not stored', !JSON.stringify(await dbDump(env.idb)).includes('Pat') && ls.getItem('jarvis-name') === 'Tony');
         t.ok('an unknown phrase gets the offer to learn it', /say ⟦?learn that⟧?\.$/.test(await J.answer('ring my dentist')));
+        await J.answer('learn that');
         const taught = await J.answer('I meant what is 239 times 5550142');
         t.ok('it says why it won\'t save it', /won't save that phrase, because it has a phone or ID number in it/.test(taught));
         t.ok('and the phrase is not in storage', !/dentist|5550142/.test(JSON.stringify(await dbDump(env.idb))));
@@ -3299,7 +3300,7 @@ async function meaningModule(t, page) {
         await typeIn(env, 'never mind');
         // A taught phrase that resets something: taught the usual way, then never chosen by meaning.
         await typeIn(env, 'make the orb gold');
-        await typeIn(env, 'fresh start'); r = await typeIn(env, 'I meant reset my settings');
+        await typeIn(env, 'fresh start'); await typeIn(env, 'learn that'); r = await typeIn(env, 'I meant reset my settings');
         t.ok('(a phrase taught to mean "reset my settings")', /^Got it\. Next time you say "fresh start"/.test(r), r);
         await typeIn(env, 'make the orb gold');
         t.ok('isn\'t a candidate', !J.meaningCandidates().some((c) => c.key.startsWith('learned:fresh')));
@@ -3316,7 +3317,7 @@ async function meaningModule(t, page) {
         await typeIn(env, 'no');
 
         t.section('Meaning module: taught phrases and protocol names (Session 12)');
-        await typeIn(env, 'beam me up'); await typeIn(env, 'I meant roll a die');
+        await typeIn(env, 'beam me up'); await typeIn(env, 'learn that'); await typeIn(env, 'I meant roll a die');
         F.near('beam me up scotty', 'beam me up', 0.9);
         n = count(J, 'cmd:die');
         r = await typeIn(env, 'beam me up scotty');
@@ -3373,7 +3374,7 @@ async function meaningModule(t, page) {
     env = await openDom(page.html, URL_, fixed); J = env.window.__jarvis;
     try {
         J.finishBoot(); await wait(50);
-        await typeIn(env, 'crack me up'); await typeIn(env, 'I meant flip a coin'); // taught before the upgrade
+        await typeIn(env, 'crack me up'); await typeIn(env, 'learn that'); await typeIn(env, 'I meant flip a coin'); // taught before the upgrade
         const F = fakeMind(J); J.setTextLib(F.lib);
         F.near('crack me up', 'tell me a joke', 0.98);
         F.near('give me a chortle', 'tell me a joke', 0.9);
@@ -3988,15 +3989,15 @@ export async function fullBrain(t, page) {
         t.eq('and none of them reached it', FA.calls.length, n0);
         // The meaning module comes before it too, but only when it's sure. An unsure match goes to the full brain instead of asking "Did you mean …?".
         const M = fakeMind(A); A.setTextLib(M.lib); await typeIn(adv, 'upgrade your brain'); await wait(200);
-        M.near('crack me up', 'tell me a joke', 0.9); M.near('tickle my funny bone', 'tell me a joke', 0.7);
+        M.near('crack me up', 'tell me a joke', 0.9); M.near('make me chuckle', 'tell me a joke', 0.7);
         const jokes = count(A, 'cmd:joke'), n1 = FA.calls.length;
         await typeIn(adv, 'crack me up');
         t.ok('with the meaning module online, a sure match answers first, and the full brain isn\'t asked', count(A, 'cmd:joke') === jokes + 1 && FA.calls.length === n1);
-        const unsure = await typeIn(adv, 'tickle my funny bone');
+        const unsure = await typeIn(adv, 'make me chuckle');
         t.ok('an unsure match isn\'t asked about: the full brain answers it', /The full brain answered/.test(unsure) && !/Did you mean/.test(unsure) && FA.calls.length === n1 + 1, unsure);
-        t.ok('and nothing is learned from what comes next', !/Got it/.test(await typeIn(adv, 'flip a coin')) && !A.learned()['tickle my funny bone']);
-        await typeIn(adv, 'tickle my funny bone');
-        t.eq('but "learn that" after it can still teach the phrase', await typeIn(adv, 'learn that'), 'What did you mean by "tickle my funny bone"?');
-        t.ok('and it does', /^Got it\. Next time you say "tickle my funny bone"/.test(await typeIn(adv, 'tell me a joke')) && A.learned()['tickle my funny bone'] === 'tell me a joke');
+        t.ok('and nothing is learned from what comes next', !/Got it/.test(await typeIn(adv, 'flip a coin')) && !A.learned()['make me chuckle']);
+        await typeIn(adv, 'make me chuckle');
+        t.eq('but "learn that" after it can still teach the phrase', await typeIn(adv, 'learn that'), 'What did you mean by "make me chuckle"?');
+        t.ok('and it does', /^Got it\. Next time you say "make me chuckle"/.test(await typeIn(adv, 'tell me a joke')) && A.learned()['make me chuckle'] === 'tell me a joke');
     } finally { plain.close(); adv.close(); }
 }

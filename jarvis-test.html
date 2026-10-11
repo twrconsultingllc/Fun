@@ -3197,7 +3197,7 @@ const CAPABILITIES=[
   {key:'help',name:'the help list',ids:['cmd:help'],cmds:['help','what can you do'],hint:"I can show you everything I do, one Infinity Stone at a time. Say ⟦help⟧."},
   {key:'settings',name:'settings',ids:['cmd:setting'],cmds:['make the orb blue','speak faster','use imperial units','open with the galaxy','stop putting my favourites first'],hint:"I can change my colour and keep it. Say ⟦make the orb blue⟧."},
   {key:'remember',name:'short-term memory',ids:['cmd:remember'],cmds:[],hint:"Tell me something, like my dog is Rex, and I'll remember it for this visit."},
-  {key:'teach',name:'teaching me phrases',ids:['cmd:teach'],cmds:[],hint:"Teach me your own phrases. After I miss one, say ⟦learn that⟧, or say when I say, the phrase, then I mean, and what it means."},
+  {key:'teach',name:'teaching me phrases',ids:['cmd:teach'],cmds:['learn that'],hint:"Teach me your own phrases. After I miss one, say ⟦learn that⟧, or say when I say, the phrase, then I mean, and what it means."},
   {key:'matrix',name:'Morpheus',ids:['skin:matrix'],cmds:['switch to Matrix'],hint:"I have another face. Say ⟦switch to Matrix⟧."},
   {key:'panther',name:'Stanley C. Panther',ids:['skin:panther'],cmds:['switch to Panthers'],hint:"Hockey fan? Say ⟦switch to Panthers⟧."},
   {key:'protocol',name:'protocols',ids:['cmd:protocol'],cmds:['movie night','create movie night protocol: make the orb purple, then open the galaxy'],hint:"One phrase can run several commands. Make ⟦a movie night protocol|create movie night protocol: make the orb purple, then open the galaxy⟧, then say ⟦movie night⟧."},
@@ -4425,7 +4425,7 @@ const CHAT_EVENTS=[['cmd:help',/\bhelp\b|what (?:else )?(?:can|do) you (?:do|kno
   ['cmd:joke',/joke|funny/],['cmd:fact',/fact|tell me something/],['cmd:coin',/flip.*coin|heads or tails/],['cmd:die',/roll.*di(?:c)?e/]];
 function chatEvent(raw){const s=String(raw).toLowerCase();for(const [id,re] of CHAT_EVENTS)if(re.test(s))return id;return mathAnswer(s)?'cmd:math':'cmd:chat'}
 // "When I say X, I mean Y", typed or spoken (so no comma is needed), and "learn that" after a miss.
-const WHEN_I_SAY=/^(?:jarvis )?(?:when|whenever|if) i say (.+?) (?:i mean|i meant|it means|that means|i want you to|you should|please) (.+)$/;
+const WHEN_I_SAY=/^(?:jarvis )?(?:when|whenever|if) i say (.+?) (?:i mean|i meant|it means|that means|i want you to|you should) (.+)$/;
 const LEARN_THAT=/^(?:jarvis )?(?:please )?(?:learn (?:that|it|this|that one|what that means)|teach you (?:that|this|it)|let me teach you(?: that| this| it)?|i(?:'ll| will) teach you(?: that| this| it)?|remember what that means)(?: please)?$/;
 const MEANT=/^(?:what\s+)?i\s+(?:was\s+(?:trying|going)\s+to\s+(?:say|ask)|tried\s+to\s+(?:say|ask)|wanted\s+to\s+(?:say|ask)|meant\s+to\s+(?:say|ask)|wanted\s+(?:you\s+)?to|want\s+(?:you\s+)?to|meant|mean)(?:\s+(?:was|is))?[\s,:]*/i;
 // One turn. The follow-up context is updated here: what was said, and the reason behind it for "why?".
