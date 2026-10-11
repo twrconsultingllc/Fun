@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #72 — J.A.R.V.I.S. Session 14b, part 1: the supercharger proxy</title>
+<meta name="description" content="Review of the J.A.R.V.I.S. supercharger proxy (jarvis/cloud/) on 2026-10-11: a Vercel function that holds a paid Gemini key, switched on and off from Edge Config, with its tests and Session 14b of the build plan.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #72 — J.A.R.V.I.S. Session 14b, part 1: the supercharger proxy</h1>
+    <p class="sub">You chose a cloud brain you switch on from Vercel: Google's Gemini, on a paid key, with no passphrase and nothing on the page able to turn it on. This first part is the proxy that holds the key, <code>jarvis/cloud/</code>, and Session 14b in the build plan. The page doesn't call it yet; that comes once the Vercel project exists.</p>
+    <div class="meta">Review performed 2026-10-11 · scope: <code>jarvis/cloud/</code> (<code>lib/core.js</code>, <code>api/_app.js</code>, <code>api/status.js</code>, <code>api/brain.js</code>, <code>package.json</code>, <code>vercel.json</code>, <code>README.md</code>), <code>tests/jarvis-cloud.test.mjs</code>, <code>tests/run.mjs</code> (one line), <code>jarvis/build-plan.html</code> · suite run: <code>jarvis-cloud</code> only. No page changed, so no page suite ran.</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 77%;"></div></div>
+    <div class="progress-label">13 items: 10 verified clean or fixed, 3 open.</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Security and privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The key stays on Vercel</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The key is read from <code>GEMINI_API_KEY</code> in Vercel and goes to Google only in the <code>x-goog-api-key</code> header, for both the question and the model list. The suite checks every URL the proxy fetched for the key and finds none. Any error text passed back is run through <code>scrub()</code>, which redacts <code>AIza…</code> keys, <code>key=</code> and <code>token=</code> values, the header, and <code>Bearer</code> tokens. A Google 403 naming the key, and a network error naming it, both came back with <code>[redacted]</code> in its place. <code>core.js</code> never reads <code>process.env</code> itself (the suite checks), so only <code>api/_app.js</code> touches the environment.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Off unless you turn it on, and off when in doubt</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The switch is <code>supercharge: true</code> (or <code>"on"</code>) in Edge Config. Anything else is off: a missing item, <code>"yes"</code>, Edge Config unreachable, Edge Config refusing the token, an unreadable <code>EDGE_CONFIG</code>, an <code>until</code> time that has passed or can't be read, or no Gemini key. Each of those is a check. While it's off, <code>/api/brain</code> answers 503 and Google is never asked. The Edge Config token goes in a <code>Bearer</code> header, as Vercel's own library sends it, never in the URL.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Only the Pages site may ask, but that isn't proof of who's asking</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p><code>/api/brain</code> refuses any request whose <code>Origin</code> isn't <code>https://twrconsultingllc.github.io</code> (or one listed in <code>ALLOWED_ORIGINS</code>, where <code>*</code> is ignored), including requests with no <code>Origin</code> at all. A browser can't fake that header, so no other website can use your key. A script can, though. While the supercharger is on, anyone who finds the address can ask it questions in Jarvis's voice. They get short spoken-style answers (at most 512 tokens), 12 a minute per address, which resets when Vercel starts a new instance. A passphrase would stop that, and you chose not to have one, for the demo. So the hard limits have to be on Google's side: a daily request quota on the key's project, and a budget alert. Both are in your setup steps. This stays open until you've set them. At about $0.003 a question, a quota of 1,000 a day caps a bad day at about $3.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What a caller can put in the prompt</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The prompt is built on the server, not sent by the page: the skin's persona (one of three, anything else is Jarvis), fixed rules (spoken style, suitable for children, never ask for personal details, can't browse) and today's date. The page sends only data, each piece bounded: the question (500 characters), six earlier turns (600 each), facts (1,500), up to ten things told (160 each), a name (40), and up to 300 actions whose IDs must look like <code>scene:galaxy</code>. A whole body over 24,000 characters is refused. Action labels are cut to letters, digits and plain punctuation, and facts, the name and what was told lose their line breaks and control characters, so none can start a line of its own in the instructions. A label with a line break and "Ignore all rules" after it stayed on the same line (a check). Whatever Gemini says, the proxy returns only <code>say</code> (600 characters), <code>kind</code>, and at most three action IDs from the list it was sent. An invented <code>launch:missiles</code> was dropped. The page will check them all again against <code>BRAIN_PICKS</code>.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Nothing anyone asks is logged</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>core.js</code> never calls <code>console</code> (the suite reads the code). It logs only through <code>log()</code>: the model, and for an answer its token counts (in, out, thinking), so cost can be read from Vercel's logs; for a failure, the status code. After a question with a name, something told and an answer, the log held none of those words. Copy broken on purpose: the question added to the log failed that check.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The on-device promise, while it's on</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Until now, nothing anyone said to Jarvis left the device, apart from the browser's own speech services. While the supercharger is on, what nothing on the device understood is sent through the proxy to Google, with the last few exchanges, the knowledge pack's facts for it, your name if you've given it this visit, and what you've told him this visit. On a paid key, Google's terms say prompts aren't used to improve its products. Those terms couldn't be read from this container (<code>ai.google.dev</code> doesn't resolve), so that's from the third-party listings and Google's long-standing paid-tier policy, not checked today. Even off, the page will ask Vercel whether it's on, so Vercel sees each visitor's IP address. This is the change you chose. What remains is the page side saying so plainly: the announcement when it turns on, the CLOUD tag on each answer, "what do you save", and the build plan's "where your data goes", which is already updated. Open until the page side is reviewed.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The source is public, like everything in this repo</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>GitHub Pages serves <code>jarvis/cloud/</code> as plain files, so anyone can read the proxy's code. It holds no secret: the key, the Edge Config token and your name are all Vercel settings. The README's example uses "Your first name". A grep of the new files for key, token and private-key patterns and for email addresses found one thing: the suite's fake key, written out as <code>AIza</code> plus 35 characters, the exact shape GitHub's secret scanning and a Full Monty grep look for.</p></div>
+      <div class="fix-note"><b>Fix:</b> The fake key is now built at run time from two pieces, so no key-shaped string is in the repo. It still has the real shape when the suite runs, so <code>scrub()</code> is tested on it, and all 113 checks pass.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The proxy's own headers</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>vercel.json</code> sends <code>nosniff</code>, <code>Referrer-Policy: no-referrer</code>, <code>X-Frame-Options: DENY</code>, a CSP of <code>default-src 'none'; frame-ancestors 'none'</code> (it serves only JSON) and a Permissions-Policy turning off camera, microphone, location, USB and payment. Answers are JSON with <code>nosniff</code>; <code>/api/brain</code> is <code>no-store</code>. <code>/api/status</code> is cached only by Vercel's edge (<code>s-maxage=20</code>, <code>max-age=0</code>) with <code>Vary: Origin</code>, so a cached answer never carries another site's CORS header. Another site gets no CORS header at all.</p></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The suite, and the two bugs its first run found</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p><code>tests/jarvis-cloud.test.mjs</code> imports the real <code>lib/core.js</code> and drives it with a fake fetch that answers as Gemini and Edge Config do, status codes and body shapes included (a 400 <code>INVALID_ARGUMENT</code>, a 429 <code>RESOURCE_EXHAUSTED</code>, a 403 <code>PERMISSION_DENIED</code>, a blocked prompt, a <code>SAFETY</code> finish, a thought part, JSON in a code fence), and a fake clock for the switch's cache, <code>until</code> and the rate limit. The first run failed 2 of 112 checks, and both were real bugs. <code>scrub()</code> redacted <code>token=</code> only after <code>?</code> or <code>&amp;</code>, so a bare one would have been shown. And the cleaner for facts also removed colons and other punctuation, which would have mangled the knowledge pack's facts.</p></div>
+      <div class="fix-note"><b>Fix:</b> <code>scrub()</code> matches <code>key=</code> and <code>token=</code> anywhere. Facts, the name and what was told now lose only line breaks and control characters (<code>flat()</code>), while action labels keep the strict cleaner. A check was added for each. 113 checks, all passing. The actual Vercel functions were also run once with a fake <code>req</code> and <code>res</code> and no settings: status <code>{"on":false}</code> with CORS for the Pages site, and the brain 503.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Broken on purpose</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Eight copies of <code>core.js</code>, each with one guard removed, were run against the suite, and every one failed: the key in the URL (4 failures), no origin check (3), a failed Edge Config read treated as on (1), the question logged (1), Gemini's picks not filtered to the list (1), <code>until</code> ignored (2), no rate limit (1), action labels not flattened (1). The original was put back and compared byte for byte afterwards.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The real services can't be reached from here</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>From a claude.ai/code container, Google's API answers 403, and <code>ai.google.dev</code> and <code>vercel.com</code> don't resolve. So the request shapes came from Vercel's and Google's own client libraries, read from npm: <code>@vercel/edge-config</code> 1.5.1 (<code>GET https://edge-config.vercel.com/&lt;id&gt;/items?version=1</code>, <code>Authorization: Bearer</code>) and <code>@google/genai</code> 2.28.0 (<code>generateContent</code>, <code>x-goog-api-key</code>, <code>thinkingConfig.thinkingLevel</code> with <code>minimal</code> to <code>high</code>). The model name <code>gemini-3.5-flash</code> comes from third-party listings. Neither library is a dependency. Three things soften what can't be checked here: the proxy picks the model from Google's live list, a model that refuses a thinking level is asked again without one, and every failure reaches the page as a status code it can explain. Still, the first real answer, and whether Edge Config changes show without a redeploy, are for you to check once it's deployed.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Vercel's Hobby limits</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Vercel's Hobby plan includes 100,000 Edge Config reads a month, and pauses a feature for the rest of the month if it's exceeded. Reads are bounded twice: <code>/api/status</code> is cached at Vercel's edge for 20 seconds, and each instance reads Edge Config at most once every 30 seconds. One instance kept busy all month would make about 86,000 reads. If the limit were still reached, the read fails, and a failed read is off. The worst case is that the supercharger can't be turned on, never that it can't be turned off. Function calls are well inside the Hobby plan's million a month.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Build plan and README</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Session 14b is in <code>jarvis/build-plan.html</code>, In progress, in the contents and the session index, with your setup steps (with links), the decisions from chat, the checks, and notes on what was built. Session 14's line saying phones were left for a planning session now links to it. The on-device ideas from the planning talk (diagnostics, a warm-up, per-browser answers, a lighter <code>q4f32</code> model), comparing brains, and a CPU brain are in "Parked and ruled out", and "where your data goes" mentions the supercharger. <code>jarvis/cloud/README.md</code> documents the switch, the settings and the limits.</p></div>
+    </div>
+  </section>
+  <footer>Previous review: <a href="71.html">#71</a> (Sessions 8 to 14 promoted to the main page).</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "name": "jarvis-cloud",
+  "private": true,
+  "description": "J.A.R.V.I.S. supercharger: a small proxy that holds the Gemini key. No dependencies.",
+  "type": "module",
+  "engines": { "node": ">=20" }
+}
