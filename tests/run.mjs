@@ -49,6 +49,7 @@ const SUITES = [
     { id: 'jarvis-test', page: 'jarvis-test.html', file: './jarvis-test.dom.test.mjs' },
     { id: 'jarvis-cloud', page: 'jarvis-test.html', file: './jarvis-cloud.test.mjs' },
     { id: 'jarvis-test-sw', page: 'jarvis-test.html', file: './jarvis-test-sw.test.mjs' },
+    { id: 'vercel-builds', page: 'battle-bots-V2/public/index.html', file: './vercel-builds.test.mjs' },
     { id: 'index', page: 'index.html', file: './index.dom.test.mjs' }
 ];
 

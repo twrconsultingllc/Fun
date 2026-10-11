@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #76 — Vercel builds only the project whose folder changed</title>
+<meta name="description" content="Review of the ignoreCommand added on 2026-10-11 to the battle-bots, battle-bots-V2 and jarvis/cloud vercel.json files, so each Vercel project builds only when its own folder changed.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #76 — Vercel builds only the project whose folder changed</h1>
+    <p class="sub">Every commit to this repo rebuilt all three Vercel projects (<code>fun</code>, <code>funv2</code> and <code>jarvis-cloud</code>), and on 2026-10-11 that used up the account's daily deployment limit. You asked for builds only for what you're working on. Each project now skips a build unless its own folder changed.</p>
+    <div class="meta">Review performed 2026-10-11 · scope: <code>battle-bots/vercel.json</code>, <code>battle-bots-V2/vercel.json</code>, <code>jarvis/cloud/vercel.json</code>, <code>jarvis/cloud/README.md</code>, <code>CLAUDE.md</code>, <code>tests/vercel-builds.test.mjs</code> (new), <code>tests/run.mjs</code> (one line) · suites run: <code>vercel-builds</code> and <code>jarvis-cloud</code>.</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 75%;"></div></div>
+    <div class="progress-label">4 items: 3 verified clean or fixed, 1 open.</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Only a build step was added</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Each <code>vercel.json</code> gained one line, <code>"ignoreCommand": "git diff --quiet \"${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}\" HEAD -- ."</code>. Vercel runs it in its build container before building, so it never reaches visitors. The security headers in all three files are unchanged, and the suite checks they're still there. The command uses only git and an environment variable Vercel sets; the variable is quoted, so its value can't become part of the command.</p></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What it does</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The proxy's old rule (<code>git diff --quiet HEAD^ HEAD -- .</code>) only looked at the newest commit. If its folder changed in a commit whose build was skipped or rate-limited, and then something else was committed, the change would never deploy. That's what happened to the proxy today.</p></div>
+      <div class="fix-note"><b>Fix:</b> It now compares against <code>VERCEL_GIT_PREVIOUS_SHA</code>, the commit Vercel last deployed for that project and branch, falling back to the commit before when there isn't one. If that commit isn't in Vercel's shallow clone, git fails and the build goes ahead rather than being skipped.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Tests, and broken on purpose</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>tests/vercel-builds.test.mjs</code> (13 checks, all passing) reads the three real files and runs their command with <code>sh</code> in a scratch git repository, in the project's folder, as Vercel does. A commit to another folder is skipped, and so are the other two projects when one folder changes. A change still counts when a later commit came after it. A previous commit missing from the clone builds, a merged pull request is judged on all its commits, and it works with no previous deploy known. With the old command put back in all three files, two checks failed. The proxy's suite still passes (123).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What only you can confirm</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>This relies on each Vercel project's Root Directory being its folder: <code>battle-bots</code> for <code>fun</code>, <code>battle-bots-V2</code> for <code>funv2</code>, and <code>jarvis/cloud</code> for <code>jarvis-cloud</code>. Vercel reads <code>vercel.json</code> from that folder. CLAUDE.md records the first two, and you set the third today, but the dashboard can't be read from here. A skipped build shows in Vercel as Canceled, by the Ignored Build Step. Whether skipped builds count against the daily limit couldn't be checked either. Vercel's limit had already been reached when this merged, so the first deploys under the new rule come after it resets.</p></div>
+    </div>
+  </section>
+  <footer>Previous review: <a href="75.html">#75</a> (the Daily Wire's 6-hour refresh turned off).</footer>
+</div>
+</body>
+</html>
