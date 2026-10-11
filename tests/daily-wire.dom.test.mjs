@@ -186,13 +186,15 @@ export default async function run(t, page) {
 
         t.section('SW FL category');
         W.ingest({
-            generatedAt: iso(5), refreshHours: 6, categories: config.categories, feeds: [],
+            generatedAt: iso(5), refreshHours: 0, categories: config.categories, feeds: [],
             items: [
                 { id: hex(301), feed: 'gn-naples', category: 'swfl', source: 'Naples Daily News', title: 'County approves beach plan', link: 'https://news.google.com/rss/articles/x1', date: iso(20), summary: '', image: null },
                 { id: hex(302), feed: 'nws-swfl', category: 'swfl', source: 'NWS alerts: Collier & Lee', title: 'Rip Current Statement issued September 26 by NWS Miami', link: 'https://api.weather.gov/alerts/x2', date: iso(10), summary: '', image: null },
                 { id: hex(303), feed: 'bbc-world', category: 'news', source: 'BBC News', title: 'World story', link: 'https://example.com/w', date: iso(30), summary: '', image: null }
             ]
         });
+        // refreshHours 0 is what feeds.json says since the 6-hour schedule was turned off (2026-10-11).
+        t.ok('with no schedule (refreshHours 0), the stamp says it is updated by hand', /^Updated .+ · updated by hand$/.test($('#stamp').textContent), $('#stamp').textContent);
         const chipLabels = $$('.chip').map((c) => c.firstChild.textContent);
         t.eq('SW FL is the first chip after All', chipLabels.slice(0, 2).join(' | '), 'All | SW FL');
         chip('swfl').click();
