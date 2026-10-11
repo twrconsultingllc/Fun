@@ -564,6 +564,20 @@ the planet we live on", 0.821 when the bands were set) and re-check the
 bands against the real model. Don't set them from the jsdom suite, whose
 fake fingerprints are placed at whatever score the test asks for.
 
+The full brain's errors reach the page as plain strings, not Error objects.
+WebLLM runs in `jarvis/llm/worker.js`, and its worker handler sends every
+error back as `err.toString()`, so the page gets text like `"AbortError:
+Failed to execute 'mapAsync' …"`, with no `name` or `message`. Read errors
+through `errText()`, never `e.name`/`e.message` directly. On 2026-10-11 the
+recovery from that `mapAsync` error (review 69) checked
+`failed.name+' '+failed.message`, which is "undefined undefined" for a
+string. It never ran on the user's device, and the suite passed because its
+fake engine threw a real `DOMException`. Review 69 had called the check
+"true by construction" and skipped the broken-copy run. Review 70 fixed it.
+Two lessons: a fake of a library must fail the way the real one does, down
+to the shape of what it throws (the same as the fake speech recognizer
+above), and no check is exempt from being run against a broken copy.
+
 In `jarvis-test.html`, "help" no longer has a hand-written paragraph. It
 opens the Infinity Gauntlet, built from the `GAUNTLET` list: six stones (Space,
 Mind, Reality, Power, Time, Soul), each with its command links and a short
