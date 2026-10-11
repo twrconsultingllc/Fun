@@ -4285,7 +4285,10 @@ async function askBrain(text){
   if(failed){
     if(/lost/i.test(String(failed&&(failed.name+' '+failed.message)))){full.state='off';full.engine=null;full.turns=[];
       return because("My full brain stopped: the graphics chip lost it, usually from running out of memory. I'm back on my standard brain.",GPU_WHY)}
-    return because("My full brain didn't answer that time. Ask me again, or try one of my usual commands.","Because the language model on your graphics chip hit an error, so there was nothing I could check.");
+    // "Why?" names the error, so it can be reported: plain text only, never a link, and cut short.
+    try{console.error('Full brain error:',failed)}catch(e){}
+    const what=String(failed&&(failed.name&&failed.message?failed.name+': '+failed.message:failed.message||failed)||'unknown').replace(/[⟦⟧<>]/g,'').replace(/\s+/g,' ').trim().slice(0,200);
+    return because("My full brain didn't answer that time. Ask me again, or try one of my usual commands. Ask why to hear the error.",`Because the language model on your graphics chip hit an error, so there was nothing I could check. The error was: ${what}`);
   }
   const r=parseBrain(out);
   if(!r||!cleanSay(r.say))return because("My full brain answered in a way I couldn't check, so I've left it. Try asking another way.","Because my full brain has to answer in a fixed format I can check, and that answer wasn't in it.");

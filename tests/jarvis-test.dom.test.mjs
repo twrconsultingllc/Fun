@@ -3941,8 +3941,9 @@ export async function fullBrain(t, page) {
         t.section('Full brain: failures fall back cleanly (Session 14)');
         F.fail = 'create';
         r = await typeIn(env, 'what do you think about jam');
-        t.eq('an error before it answers: he says so, and stays on', r, "My full brain didn't answer that time. Ask me again, or try one of my usual commands.");
+        t.eq('an error before it answers: he says so, and stays on', r, "My full brain didn't answer that time. Ask me again, or try one of my usual commands. Ask why to hear the error.");
         t.ok('(still on)', J.full().state === 'on');
+        t.eq('"why?" names the error, so it can be reported', await typeIn(env, 'why'), 'Because the language model on your graphics chip hit an error, so there was nothing I could check. The error was: Error: GPUValidationError: something went wrong');
         F.fail = null; F.reply = 'SAY: Thinking.\nDO: none\nKIND: chat'; F.hold();
         await typeIn(env, 'what do you think about honey');
         t.eq('asked again while it\'s still answering: he says so', await typeIn(env, 'what do you think about marmalade'), "I'm still thinking about your last question. Give me a moment.");
