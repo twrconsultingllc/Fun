@@ -4054,7 +4054,7 @@ export async function fakeProxy({ on = true, owner = 'Tony', model = 'gemini-3.5
         const prev = w.fetch;
         w.fetch = async (u, opts = {}) => {
             const url = String(u);
-            if (!url.startsWith(PROXY_URL)) return prev(u, opts);
+            if (new URL(url, 'https://jarvis.test/').origin !== PROXY_URL) return prev(u, opts);
             st.calls.push({ url, method: opts.method || 'GET', credentials: opts.credentials, referrerPolicy: opts.referrerPolicy, cache: opts.cache, headers: opts.headers, body: opts.body, signal: !!opts.signal });
             await new Promise((r) => setTimeout(r, 3));
             if (st.down) throw new w.TypeError('Failed to fetch');

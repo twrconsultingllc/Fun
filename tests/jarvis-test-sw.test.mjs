@@ -151,7 +151,7 @@ export default async function run(t, page) {
     t.ok('and every PRECACHE file is saved under the current version', !!libs && sw.PRECACHE.every((f) => libs.has(SITE + f)));
     t.ok('every PRECACHE file is one the worker keeps by version', sw.PRECACHE.every((f) => sw.route(SITE + f) === 'lib'));
     t.ok('the font, three.js and the coastlines are among them', ['jarvis/vendor/three.min.js', 'jarvis/earth/land-110m.json'].every((f) => sw.PRECACHE.includes(f)) && sw.PRECACHE.filter((f) => /\.woff2$/.test(f)).length === 3);
-    t.ok('nothing from the proxy was fetched while installing', !W.calls.some((c) => c.url.startsWith(PROXY)));
+    t.ok('nothing from the proxy was fetched while installing', !W.calls.some((c) => new URL(c.url).origin === PROXY));
     t.ok('it takes over at once (skipWaiting)', W.self.skipped === true);
     await W.lifecycle('activate');
     const names = [...W.caches.store.keys()];
