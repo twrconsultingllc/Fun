@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-11T00:44:51.760Z",
+ "generatedAt": "2026-10-11T06:40:44.290Z",
  "refreshHours": 6,
  "categories": [
   {
@@ -46,7 +46,7 @@
    "category": "swfl",
    "ok": true,
    "count": 10,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "gn-bonita",
@@ -54,7 +54,7 @@
    "category": "swfl",
    "ok": true,
    "count": 10,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "gn-collier",
@@ -62,7 +62,7 @@
    "category": "swfl",
    "ok": true,
    "count": 10,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "gn-lee",
@@ -70,15 +70,15 @@
    "category": "swfl",
    "ok": true,
    "count": 10,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "nws-swfl",
    "source": "NWS alerts: Collier & Lee",
    "category": "swfl",
    "ok": true,
-   "count": 3,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "count": 2,
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "bbc-world",
@@ -86,7 +86,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "bbc-us",
@@ -94,7 +94,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "npr",
@@ -102,7 +102,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "guardian-world",
@@ -110,7 +110,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "guardian-us",
@@ -118,7 +118,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "pbs",
@@ -126,7 +126,7 @@
    "category": "news",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "nyt",
@@ -135,7 +135,7 @@
    "paywall": true,
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "ars",
@@ -143,7 +143,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "verge",
@@ -151,7 +151,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "wired",
@@ -159,7 +159,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "hn",
@@ -167,7 +167,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "techcrunch",
@@ -175,7 +175,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "bbc-tech",
@@ -183,7 +183,7 @@
    "category": "tech",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "github-blog",
@@ -191,7 +191,7 @@
    "category": "dev",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "willison",
@@ -199,7 +199,7 @@
    "category": "dev",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "chrome-dev",
@@ -207,7 +207,7 @@
    "category": "dev",
    "ok": true,
    "count": 2,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "claude-code",
@@ -215,7 +215,7 @@
    "category": "dev",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "threejs",
@@ -223,7 +223,7 @@
    "category": "dev",
    "ok": true,
    "count": 2,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "nasa-news",
@@ -231,7 +231,7 @@
    "category": "science",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "nasa-iotd",
@@ -239,7 +239,7 @@
    "category": "science",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "quanta",
@@ -247,7 +247,7 @@
    "category": "science",
    "ok": true,
    "count": 5,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "sciencedaily",
@@ -255,16 +255,15 @@
    "category": "science",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "nature",
    "source": "Nature",
    "category": "science",
-   "ok": false,
-   "error": "not an RSS or Atom feed",
+   "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "cisa",
@@ -272,7 +271,7 @@
    "category": "security",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "krebs",
@@ -280,7 +279,7 @@
    "category": "security",
    "ok": true,
    "count": 4,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "schneier",
@@ -288,7 +287,7 @@
    "category": "security",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "usgs",
@@ -296,7 +295,7 @@
    "category": "live",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "nws-fl",
@@ -304,7 +303,7 @@
    "category": "live",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "xkcd",
@@ -312,41 +311,41 @@
    "category": "fun",
    "ok": true,
    "count": 4,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "veritasium",
    "source": "Veritasium",
    "category": "fun",
-   "ok": true,
+   "ok": false,
+   "error": "HTTP 404",
    "count": 5,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "kurzgesagt",
    "source": "Kurzgesagt",
    "category": "fun",
-   "ok": false,
-   "error": "HTTP 500",
+   "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "mark-rober",
    "source": "Mark Rober",
    "category": "fun",
-   "ok": false,
-   "error": "HTTP 404",
+   "ok": true,
    "count": 2,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "fireship",
    "source": "Fireship",
    "category": "fun",
-   "ok": true,
+   "ok": false,
+   "error": "HTTP 404",
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "fed",
@@ -354,7 +353,7 @@
    "category": "business",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   },
   {
    "id": "sec",
@@ -362,10 +361,351 @@
    "category": "business",
    "ok": true,
    "count": 6,
-   "checkedAt": "2026-10-11T00:44:51.760Z"
+   "checkedAt": "2026-10-11T06:40:44.290Z"
   }
  ],
  "items": [
+  {
+   "id": "6dfbfb989c26",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "Neuroscience Can Make Decluttering Easier",
+   "link": "https://www.nytimes.com/2026/10/11/opinion/clutter-spring-cleaning-psychology.html",
+   "date": "2026-10-11T06:38:00.000Z",
+   "summary": "Decluttering is a challenge for many Americans, but neuroscience indicates we can make the process easier on ourselves and our loved ones.",
+   "image": null
+  },
+  {
+   "id": "9a862085fe67",
+   "feed": "usgs",
+   "category": "live",
+   "source": "USGS Earthquakes",
+   "title": "M 3.0 - 40 km W of Anchor Point, Alaska",
+   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/aka2026udeyax",
+   "date": "2026-10-11T06:27:20.518Z",
+   "summary": "Time2026-10-11 06:22:39 UTC2026-10-11 06:22:39 UTC at epicenterLocation59.842°N 152.541°WDepth80.30 km (49.90 mi)",
+   "image": null
+  },
+  {
+   "id": "68c3c8d8a8f3",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "India’s ‘Cockroach’ Leaders Released as New Delhi Braces for More Protests",
+   "link": "https://www.nytimes.com/2026/10/11/world/asia/india-cockroach-dipke-new-delhi-protests.html",
+   "date": "2026-10-11T06:15:27.000Z",
+   "summary": "The leaders of the Cockroach Janta Party, an Indian youth movement, were detained by the police on Saturday before they could lead protests over voting rights.",
+   "image": "https://static01.nyt.com/images/2026/10/11/multimedia/11int-india-protests-lwtk/11int-india-protests-lwtk-mediumSquareAt3X.jpg"
+  },
+  {
+   "id": "c77f7654f8e2",
+   "feed": "bbc-world",
+   "category": "news",
+   "source": "BBC News",
+   "title": "Delhi braces for more protests as 'cockroach' group's leaders released",
+   "link": "https://www.bbc.co.uk/news/articles/c84g179n2393o?at_medium=RSS&at_campaign=rss",
+   "date": "2026-10-11T06:02:25.000Z",
+   "summary": "The leaders, including CJP founder Abhijeet Dipke, had been detained when they arrived in Delhi on Saturday.",
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/1a96/live/07c16320-c53c-11f1-ae34-756aa0b18b99.jpg"
+  },
+  {
+   "id": "29a15ad42dfc",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "What to Know About the Protests in India",
+   "link": "https://www.nytimes.com/2026/10/09/world/asia/what-to-know-about-the-delhi-protests.html",
+   "date": "2026-10-11T06:02:15.000Z",
+   "summary": "More demonstrations against sweeping revisions to India’s voter rolls are expected on Sunday in New Delhi. The police met earlier protests with an extraordinary show of force.",
+   "image": "https://static01.nyt.com/images/2026/11/10/multimedia/10india-protests-What-We-Know-qhcm/10india-protests-What-We-Know-qhcm-mediumSquareAt3X.jpg"
+  },
+  {
+   "id": "0e57608bd53e",
+   "feed": "nws-fl",
+   "category": "live",
+   "source": "NWS Florida alerts",
+   "title": "Coastal Flood Advisory issued October 11 at 2:02AM EDT until October 11 at 5:00PM EDT by NWS Jacksonville FL",
+   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.038c15817a3f277fbffbd1ce315df09ce4640613.002.2.cap",
+   "date": "2026-10-11T06:02:00.000Z",
+   "summary": "* WHAT...Minor coastal flooding. * WHERE...St Johns River Basin. * WHEN...Until 5 PM EDT this afternoon. * IMPACTS...Flooding of lots, parks, and roads with only isolated road closures expected.",
+   "image": null
+  },
+  {
+   "id": "357a00bad2d7",
+   "feed": "nws-fl",
+   "category": "live",
+   "source": "NWS Florida alerts",
+   "title": "Coastal Flood Advisory issued October 11 at 2:02AM EDT until October 11 at 5:00PM EDT by NWS Jacksonville FL",
+   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.038c15817a3f277fbffbd1ce315df09ce4640613.001.3.cap",
+   "date": "2026-10-11T06:02:00.000Z",
+   "summary": "* WHAT...Minor coastal flooding. * WHERE...Coastal Duval County. * WHEN...Until 5 PM EDT this afternoon. * IMPACTS...Flooding of lots, parks, and roads with only isolated road closures expected.",
+   "image": null
+  },
+  {
+   "id": "42db994ff3e0",
+   "feed": "nws-fl",
+   "category": "live",
+   "source": "NWS Florida alerts",
+   "title": "Coastal Flood Advisory issued October 11 at 2:02AM EDT until October 11 at 5:00PM EDT by NWS Jacksonville FL",
+   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.038c15817a3f277fbffbd1ce315df09ce4640613.003.2.cap",
+   "date": "2026-10-11T06:02:00.000Z",
+   "summary": "* WHAT...Minor coastal flooding. * WHERE...Trout River County. * WHEN...Until 5 PM EDT this afternoon. * IMPACTS...Flooding of lots, parks, and roads with only isolated road closures expected.",
+   "image": null
+  },
+  {
+   "id": "6f926296651d",
+   "feed": "nws-fl",
+   "category": "live",
+   "source": "NWS Florida alerts",
+   "title": "Coastal Flood Advisory issued October 11 at 2:02AM EDT until October 11 at 5:00PM EDT by NWS Jacksonville FL",
+   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.038c15817a3f277fbffbd1ce315df09ce4640613.005.1.cap",
+   "date": "2026-10-11T06:02:00.000Z",
+   "summary": "* WHAT...Minor coastal flooding. * WHERE...Inland Flagler County. * WHEN...Until 5 PM EDT this afternoon. * IMPACTS...Flooding of lots, parks, and roads with only isolated road closures expected.",
+   "image": null
+  },
+  {
+   "id": "9670e2e48bfe",
+   "feed": "sciencedaily",
+   "category": "science",
+   "source": "ScienceDaily",
+   "title": "The eye has a hidden cleanup system scientists never knew existed",
+   "link": "https://www.sciencedaily.com/releases/2026/10/261008005254.htm",
+   "date": "2026-10-11T06:01:54.000Z",
+   "summary": "Scientists have discovered a hidden cleanup system at the back of the eye that drains fluid and waste through a previously unknown pathway. The surprising finding, demonstrated in mice, could open the door to new treatments for glaucoma, macular degeneration, and other causes…",
+   "image": null
+  },
+  {
+   "id": "ea01b97f002a",
+   "feed": "guardian-world",
+   "category": "news",
+   "source": "The Guardian",
+   "title": "Manchester-based composer creates requiem to honour enslaved Africans",
+   "link": "https://www.theguardian.com/news/2026/oct/11/manchester-based-composer-creates-requiem-to-honour-enslaved-africans",
+   "date": "2026-10-11T06:00:19.000Z",
+   "summary": "David Önaç uses insurance documents for work funded by Lloyd’s of London after research uncovered its slavery links A centuries-old insurance document detailing the trafficking of enslaved Africans began with the words: “In the name of God, Amen.” For Dr Errol Francis, the…",
+   "image": "https://i.guim.co.uk/img/media/7ea12277351e1c61472c2c795358a04944f538cc/0_0_1271_1020/master/1271.jpg?width=140&quality=85&auto=format&fit=max&s=f0715edaf53b6cea81c0b1924073ec61"
+  },
+  {
+   "id": "969eea63f2f9",
+   "feed": "guardian-world",
+   "category": "news",
+   "source": "The Guardian",
+   "title": "‘We need less point scoring’: What party conference season taught us about UK climate action",
+   "link": "https://www.theguardian.com/politics/2026/oct/11/party-conference-season-uk-climate-action-tories-greens-labour",
+   "date": "2026-10-11T06:00:18.000Z",
+   "summary": "Tories plan to scrap low-carbon housebuilding, Greens back new nuclear reactors, and Labour put oil-drilling decisions on hold New homes could be built without solar panels, heat pumps and high-grade insulation, leading to higher household bills if the Conservative party wins…",
+   "image": "https://i.guim.co.uk/img/media/d7c170a72e586c258e9e01b283090d1bd75ff28f/882_0_6195_4956/master/6195.jpg?width=140&quality=85&auto=format&fit=max&s=0e6b7a467199207dafc808b869c29901"
+  },
+  {
+   "id": "cdbfdc365370",
+   "feed": "guardian-world",
+   "category": "news",
+   "source": "The Guardian",
+   "title": "‘You have a meeting’: the calendar phishing scam growing exponentially",
+   "link": "https://www.theguardian.com/money/2026/oct/11/calendar-phishing-scam-meeting-renewal-google-microsoft-paypal",
+   "date": "2026-10-11T06:00:18.000Z",
+   "summary": "Appointment or renewal reminder appears in victims’ calendar to lure them into logging in to fake Google, Microsoft or PayPal page You’re preparing for the week ahead and take a look at your Google calendar. There’s an entry for a meeting that you must have completely…",
+   "image": "https://i.guim.co.uk/img/media/26d72cb1f65c0c4f02670bd2e39f1d87f06eb73e/849_0_5555_4444/master/5555.jpg?width=140&quality=85&auto=format&fit=max&s=43f46be4401615d1fef852ad7a8d4581"
+  },
+  {
+   "id": "5d9775cce398",
+   "feed": "usgs",
+   "category": "live",
+   "source": "USGS Earthquakes",
+   "title": "M 4.7 - 110 km SSE of Sola, Vanuatu",
+   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1il",
+   "date": "2026-10-11T05:42:11.040Z",
+   "summary": "Time2026-10-11 05:07:57 UTC2026-10-11 05:07:57 UTC at epicenterLocation14.734°S 168.070°EDepth10.60 km (6.59 mi)",
+   "image": null
+  },
+  {
+   "id": "e468220d3bfd",
+   "feed": "nws-swfl",
+   "category": "swfl",
+   "source": "NWS alerts: Collier & Lee",
+   "title": "Coastal Flood Statement issued October 11 at 1:40AM EDT until October 12 at 12:00PM EDT by NWS Miami FL",
+   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.74d8f49ce68603a096f865e4e9b0838c71337fdd.001.1.cap",
+   "date": "2026-10-11T05:40:00.000Z",
+   "summary": "* WHAT...Isolated minor coastal flooding during high tide. * WHERE...Mainland Monroe, Coastal Broward County, Coastal Palm Beach County, Coastal Collier County, Coastal Miami Dade County and Far South Miami-Dade County. * WHEN...Through Monday morning. * IMPACTS...Some water on…",
+   "image": null
+  },
+  {
+   "id": "a3b26cdf5127",
+   "feed": "usgs",
+   "category": "live",
+   "source": "USGS Earthquakes",
+   "title": "M 4.2 - Mariana Islands region",
+   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1in",
+   "date": "2026-10-11T05:36:58.040Z",
+   "summary": "Time2026-10-11 05:13:38 UTC2026-10-11 05:13:38 UTC at epicenterLocation21.554°N 142.972°EDepth325.12 km (202.02 mi)",
+   "image": null
+  },
+  {
+   "id": "774ddc7dda4b",
+   "feed": "guardian-world",
+   "category": "news",
+   "source": "The Guardian",
+   "title": "Ben Roberts-Smith attends Canberra event honouring Australian troops who served in Afghanistan",
+   "link": "https://www.theguardian.com/australia-news/2026/oct/11/ben-roberts-smith-attends-canberra-event-honouring-australian-troops-who-served-in-afghanistan-ntwnfb",
+   "date": "2026-10-11T05:27:24.000Z",
+   "summary": "Anthony Albanese speaks at Australian War Memorial event commemorating 25th anniversary of country’s involvement in the conflict Get our breaking news email, free app or daily news podcast Anthony Albanese has honoured Australian troops who served in Afghanistan, using the 25th…",
+   "image": "https://i.guim.co.uk/img/media/b0d1854691d6d350300295b813263e623cc7b698/1278_0_6475_5180/master/6475.jpg?width=140&quality=85&auto=format&fit=max&s=956ad2715cc448457a8a650267a4190a"
+  },
+  {
+   "id": "fe08c0be1c1c",
+   "feed": "guardian-world",
+   "category": "news",
+   "source": "The Guardian",
+   "title": "Two Carlton players treated in hospital after off-season night out",
+   "link": "https://www.theguardian.com/sport/2026/oct/11/two-carlton-players-treated-in-hospital-ntwnfb",
+   "date": "2026-10-11T05:05:45.000Z",
+   "summary": "Club issues brief statement about Lachie Cowan and Will Hayward, saying latter suffered minor cut to head after a fall An off-season night out for Carlton football club teammates ended with two players admitted to hospital for treatment on Sunday morning, in what the club says…",
+   "image": "https://i.guim.co.uk/img/media/19febfd420f9c28f42483d3eb18a45f9daa12607/1093_668_1740_1393/master/1740.jpg?width=140&quality=85&auto=format&fit=max&s=62e7593a5b2eb87eec0af6eed2fb6414"
+  },
+  {
+   "id": "aa744a248311",
+   "feed": "bbc-world",
+   "category": "news",
+   "source": "BBC News",
+   "title": "US justice department investigates TV networks over Trump pool coverage",
+   "link": "https://www.bbc.co.uk/news/articles/c9vgregzk6gro?at_medium=RSS&at_campaign=rss",
+   "date": "2026-10-11T05:05:43.000Z",
+   "summary": "The White House had blocked access for CNN, MS Now and Politico, leading them to restrict pool coverage.",
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/1dbb/live/9bb34c30-c53a-11f1-ae34-756aa0b18b99.jpg"
+  },
+  {
+   "id": "4abad3d47d77",
+   "feed": "guardian-world",
+   "category": "news",
+   "source": "The Guardian",
+   "title": "‘Restore the authority’: the challenge for the BBC’s new director of news",
+   "link": "https://www.theguardian.com/media/2026/oct/11/challenge-bbc-director-of-news-rachel-jupp",
+   "date": "2026-10-11T05:00:18.000Z",
+   "summary": "Rachel Jupp takes role as corporation grapples with digital transformation, a cash crisis and its public service role With looming job cuts and an ongoing pay dispute, there has not been much to smile about for BBC journalists working in “the pit” – their pet name for the…",
+   "image": "https://i.guim.co.uk/img/media/e8e3d380d5af52cf3d164a187723ca191ff9cb90/127_231_1670_1337/master/1670.jpg?width=140&quality=85&auto=format&fit=max&s=9718bb504d54116151f145485713a574"
+  },
+  {
+   "id": "dd5a18592d0b",
+   "feed": "usgs",
+   "category": "live",
+   "source": "USGS Earthquakes",
+   "title": "M 5.2 - 180 km S of Pelabuhanratu, Indonesia",
+   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1i6",
+   "date": "2026-10-11T04:43:05.627Z",
+   "summary": "DYFI? - II Time2026-10-11 03:30:17 UTC2026-10-11 03:30:17 UTC at epicenterLocation8.616°S 106.526°EDepth10.00 km (6.21 mi)",
+   "image": null
+  },
+  {
+   "id": "26effbe1cc17",
+   "feed": "usgs",
+   "category": "live",
+   "source": "USGS Earthquakes",
+   "title": "M 2.5 - 10 km SE of Winchester, CA",
+   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/ci41346143",
+   "date": "2026-10-11T04:34:52.793Z",
+   "summary": "DYFI? - III Time2026-10-10 16:59:07 UTC2026-10-10 16:59:07 UTC at epicenterLocation33.637°N 117.018°WDepth13.98 km (8.69 mi)",
+   "image": null
+  },
+  {
+   "id": "42466a5e199b",
+   "feed": "sciencedaily",
+   "category": "science",
+   "source": "ScienceDaily",
+   "title": "Eating olive oil before carbs has a surprising effect on blood sugar",
+   "link": "https://www.sciencedaily.com/releases/2026/10/261008102700.htm",
+   "date": "2026-10-11T04:32:03.000Z",
+   "summary": "A simple change in the order you eat your food could help prevent blood sugar spikes. Scientists discovered that giving mice olive oil before carbohydrates slowed digestion and activated a surprising combination of hormones and nerve signals that helped regulate blood sugar…",
+   "image": null
+  },
+  {
+   "id": "9b00a04b7680",
+   "feed": "usgs",
+   "category": "live",
+   "source": "USGS Earthquakes",
+   "title": "M 3.4 - 31 km NE of Punta Cana, Dominican Republic",
+   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/pr71536388",
+   "date": "2026-10-11T04:26:40.569Z",
+   "summary": "DYFI? - II Time2026-10-10 16:32:28 UTC2026-10-10 16:32:28 UTC at epicenterLocation18.759°N 68.169°WDepth83.51 km (51.89 mi)",
+   "image": null
+  },
+  {
+   "id": "3de8cde1689e",
+   "feed": "nasa-news",
+   "category": "science",
+   "source": "NASA",
+   "title": "APOD: 2026 October 11 – Ice Fishing for Cosmic Neutrinos",
+   "link": "https://science.nasa.gov/image-article/apod-2026-october-11-ice-fishing-for-cosmic-neutrinos/",
+   "date": "2026-10-11T04:05:00.000Z",
+   "summary": "APOD Science APOD APOD: 2026 October 11 – Ice… Today’s APOD Archive Submissions Index Search Calendar RSS Education About Discuss APOD Astronomy Picture of the Day Discover the cosmos! Each day a different image or photograph of our fascinating universe is featured, along with…",
+   "image": "https://assets.science.nasa.gov/dynamicimage/assets/science/cds/apod/apod/2026/october/deephole_icecube_4000.jpg?w=0&h=0&fit=clip&crop=faces%2Cfocalpoint"
+  },
+  {
+   "id": "12303909e7f7",
+   "feed": "bbc-world",
+   "category": "news",
+   "source": "BBC News",
+   "title": "Twelve killed and 300 injured in attack on airport in Saudi capital Riyadh",
+   "link": "https://www.bbc.co.uk/news/articles/cw33x4y8k82no?at_medium=RSS&at_campaign=rss",
+   "date": "2026-10-11T03:57:22.000Z",
+   "summary": "Saudi and US officials blame the attack on Yemen's Houthis, who have not commented on the latest strike.",
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/5c68/live/40a0f7d0-c507-11f1-a64c-550be9e3c66b.jpg"
+  },
+  {
+   "id": "994d69bf8406",
+   "feed": "hn",
+   "category": "tech",
+   "source": "Hacker News",
+   "title": "AI agents in a stand-up call",
+   "link": "https://atoll92.github.io/agent-standup/",
+   "date": "2026-10-11T03:42:47.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "5e035c2780d1",
+   "feed": "hn",
+   "category": "tech",
+   "source": "Hacker News",
+   "title": "GameBoy on E-Paper ESP32 at 30FPS [video]",
+   "link": "https://www.youtube.com/watch?v=XiZmM6hwwAU",
+   "date": "2026-10-11T03:21:07.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "cbc8d330928f",
+   "feed": "guardian-us",
+   "category": "news",
+   "source": "The Guardian US",
+   "title": "US justice department investigating TV networks over Trump pool coverage",
+   "link": "https://www.theguardian.com/us-news/2026/oct/11/justice-department-investigates-tv-networks-trump-pool-coverage",
+   "date": "2026-10-11T03:15:05.000Z",
+   "summary": "Investigation launched after five broadcasters last month ceased presidential coverage after CNN, MS Now and Politico were barred from White House The US Department of Justice is investigating whether the decision of the White House television press pool to halt coverage of the…",
+   "image": "https://i.guim.co.uk/img/media/73fccaffbcfe0058905fede7dc7ef079174ffcee/68_0_6306_5047/master/6306.jpg?width=140&quality=85&auto=format&fit=max&s=896d2251844edf7d5a865075e8b5c003"
+  },
+  {
+   "id": "5a9b070099b2",
+   "feed": "sciencedaily",
+   "category": "science",
+   "source": "ScienceDaily",
+   "title": "Scientists build a nuclear clock that could make atomic clocks obsolete",
+   "link": "https://www.sciencedaily.com/releases/2026/10/261008102701.htm",
+   "date": "2026-10-11T03:06:35.000Z",
+   "summary": "Scientists in Vienna have achieved a major breakthrough in timekeeping by creating the world’s first self-stabilizing nuclear clock, a technology that could eventually surpass even the most precise atomic clocks. Instead of relying on electrons in atoms, the clock uses the tiny…",
+   "image": null
+  },
+  {
+   "id": "66546621899f",
+   "feed": "guardian-us",
+   "category": "news",
+   "source": "The Guardian US",
+   "title": "Williams strikes out 12 as Guardians blank White Sox to complete ALDS comeback",
+   "link": "https://www.theguardian.com/sport/2026/oct/10/cleveland-guardians-chicago-white-sox-alds-game-five-gavin-williams",
+   "date": "2026-10-11T02:58:55.000Z",
+   "summary": "Williams fans 12 as Cleveland win decisive Game 5 Ramírez’s two-run homer provides only scoring Guardians to face Rays for place in World Series Gavin Williams struck out 12, José Ramírez homered on a pitch just above home plate and the Cleveland Guardians beat the Chicago…",
+   "image": "https://i.guim.co.uk/img/media/4c071a39625d505a3dbeedfc3bd8096b75b8a498/165_0_5350_4283/master/5350.jpg?width=140&quality=85&auto=format&fit=max&s=925cde5a6cad618afc1aea8f178e0b3d"
+  },
   {
    "id": "370603ac7768",
    "feed": "nyt",
@@ -373,19 +713,96 @@
    "source": "New York Times",
    "title": "Justice Dept. Is Investigating TV Networks Over Trump Pool Coverage",
    "link": "https://www.nytimes.com/2026/10/10/business/media/trump-justice-department-tv-networks.html",
-   "date": "2026-10-11T00:39:17.000Z",
+   "date": "2026-10-11T02:40:52.000Z",
    "summary": "Major TV networks were notified on Friday that the department was examining whether they violated antitrust laws when they suspended pool coverage of President Trump.",
    "image": "https://static01.nyt.com/images/2026/10/10/multimedia/10biz-media-investigation-gpjh/10biz-media-investigation-gpjh-mediumSquareAt3X.jpg"
   },
   {
-   "id": "b98254074efc",
-   "feed": "usgs",
+   "id": "67e61e290fd5",
+   "feed": "nyt",
+   "category": "news",
+   "source": "New York Times",
+   "title": "A Senator Facing Re-Election Settles a Bakery Bill, 6 Years Later",
+   "link": "https://www.nytimes.com/2026/10/10/us/politics/marshall-kansas-baker-bill-senate-midterms.html",
+   "date": "2026-10-11T02:33:35.000Z",
+   "summary": "Senator Roger Marshall, a Kansas Republican in a difficult race, paid an old campaign debt for cookies, muffins and brownies after a baker’s story went viral online.",
+   "image": "https://static01.nyt.com/images/2026/03/12/multimedia/00dc-miller-04-mhwp-copy/00dc-miller-04-mhwp-copy-mediumSquareAt3X.jpg"
+  },
+  {
+   "id": "f5192dc6ac9a",
+   "feed": "nws-fl",
    "category": "live",
-   "source": "USGS Earthquakes",
-   "title": "M 3.1 - 43 km NNW of Petersville, Alaska",
-   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/aka2026ucrphh",
-   "date": "2026-10-11T00:37:51.040Z",
-   "summary": "Time2026-10-10 23:42:03 UTC2026-10-10 23:42:03 UTC at epicenterLocation62.871°N 151.020°WDepth113.10 km (70.28 mi)",
+   "source": "NWS Florida alerts",
+   "title": "Flood Warning issued October 10 at 10:13PM EDT by NWS Tallahassee FL",
+   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.759213196a29fda18007a9a068a037aa73c139a2.007.1.cap",
+   "date": "2026-10-11T02:13:00.000Z",
+   "summary": "...The Flood Warning continues for the following rivers in Florida... Alabama...Georgia... Shoal River near Mossy Head (CR 1087) affecting Walton County. Choctawhatchee River at Geneva (SR 52) affecting Geneva County. Ochlockonee River near Thomasville (US 84) affecting Thomas…",
+   "image": null
+  },
+  {
+   "id": "59499c68644c",
+   "feed": "hn",
+   "category": "tech",
+   "source": "Hacker News",
+   "title": "500B Tokens Later: Letting AI Agents Decompile a First-Person Shooter",
+   "link": "https://momo5502.com/posts/2026-10-09-game-decompilation/",
+   "date": "2026-10-11T02:02:38.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "d613db04b53f",
+   "feed": "bbc-world",
+   "category": "news",
+   "source": "BBC News",
+   "title": "'Time for Ukraine to get new president,' says Trump after Zelensky condemns diesel deal",
+   "link": "https://www.bbc.co.uk/news/articles/cqe8r5l7n92jo?at_medium=RSS&at_campaign=rss",
+   "date": "2026-10-11T01:41:29.000Z",
+   "summary": "Ukraine's leader had said the deal with Russia to release diesel into the US would help Moscow fund the war.",
+   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/57e8/live/ab163790-c50e-11f1-9f41-61faa76b4354.jpg"
+  },
+  {
+   "id": "ed32cd489cb3",
+   "feed": "willison",
+   "category": "dev",
+   "source": "Simon Willison",
+   "title": "Dwarf Fortress uses version control now",
+   "link": "https://simonwillison.net/2026/Oct/11/dwarf-fortress/",
+   "date": "2026-10-11T00:52:37.000Z",
+   "summary": "I remember hearing a while ago that Dwarf Fortress didn't use version control. That fact has been lodged in my head, because given its inherent complexity I have trouble imagining a codebase that would benefit from version control more. That's art. I went looking and I'm sad to…",
+   "image": null
+  },
+  {
+   "id": "6ff4c66ceb5e",
+   "feed": "sciencedaily",
+   "category": "science",
+   "source": "ScienceDaily",
+   "title": "A plastic once thought harmless may be fueling fatty liver disease",
+   "link": "https://www.sciencedaily.com/releases/2026/10/261008102718.htm",
+   "date": "2026-10-11T00:47:05.000Z",
+   "summary": "One of the world's most common plastics may pose a hidden threat to liver health. Texas A&M researchers discovered that polyethylene microplastics can contribute to fatty liver disease, with potentially worse effects when combined with an unhealthy diet. Even more surprising…",
+   "image": null
+  },
+  {
+   "id": "5a9fbef9a985",
+   "feed": "hn",
+   "category": "tech",
+   "source": "Hacker News",
+   "title": "PSPi 6 – Raspberry Pi in a PSP",
+   "link": "https://github.com/othermod/PSPi-Version-6",
+   "date": "2026-10-11T00:45:49.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "c0c9aa43c599",
+   "feed": "sciencedaily",
+   "category": "science",
+   "source": "ScienceDaily",
+   "title": "Neanderthals may have used prehistoric glue as an ancient antibiotic",
+   "link": "https://www.sciencedaily.com/releases/2026/10/261008005256.htm",
+   "date": "2026-10-11T00:45:37.000Z",
+   "summary": "Neanderthals may have used a sticky substance made from birch bark to treat wounds thousands of years before antibiotics existed. Researchers recreated ancient birch tar production techniques and discovered that every sample could inhibit the growth of bacteria responsible for…",
    "image": null
   },
   {
@@ -395,31 +812,20 @@
    "source": "New York Times",
    "title": "Saudi Arabia’s Riyadh Airport Attacked Again, After Days of Houthi Strikes",
    "link": "https://www.nytimes.com/2026/10/10/world/middleeast/riyadh-airport-attack-energy-congress.html",
-   "date": "2026-10-11T00:31:33.000Z",
+   "date": "2026-10-11T00:31:34.000Z",
    "summary": "The strike on Saturday was the deadliest attack in a Gulf Arab country since the U.S.-Israeli war with Iran began in February, and forced the airport to temporarily suspend operations.",
    "image": "https://static01.nyt.com/images/2026/10/10/multimedia/10int-saudi-airport-wgjl/10int-saudi-airport-wgjl-mediumSquareAt3X.jpg"
   },
   {
-   "id": "1f30019bd882",
-   "feed": "usgs",
-   "category": "live",
-   "source": "USGS Earthquakes",
-   "title": "M 4.1 - 29 km ESE of Jurm, Afghanistan",
-   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1h9",
-   "date": "2026-10-11T00:29:36.040Z",
-   "summary": "Time2026-10-10 23:11:02 UTC2026-10-10 23:11:02 UTC at epicenterLocation36.736°N 71.125°EDepth203.49 km (126.44 mi)",
+   "id": "b8c3846f918a",
+   "feed": "sciencedaily",
+   "category": "science",
+   "source": "ScienceDaily",
+   "title": "Scientists created a tiny device that can control your nerves to treat chronic pain",
+   "link": "https://www.sciencedaily.com/releases/2026/10/261008005253.htm",
+   "date": "2026-10-11T00:23:19.000Z",
+   "summary": "Scientists have developed a tiny, injectable device that can control nerve activity without surgery, batteries, or wires, potentially transforming treatment for chronic pain and movement disorders. Powered wirelessly from outside the body, the seed-sized technology has shown…",
    "image": null
-  },
-  {
-   "id": "12303909e7f7",
-   "feed": "bbc-world",
-   "category": "news",
-   "source": "BBC News",
-   "title": "Twelve killed in attack on airport in Saudi capital Riyadh",
-   "link": "https://www.bbc.co.uk/news/articles/cw33x4y8k82no?at_medium=RSS&at_campaign=rss",
-   "date": "2026-10-11T00:21:52.000Z",
-   "summary": "Another 309 people are injured, with the Saudi-led coalition saying the attack by Yemen's Houthis is \"war crime\".",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/5c68/live/40a0f7d0-c507-11f1-a64c-550be9e3c66b.jpg"
   },
   {
    "id": "dba07a879b0c",
@@ -433,48 +839,15 @@
    "image": null
   },
   {
-   "id": "8b0c7bf7b4e5",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "‘Not Pleasant’ but ‘Necessary’: Support at Trump Rally for Public Execution",
-   "link": "https://www.nytimes.com/2026/10/10/us/politics/trump-rally-tennessee-public-execution.html",
-   "date": "2026-10-11T00:11:51.000Z",
-   "summary": "A sample of people at the president’s midterm stump speech in Tennessee defended the Pentagon’s announcement that it would livestream the execution of a mass shooter.",
-   "image": "https://static01.nyt.com/images/2026/10/10/multimedia/10DC-TRUMP-RALLY-1-hjzg/10DC-TRUMP-RALLY-1-hjzg-mediumSquareAt3X.jpg"
-  },
-  {
-   "id": "06088e137761",
-   "feed": "hn",
-   "category": "tech",
-   "source": "Hacker News",
-   "title": "Anthropic Bans Cruelty to Claude, Still Won't Say What It Protects",
-   "link": "https://rews.cc/a/anthropic-bans-cruelty-to-claude-still-won-t-say-what-it-pro-bd99f6",
-   "date": "2026-10-11T00:08:31.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
    "id": "17d849c3dc47",
-   "feed": "guardian-world",
+   "feed": "guardian-us",
    "category": "news",
-   "source": "The Guardian",
+   "source": "The Guardian US",
    "title": "Five people shot and killed in apparent murder-suicide, Georgia police say",
    "link": "https://www.theguardian.com/us-news/2026/oct/10/douglas-georgia-shooting-deaths",
    "date": "2026-10-11T00:01:55.000Z",
    "summary": "Deceased were all members of the same family, officials say, and one of victims placed the initial emergency call Five people were shot and killed in an apparent murder-suicide at a residence in Georgia on Friday, authorities say. The deceased were family members who lived at…",
    "image": "https://i.guim.co.uk/img/media/6af30ea2175ed40795c701d0e9ad98bb74ba4353/580_0_3453_2764/master/3453.jpg?width=140&quality=85&auto=format&fit=max&s=bd4c7df708e19d89cd4fa234445bd4c1"
-  },
-  {
-   "id": "60a911167bf6",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "Pentagon Again Increases Number of U.S. Casualties in Iran War",
-   "link": "https://www.nytimes.com/2026/10/10/us/politics/pentagon-casualties-iran-war.html",
-   "date": "2026-10-11T00:01:38.000Z",
-   "summary": "In an unannounced change, the Defense Department is now acknowledging troops who died or were wounded in support roles.",
-   "image": "https://static01.nyt.com/images/2026/07/23/multimedia/10dc-iran-troopdeaths/10dc-iran-troopdeaths-mediumSquareAt3X.jpg"
   },
   {
    "id": "a2dbc26766a3",
@@ -499,17 +872,6 @@
    "image": "https://i.guim.co.uk/img/media/51efce5b9e6d595f7b1e4e50cce0c1b214089113/306_0_3057_2446/master/3057.jpg?width=140&quality=85&auto=format&fit=max&s=d9b7f933ef0bde23535cd4d848518d81"
   },
   {
-   "id": "e9b9495c31ee",
-   "feed": "usgs",
-   "category": "live",
-   "source": "USGS Earthquakes",
-   "title": "M 4.2 - 31 km WNW of Fry, Greece",
-   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1h4",
-   "date": "2026-10-10T23:48:14.040Z",
-   "summary": "Time2026-10-10 22:33:28 UTC2026-10-10 22:33:28 UTC at epicenterLocation35.472°N 26.589°EDepth10.00 km (6.21 mi)",
-   "image": null
-  },
-  {
    "id": "ad5e0a42b626",
    "feed": "npr",
    "category": "news",
@@ -519,39 +881,6 @@
    "date": "2026-10-10T23:44:15.000Z",
    "summary": "Saudi authorities say the latest attack on the international airport in the capital, Riyadh, has killed 12 people and injured over 300. Their statement says the dead on Saturday included four Saudi citizens as well as two Bangladeshi nationals, a Palestinian, a U.S. citizen, an…",
    "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/989x1523+0+0/resize/989x1523!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Fc2%2F67%2F6adafce549cc8bcbb7372304010a%2Fap26282625542805.jpg"
-  },
-  {
-   "id": "415e44819e64",
-   "feed": "nws-swfl",
-   "category": "swfl",
-   "source": "NWS alerts: Collier & Lee",
-   "title": "Flood Advisory issued October 10 at 7:41PM EDT until October 10 at 9:45PM EDT by NWS Tampa Bay Ruskin FL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.9785534a9bc399ed56e042a85e90ee1636d60a54.001.1.cap",
-   "date": "2026-10-10T23:41:00.000Z",
-   "summary": "* WHAT...Flooding caused by excessive rainfall is expected. * WHERE...Southwestern Lee County in southwestern Florida... * WHEN...Until 945 PM EDT. * IMPACTS...Minor flooding in low-lying and poor drainage areas. Ponding of water in urban or other areas is occurring or is…",
-   "image": null
-  },
-  {
-   "id": "0ac5b2868a36",
-   "feed": "guardian-world",
-   "category": "news",
-   "source": "The Guardian",
-   "title": "Twelve killed and hundreds injured in Houthi attack at Riyadh airport",
-   "link": "https://www.theguardian.com/world/2026/oct/10/yemen-government-allied-forces-recapture-bab-al-mandab-strait-houthis-taiz",
-   "date": "2026-10-10T23:37:27.000Z",
-   "summary": "Donald Trump evaluating whether US should join Saudi strikes against the Iran-backed Yemeni rebels Yemen’s Houthis have launched a missile attack on Riyadh’s international airport in Saudi Arabia, killing at least 12 people and leaving hundreds wounded, the Saudi Civil Aviation…",
-   "image": "https://i.guim.co.uk/img/media/fe53f23f7789989347c58c5f95c551cdd9cedc33/0_634_989_791/master/989.jpg?width=140&quality=85&auto=format&fit=max&s=cdd3fc0813d849c5f90d7940cd073309"
-  },
-  {
-   "id": "b0b3ca3841f6",
-   "feed": "usgs",
-   "category": "live",
-   "source": "USGS Earthquakes",
-   "title": "M 4.7 - 7 km S of Trudarmeyskiy, Russia",
-   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000u1bi",
-   "date": "2026-10-10T23:32:19.959Z",
-   "summary": "DYFI? - II Time2026-10-10 00:47:02 UTC2026-10-10 00:47:02 UTC at epicenterLocation54.066°N 86.411°EDepth10.00 km (6.21 mi)",
-   "image": null
   },
   {
    "id": "143d505ebfa6",
@@ -566,25 +895,14 @@
   },
   {
    "id": "616cb1c2a388",
-   "feed": "guardian-world",
+   "feed": "guardian-us",
    "category": "news",
-   "source": "The Guardian",
+   "source": "The Guardian US",
    "title": "Nine people, including children, dead after mass shooting in Pennsylvania",
    "link": "https://www.theguardian.com/us-news/2026/oct/10/nine-people-mass-shooting-pennsylvania",
    "date": "2026-10-10T23:24:52.000Z",
    "summary": "Authorities say suspect among dead in house after standoff with police in Erie and there is no ongoing threat A man fatally shot eight people, including a pregnant woman and children, at a Pennsylvania residence on Friday before killing himself, police say. The victims have not…",
    "image": "https://i.guim.co.uk/img/media/e388e3a1fe05505b21ec3f975893853d6540bb7b/975_0_6880_5504/master/6880.jpg?width=140&quality=85&auto=format&fit=max&s=0011804500a404b73b297df3042f1d18"
-  },
-  {
-   "id": "f8ebc50fd7ec",
-   "feed": "guardian-world",
-   "category": "news",
-   "source": "The Guardian",
-   "title": "Four dead as Isaias weakens to post-tropical cyclone after striking Florida panhandle",
-   "link": "https://www.theguardian.com/world/2026/oct/10/isaias-weakens-to-post-tropical-cyclone",
-   "date": "2026-10-10T23:20:32.000Z",
-   "summary": "Some of deaths came from falling trees as half a million people without power and rain and flooding still a concern At least four people were reported dead on Saturday amid Isaias after it made landfall late on Friday on Florida’s panhandle as a category 2 hurricane, according…",
-   "image": "https://i.guim.co.uk/img/media/3e0a756d758fe98bd3be035b23806eb18866afc3/176_0_4555_3644/master/4555.jpg?width=140&quality=85&auto=format&fit=max&s=9b3d619eb7d75eed70b986a898f04d5b"
   },
   {
    "id": "40239b0cd50b",
@@ -598,28 +916,6 @@
    "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/a454/live/61dbc890-c4e3-11f1-a793-e9d00826e617.jpg"
   },
   {
-   "id": "71fdbcfdafa7",
-   "feed": "nws-fl",
-   "category": "live",
-   "source": "NWS Florida alerts",
-   "title": "Rip Current Statement issued October 10 at 6:19PM CDT until October 11 at 6:00PM CDT by NWS Mobile AL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.fbf7562f2aeb0be9d3e187b21048db291b6fc4f2.001.1.cap",
-   "date": "2026-10-10T23:19:00.000Z",
-   "summary": "* WHAT...Dangerous rip currents. * WHERE...In Alabama, Mobile Coastal and Baldwin Coastal Counties. In Florida, Escambia Coastal, Santa Rosa Coastal and Okaloosa Coastal Counties. * WHEN...Through Sunday afternoon. * IMPACTS...Rip currents can sweep even the best swimmers away…",
-   "image": null
-  },
-  {
-   "id": "9bd97c191982",
-   "feed": "usgs",
-   "category": "live",
-   "source": "USGS Earthquakes",
-   "title": "M 2.6 - 16 km S of Honaunau-Napoopoo, Hawaii",
-   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/hv75053257",
-   "date": "2026-10-10T23:10:18.040Z",
-   "summary": "DYFI? - II Time2026-10-10 04:51:43 UTC2026-10-10 04:51:43 UTC at epicenterLocation19.310°N 155.865°WDepth-0.91 km (-0.57 mi)",
-   "image": null
-  },
-  {
    "id": "63a4e11e2b73",
    "feed": "hn",
    "category": "tech",
@@ -631,50 +927,6 @@
    "image": null
   },
   {
-   "id": "06eb8c9c6299",
-   "feed": "usgs",
-   "category": "live",
-   "source": "USGS Earthquakes",
-   "title": "M 2.5 - 60 km SSW of False Pass, Alaska",
-   "link": "https://earthquake.usgs.gov/earthquakes/eventpage/aka2026ubitvo",
-   "date": "2026-10-10T22:40:00.289Z",
-   "summary": "Time2026-10-10 06:17:48 UTC2026-10-10 06:17:48 UTC at epicenterLocation54.382°N 163.884°WDepth78.90 km (49.03 mi)",
-   "image": null
-  },
-  {
-   "id": "aa6cb0404c2c",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "Some Republicans Reject Trump’s Move to Import Diesel Fuel From Russia",
-   "link": "https://www.nytimes.com/2026/10/10/us/politics/republicans-midterms-trump-diesel-russia.html",
-   "date": "2026-10-10T22:33:15.000Z",
-   "summary": "High diesel costs have posed a problem for Republicans in the midterms, but President Trump’s decision did not satisfy some candidates in key Senate races.",
-   "image": "https://static01.nyt.com/images/2026/10/10/us/10pol-midterms-diesel-trump/10pol-midterms-diesel-trump-mediumSquareAt3X.jpg"
-  },
-  {
-   "id": "8318a2be9656",
-   "feed": "guardian-world",
-   "category": "news",
-   "source": "The Guardian",
-   "title": "Skies across the UK illuminated by the northern lights",
-   "link": "https://www.theguardian.com/science/2026/oct/10/skies-across-the-uk-illuminated-by-the-northern-lights",
-   "date": "2026-10-10T22:30:34.000Z",
-   "summary": "Though mostly visible near the Arctic Circle, the natural phenomenon dazzled sky-gazers as far south Devon, Hampshire and Kent The northern lights illuminated the skies across the UK on Friday and Saturday evening. Sky-gazers as far south as Devon, Hampshire and Kent were…",
-   "image": "https://i.guim.co.uk/img/media/22444253c3b660a5f83f8e75b532961bae116db1/0_0_2675_2141/master/2675.jpg?width=140&quality=85&auto=format&fit=max&s=f3e9cb06bbe1555bb11f726e34fcf714"
-  },
-  {
-   "id": "61a0dc5aa6f1",
-   "feed": "guardian-world",
-   "category": "news",
-   "source": "The Guardian",
-   "title": "Hurricane Isaias updates: at least four people dead and hundreds of thousands without power – as it happened",
-   "link": "https://www.theguardian.com/world/live/2026/oct/10/hurricane-isaias-gulf-coast-alabama-florida-louisiana-mississippi-latest-updates",
-   "date": "2026-10-10T22:18:05.000Z",
-   "summary": "This liveblog is now closed. Read the full story here Key things to know about Hurricane Isaias Sign up for the US Breaking News email Florida’s governor, Ron DeSantis, said no requests for search and rescue assistance had been received following Isaias, which he described as…",
-   "image": "https://i.guim.co.uk/img/media/2f12969ea8df6b4085d441942784740b2e1e4d40/928_0_2190_1754/master/2190.jpg?width=140&quality=85&auto=format&fit=max&s=51364563108ea8cbc2e699f2eed7f917"
-  },
-  {
    "id": "db5f62e5b699",
    "feed": "npr",
    "category": "news",
@@ -684,17 +936,6 @@
    "date": "2026-10-10T22:15:04.000Z",
    "summary": "Pike's attorneys say she is grateful for the care of first responders and her medical team.",
    "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/3000x2000+0+0/resize/3000x2000!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F0f%2F96%2F487f942646349ba80c9cd21afa14%2Fap26272676275211.jpg"
-  },
-  {
-   "id": "5370b0b143f6",
-   "feed": "bbc-world",
-   "category": "news",
-   "source": "BBC News",
-   "title": "Young men live in fear of being snatched off the streets and sold to Myanmar's army",
-   "link": "https://www.bbc.co.uk/news/articles/c680zlny0gk4o?at_medium=RSS&at_campaign=rss",
-   "date": "2026-10-10T22:13:08.000Z",
-   "summary": "A desperate junta is in a war of attrition against ethnic militias and and civilian resistance.",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/6204/live/aaaf6ea0-c21d-11f1-b7d8-6f930589c871.jpg"
   },
   {
    "id": "47aa66d1b4eb",
@@ -728,17 +969,6 @@
    "date": "2026-10-10T21:40:58.000Z",
    "summary": "A reenactment of the Battle of Hastings, which took place almost a millennium ago, is drawing crowds of enthusiasts in the UK.",
    "image": "https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=nx-s1-5993847"
-  },
-  {
-   "id": "65d0b5916e30",
-   "feed": "nws-fl",
-   "category": "live",
-   "source": "NWS Florida alerts",
-   "title": "Coastal Flood Statement issued October 10 at 5:34PM EDT until October 11 at 5:00AM EDT by NWS Key West FL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.bea9f780f10151164949311460aaf510b14bd846.001.1.cap",
-   "date": "2026-10-10T21:34:00.000Z",
-   "summary": "* WHAT...Minor saltwater flooding. * WHERE...Florida Keys. * WHEN...Through late tonight. * IMPACTS...Minor saltwater flooding of low elevation streets and lots is likely. Some storm drains will overflow, and some seawalls and docks will be overtopped. Boaters can expect less…",
-   "image": null
   },
   {
    "id": "43d4a3ab6dc4",
@@ -785,50 +1015,6 @@
    "image": "https://i.guim.co.uk/img/media/50a8b0c323bb8789296dadfeeadb996d90bf63a6/410_0_6968_5578/master/6968.jpg?width=140&quality=85&auto=format&fit=max&s=112aca10cb178e500179c3c454c6986b"
   },
   {
-   "id": "637bbb8ee187",
-   "feed": "guardian-us",
-   "category": "news",
-   "source": "The Guardian US",
-   "title": "USWNT exposed by ruthless Spain as early goals settle heavyweight friendly",
-   "link": "https://www.theguardian.com/football/2026/oct/10/uswnt-spain-match-report-washington-dc",
-   "date": "2026-10-10T20:53:53.000Z",
-   "summary": "Guijarro and Navarro score in opening 14 minutes US midfield and defensive lapses exposed by Spain Yohannes misses penalty as US fightback falls short In less than a year’s time, the United States and Spain will almost certainly arrive in Brazil as the top two contenders to win…",
-   "image": "https://i.guim.co.uk/img/media/f6bc8679f363473dbce783416f56560034557568/344_0_3443_2754/master/3443.jpg?width=140&quality=85&auto=format&fit=max&s=7bd53dc9f14f2a46ba90ddfe6dd3fd3c"
-  },
-  {
-   "id": "02bc0911de8f",
-   "feed": "bbc-world",
-   "category": "news",
-   "source": "BBC News",
-   "title": "Russian glide bomb attack on Zaporizhzhia kills at least 20 people",
-   "link": "https://www.bbc.co.uk/news/articles/cwvgdpv642g5o?at_medium=RSS&at_campaign=rss",
-   "date": "2026-10-10T20:51:12.000Z",
-   "summary": "Volodymyr Zelensky says the attack, which left children dead, was Russia expressing its \"thanks\" for a US diesel deal.",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/98ce/live/569e8e50-c49c-11f1-869c-8f95c437952a.jpg"
-  },
-  {
-   "id": "49f154736e36",
-   "feed": "guardian-us",
-   "category": "news",
-   "source": "The Guardian US",
-   "title": "Trump says Ukraine needs a new leader after diesel deal with Russia",
-   "link": "https://www.theguardian.com/world/2026/oct/10/ukraine-russia-strikes-war-trump-diesel-deal-zelenskyy",
-   "date": "2026-10-10T20:42:55.000Z",
-   "summary": "US president suggests Ukrainian president, Volodymyr Zelenskyy, has not done enough to end war Donald Trump has said Ukraine needs “a new leader”, a day after making a deal with Vladimir Putin to buy large quantities of Russian diesel. The US president suggested Volodymyr…",
-   "image": "https://i.guim.co.uk/img/media/c598f4211d657333cb70f50f9323c6797a68e632/0_0_4425_3540/master/4425.jpg?width=140&quality=85&auto=format&fit=max&s=b303d83f7e73ffd437f3de6abadd0340"
-  },
-  {
-   "id": "9ee5dd66c5f0",
-   "feed": "nyt",
-   "category": "news",
-   "source": "New York Times",
-   "title": "Why Ketamine Immobilizes Some Users",
-   "link": "https://www.nytimes.com/2026/10/10/science/ketamine-cornell-anesthesia.html",
-   "date": "2026-10-10T20:38:18.000Z",
-   "summary": "Potent powders can produce a nearly catatonic state, particularly in those who have not tried the drug before.",
-   "image": "https://static01.nyt.com/images/2026/10/08/multimedia/08SCI-KETAMINE-cjwm/08SCI-KETAMINE-cjwm-mediumSquareAt3X.jpg"
-  },
-  {
    "id": "91459c8bff81",
    "feed": "hn",
    "category": "tech",
@@ -851,61 +1037,6 @@
    "image": null
   },
   {
-   "id": "d613db04b53f",
-   "feed": "bbc-world",
-   "category": "news",
-   "source": "BBC News",
-   "title": "'Time for Ukraine to get new president,' says Trump after Zelensky condemns diesel deal",
-   "link": "https://www.bbc.co.uk/news/articles/cqe8r5l7n92jo?at_medium=RSS&at_campaign=rss",
-   "date": "2026-10-10T19:28:28.000Z",
-   "summary": "Ukraine's leader had said the deal with Russia to release diesel into the US would help Moscow fund the war.",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/99c5/live/3203eb90-c4d2-11f1-a64c-550be9e3c66b.jpg"
-  },
-  {
-   "id": "89abf5f55fbe",
-   "feed": "nws-fl",
-   "category": "live",
-   "source": "NWS Florida alerts",
-   "title": "Rip Current Statement issued October 10 at 3:21PM EDT until October 12 at 4:00AM EDT by NWS Tallahassee FL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b0dce3d8b6fbdb21bd62b6b7822b40e53389f8e2.001.2.cap",
-   "date": "2026-10-10T19:21:00.000Z",
-   "summary": "* WHAT...Dangerous rip currents. * WHERE...Walton, Bay, Gulf, and Franklin County Beaches. * WHEN...Through late Sunday night. * IMPACTS...Dangerous swimming and surfing conditions and localized beach erosion. Rip currents can sweep even the best swimmers away from shore into…",
-   "image": null
-  },
-  {
-   "id": "6186b770b69f",
-   "feed": "sciencedaily",
-   "category": "science",
-   "source": "ScienceDaily",
-   "title": "Scientists may have found a shortcut to fusion energy",
-   "link": "https://www.sciencedaily.com/releases/2026/10/261008005242.htm",
-   "date": "2026-10-10T18:57:27.000Z",
-   "summary": "Princeton Plasma Physics Laboratory may have found a dramatically more efficient route to fusion energy by reversing the traditional approach: heating plasma first, then increasing its density. Their calculations could help future reactors reach self-sustaining fusion with far…",
-   "image": null
-  },
-  {
-   "id": "91f6a1f9c2be",
-   "feed": "sciencedaily",
-   "category": "science",
-   "source": "ScienceDaily",
-   "title": "Loneliness may steal nearly 6 years of good health",
-   "link": "https://www.sciencedaily.com/releases/2026/10/261006234514.htm",
-   "date": "2026-10-10T18:57:02.000Z",
-   "summary": "A large study suggests loneliness and social isolation can cost people years of healthy life, especially when it comes to mental health. Men experiencing both lost about 5.8 years free from depression and anxiety, while women lost roughly 3.7 years.",
-   "image": null
-  },
-  {
-   "id": "0b68a0354ab9",
-   "feed": "sciencedaily",
-   "category": "science",
-   "source": "ScienceDaily",
-   "title": "MIT astronomers catch a star in a feast that could last billions of years",
-   "link": "https://www.sciencedaily.com/releases/2026/10/261008005240.htm",
-   "date": "2026-10-10T18:56:25.000Z",
-   "summary": "Astronomers have discovered a bizarre star system about 300 light-years from Earth where a small star is slowly devouring a nearby brown dwarf, an object too massive to be a planet but too small to be a true star. Unlike stars that rapidly swallow their companions, this one is…",
-   "image": null
-  },
-  {
    "id": "6d57a260d9ad",
    "feed": "verge",
    "category": "tech",
@@ -917,28 +1048,6 @@
    "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/10/distrokid_logo_og_image.jpg?quality=90&strip=all&crop=0,0,100,100"
   },
   {
-   "id": "ff937c402522",
-   "feed": "hn",
-   "category": "tech",
-   "source": "Hacker News",
-   "title": "Nvidia in talks to acquire US 'open' model startup Reflection AI",
-   "link": "https://www.ft.com/content/052610c5-22b4-4dd4-932e-b7f9f0628b6a",
-   "date": "2026-10-10T18:48:35.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
-   "id": "cb3ddef1b124",
-   "feed": "sciencedaily",
-   "category": "science",
-   "source": "ScienceDaily",
-   "title": "Bowel cancer “melted away” after immunotherapy, then stayed away",
-   "link": "https://www.sciencedaily.com/releases/2026/10/261007042115.htm",
-   "date": "2026-10-10T18:42:35.000Z",
-   "summary": "A short course of immunotherapy before surgery may offer remarkably durable protection for some patients with stage two or three bowel cancer. In the NEOPRISM-CRC trial, 32 patients with a specific genetic form of bowel cancer received pembrolizumab for up to nine weeks before…",
-   "image": null
-  },
-  {
    "id": "ca016fc39989",
    "feed": "npr",
    "category": "news",
@@ -948,17 +1057,6 @@
    "date": "2026-10-10T18:17:12.000Z",
    "summary": "The center's executive director has named an agent who has worked with ZZ Top and Motley Crue drummer Tommy Lee as the head of programming for the arts institution.",
    "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/8101x5401+0+0/resize/8101x5401!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Fc2%2F3b%2F9e69e9c54a8abaf6460c597bf61b%2Fgettyimages-2297491934.jpg"
-  },
-  {
-   "id": "39e14f68a85d",
-   "feed": "hn",
-   "category": "tech",
-   "source": "Hacker News",
-   "title": "Why DuckDB 2.0 is faster",
-   "link": "https://motherduck.com/blog/why-duckdb-20-is-faster/",
-   "date": "2026-10-10T18:08:49.000Z",
-   "summary": "",
-   "image": null
   },
   {
    "id": "cd95a0b2b3e1",
@@ -1005,17 +1103,6 @@
    "image": null
   },
   {
-   "id": "4d8a38cb60ca",
-   "feed": "nws-fl",
-   "category": "live",
-   "source": "NWS Florida alerts",
-   "title": "Flood Warning issued October 10 at 12:42PM EDT by NWS Tallahassee FL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.f12b7ef22305aded232a8e97096203293ad7be88.001.1.cap",
-   "date": "2026-10-10T16:42:00.000Z",
-   "summary": "...The Flood Warning is extended for the following rivers in Florida... Shoal River near Mossy Head (CR 1087) affecting Walton County. * WHAT...Major flooding is occurring and major flooding is forecast. * WHERE...Shoal River near Mossy Head (CR 1087). * WHEN...Until further…",
-   "image": null
-  },
-  {
    "id": "9fea8a62d2a6",
    "feed": "verge",
    "category": "tech",
@@ -1047,17 +1134,6 @@
    "date": "2026-10-10T15:56:32.000Z",
    "summary": "The King spoke of \"threats to our international order\" in a letter marking the 10th anniversary of the National Cyber Security Centre.",
    "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/d98d/live/0d6d7c40-c4c0-11f1-9ce9-55293bd7f0d9.jpg"
-  },
-  {
-   "id": "c2f9caad882e",
-   "feed": "hn",
-   "category": "tech",
-   "source": "Hacker News",
-   "title": "Knuth reward check",
-   "link": "https://www.thomas-huehn.com/knuth-reward-check/",
-   "date": "2026-10-10T15:47:01.000Z",
-   "summary": "",
-   "image": null
   },
   {
    "id": "782d0eff1df9",
@@ -1126,17 +1202,6 @@
    "image": "https://platform.theverge.com/wp-content/uploads/sites/2/2026/01/STK269_ANTHROPIC_2_A.jpg?quality=90&strip=all&crop=0,0,100,100"
   },
   {
-   "id": "26642edca61e",
-   "feed": "bbc-us",
-   "category": "news",
-   "source": "BBC US & Canada",
-   "title": "Trump announces deal for Russian diesel as Zelensky calls it a gift to Putin",
-   "link": "https://www.bbc.co.uk/news/articles/cm1dwgr666wno?at_medium=RSS&at_campaign=rss",
-   "date": "2026-10-10T14:24:14.000Z",
-   "summary": "Ukraine's president sharply criticised the move, calling it an \"investment in war that must be ended, not prolonged\".",
-   "image": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/8c49/live/850032c0-c470-11f1-94f2-dbc7ff6db92b.jpg"
-  },
-  {
    "id": "a6250952bd65",
    "feed": "nasa-news",
    "category": "science",
@@ -1178,17 +1243,6 @@
    "link": "https://techcrunch.com/2026/10/10/all-the-ai-agents-that-can-live-in-your-text-messages/",
    "date": "2026-10-10T14:00:00.000Z",
    "summary": "We created a list of the most notable AI agents that can live in your text messages, from general assistants to agents designed for families, travel, and work.",
-   "image": null
-  },
-  {
-   "id": "5940c4bc3342",
-   "feed": "gn-lee",
-   "category": "swfl",
-   "source": "Investing News Network",
-   "title": "Green Thumb Opens RISE Dispensary in Cape Coral, Expanding Florida Footprint to 25 Locations",
-   "link": "https://news.google.com/rss/articles/CBMiugFBVV95cUxQckpvNlI0UGgxN1htR0x0djlRcTdfdl93d3lwbm9vNFZJV19oeVNJOFpMVFYwZlhwT0ZSQ29ianR3UDY2eFVXemN2R3p2WE41VHM5b1lSRXp1aGhBZ0VnTUVuZ2ctUXA3X2ttNkRGZ2FLUzRxVjhjcjZLSnlkcF93aXJ2R1ZscUc0SkFXeENyMXNYRWs4d3E4dVlpTkpxMVBXZHE0dTBVUk1EOVpwcTdkV1p6M09KdnhvV2c?oc=5",
-   "date": "2026-10-10T13:30:14.000Z",
-   "summary": "",
    "image": null
   },
   {
@@ -1259,9 +1313,9 @@
   },
   {
    "id": "e179f3250f47",
-   "feed": "bbc-us",
-   "category": "news",
-   "source": "BBC US & Canada",
+   "feed": "bbc-tech",
+   "category": "tech",
+   "source": "BBC Technology",
    "title": "Rogue Anthropic AI agent gave police fake tip in unsolved murder case",
    "link": "https://www.bbc.co.uk/news/articles/cqkg50j1yd5lo?at_medium=RSS&at_campaign=rss",
    "date": "2026-10-10T10:06:23.000Z",
@@ -1335,17 +1389,6 @@
    "image": null
   },
   {
-   "id": "ccb3fc9af676",
-   "feed": "nws-swfl",
-   "category": "swfl",
-   "source": "NWS alerts: Collier & Lee",
-   "title": "Coastal Flood Statement issued October 10 at 12:53AM EDT until October 11 at 12:00PM EDT by NWS Miami FL",
-   "link": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.4625919330933f91c99d3f410cbce8c427999774.002.1.cap",
-   "date": "2026-10-10T04:53:00.000Z",
-   "summary": "* WHAT...For the Coastal Flood Statement, isolated minor coastal flooding. For the High Rip Current Risk, dangerous rip currents. * WHERE...Coastal Collier County. * WHEN...For the Coastal Flood Statement, through Sunday morning. For the High Rip Current Risk, through this…",
-   "image": null
-  },
-  {
    "id": "93af22c6863f",
    "feed": "nasa-news",
    "category": "science",
@@ -1368,6 +1411,17 @@
    "image": null
   },
   {
+   "id": "7304f0a63a0d",
+   "feed": "gn-lee",
+   "category": "swfl",
+   "source": "The News-Press",
+   "title": "Watch highlights of Cape Coral's win over North Fort Myers",
+   "link": "https://news.google.com/rss/articles/CBMi4AFBVV95cUxQQkdOZXJpcTluWE1ZT1NMbVNUeUF4VHByaVZaejVhTGtBQXBqOEdmRDBBRFo1ZklORnN3OGdCeHJlQWRkNnhscnk5ZGxUb2pRaTVZM2F0TkVFOEpKakN4NkxMeVp2X0xSZFZYNkRBVUxjSHd5THUzczd0a1dxYlF2LXZmZ2FzbTM3YzlEUUVLdzBEY1ZwR2lyMDlidzhaTmgzS0UwNnRhS2JEWmFoRTJYNF9NOHJBQWJDemoxWTBCLXJzTm0yREpjQ2hqV1dUZkhjQWZ1WlhPQVJHRTl4a2hiZw?oc=5",
+   "date": "2026-10-10T03:38:27.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
    "id": "f1918c664616",
    "feed": "gn-naples",
    "category": "swfl",
@@ -1379,17 +1433,6 @@
    "image": null
   },
   {
-   "id": "9adafdf4b17e",
-   "feed": "sciencedaily",
-   "category": "science",
-   "source": "ScienceDaily",
-   "title": "Scientists may have found why diabetic wounds refuse to heal",
-   "link": "https://www.sciencedaily.com/releases/2026/10/261006234534.htm",
-   "date": "2026-10-10T03:00:35.000Z",
-   "summary": "Chronic diabetic wounds may fail to heal because immune cells remain locked in damaging inflammatory states instead of transitioning toward tissue repair. Researchers are exploring treatments that reprogram these immune responses, raising hopes for more targeted and effective…",
-   "image": null
-  },
-  {
    "id": "5af1a93eb20f",
    "feed": "willison",
    "category": "dev",
@@ -1398,17 +1441,6 @@
    "link": "https://simonwillison.net/2026/Oct/10/the-new-york-times/",
    "date": "2026-10-10T02:04:12.000Z",
    "summary": "Anthropic detailed the activity of its A.I. agents in a blog post on Friday, without naming the targeted websites. But two sources with knowledge of the incidents said Anthropic’s A.I. agents had submitted 20 visa applications through a form available on the State Department’s…",
-   "image": null
-  },
-  {
-   "id": "ef641d2f40da",
-   "feed": "sciencedaily",
-   "category": "science",
-   "source": "ScienceDaily",
-   "title": "A famous quantum effect can finally be predicted in real materials",
-   "link": "https://www.sciencedaily.com/releases/2026/10/261006234520.htm",
-   "date": "2026-10-10T01:59:39.000Z",
-   "summary": "Scientists have developed a powerful new way to calculate the Kondo effect, a strange quantum phenomenon that appears when magnetic atoms are embedded in metals. Instead of relying on simplified models, the method uses the real atomic and electronic structures of materials…",
    "image": null
   },
   {
@@ -1951,15 +1983,15 @@
    "image": null
   },
   {
-   "id": "2d43482cb79b",
-   "feed": "nasa-news",
-   "category": "science",
-   "source": "NASA",
-   "title": "APOD: 2026 October 9 – Stickney Crater",
-   "link": "https://science.nasa.gov/image-article/apod-2026-october-9-stickney-crater/",
-   "date": "2026-10-09T04:05:00.000Z",
-   "summary": "APOD Science APOD APOD: 2026 October 9… Today’s APOD Archive Submissions Index Search Calendar RSS Education About Discuss APOD Astronomy Picture of the Day Discover the cosmos! Each day a different image or photograph of our fascinating universe is featured, along with a brief…",
-   "image": "https://assets.science.nasa.gov/dynamicimage/assets/science/cds/apod/apod/2026/october/PSP_007769_9010_IRB_Stickney.jpg?w=1836&h=1362&fit=clip&crop=faces%2Cfocalpoint"
+   "id": "edb558d9c0b0",
+   "feed": "gn-naples",
+   "category": "swfl",
+   "source": "Realtor.com",
+   "title": "1271 N Alhambra Cir Unit 1643038P, Naples, FL 34103",
+   "link": "https://news.google.com/rss/articles/CBMilgFBVV95cUxPR0RyLUQwczZMWkdCZlA3ejIxZHVrYzY4RWltOERyNlpEQ0Uyc0FaemZUMFphVXU5aU1uMEQ5blNFZzVpS0lrY3AxMFo1QmtNS2VjRHdGakx3am5nak9jTm40Q25hVUowSFZ5S2l5MU1teGpqZE12NDdrVlVCSGw3bjlDdExNOW1xMTZLc2VkcmF4MXJMeGc?oc=5",
+   "date": "2026-10-09T05:16:54.000Z",
+   "summary": "",
+   "image": null
   },
   {
    "id": "97e3786d685f",
@@ -1973,14 +2005,14 @@
    "image": null
   },
   {
-   "id": "4531aaeb11d6",
-   "feed": "willison",
-   "category": "dev",
-   "source": "Simon Willison",
-   "title": "ttok 1.0",
-   "link": "https://simonwillison.net/2026/Oct/9/ttok/",
-   "date": "2026-10-09T00:34:43.000Z",
-   "summary": "Release: ttok 1.0 I released ttok 0.4, ran uv tool upgrade ttok, piped a file into the new version... and realized that it was defaulting to the GPT-4 tokenizer when it should very clearly default to GPT-5/GPT-6 instead! I figured switching the default was a reasonable excuse…",
+   "id": "e0e91244c556",
+   "feed": "gn-naples",
+   "category": "swfl",
+   "source": "The News-Press",
+   "title": "See photos as an egret hunts near the Naples Pier",
+   "link": "https://news.google.com/rss/articles/CBMi5gFBVV95cUxNUDVSUzFYSC1yY1AycGRqVTRkYk9nanlFU19MLU8wNmJXWkVJRFJ2bEJYdWJJQ0tpRktOQlZfZW9ERVR6bmVoQTFheDc4bDdsaWxlM24xc0NyUm5TdHZ3STRRdi1leGtNSDMtTjhTeXlackpNX0VyS0RhS0EyLTlUSEdLTVhUZFFxYXl3NmtiYlpXSTN6OHhFVkF0a3RkRVRxM1J0Y1Uwbk9LMlFnUGVyT0k4Qzdfa1RLTHpQaTJzdmFPLURwVURVRVJPRDlZTlpnRmpLbm9LMWw2RkRhY1BNY0pmVXpOZw?oc=5",
+   "date": "2026-10-09T01:57:00.000Z",
+   "summary": "",
    "image": null
   },
   {
@@ -2072,17 +2104,6 @@
    "image": null
   },
   {
-   "id": "032adf92755f",
-   "feed": "gn-naples",
-   "category": "swfl",
-   "source": "Realtor.com",
-   "title": "2612 14th Ave NE, Naples, FL 34120",
-   "link": "https://news.google.com/rss/articles/CBMijgFBVV95cUxOS2tZcWN3cmppbGpnLVRLek9xcmtReUpzRXZteXFqRkV1M2QtOW00Z3VjeFU4dzB6T1BUcmxidkhZWjlzSjhFZ1NfWGFvQjN1LXVSN0hYekxjZXgzOGRoUUhsbHc4STV5MUhhTk9EZklrTm5QX0NGc1dfRkUwLWxLcUx5blZiYjg2N2NuTEt3?oc=5",
-   "date": "2026-10-08T20:50:11.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
    "id": "8fbb18afd13a",
    "feed": "fed",
    "category": "business",
@@ -2091,17 +2112,6 @@
    "link": "https://www.federalreserve.gov/newsevents/pressreleases/enforcement20261008a.htm",
    "date": "2026-10-08T20:30:00.000Z",
    "summary": "Federal Reserve Board announces enforcement action against American Express Company to address, among other things, the firm’s failure to sufficiently detect and report certain suspicious activity related to money laundering",
-   "image": null
-  },
-  {
-   "id": "75e256d72584",
-   "feed": "gn-bonita",
-   "category": "swfl",
-   "source": "Florida Weekly",
-   "title": "Keep Lee County Beautiful seeks help for cleanup event",
-   "link": "https://news.google.com/rss/articles/CBMi3gFBVV95cUxOUWJYQlZldjQ5UHRZQkNhVXM5RWpQVHc5cTBhQl9ZOVIxbTR2Y2QtcjkzVXdITXA1VnB3MW11dzhIU1ZFUTduMkgwc2s5RkZ5dGhsdnEtNVBUWV92bDYySG1fczhRUXAwRk51UWtMOGx2SkxQVXZyVW5tb1BQZkRrV0tYTkEtaC1qVWZpcnhqLVBhaHE2bF8wZ01kdnVKdU1CVXlEX0g4NkhuTVppVEZteXRQUWdLMkp5a2JiWXpRS2gzUWhxTy1fZjdZX1doekdDSzNuSVFyNTlma2FwcUE?oc=5",
-   "date": "2026-10-08T20:00:00.000Z",
-   "summary": "",
    "image": null
   },
   {
@@ -2149,17 +2159,6 @@
    "image": null
   },
   {
-   "id": "673021c04138",
-   "feed": "gn-bonita",
-   "category": "swfl",
-   "source": "Florida Weekly",
-   "title": "Naples Polish Film Festival hosts Weekend with Wajda",
-   "link": "https://news.google.com/rss/articles/CBMi5gFBVV95cUxOT1VwcUlxZG1TN2cxRUYwVWhRZDFRdW1ZTlFqYmdoLW1KYk5zVGN1RUVXem1ZRldZZGs4NkVJTnJzdXlYMEJnQVJpa1pyU3AzQm9WUXpvc21abWk4aDlBaW1ELW5DMWMzVGxqN1ZwQ09kS2RMNnJrdnJOSU1jVnlQX0NucXJqT0dRS1F4ZU5JNVlIVEFfdE5pME03QVVxU0NaVVdsU3BaOVFDRGZvdjFhM25TT3E1YUJLSkRlRUpQVUcySFluMXV6b2pYMWpJMkdJTVVMSmdKdHAyZkh3Y3lCbGVWZVNvUQ?oc=5",
-   "date": "2026-10-08T16:00:00.000Z",
-   "summary": "",
-   "image": null
-  },
-  {
    "id": "fa4ad10a8db5",
    "feed": "gn-bonita",
    "category": "swfl",
@@ -2193,13 +2192,24 @@
    "image": "https://i4.ytimg.com/vi/_y9JuojAIg0/hqdefault.jpg"
   },
   {
-   "id": "01d27d3f46af",
-   "feed": "gn-naples",
+   "id": "8393d23393d6",
+   "feed": "gn-bonita",
    "category": "swfl",
-   "source": "Pembroke Pines News",
-   "title": "Lee County plans new parking for bikes, golf carts on Fort Myers Beach",
-   "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTE9qTHB6SjhYY3hSbWtOay1PMk5JQkQ4RDYxOFRRMDNjeUlFRVNWeVJHYkd1TlRBbTEwclhUNGlWTHhMUUdrYy1lUXU5bDhHNG9hR3NjX2tRdWlrLTNhQ2tPMHZWNFVrREE1dWxicWd0Zw?oc=5",
-   "date": "2026-10-08T13:45:22.000Z",
+   "source": "WINK News",
+   "title": "Bonita Springs firefighters head north to assist with Hurricane Isaias",
+   "link": "https://news.google.com/rss/articles/CBMigAJBVV95cUxOQklUOEVHdnpyaHZBVzNQZm1LU0MtaEh1MW5DeXFVbFNZQ3Y1VU5FMmZSbXhJMU0zLVhvTGhWY1YtcUx0THB1bVdRWmdSWjFvSzIyVzFpVXB0YS1ua3FPSFh3QU1HT3cyWF93NmUtVFlaRTVKUjcwWlhSUG9HRnJOaUVQSHJndVdQel9peGxvanRoZ2R0UWxmRnh6dWVtS1VJbHViOENtVlJuZWxpZFFGX2staFFhbTZPR1BYcE0yd296RDg0RzFOSkVHQURlRHVuY2JhUFZKYkdkNUJPb3NsX2QxY0N5WkpjYW9YeHFPa2pZQ213ME9peERuZmo4NzBS?oc=5",
+   "date": "2026-10-08T12:38:00.000Z",
+   "summary": "",
+   "image": null
+  },
+  {
+   "id": "02844389fdad",
+   "feed": "gn-bonita",
+   "category": "swfl",
+   "source": "Gulf Coast News and Weather",
+   "title": "Woman accused of attempting to force her way into Bonita Springs home, hitting victim",
+   "link": "https://news.google.com/rss/articles/CBMinAFBVV95cUxPaERMR3pjVGN0LUNkbjhrT0FZNWJSdk55NGcxZGI1alJLTXVTZ2sxYkpvRHRQc1lrMWhsZ21vUkcwUk1zd3E5NFJDeERMdmhCdEtYU2hvWXMtWV9yYWV2LUVjOTZoeWhlMGpkNzE4MHk5M09aQS1uWGtyYkxua2dRcVNIOWlURnRLcWVVYWFrZXJjWGxNUGpoZWw4blI?oc=5",
+   "date": "2026-10-08T12:13:00.000Z",
    "summary": "",
    "image": null
   },
