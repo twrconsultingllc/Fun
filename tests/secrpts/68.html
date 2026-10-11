@@ -221,11 +221,11 @@
     </div>
     <div class="item">
       <div class="item-head"><div class="item-title">The suite</div><span class="badge fixed">Confirmed clean</span></div>
-      <div class="item-body"><p>SUITE_RESULT</p></div>
+      <div class="item-body"><p>jarvis-test (jsdom): 1786 checks, all passing. The "Learned phrases" section was rewritten for the new flow: a miss offers "learn that" and teaches nothing, "learn that" a turn later has nothing to learn, "nothing" leaves it, "when I say …" typed and spoken, and a meaning it doesn't know isn't learned. The meaning module's "no" now offers "learn that" instead of teaching, and the full brain section checks that a sure match runs first while an unsure one goes to the full brain. Eleven older checks that taught the old way (miss, then "I meant …") now say "learn that" in between. Their expected answers weren't changed. Only the full brain check's phrase changed, from "tickle my funny bone" to "make me chuckle", because "funny" is already understood by a pattern and never reached the meaning module.</p></div>
     </div>
     <div class="item">
       <div class="item-head"><div class="item-title">The suite fails when the page is broken</div><span class="badge fixed">Confirmed clean</span></div>
-      <div class="item-body"><p>MUTANT_RESULT</p></div>
+      <div class="item-body"><p>Five copies of the page, each with one deliberate bug, were run against the suite, and all five failed it: a miss teaching your next sentence again (8+ failures), the meaning module asking before the full brain (3), a "no" starting teaching mode (3), "please" back in the spoken split (1), and the missed phrase not cleared after one turn (3).</p></div>
     </div>
     <div class="item">
       <div class="item-head"><div class="item-title">Not tried with the real full brain or a real phone</div><span class="badge open">Open</span></div>
