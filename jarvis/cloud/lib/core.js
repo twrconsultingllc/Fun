@@ -2,7 +2,8 @@
  *
  * The page on GitHub Pages asks /api/status whether the supercharger is on, and, while it is, sends what nothing on
  * the device understood to /api/brain, which asks Google's Gemini. The owner turns it on and off in Vercel, never on
- * the page: an Edge Config item (supercharge, until, model, owner), or, without Edge Config, environment variables.
+ * the page: an Edge Config item (supercharge, until, model, owner), or, without Edge Config, environment variables,
+ * where it's on unless SUPERCHARGE says otherwise.
  *
  * The Gemini key stays here, in GEMINI_API_KEY. It's sent as a header, never in a URL, and scrubbed from any error
  * text. Nothing anyone asks is logged: only token counts and the model.
@@ -73,8 +74,10 @@ export function normaliseSwitch(raw) {
 export const isOn = (sw, now) => !!sw && sw.on && (sw.until === null || now < sw.until);
 
 // Reads the switch. Edge Config when EDGE_CONFIG is set (changes show within about half a minute, no redeploy);
-// otherwise SUPERCHARGE, SUPERCHARGE_UNTIL, JARVIS_MODEL and OWNER_NAME (a change needs a redeploy). A failed read
-// is off.
+// otherwise SUPERCHARGE, SUPERCHARGE_UNTIL, JARVIS_MODEL and OWNER_NAME (a change needs a redeploy). A failed Edge
+// Config read is off. Without Edge Config, an unset or empty SUPERCHARGE is on (the owner chose this on 2026-10-11,
+// controlling cost from Google's billing instead); any other value is read as usual, so SUPERCHARGE=false turns it
+// off. With no GEMINI_API_KEY it's always off.
 export function createSwitch({ env, fetchImpl, now }) {
     let cache = null;
     return async function readSwitch() {
@@ -91,7 +94,8 @@ export function createSwitch({ env, fetchImpl, now }) {
                 } catch { sw = normaliseSwitch(null); }
             }
         } else {
-            sw = normaliseSwitch({ supercharge: env.SUPERCHARGE, until: env.SUPERCHARGE_UNTIL, owner: env.OWNER_NAME, model: env.JARVIS_MODEL });
+            const unset = env.SUPERCHARGE === undefined || String(env.SUPERCHARGE).trim() === '';
+            sw = normaliseSwitch({ supercharge: unset ? true : String(env.SUPERCHARGE).trim().toLowerCase(), until: env.SUPERCHARGE_UNTIL, owner: env.OWNER_NAME, model: env.JARVIS_MODEL });
         }
         if (!sw.model && env.JARVIS_MODEL && MODEL_RE.test(env.JARVIS_MODEL)) sw.model = env.JARVIS_MODEL;
         cache = { at: t, sw };

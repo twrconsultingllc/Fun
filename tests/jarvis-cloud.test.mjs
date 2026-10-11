@@ -134,8 +134,18 @@ export default async function run(t) {
         const envOn = app({ EDGE_CONFIG: '', SUPERCHARGE: 'on', OWNER_NAME: 'Tony', JARVIS_MODEL: 'gemini-3.5-flash-lite' }, []);
         s = parse(await get(envOn));
         t.ok('without Edge Config: environment variables (SUPERCHARGE=on)', s.on && s.owner === 'Tony' && s.model === 'gemini-3.5-flash-lite');
-        const envOff = app({ EDGE_CONFIG: '' }, []);
-        t.ok('…and off by default', parse(await get(envOff)).on === false);
+        // Since 2026-10-11, at the owner's request: without Edge Config it's on unless SUPERCHARGE says otherwise.
+        const envDefault = app({ EDGE_CONFIG: '' }, []);
+        s = parse(await get(envDefault));
+        t.ok('…and on by default, with no owner and the default model', s.on === true && s.owner === null && s.model === 'gemini-3.5-flash');
+        t.ok('…an empty SUPERCHARGE is the same as unset: on', parse(await get(app({ EDGE_CONFIG: '', SUPERCHARGE: '  ' }, []))).on === true);
+        for (const v of ['false', 'FALSE', 'off', '0', 'no'])
+            t.ok(`…SUPERCHARGE=${v} turns it off`, parse(await get(app({ EDGE_CONFIG: '', SUPERCHARGE: v }, []))).on === false);
+        t.ok('…SUPERCHARGE=TRUE turns it on', parse(await get(app({ EDGE_CONFIG: '', SUPERCHARGE: 'TRUE' }, []))).on === true);
+        t.ok('…on by default, but not without a Gemini key', parse(await get(app({ EDGE_CONFIG: '', GEMINI_API_KEY: '' }, []))).on === false);
+        t.ok('…and not when SUPERCHARGE_UNTIL has passed', parse(await get(app({ EDGE_CONFIG: '', SUPERCHARGE_UNTIL: '2026-10-11T17:00:00Z' }, []))).on === false);
+        const envBrain = app({ EDGE_CONFIG: '' }, [catalog(['gemini-3.5-flash']), gemini(() => geminiOk({ say: 'Hi.', do: [], kind: 'chat' }))]);
+        t.eq('…and the brain answers by default', (await post(envBrain)).status, 200);
     }
 
     t.section('Who may call');
