@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
-<title>Review #72 — J.A.R.V.I.S. Session 14b, part 1: the supercharger proxy</title>
-<meta name="description" content="Review of the J.A.R.V.I.S. supercharger proxy (jarvis/cloud/) on 2026-10-11: a Vercel function that holds a paid Gemini key, switched on and off from Edge Config, with its tests and Session 14b of the build plan.">
+<title>Review #72 — J.A.R.V.I.S. Session 17, part 1: the supercharger proxy</title>
+<meta name="description" content="Review of the J.A.R.V.I.S. supercharger proxy (jarvis/cloud/) on 2026-10-11: a Vercel function that holds a paid Gemini key, switched on and off from Edge Config, with its tests and Session 17 of the build plan.">
 <style>
   :root {
     --bg: #0b0e14;
@@ -168,8 +168,8 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>Review #72 — J.A.R.V.I.S. Session 14b, part 1: the supercharger proxy</h1>
-    <p class="sub">You chose a cloud brain you switch on from Vercel: Google's Gemini, on a paid key, with no passphrase and nothing on the page able to turn it on. This first part is the proxy that holds the key, <code>jarvis/cloud/</code>, and Session 14b in the build plan. The page doesn't call it yet; that comes once the Vercel project exists.</p>
+    <h1>Review #72 — J.A.R.V.I.S. Session 17, part 1: the supercharger proxy</h1>
+    <p class="sub">You chose a cloud brain you switch on from Vercel: Google's Gemini, on a paid key, with no passphrase and nothing on the page able to turn it on. This first part is the proxy that holds the key, <code>jarvis/cloud/</code>, and Session 17 in the build plan (first called 14b). The page doesn't call it yet; that comes once the Vercel project exists.</p>
     <div class="meta">Review performed 2026-10-11 · scope: <code>jarvis/cloud/</code> (<code>lib/core.js</code>, <code>api/_app.js</code>, <code>api/status.js</code>, <code>api/brain.js</code>, <code>package.json</code>, <code>vercel.json</code>, <code>README.md</code>), <code>tests/jarvis-cloud.test.mjs</code>, <code>tests/run.mjs</code> (one line), <code>jarvis/build-plan.html</code> · suite run: <code>jarvis-cloud</code> only. No page changed, so no page suite ran.</div>
     <div class="legend">
       <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
@@ -235,7 +235,7 @@
     </div>
     <div class="item">
       <div class="item-head"><div class="item-title">Build plan and README</div><span class="badge fixed">Fixed</span></div>
-      <div class="item-body"><p>Session 14b is in <code>jarvis/build-plan.html</code>, In progress, in the contents and the session index, with your setup steps (with links), the decisions from chat, the checks, and notes on what was built. Session 14's line saying phones were left for a planning session now links to it. The on-device ideas from the planning talk (diagnostics, a warm-up, per-browser answers, a lighter <code>q4f32</code> model), comparing brains, and a CPU brain are in "Parked and ruled out", and "where your data goes" mentions the supercharger. <code>jarvis/cloud/README.md</code> documents the switch, the settings and the limits.</p></div>
+      <div class="item-body"><p>Session 17 (called Session 14b when this review was written; renumbered the same day so chess keeps 16, and worked before it) is in <code>jarvis/build-plan.html</code>, In progress, in the contents and the session index, with your setup steps (with links), the decisions from chat, the checks, and notes on what was built. Session 14's line saying phones were left for a planning session now links to it. The on-device ideas from the planning talk (diagnostics, a warm-up, per-browser answers, a lighter <code>q4f32</code> model), comparing brains, and a CPU brain are in "Parked and ruled out", and "where your data goes" mentions the supercharger. <code>jarvis/cloud/README.md</code> documents the switch, the settings and the limits.</p></div>
     </div>
   </section>
   <footer>Previous review: <a href="71.html">#71</a> (Sessions 8 to 14 promoted to the main page).</footer>

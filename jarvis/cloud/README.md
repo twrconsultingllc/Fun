@@ -1,7 +1,7 @@
 # J.A.R.V.I.S. supercharger proxy
 
 A small Vercel project that holds the Gemini API key for `jarvis-test.html`
-(Session 14b of [`jarvis/build-plan.html`](../build-plan.html#s14b)). The page
+(Session 17 of [`jarvis/build-plan.html`](../build-plan.html#s17)). The page
 lives on GitHub Pages and can't keep a secret, so it asks this proxy instead.
 
 - `GET /api/status` → `{on, owner, model, until}`: is the supercharger on?
