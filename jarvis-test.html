@@ -4148,6 +4148,9 @@ async function gpuCheck(){
   if(!a)return 'adapter';
   return a.features&&a.features.has('shader-f16')?'ok':'f16';
 }
+// An error as text. WebLLM's worker sends its errors back as plain strings (err.toString(), "AbortError: …"), not
+// Error objects, so name and message are often missing and the string is the whole of it.
+const errText=e=>e==null?'unknown':typeof e==='string'?e:e.name&&e.message?e.name+': '+e.message:String(e.message||e);
 const STAY=" I'll stay as I am, with my standard brain.";
 const GPU_LINES={
   none:"My full brain needs WebGPU, and this browser doesn't have it. It works in desktop Chrome and Edge, Chrome on Android, and Safari on iOS 26."+STAY,
@@ -4187,7 +4190,7 @@ function startInstall(){
       say(`Full brain online: ${LLM.short}, running on your graphics chip. When I don't know something by heart, I'll think it through. When I'm only going from memory, I'll say so.`);
     }catch(e){
       full.state='off';full.engine=null;brainShow(1,true);
-      const m=String(e&&(e.name+' '+e.message));
+      const m=errText(e);
       say(/f16/i.test(m)?GPU_LINES.f16:/lost|memory|OutOfMemory/i.test(m)?"Your graphics chip ran out of memory loading my full brain."+STAY:
         "I couldn't install my full brain. Check your connection, then say install your full brain to try again."+STAY);
     }
@@ -4285,10 +4288,10 @@ async function askBrain(text){
   if(failed){
     // "Why?" names the error, so it can be reported: plain text only, never a link, and cut short.
     try{console.error('Full brain error:',failed)}catch(e){}
-    const what=String(failed&&(failed.name&&failed.message?failed.name+': '+failed.message:failed.message||failed)||'unknown').replace(/[⟦⟧<>]/g,'').replace(/\s+/g,' ').trim().slice(0,200);
+    const what=errText(failed).replace(/[⟦⟧<>]/g,'').replace(/\s+/g,' ').trim().slice(0,200);
     // A lost device, or a GPU read cut off (WebLLM destroys its device when the chip runs out of memory, which cancels
     // every read in flight): the engine can't be trusted after either, so it's unloaded to free the memory.
-    if(/lost|AbortError|mapAsync|unmapped|destroyed/i.test(String(failed&&(failed.name+' '+failed.message)))){
+    if(/lost|AbortError|mapAsync|unmapped|destroyed/i.test(errText(failed))){
       const e=full.engine;full.state='off';full.engine=null;full.turns=[];
       try{if(e&&e.unload)await e.unload()}catch(x){}
       return because("My full brain stopped: the graphics chip lost it, usually from running out of memory. I'm back on my standard brain. Close other tabs, then say install your full brain to try again.",`${GPU_WHY} The error was: ${what}`);
