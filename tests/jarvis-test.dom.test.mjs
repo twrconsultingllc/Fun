@@ -3695,6 +3695,8 @@ export function fakeEngine({ reply = 'SAY: Hello there.\nDO: none\nKIND: chat', 
                     if (st.gate) await st.gate;
                     await tick(1);
                     if (st.fail === 'lost' && i >= chunk) throw Object.assign(new Error('Device was lost'), { name: 'DeviceLostError' });
+                    // What Chrome gave on the user's device on 2026-10-11, mid-answer.
+                    if (st.fail === 'abort' && i >= chunk) throw new DOMException("Failed to execute 'mapAsync' on 'GPUBuffer': Buffer was unmapped before mapping was resolved.", 'AbortError');
                     st.chunks++;
                     yield { choices: [{ delta: { content: text.slice(i, i + chunk) } }] };
                 }
@@ -3950,14 +3952,22 @@ export async function fullBrain(t, page) {
         F.release(); await wait(200);
         F.fail = 'lost';
         r = await typeIn(env, 'what do you think about butter');
-        t.eq('the graphics chip losing it mid-answer: back to the standard brain', r, "My full brain stopped: the graphics chip lost it, usually from running out of memory. I'm back on my standard brain.");
-        t.ok('it\'s off, and the next miss is the usual line', J.full().state === 'off' && MISSED.test(await typeIn(env, 'what do you think about bread')));
+        const STOPPED = "My full brain stopped: the graphics chip lost it, usually from running out of memory. I'm back on my standard brain. Close other tabs, then say install your full brain to try again.";
+        t.eq('the graphics chip losing it mid-answer: back to the standard brain', r, STOPPED);
+        t.ok('it\'s off and unloaded, and the next miss is the usual line', J.full().state === 'off' && F.unloaded === 1 && MISSED.test(await typeIn(env, 'what do you think about bread')));
         await typeIn(env, 'never mind');
+        F.fail = null;
+        await typeIn(env, 'install your full brain'); await typeIn(env, 'yes'); await wait(250);
+        F.fail = 'abort';
+        r = await typeIn(env, 'what do you think about toast');
+        t.eq('a GPU read cut off mid-answer (the AbortError from mapAsync): the same, since the engine can\'t be trusted after it', r, STOPPED);
+        t.ok('off and unloaded too', J.full().state === 'off' && F.unloaded === 2);
+        t.ok('"why?" names the error', /The error was: AbortError: Failed to execute 'mapAsync' on 'GPUBuffer': Buffer was unmapped before mapping was resolved\.$/.test(await typeIn(env, 'why')));
         F.fail = null;
         await typeIn(env, 'install your full brain'); await typeIn(env, 'yes'); await wait(250);
         t.ok('(installed again)', J.full().state === 'on');
         t.eq('"turn off your full brain"', await typeIn(env, 'jarvis turn off your full brain please'), "Full brain off. I'm back on my standard brain. Its files stay in your browser, so it comes back quickly.");
-        t.ok('unloads it', F.unloaded === 1 && J.full().state === 'off');
+        t.ok('unloads it', F.unloaded === 3 && J.full().state === 'off');
     } finally { env.close(); }
     const again = await openDom(page.html, URL_, fixed(fakeGpu()));
     try { t.eq('a reload starts without it, and remembers no conversation', again.window.__jarvis.full().state + again.window.__jarvis.full().turns.length, 'off0'); } finally { again.close(); }
