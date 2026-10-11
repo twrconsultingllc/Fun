@@ -41,6 +41,14 @@
  * record, and must check their hashes and stop at shader-f16 before any weight is read; a config with one byte changed
  * must be refused. A fake engine then shows the install line and a labelled answer, screenshotted at both sizes.
  *
+ * Session 17 added step 11: the supercharger, offline and install, in a fresh profile at each size. The hosted font
+ * loads in all three weights and draws; the supercharger announces itself, recolours the HUD and answers a question
+ * through the proxy at its real address under the real CSP (POSTed as text/plain, so no CORS preflight), while another
+ * Vercel address is refused. The service worker registers for the page alone, keeps only its own caches, never caches
+ * the proxy, and passes requests to the proxy straight to the network. Chromium finds the page installable. Offline,
+ * the page, the font and a three.js scene load from the cache and he says the supercharger is unavailable; other
+ * pages aren't kept. A new deploy shows on the next online load. No request leaves the site but the proxy's.
+ *
  * Review 67 added step 10: the screens on a phone. The face above the chat strip, the strip's handle, the Infinity Gauntlet
  * (inside the screen, every link reachable), and the projector's caption as a peek that MORE opens and HIDE tucks away, with the
  * memory core's labels apart and clear of it, Peru on the globe, and the settings code clear of it. At 1280×800, 390×844 and 360×640.
@@ -52,10 +60,9 @@
  *   node jarvis-test.chromium.mjs --out=/some/dir --three=/path/to/three.min.js
  *
  * The pages are served from the working copy by a small static server on 127.0.0.1, because the hand
- * tracker and the coastlines need HTTP, not file://, and so the real CSP applies. cdnjs is often blocked
- * from the containers, so three.js r128 comes from npm (byte-identical to cdnjs's, so the page's SRI hash
- * still checks it) unless --three names a copy. Without three.js the memory-core checks are skipped and
- * say so. Screenshots go to --out (a new temp folder by default). Exit code 0 when every check passes. */
+ * tracker and the coastlines need HTTP, not file://, and so the real CSP applies. Since Session 17 three.js r128 and
+ * the font are hosted on the site, so nothing is fetched from cdnjs or Google Fonts, and every context routes the
+ * supercharger proxy's real address to the real proxy code with a fake Gemini behind it. say so. Screenshots go to --out (a new temp folder by default). Exit code 0 when every check passes. */
 
 import { createServer } from 'node:http';
 import { readFile, mkdtemp, rm, access } from 'node:fs/promises';
@@ -77,25 +84,31 @@ async function loadPlaywright() {
     throw new Error('Playwright is not installed. This needs a claude.ai/code container or a machine with Playwright and Chromium.');
 }
 
+// Since Session 17 three.js r128 is hosted on the site (jarvis/vendor/three.min.js), so it's always there; --three is kept
+// for checking another copy.
 async function threeJs() {
     if (arg('three')) return resolve(arg('three'));
-    try {
-        execFileSync('npm', ['pack', 'three@0.128.0', '--silent'], { cwd: work, stdio: 'ignore' });
-        execFileSync('tar', ['xzf', 'three-0.128.0.tgz'], { cwd: work });
-        const p = join(work, 'package/build/three.min.js');
-        return (await exists(p)) ? p : null;
-    } catch { return null; }
+    const p = join(ROOT, 'jarvis/vendor/three.min.js');
+    return (await exists(p)) ? p : null;
 }
 
 // Serves the working copy, read only, and nothing outside it.
-const TYPES = { '.html': 'text/html', '.js': 'application/javascript', '.mjs': 'application/javascript', '.json': 'application/json',
+const TYPES = { '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json', '.html': 'text/html', '.js': 'application/javascript', '.mjs': 'application/javascript', '.json': 'application/json',
     '.wasm': 'application/wasm', '.y4m': 'application/octet-stream', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' };
 // Session 13: no pack.json is committed until the real build runs (jarvis/knowledge/README.md), so the server hands
 // out the pack built from the sample documents at jarvis/knowledge/pack.json, the way the page will fetch the real one.
 const KB = await import('../jarvis/knowledge/build.mjs');
 const PACK = await KB.buildPack(await KB.fixtureGetter(join(ROOT, 'tests/fixtures/jarvis-knowledge/')), await readFile(join(ROOT, 'jarvis/knowledge/suits.json'), 'utf8'));
+// Session 17: DEPLOY > 0 serves a changed jarvis-test.html (a new deploy); DOWN drops every connection, the way a phone
+// in airplane mode finds no network, even for requests Playwright's offline switch might not reach.
+let DEPLOY = 0, DOWN = false;
 function serve() {
     const server = createServer(async (req, res) => {
+        if (DOWN) { req.socket.destroy(); return; }
+        if (DEPLOY && new URL(req.url, 'http://x').pathname === '/jarvis-test.html') {
+            const html = (await readFile(join(ROOT, 'jarvis-test.html'), 'utf8')).replace('<title>J.A.R.V.I.S. Test</title>', `<title>J.A.R.V.I.S. Test · deploy ${DEPLOY}</title>`);
+            res.writeHead(200, { 'content-type': 'text/html' }).end(html); return;
+        }
         if (new URL(req.url, 'http://x').pathname === '/jarvis/knowledge/pack.json') { res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(PACK)); return; }
         let path;
         try { path = resolve(ROOT, '.' + decodeURIComponent(new URL(req.url, 'http://x').pathname)); } catch { res.writeHead(400).end(); return; }
@@ -117,10 +130,33 @@ const three = await threeJs();
 const server = await serve();
 const BASE = `http://127.0.0.1:${server.address().port}/`;
 const executablePath = (await exists('/opt/pw-browsers/chromium')) ? '/opt/pw-browsers/chromium' : undefined;
+// Session 17: the supercharger proxy, served under its real address by the real jarvis/cloud/lib/core.js, with a fake
+// Gemini behind it, so the page's real CSP and the real CORS answer apply. Every context gets it: the page asks
+// /api/status as it loads. PX.on is the switch (a change is a redeploy, as with the environment variables).
+const PROXY = 'https://jarvis-cloud-gamma.vercel.app';
+const CORE = await import('../jarvis/cloud/lib/core.js');
+const PX = { on: false, owner: 'Tony', gemini: { say: 'Paris is lovely in spring.', do: [], kind: 'chat' }, hits: [], app: null };
+const gjson = (status, body) => ({ ok: status < 300, status, json: async () => body });
+PX.redeploy = () => { PX.app = CORE.createApp({ env: { GEMINI_API_KEY: 'test-key', SUPERCHARGE: PX.on ? 'true' : 'false', OWNER_NAME: PX.owner, ALLOWED_ORIGINS: BASE.replace(/\/$/, '') }, log: () => {},
+    fetchImpl: async (url) => /\/models\?/.test(url) ? gjson(200, { models: [{ name: 'models/gemini-3.5-flash', supportedGenerationMethods: ['generateContent'] }] })
+        : gjson(200, { candidates: [{ content: { role: 'model', parts: [{ text: JSON.stringify(PX.gemini) }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 10 } }) }); };
+PX.redeploy();
+async function proxyRoute(c) {
+    await c.route(PROXY + '/**', async (route) => {
+        const rq = route.request(), path = new URL(rq.url()).pathname, headers = await rq.allHeaders();
+        PX.hits.push({ path, method: rq.method(), type: headers['content-type'] || '', origin: headers.origin || '' });
+        // Offline, the proxy is as unreachable as everything else. Playwright's route would answer it even with the
+        // context offline, so it's dropped here.
+        if (DOWN) { await route.abort('internetdisconnected'); return; }
+        const fn = { '/api/status': 'status', '/api/brain': 'brain' }[path];
+        if (!fn) { await route.fulfill({ status: 404, body: '' }); return; }
+        const out = await PX.app[fn]({ method: rq.method(), headers, body: rq.postData() });
+        await route.fulfill({ status: out.status, headers: out.headers, body: out.body });
+    });
+}
 const ctx = await chromium.launchPersistentContext(join(work, 'profile'), { executablePath, headless: true,
     args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: 1280, height: 800 } });
-if (three) await ctx.route('https://cdnjs.cloudflare.com/**', (r) => r.fulfill({ path: three, contentType: 'application/javascript', headers: { 'access-control-allow-origin': '*' } }));
-await ctx.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
+await proxyRoute(ctx);
 
 async function open(file, size = { width: 1280, height: 800 }, on = ctx) {
     const page = await on.newPage(); await page.setViewportSize(size);
@@ -128,7 +164,11 @@ async function open(file, size = { width: 1280, height: 800 }, on = ctx) {
     // MediaPipe's text embedder (Session 12) prints its own two start-up notes through console.error. They're the
     // library's logging, not page errors, so exactly those two lines are let through; anything else still fails.
     const MEDIAPIPE_LOG = /^(?:INFO: Created TensorFlow Lite XNNPACK delegate for CPU\.|WARNING: Attempting to use a delegate that only supports static-sized tensors with a graph that has dynamic-sized tensors \(tensor#\d+ is a dynamic-sized tensor\)\.)$/;
-    page.on('console', (m) => { if ((m.type() === 'error' && !MEDIAPIPE_LOG.test(m.text())) || /Refused/.test(m.text())) problems.push(`${file} console: ${m.text()}`); });
+    // Session 17: offline, Chrome can't fetch the manifest's icons (it fetches them itself, not through the page's
+    // service worker) and says so. That's the network being gone, not a page error.
+    // The same goes for the supercharger requests failing: Chrome logs each as a failed resource.
+    const OFFLINE_ICON = /^Error while trying to use the following icon from the Manifest: |^Failed to load resource: net::ERR_INTERNET_DISCONNECTED$/;
+    page.on('console', (m) => { if (DOWN && OFFLINE_ICON.test(m.text())) return; if ((m.type() === 'error' && !MEDIAPIPE_LOG.test(m.text())) || /Refused/.test(m.text())) problems.push(`${file} console: ${m.text()}`); });
     await page.goto(BASE + file); await page.waitForFunction(() => window.__jarvis);
     await page.evaluate(() => window.__jarvis.ready);
     return page;
@@ -338,8 +378,7 @@ try {
             `[0]${frame},boxblur=8,fps=10,format=yuv420p[a];[1]${frame},fps=10,format=yuv420p[b];[a][b]concat=n=2:v=1[v]`, '-map', '[v]', y4m]);
         const ctxB = await chromium.launchPersistentContext(join(work, 'profile-b'), { executablePath, headless: true, viewport: { width: 1280, height: 800 },
             args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-video-capture=${y4m}`] });
-        if (three) await ctxB.route('https://cdnjs.cloudflare.com/**', (r) => r.fulfill({ path: three, contentType: 'application/javascript', headers: { 'access-control-allow-origin': '*' } }));
-        await ctxB.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
+        await proxyRoute(ctxB);
         try {
             for (const [w, h] of [[1280, 800], [390, 844]]) {
                 const b = await open('jarvis-test.html', { width: w, height: h }, ctxB);
@@ -381,23 +420,26 @@ try {
                 ok(`no sideways scroll at ${w}×${h}`, await b.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
                 await b.close();
             }
-            // A changed encoder is refused: one byte different, so its SRI hash no longer matches.
+            // A changed encoder is refused: one byte different, so its SRI hash no longer matches. In a browser with
+            // service workers blocked (Session 17): in ctxB the worker would answer with its saved, unchanged copy,
+            // which Playwright's route never sees, as a phone with the old copy saved would.
             const real = await readFile(join(ROOT, 'jarvis/qr/qrcode.js'), 'utf8');
-            const t = await ctxB.newPage(); const errs = [];
+            const tb = await chromium.launch({ executablePath, headless: true }), ctxT = await tb.newContext({ serviceWorkers: 'block' });
+            await proxyRoute(ctxT);
+            const t = await ctxT.newPage(); const errs = [];
             t.on('console', (m) => errs.push(m.text()));
             await t.route('**/jarvis/qr/qrcode.js', (r) => r.fulfill({ body: real.replace('QR Code Generator', 'QR Code Generatoz'), contentType: 'application/javascript' }));
             await t.goto(BASE + 'jarvis-test.html'); await t.waitForFunction(() => window.__jarvis); await t.evaluate(() => window.__jarvis.ready);
-            const r = await t.evaluate(() => window.__jarvis.answer('show my settings code'));
+            const r = await t.evaluate(async () => { await window.__jarvis.answer('make the orb blue'); return window.__jarvis.answer('show my settings code'); }); // a fresh profile: one setting to send
             ok('an encoder with one byte changed is refused by the browser, and he points to the file instead', /couldn't load my code maker/.test(r) && errs.some((e) => /integrity/i.test(e)) && !(await t.evaluate(() => typeof window.qrcode)).includes('function'), r + ' | ' + errs.join(' | '));
-            await t.close();
+            await t.close(); await tb.close();
         } finally { await ctxB.close(); }
     }
     // 6. Session 11: clearance, in a fresh profile at each size, so each one starts as a newcomer.
     if (three) for (const [w, h] of [[1280, 800], [390, 844]]) {
         const ctxC = await chromium.launchPersistentContext(join(work, `profile-c-${w}`), { executablePath, headless: true,
             args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: w, height: h } });
-        await ctxC.route('https://cdnjs.cloudflare.com/**', (r) => r.fulfill({ path: three, contentType: 'application/javascript', headers: { 'access-control-allow-origin': '*' } }));
-        await ctxC.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
+        await proxyRoute(ctxC);
         try {
             const p = await open('jarvis-test.html', { width: w, height: h }, ctxC);
             await p.click('#boot-skip'); await p.waitForTimeout(800);
@@ -459,8 +501,7 @@ try {
     if (three) for (const [w, h] of [[1280, 800], [390, 844]]) {
         const ctxM = await chromium.launchPersistentContext(join(work, `profile-m-${w}`), { executablePath, headless: true,
             args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: w, height: h } });
-        await ctxM.route('https://cdnjs.cloudflare.com/**', (r) => r.fulfill({ path: three, contentType: 'application/javascript', headers: { 'access-control-allow-origin': '*' } }));
-        await ctxM.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
+        await proxyRoute(ctxM);
         const asked = [];
         ctxM.on('request', (rq) => asked.push(rq.url()));
         try {
@@ -485,7 +526,7 @@ try {
             await p.screenshot({ path: join(OUT, `upgrade-done-${w}.png`) });
             const files = asked.filter((u) => u.includes('/jarvis/text/')).map((u) => u.replace(/^.*\/jarvis\/text\//, '')).sort();
             ok('it fetched the bundle, the loader, the WebAssembly and the model, all from this site', ['text_bundle.js', 'text_wasm_internal.js', 'text_wasm_internal.wasm', 'universal_sentence_encoder.tflite'].every((f) => files.includes(f)), files.join());
-            ok('and nothing from any other host', asked.every((u) => u.startsWith(BASE) || /^(data|blob):|^https:\/\/(cdnjs\.cloudflare\.com|fonts\.googleapis\.com)\//.test(u)), asked.filter((u) => !u.startsWith(BASE)).join());
+            ok('and nothing from any other host (only the supercharger status, since Session 17)', asked.every((u) => u.startsWith(BASE) || u === PROXY + '/api/status' || /^(data|blob):/.test(u)), asked.filter((u) => !u.startsWith(BASE)).join());
             if (w === 1280) {
                 const rank = await p.evaluate(() => { const m = window.__jarvis.meaningOf('show me the planet we live on'); return m && { key: m.c.key, score: m.score, sure: m.sure }; });
                 ok('"show me the planet we live on" ranks closest to the globe, close enough to do it', rank && rank.key === 'cmd:show me earth' && rank.sure, JSON.stringify(rank));
@@ -517,7 +558,8 @@ try {
             const dbAfter = await dbOf(p), strip = (d) => JSON.stringify({ ...d, events: null, names: null, pack: null, meta: Object.fromEntries(Object.entries(d.meta || {}).filter(([k]) => k !== '"pack"')) });
             ok(`the real database: nothing new but usage counts at ${w}×${h}`, strip(dbAfter) === strip(dbBefore) && Object.values(dbAfter.events || {}).every((e) => Object.keys(e).sort().join() === 'day,id,n'), strip(dbAfter).slice(0, 300));
             ok('still version 3, and no fingerprint in it', await p.evaluate(() => new Promise((res) => { const rq = indexedDB.open('jarvis-test'); rq.onsuccess = () => { const v = rq.result.version; rq.result.close(); res(v); }; })) === 3 && !/\[(?:-?\d+(?:\.\d+)?(?:e-?\d+)?,){6,}/.test(JSON.stringify({ ...dbAfter, pack: null })));
-            ok('no Cache API storage and no localStorage', (await p.evaluate(() => caches.keys())).length === 0 && Object.keys(await lsOf(p)).length === 0);
+            // Since Session 17 the service worker keeps the module's files in its own versioned cache, so it works offline.
+            ok('no Cache API storage but the service worker\'s own, and no localStorage', (await p.evaluate(() => caches.keys())).every((k) => k.startsWith('jarvis-test-')) && Object.keys(await lsOf(p)).length === 0);
             ok(`no sideways scroll at ${w}×${h}`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
             await p.reload(); await p.waitForFunction(() => window.__jarvis); await p.evaluate(() => window.__jarvis.ready);
             ok(`a reload starts without the module at ${w}×${h}`, await p.evaluate(() => window.__jarvis.mind()).then((m) => m.state === 'off' && m.fingerprints === 0));
@@ -531,8 +573,7 @@ try {
     if (three) for (const [w, h] of [[1280, 800], [390, 844]]) {
         const ctxK = await chromium.launchPersistentContext(join(work, `profile-k-${w}`), { executablePath, headless: true,
             args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: w, height: h } });
-        await ctxK.route('https://cdnjs.cloudflare.com/**', (r) => r.fulfill({ path: three, contentType: 'application/javascript', headers: { 'access-control-allow-origin': '*' } }));
-        await ctxK.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
+        await proxyRoute(ctxK);
         const asked = []; ctxK.on('request', (rq) => asked.push(rq.url()));
         try {
             const p = await open('jarvis-test.html', { width: w, height: h }, ctxK);
@@ -580,8 +621,7 @@ try {
     const GPU_ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--enable-unsafe-webgpu', '--use-webgpu-adapter=swiftshader', '--enable-features=Vulkan'];
     for (const [w, h] of [[1280, 800], [390, 844]]) {
         const ctxL = await chromium.launchPersistentContext(join(work, `profile-l-${w}`), { executablePath, headless: true, args: GPU_ARGS, viewport: { width: w, height: h } });
-        if (three) await ctxL.route('https://cdnjs.cloudflare.com/**', (r) => r.fulfill({ path: three, contentType: 'application/javascript', headers: { 'access-control-allow-origin': '*' } }));
-        await ctxL.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
+        await proxyRoute(ctxL);
         const asked = []; ctxL.on('request', (rq) => asked.push(rq.url()));
         const llmAsked = () => asked.filter((u) => u.includes('/jarvis/llm/')).map((u) => u.split('/jarvis/llm/')[1]);
         try {
@@ -664,8 +704,7 @@ try {
     for (const [w, h] of [[1280, 800], [390, 844], [360, 640]]) {
         const ctxS = await chromium.launchPersistentContext(join(work, `profile-s-${w}`), { executablePath, headless: true,
             args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: w, height: h }, acceptDownloads: true });
-        if (three) await ctxS.route('https://cdnjs.cloudflare.com/**', (r) => r.fulfill({ path: three, contentType: 'application/javascript', headers: { 'access-control-allow-origin': '*' } }));
-        await ctxS.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
+        await proxyRoute(ctxS);
         try {
             const p = await open('jarvis-test.html', { width: w, height: h }, ctxS);
             await p.click('#boot-skip'); await p.waitForTimeout(900);
@@ -753,6 +792,102 @@ try {
             ok(`no sideways scroll at ${w}×${h}`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
             await p.close();
         } finally { await ctxS.close(); await rm(join(work, `profile-s-${w}`), { recursive: true, force: true }); }
+    }
+
+    // 11. Session 17: the supercharger, offline and install, in a fresh profile at each size.
+    for (const [w, h] of [[1280, 800], [390, 844]]) {
+        const ctxX = await chromium.launchPersistentContext(join(work, `profile-x-${w}`), { executablePath, headless: true,
+            args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: w, height: h } });
+        await proxyRoute(ctxX);
+        // Only the test copy's requests: the landing page, opened below to check it isn't controlled, loads its own CDNs.
+        const asked = []; let watch = true;
+        ctxX.on('request', (rq) => { if (watch) asked.push(rq.url()); });
+        PX.on = true; PX.redeploy(); PX.hits.length = 0;
+        try {
+            let p = await open('jarvis-test.html', { width: w, height: h }, ctxX);
+            const lastAi = () => p.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent || '');
+            const type = async (q, ms = 1500) => { await p.fill('#q', q); await p.press('#q', 'Enter'); await p.waitForTimeout(ms); return lastAi(); };
+            const fonts = () => p.evaluate(async () => { for (const wt of [300, 500, 700]) await document.fonts.load(`${wt} 16px "Chakra Petch"`).catch(() => {});
+                return [...document.fonts].filter((f) => /Chakra/.test(f.family)).map((f) => `${f.weight}:${f.status}`).sort().join(); });
+            const drawn = () => p.evaluate(() => { const c = document.createElement('canvas').getContext('2d'), t = 'JARVIS SUPERCHARGED 0123';
+                c.font = '500 40px "Chakra Petch", monospace'; const a = c.measureText(t).width; c.font = '500 40px monospace'; return Math.abs(a - c.measureText(t).width); });
+            ok(`the hosted font loads in all three weights at ${w}×${h}`, (await fonts()) === '300:loaded,500:loaded,700:loaded', await fonts());
+            ok('and text is drawn in it, not in a fallback', (await drawn()) > 5, await drawn());
+            await p.click('#boot-skip'); await p.waitForTimeout(1200);
+            const log = () => p.evaluate(() => document.getElementById('log').textContent);
+            ok(`on: he says Tony turned on his supercharger, and that questions now go to Gemini, at ${w}×${h}`, (await log()).includes("Tony has turned on my supercharger for you. While it's on, anything I can't answer on this device goes to Google's Gemini"));
+            ok('the HUD takes on the supercharged colours, with the SUPERCHARGED tag', await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--phos').trim()) === '#6fd3ff' && await p.isVisible('#sc-tag'));
+            await p.screenshot({ path: join(OUT, `supercharged-${w}.png`) });
+            const said = await type('what do you think about paris');
+            const tag = await p.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.brain-tag')?.textContent);
+            ok('a question goes through the proxy at its real address, under the real CSP, and comes back tagged', said === 'CLOUD · GEMINIParis is lovely in spring.' && tag === 'CLOUD · GEMINI', said);
+            ok('POSTed as text/plain from the page\'s own origin, so there was no CORS preflight', PX.hits.some((x) => x.path === '/api/brain' && x.method === 'POST' && /^text\/plain/.test(x.type) && x.origin === BASE.replace(/\/$/, '')) && !PX.hits.some((x) => x.method === 'OPTIONS'), JSON.stringify(PX.hits));
+            await p.screenshot({ path: join(OUT, `supercharged-answer-${w}.png`) });
+            const nProblems = problems.length;
+            const refused = await p.evaluate(async () => { try { await fetch('https://another-project.vercel.app/api/status'); return false; } catch { return true; } });
+            const csp = problems.splice(nProblems).join(' ');
+            ok('the CSP refuses any other Vercel address', refused && /Refused to connect/.test(csp), csp);
+            // The service worker: registered for this page alone.
+            await p.evaluate(() => navigator.serviceWorker.ready);
+            ok(`the service worker is registered for jarvis-test.html alone at ${w}×${h}`, await p.evaluate(async () => (await navigator.serviceWorker.getRegistration('./jarvis-test.html'))?.scope) === BASE + 'jarvis-test.html');
+            await p.reload(); await p.waitForFunction(() => window.__jarvis); await p.evaluate(() => window.__jarvis.ready);
+            ok('after a reload it controls the page', await p.evaluate(() => !!navigator.serviceWorker.controller));
+            const cached = await p.evaluate(async () => { const o = {}; for (const k of await caches.keys()) o[k] = (await (await caches.open(k)).keys()).map((r) => r.url); return o; });
+            const sw = await readFile(join(ROOT, 'jarvis-test-sw.js'), 'utf8'), libHash = (sw.match(/LIB_HASH = '([0-9a-f]+)'/) || [])[1];
+            ok('it keeps two caches of its own, the libraries named for LIB_HASH', Object.keys(cached).sort().join() === `jarvis-test-lib-${libHash},jarvis-test-shell`, Object.keys(cached).join());
+            ok('with the page, the font and three.js in them', JSON.stringify(cached).includes(BASE + 'jarvis-test.html') && JSON.stringify(cached).includes('chakra-petch-latin-500-normal.woff2') && JSON.stringify(cached).includes('three.min.js'));
+            ok('and nothing from the supercharger proxy', !JSON.stringify(cached).includes('vercel'));
+            const hits0 = PX.hits.length;
+            await p.evaluate(() => window.__jarvis.cloudCheck()); await p.evaluate(() => window.__jarvis.cloudCheck());
+            ok('every status check reaches the proxy over the network, past the worker', PX.hits.filter((x) => x.path === '/api/status').length >= 2 && PX.hits.length === hits0 + 2, PX.hits.length - hits0);
+            const cdp = await ctxX.newCDPSession(p);
+            const inst = await cdp.send('Page.getInstallabilityErrors').catch((e) => ({ err: String(e) }));
+            ok(`Chromium finds it installable at ${w}×${h}`, Array.isArray(inst.installabilityErrors) && inst.installabilityErrors.length === 0, JSON.stringify(inst));
+            const man = await cdp.send('Page.getAppManifest').catch((e) => ({ err: String(e) }));
+            ok('its manifest parses with no errors', man.url === BASE + 'jarvis/app/test.webmanifest' && (man.errors || []).length === 0, JSON.stringify(man.errors || man.err));
+            watch = false;
+            const other = await ctxX.newPage();
+            await other.goto(BASE + 'index.html'); const idxCtl = await other.evaluate(() => !!navigator.serviceWorker.controller);
+            await other.goto(BASE + 'jarvis.html'); const mainCtl = await other.evaluate(() => !!navigator.serviceWorker.controller);
+            await other.goto('about:blank'); watch = true;
+            ok('other pages, jarvis.html included, are not controlled by it', !idxCtl && !mainCtl);
+            // Offline: airplane mode, and the server answering nothing at all.
+            await ctxX.setOffline(true); DOWN = true;
+            await p.reload(); await p.waitForFunction(() => window.__jarvis); await p.evaluate(() => window.__jarvis.ready);
+            ok(`offline, the page loads from the saved copy at ${w}×${h}`, (await p.title()) === 'J.A.R.V.I.S. Test');
+            ok('with the font', (await fonts()) === '300:loaded,500:loaded,700:loaded' && (await drawn()) > 5, await fonts());
+            await p.click('#boot-skip'); await p.waitForTimeout(1500);
+            ok('he says the supercharger is unavailable offline, and the supercharged look is gone', /supercharger is unavailable/.test(await log()) && !(await p.isVisible('#sc-tag')), (await log()).slice(-300));
+            const galaxy = await type('show me the galaxy', 3500);
+            ok('a three.js scene opens offline, from the saved copy of three.js', /GALAXY/i.test(await p.evaluate(() => document.getElementById('holo-title').textContent)), galaxy);
+            await p.screenshot({ path: join(OUT, `offline-${w}.png`) });
+            await type('close', 1000);
+            const r = await type('what do you think about paris');
+            ok('a question is answered on the device, not sent', !/Paris is lovely/.test(r), r);
+            watch = false;
+            let idxOffline = true; try { await other.goto(BASE + 'index.html'); idxOffline = false; } catch { /* expected */ }
+            watch = true;
+            ok('other pages aren\'t kept: the landing page doesn\'t load offline', idxOffline);
+            await other.close();
+            await ctxX.setOffline(false); DOWN = false;
+            DEPLOY = 1;
+            await p.reload(); await p.waitForFunction(() => window.__jarvis);
+            ok(`a new deploy shows on the next online load at ${w}×${h}`, (await p.title()) === 'J.A.R.V.I.S. Test · deploy 1');
+            await ctxX.setOffline(true); DOWN = true;
+            await p.reload(); await p.waitForFunction(() => window.__jarvis);
+            ok('and becomes the offline copy', (await p.title()) === 'J.A.R.V.I.S. Test · deploy 1');
+            await ctxX.setOffline(false); DOWN = false; DEPLOY = 0;
+            await p.reload(); await p.waitForFunction(() => window.__jarvis); await p.evaluate(() => window.__jarvis.ready);
+            await p.click('#boot-skip'); await p.waitForTimeout(1200);
+            PX.on = false; PX.redeploy();
+            await p.evaluate(() => window.__jarvis.cloudCheck()); await p.waitForTimeout(1500);
+            ok('switched off: he notices and says so, and the colours go', (await log()).includes('My supercharger has been turned off.') && !(await p.isVisible('#sc-tag')));
+            await p.screenshot({ path: join(OUT, `supercharger-off-${w}.png`) });
+            const away = asked.filter((u) => !u.startsWith(BASE) && !/^(data|blob):/.test(u));
+            ok(`no request left the site but the supercharger's two at ${w}×${h}`, away.every((u) => u === PROXY + '/api/status' || u === PROXY + '/api/brain') && !asked.some((u) => /googleapis|gstatic|cdnjs/.test(u)), [...new Set(away)].join());
+            ok(`no sideways scroll at ${w}×${h}`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+            await p.close();
+        } finally { DOWN = false; DEPLOY = 0; PX.on = false; PX.redeploy(); await ctxX.close(); await rm(join(work, `profile-x-${w}`), { recursive: true, force: true }); }
     }
 
 } finally {

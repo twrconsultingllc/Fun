@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #73 — J.A.R.V.I.S. Session 17, part 2: the supercharger on the page, offline and install</title>
+<meta name="description" content="Review of J.A.R.V.I.S. Session 17 on 2026-10-11, in jarvis-test.html: the supercharger on the page (Gemini through the proxy at jarvis-cloud-gamma.vercel.app), the font and three.js hosted on the site, a service worker for offline use, install to home screen, and two dependency fixes.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #73 — J.A.R.V.I.S. Session 17, part 2: the supercharger on the page, offline and install</h1>
+    <p class="sub">The rest of Session 17, all in <code>jarvis-test.html</code>. The page now asks the supercharger proxy (built in review 72) whether it's on, and while it is, Gemini answers what nothing on the device understood. The font and three.js are hosted on the site, a service worker lets the test copy work offline, and it can be installed to the home screen. Two dependency alerts are fixed. You chose to leave Edge Config for later, so for now the switch is the proxy's environment variables.</p>
+    <div class="meta">Review performed 2026-10-11 · scope: <code>jarvis-test.html</code>, <code>jarvis-test-sw.js</code> (new), <code>jarvis/app/</code> (manifest and four icons, new), <code>jarvis/vendor/</code> (three.js r128, Chakra Petch in three weights, their licences, new), <code>tests/jarvis-test.dom.test.mjs</code>, <code>tests/jarvis-test-sw.test.mjs</code> (new), <code>tests/jarvis-test.chromium.mjs</code>, <code>tests/run.mjs</code> (one line), <code>tests/README.md</code>, <code>tests/package-lock.json</code>, <code>claude-architect-lab/package-lock.json</code>, <code>jarvis/build-plan.html</code> · suites run: every suite once with <code>npm test</code> (the lockfile under <code>tests/</code> changed), then the three suites for <code>jarvis-test.html</code> (<code>jarvis-test</code>, <code>jarvis-cloud</code>, <code>jarvis-test-sw</code>) again on the final files, then <code>jarvis-test.chromium.mjs</code>, and the lab's own tests.</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 85%;"></div></div>
+    <div class="progress-label">20 items: 17 verified clean or fixed, 3 open.</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Security and privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The CSP: one new address, two old ones gone</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The test copy's policy is now <code>default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://jarvis-cloud-gamma.vercel.app; object-src 'none'; base-uri 'none'; form-action 'none'</code>. Compared with before, <code>cdnjs.cloudflare.com</code>, <code>fonts.googleapis.com</code> and <code>fonts.gstatic.com</code> are gone, and <code>connect-src</code> gains exactly the proxy's address. The suite pins the whole policy. It also checks that no other directive names Vercel, that the page names no other <code>*.vercel.app</code> address, and that the only requests to the proxy go through <code>cloudFetch()</code>. In Chromium, with the real CSP enforced, the proxy answered and a <code>fetch</code> to another Vercel address was refused (<code>Refused to connect</code>). A copy of the page with a second host in <code>connect-src</code> failed the suite.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Nothing on the page can turn it on</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The page only ever reads <code>/api/status</code> (a <code>GET</code>) and asks <code>/api/brain</code>. Nothing it sends can switch anything: the switch is a Vercel setting. "Turn on your supercharger" gets "Only Tony can turn it on, and not from this page", and the page makes no request for it. The suite reads the code for anything sending <code>supercharge: true</code> or an <code>/api/switch</code>-style address and finds none. Only <code>on: true</code> means on: <code>"true"</code>, <code>1</code> or a missing field read as off, and so does a status read that fails.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What the page sends while it's on</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Carried from review 72, now real. While the supercharger is on, a question nothing on the device understood goes through the proxy to Google with the skin, the last six exchanges with Gemini, any knowledge-pack facts about what it names, your name if you've given it this visit, the things you've told him this visit, and the command list. Requests go without cookies or a referrer (<code>credentials: 'omit'</code>, <code>referrerPolicy: 'no-referrer'</code>), and Vercel sees the visitor's IP address. When it's off, the only request is <code>/api/status</code>, which carries nothing but the address and the page's origin. When it turns on he says so: "&lt;name&gt; has turned on my supercharger for you. While it's on, anything I can't answer on this device goes to Google's Gemini, with the last few things we said, and those answers are marked cloud." Each such answer is tagged CLOUD · GEMINI. This stays open because it's a real change to what leaves the device, which you chose. When it turns off he says "nothing you ask goes to Gemini", not "nothing leaves the device", because the browser's speech recognition still sends your voice to Google or Apple.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What the page accepts from the proxy</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The page doesn't trust the proxy, in case it's ever replaced or wrong. What Gemini says goes through <code>cleanSay()</code>: no <code>&lt;</code>, <code>&gt;</code>, backticks or <code>⟦⟧</code>, so it can't make a link, a command button or markup, and it's cut at 320 characters. A crafted answer with an <code>&lt;a&gt;</code> and a command link came out as plain words with no button. Its picks go through the full brain's <code>checkPick()</code>: only <code>BRAIN_PICKS</code> (52 commands, none destructive, no waits), at most three, and only the first scene. An answer asking for <code>proto:delete</code>, <code>settings:reset</code> and <code>wait:3</code> ran none of them, and said so. The owner's name and the model name are checked before he says them. The first draft only checked those on the proxy, so a status answer with an HTML tag for a name would have been read aloud and shown (as text, not markup, since chat lines are built from text nodes).</p></div>
+      <div class="fix-note"><b>Fix:</b> The page checks the name (letters, spaces and <code>.'-</code>, at most 30) and the model (<code>gemini-3.5-flash</code>-style) itself, and anything else becomes "My owner" and "Gemini". Copies of the page without the pick check, without the one-scene rule, or without the name check each failed the suite.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Only the Pages site may ask, but that isn't proof of who's asking</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Unchanged from review 72. A browser can't fake its <code>Origin</code>, so no other website can use the proxy, but a script can. With the supercharger on, anyone who finds the address can ask it questions, 12 a minute per address. The hard limits are the daily quota and budget on Google's side, which are yours to set (Session 17, step 3). The page's address for the proxy is public, as everything in this repo is. Keep the supercharger off when you aren't demonstrating it.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The service worker never touches the supercharger, or any other site or page</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>jarvis-test-sw.js</code> is registered with the page itself as its scope (<code>./jarvis-test.html</code>), so it controls no other page: in Chromium, <code>index.html</code> and <code>jarvis.html</code> had no controller. Inside the page it answers only <code>GET</code>s for a fixed list of Jarvis's own files. Anything else gets no <code>respondWith</code> at all, so the browser handles it exactly as if there were no worker. That covers other sites (the proxy, the old CDNs), other pages and the full brain's weights. The suite runs the worker in a sandbox and checks 18 addresses it must leave alone, including both proxy routes as <code>GET</code> and <code>POST</code>. In Chromium every status check reached the proxy over the network, and no cache held anything from Vercel. Offline, the status read fails and the supercharger reads as off. Copies of the worker that answered other sites, answered <code>POST</code>s, cached everything under <code>/Fun/</code>, or deleted other pages' caches on activation each failed the suite.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A stale copy can't hide a deploy or a changed library</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The page, the knowledge pack and the manifest come from the network first, checked past the browser's own cache (<code>no-cache</code>, since GitHub Pages sends <code>max-age=600</code>). The saved copy is used only when the network fails. Libraries are cached under <code>jarvis-test-lib-</code> plus <code>LIB_HASH</code>, a fingerprint of the 23 files the worker keeps, and activation deletes older versions. The suite works the fingerprint out again from the files, so a library changed without a new <code>LIB_HASH</code> fails it. In Chromium a changed page was shown on the next online load and then became the offline copy. When the worker was broken on purpose to fetch the page without <code>no-cache</code>, the suite still passed, because the check was matching the install step's own request.</p></div>
+      <div class="fix-note"><b>Fix:</b> The check now looks only at the request made for the page itself, and the same broken copy fails it.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Hosting the font and three.js</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>jarvis/vendor/three.min.js</code> is <code>three@0.128.0</code>'s <code>build/three.min.js</code> from npm. Its SHA-512 matches the SRI hash the page already used for cdnjs's copy (<code>sha512-dLxUelAp…</code>), and the page still loads it with that <code>integrity</code>. The three <code>.woff2</code> files are Chakra Petch 300, 500 and 700, Latin only (about 10 KB each), from <code>@fontsource/chakra-petch</code> 5.3.0 (OFL-1.1). The OFL text is beside them in <code>jarvis/vendor/fonts/OFL.txt</code>, and three.js's MIT licence in <code>jarvis/vendor/three.LICENSE</code>. Fonts need no SRI: they come from this site, under <code>font-src 'self'</code>. In Chromium all three weights loaded and drew differently from the fallback, online and offline. Watching every request at both sizes, nothing went to any host but the local server and the proxy's two addresses.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Install to home screen</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>jarvis/app/test.webmanifest</code> names only files on this site. Its <code>start_url</code>, <code>scope</code> and <code>id</code> are all <code>jarvis-test.html</code>, so the main page can be installed as a separate app after promotion. It asks for full screen (falling back to standalone), with the page's dark colours and 192, 512 and maskable 512 icons. An iPhone gets a 180 px icon. Chromium reported no installability errors and no manifest errors. The page keeps the browser's install prompt for "install Jarvis" rather than showing it on arrival. On an iPhone, "install Jarvis" explains Share, then Add to Home Screen, and that the installed copy starts with its own storage. The help (the Power stone) says the same.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Two dependency alerts</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p><code>tests/</code>: <code>source-map-js</code> 1.2.1 (GHSA-68fv-2mgg-jv7q, a crafted source map can freeze it), pulled in by jsdom through <code>css-tree</code>, is now 1.2.2. <code>claude-architect-lab/</code>: <code>@modelcontextprotocol/sdk</code> 1.30.0 (GHSA-6qxp-vccf-f47h, an OAuth client bug) is now 1.32.1, the version <code>npm audit fix</code> chose. The lab uses no OAuth, but it's updated anyway. Neither ever ran on the site. Each is one lockfile entry, edited by hand to the registry's version, URL and integrity: left to itself, this container's npm 10.9.4 also deleted <code>libc</code> fields from unrelated entries. <code>npm ci</code> installed both cleanly, <code>npm audit</code> reports 0 vulnerabilities in both folders, the lab's 82 tests pass, and every suite under <code>tests/</code> ran once.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Nothing new is stored, and nothing personal is in the repo</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The supercharger's code has no <code>store()</code>, <code>save()</code>, localStorage or IndexedDB (the suite reads it), and the page still has exactly one <code>readwrite</code> transaction. After a visit with a name and a cloud answer, the database and localStorage held neither. Cloud answers add no usage count. The service worker's caches hold only files from the site. Your name is a Vercel setting, not in the repo: the tests use "Tony". The new files were searched for email addresses and key, token and private-key patterns, and nothing was found. The commit identity is <code>Claude &lt;noreply@anthropic.com&gt;</code>, as CLAUDE.md expects from claude.ai/code.</p></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The suites</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Every suite ran once with <code>npm test</code> after the <code>tests/</code> lockfile change: 5,256 checks passed and 1 failed. The failure was the Daily Wire fetcher's, because <code>daily-wire/</code> had no installed packages in this container; after <code>npm ci</code> there, its 106 checks passed. After the last change, the test copy's three suites ran again and all passed: <code>jarvis-test</code> 1,897 checks (up from 1,788), <code>jarvis-cloud</code> 113 and <code>jarvis-test-sw</code> 83 (new). <code>jarvis.html</code> didn't change, and its 1,774 checks passed. The lab's 82 tests passed. The new jsdom checks cover the status check at load, every minute and on coming back online; the announcement and colours; what's sent and what isn't; the answer order against the full brain and the meaning module; every failure; and nothing stored. A second window with the supercharger off gave exactly the same answers to all 92 command links and pinned phrasings, and none of them reached Gemini. They also cover install and update.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Failures, checked against the real proxy</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The jsdom suite's fake proxy is the real <code>jarvis/cloud/lib/core.js</code>, with a fake Gemini behind it that answers in Gemini's real shapes. So the page meets the proxy's real 503 <code>{off}</code>, its 429 for Gemini's quota and for its own rate limit (the 13th question in a minute from one address), its 502 when Gemini fails or answers in the wrong format, and its <code>{blocked}</code> answer. The page's request also has to pass the proxy's own field checks, or no answer comes back. Each failure gives a device answer, with a short line first saying why: switched off, busy, didn't answer, too slow (an <code>AbortError</code> after 20 seconds, as a browser's <code>fetch</code> gives), or unreachable (a <code>TypeError</code>). Only switched off and unreachable turn the supercharger off. The first draft treated a slow answer as unreachable, which would have switched the supercharger off until the next status check. That was fixed before the review, and a check was added for it.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Broken on purpose</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Ten copies of the page, each with one fault, were run against the new checks (in the repo root, beside the page, and deleted afterwards), and every one failed at least one: picks not checked (2 failures), more than one scene (1), Gemini asked before the built-in commands (26), the owner's name not checked (1), a failed status read keeping the old state (2), the reason for a device answer dropped (5), a second host in <code>connect-src</code> (1), the conversation saved (1), cloud answers untagged (1), and "update Jarvis" clearing every cache (1). Eight copies of the worker each failed the worker suite: answering other sites (10), answering <code>POST</code>s (1), the page cache-first (2), the page through the browser cache (1, once its check was fixed, above), a stale <code>LIB_HASH</code> (1), deleting every cache on activation (1), caching everything under <code>/Fun/</code> (14), and saving failed answers (1). The worker was restored and compared byte for byte afterwards.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Found on the way</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The new checks caught three bugs before anything was pushed. The page already had a <code>cloud()</code> function (the particle shapes), so the supercharger's state became <code>charger</code>. The rename also changed his words "marked cloud." to "marked charger.", and the announcement check failed. Second, the turn-on announcement waits for the boot screen, which stays on screen for 600 ms after the greeting while it fades, so an answer arriving then was held and never said. It now waits for the greeting instead. Third, "install Jarvis" wasn't understood: the text cleaner shared with the meaning module drops a trailing "jarvis", leaving just "install". The install and update commands now keep it. After the pull request opened, GitHub's CodeQL flagged two places in the new tests that checked the proxy's address as a text prefix, which <code>https://jarvis-cloud-gamma.vercel.app.example.com</code> would also match. Neither is in the page or the worker, but both now compare the URL's origin, and the checks still pass.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The face on a short phone, with the real font</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Review 67's Chromium check keeps the face at least 140 px tall on a 360×640 phone with a long reply in the chat strip. It passed until now because the check stubbed Google Fonts with an empty stylesheet, so it measured a fallback font. With Chakra Petch hosted here, Chromium draws the real font, and the header came out 147 px tall instead of 141. That left the face at 138.7 px. The live site, where Google Fonts does load, has had the same 138.7 px all along.</p></div>
+      <div class="fix-note"><b>Fix:</b> On screens 700 px tall or less, the header's padding is 9 px instead of 14 px, which makes the face 148.3 px. Taller screens are unchanged.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Contrast of the supercharged colours</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Computed with the WCAG formula, on the supercharged background <code>#03040f</code>: text <code>#e6f4ff</code> 18.2:1, the phosphor blue <code>#6fd3ff</code> 12.1:1, labels <code>#9fb4ff</code> 10.2:1, and the SUPERCHARGED tag's dark text on amber 14.8:1. All of these pass AA and AAA. The border colour (<code>--phos-dim</code>) was <code>#2f56a8</code>, 2.93:1, under the 3:1 that UI borders need.</p></div>
+      <div class="fix-note"><b>Fix:</b> <code>#3a66c4</code>, 3.77:1, about the same as the green skin's border (3.73:1). The Panthers skin's (2.44:1) and the gold-and-red HUD's (2.42:1) borders are under 3:1 too. They're older and outside this change, so they're noted here, not changed.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">In headless Chromium</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>tests/jarvis-test.chromium.mjs</code>: 311 checks, all passing, on its own after the jsdom suites. Step 11 is new. At 1280×800 and 390×844 it covers the font, the announcement and colours, a Gemini answer through the proxy at its real address under the real CSP, and the worker's scope, caches and network behaviour. It covers installability, the page, font and galaxy offline, a new deploy, and every request the page made. The earlier steps now route the proxy too, because the page asks it at load. The first two runs failed 10 and then 2 checks. Apart from the short-phone face above, all of them were in the test harness, not the page, and each harness fix is commented in the script. In ctxB the worker served its saved, unchanged encoder, which Playwright's route never sees, so that check now uses a browser with service workers blocked. Playwright's route answered the proxy even with the context offline. The landing page's own CDNs were counted when it was opened to check it isn't controlled. Chrome logged its failed offline requests. One earlier step lost a usage count to a reload straight after a command; it passed on the next two runs. Screenshots: supercharged, an answer tagged CLOUD · GEMINI, switched off, and the galaxy offline, at both sizes.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Build plan and README</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Session 17 in <code>jarvis/build-plan.html</code> is now In test, in both the session index and its own status line, and links reviews 72 and 73. Each step built is marked Done. The setup step records that you left Edge Config for later. A new step gives the environment-variable switch (<code>SUPERCHARGE</code>, <code>OWNER_NAME</code>, then a redeploy), and the Edge Config step is kept for later. The notes record what was built, what was decided in the session, the checks and the three bugs found on the way. "Where things live" gains rows for the supercharger and for offline and install, with updated check counts. "Where your data goes" now says the test copy loads only from GitHub. Session 12's note about the browser cache has a dated line saying the worker now keeps those files. The new links are plain <code>&lt;a href&gt;</code>s, like the page's other links. The only new outside one is the proxy's <code>/api/status</code>, which holds no secret. <code>tests/README.md</code> describes the new suite and Chromium step.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What only you can check</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Carried from review 72. Google's API and <code>*.vercel.app</code> can't be reached from a claude.ai/code container (the container's egress proxy answered <code>CONNECT</code> with 403 for <code>jarvis-cloud-gamma.vercel.app</code>), and neither can <code>*.github.io</code>. So the first real Gemini answer, the real proxy's CORS answer to the live site, the live service worker and a real install on your phone are yours to check. Chromium checked all of them against the real proxy code at the real address, but over a local server. Offline, weather and, on most phones, speech recognition still need a connection. Headless Chromium has no voices, so the announcement was read from the chat, not heard.</p></div>
+    </div>
+  </section>
+  <footer>Previous review: <a href="72.html">#72</a> (Session 17, part 1: the supercharger proxy).</footer>
+</div>
+</body>
+</html>

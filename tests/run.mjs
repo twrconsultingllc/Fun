@@ -48,6 +48,7 @@ const SUITES = [
     { id: 'jarvis', page: 'jarvis.html', file: './jarvis.dom.test.mjs' },
     { id: 'jarvis-test', page: 'jarvis-test.html', file: './jarvis-test.dom.test.mjs' },
     { id: 'jarvis-cloud', page: 'jarvis-test.html', file: './jarvis-cloud.test.mjs' },
+    { id: 'jarvis-test-sw', page: 'jarvis-test.html', file: './jarvis-test-sw.test.mjs' },
     { id: 'index', page: 'index.html', file: './index.dom.test.mjs' }
 ];
 

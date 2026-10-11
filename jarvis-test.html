@@ -4,13 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://jarvis-cloud-gamma.vercel.app; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="J.A.R.V.I.S. Test: the trial copy of the J.A.R.V.I.S. Demo, where new features are tried before they go to the main page. A talking assistant that runs in your browser, with a boot-up sequence, an animated orb with a face, voice in and out, three skins (Jarvis, Morpheus from The Matrix and Stanley C. Panther of the Florida Panthers), phrases it learns from you, settings it remembers on your device and can move to another one with a backup file or a QR code, things you tell it remembered for one visit only, protocols that run several commands with one phrase, follow-ups like again, go back and why, a clearance level that grows as it gets to know you and opens a few hidden extras, favourites and a discovery log worked out from what you use, a language module you can download from this site so it understands rewordings, a pack of stable public facts about countries, space, the elements and the Iron Man suits, an optional full brain (a small language model that runs on your graphics chip), and a holo-projector that shows a 3D galaxy, the solar system, the Earth, a suit schematic, its own neural network and its memory core, which you can steer with hand gestures.">
 <title>J.A.R.V.I.S. Test</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%23020a06'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%2339ff88' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%2339ff88'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;500;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="jarvis/app/test.webmanifest">
+<meta name="theme-color" content="#020a06">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Jarvis Test">
+<link rel="apple-touch-icon" href="jarvis/app/icon-180.png">
 <style>
+/* Chakra Petch (SIL Open Font License, jarvis/vendor/fonts/OFL.txt), Latin only, hosted here since Session 17. */
+@font-face{font-family:"Chakra Petch";font-style:normal;font-weight:300;font-display:swap;src:url(jarvis/vendor/fonts/chakra-petch-latin-300-normal.woff2) format("woff2")}
+@font-face{font-family:"Chakra Petch";font-style:normal;font-weight:500;font-display:swap;src:url(jarvis/vendor/fonts/chakra-petch-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Chakra Petch";font-style:normal;font-weight:700;font-display:swap;src:url(jarvis/vendor/fonts/chakra-petch-latin-700-normal.woff2) format("woff2")}
 :root{
   --void:#020a06; --deep:#06170e; --phos:#39ff88; --phos-dim:#1b7a45; --label:#2fa862;
   --glass:rgba(57,255,136,.06); --amber:#ffc24a; --text:#c9ffe0;
@@ -30,6 +39,8 @@ body::after{ /* scan lines */
   background:repeating-linear-gradient(0deg,rgba(57,255,136,.035) 0 1px,transparent 1px 3px);
 }
 header{display:flex;justify-content:space-between;align-items:flex-start;padding:14px 18px;font-size:.8rem;color:var(--label);letter-spacing:.04em}
+/* Short phones (360×640): the real Chakra Petch makes the header 6px taller than a fallback font, which left the face under 140px (Session 17). */
+@media (max-height:700px){header{padding:9px 18px}}
 header b{display:block;color:var(--phos);font-size:1.4rem;font-weight:500;letter-spacing:.02em}
 .test-tag{font-size:.7rem;font-weight:700;letter-spacing:.14em;color:var(--amber);border:1px solid var(--amber);padding:1px 6px;vertical-align:middle;margin-left:6px}
 header a{color:var(--label);text-decoration:none}
@@ -88,6 +99,12 @@ body.holo-on #wake-note{display:none}
 /* The gold-and-red HUD (Session 11): a clearance extra, unlocked at level 2, for one visit. After the skins, so it wins over them. */
 :root[data-hud="hotrod"]{--void:#0c0303;--deep:#2a0a06;--phos:#ffc93c;--phos-dim:#8e2a1a;--label:#e8a33c;--amber:#ff7a5c;--glass:rgba(255,201,60,.06);--text:#ffeccc}
 :root[data-hud="hotrod"] body::after{background:repeating-linear-gradient(0deg,rgba(255,90,60,.04) 0 1px,transparent 1px 3px)}
+:root[data-supercharged]{--void:#03040f;--deep:#0d1446;--phos:#6fd3ff;--phos-dim:#3a66c4;--label:#9fb4ff;--amber:#ffd84a;--glass:rgba(111,211,255,.07);--text:#e6f4ff}
+:root[data-supercharged] body::after{background:repeating-linear-gradient(0deg,rgba(111,160,255,.05) 0 1px,transparent 1px 3px)}
+/* The supercharger (Session 17): while the owner has it on, after the skins and the HUD, so it wins over both. */
+.sc-tag{display:none;font-size:.7rem;font-weight:700;letter-spacing:.14em;color:var(--void);background:var(--amber);padding:2px 6px;vertical-align:middle;margin-left:6px}
+:root[data-supercharged] .sc-tag{display:inline-block}
+.brain-tag.cloud{color:var(--phos)}
 #rain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1;opacity:.35}
 #rain[hidden]{display:none}
 .skin-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
@@ -258,7 +275,7 @@ body.holo-on form{position:fixed;left:0;right:0;bottom:0;z-index:20;background:l
 <body>
 <canvas id="rain" aria-hidden="true" hidden></canvas>
 <header>
-  <div><b><span id="who">J.A.R.V.I.S.</span><span class="test-tag">TEST</span></b>Test build · new features first · <a href="index.html">← Fun</a>
+  <div><b><span id="who">J.A.R.V.I.S.</span><span class="test-tag">TEST</span><span class="sc-tag" id="sc-tag">SUPERCHARGED</span></b>Test build · new features first · <a href="index.html">← Fun</a>
     <span class="skin-row"><button type="button" id="skin" aria-label="Change skin">SKIN: JARVIS</button><select id="voice" aria-label="Voice" hidden></select><button type="button" id="wake" aria-pressed="false" hidden>👂 HEY JARVIS: OFF</button></span></div>
   <div id="clock-box"><b id="clock">--:--</b><span id="date"></span></div>
 </header>
@@ -1064,7 +1081,8 @@ const SPEEDS={slow:.82,normal:1,fast:1.22};
 const ORB_COLOURS={green:['57,255,136','180,255,210'],blue:['70,150,255','190,220,255'],cyan:['60,230,255','200,250,255'],purple:['170,100,255','225,200,255'],
   pink:['255,100,200','255,205,235'],red:['255,70,70','255,200,190'],orange:['255,150,50','255,220,170'],gold:['255,205,70','255,240,190'],white:['225,235,245','255,255,255']};
 const HOTROD=['255,80,50','255,214,120']; // the orb in the gold-and-red HUD, unless an orb colour is set
-function orbColours(){const c=settings.color&&ORB_COLOURS[settings.color];[ringRGB,coreRGB]=c||(hudOn?HOTROD:[SKINS[skin].ring,SKINS[skin].core])}
+const SUPER=['111,211,255','225,245,255'];let superOn=false; // the orb while the supercharger is on (Session 17), unless an orb colour is set
+function orbColours(){const c=settings.color&&ORB_COLOURS[settings.color];[ringRGB,coreRGB]=c||(superOn?SUPER:hudOn?HOTROD:[SKINS[skin].ring,SKINS[skin].core])}
 // Metric facts said in imperial when that's the setting: "600 kilometres an hour" becomes "about 370 miles an hour".
 const UNIT_TO={kilomet:['mile',.621371],centimet:['inch',.393701],met:['foot',3.28084],kilogram:['pound',2.20462]};
 function roughly(v){if(v>=10){const p=Math.pow(10,Math.floor(Math.log10(v))-1);return Math.round(v/p)*p}return v>=3?Math.round(v):Math.round(v*10)/10}
@@ -1129,12 +1147,12 @@ function chipCommands(...texts){const set=new Set();for(const t of texts)for(con
 const GAUNTLET=[
   {k:'space',name:'Space',theme:'the holo-projector',links:[['show me the galaxy'],['show me the planets'],['take me to Mars'],['make a heart'],['make a rocket'],['write your name','write my name'],['show me your brain'],['suit up'],['show me Earth'],['Florida','show me Florida'],['Tokyo','show me Tokyo'],['hand control'],['close']],
    note:'Show me any country, US state or big city on the globe. Hand control steers a scene with your hands, through the camera.'},
-  {k:'mind',name:'Mind',theme:'facts and my brains',links:[['tell me about Peru'],['how far is Mars'],['tell me about gold'],['tell me about the Mark 42'],['upgrade your brain'],['install your full brain'],['which brain are you using']],
-   note:"Ask me about countries, planets, moons, stars, missions, the elements and the suits. Upgrade my brain and I'll understand you in your own words, and ask when I'm not sure. Where your browser has WebGPU, the full brain is a small language model that talks about nearly anything."},
+  {k:'mind',name:'Mind',theme:'facts and my brains',links:[['tell me about Peru'],['how far is Mars'],['tell me about gold'],['tell me about the Mark 42'],['upgrade your brain'],['install your full brain'],['which brain are you using'],['is your supercharger on']],
+   note:"Ask me about countries, planets, moons, stars, missions, the elements and the suits. Upgrade my brain and I'll understand you in your own words, and ask when I'm not sure. Where your browser has WebGPU, the full brain is a small language model that talks about nearly anything. When my owner switches on my supercharger, Google's Gemini answers what I can't, and those answers are marked cloud."},
   {k:'reality',name:'Reality',theme:'quick answers',links:[['the time','what time is it'],['date',"what's the date"],['a joke','tell me a joke'],['a fun fact','tell me a fun fact'],['seven times eight','what is seven times eight'],['flip a coin'],['roll a die'],['launch countdown'],['brief me'],['scan the room']],
    note:'Brief me gives the time and the top headlines. Scan the room runs a threat scan through the camera.'},
-  {k:'power',name:'Power',theme:'protocols and control',links:[['a movie night protocol','create movie night protocol: make the orb purple, then open the galaxy'],['movie night'],['list my protocols'],['house party'],["wake up, daddy's home","wake up daddy's home"],['always listening','always listen'],['reboot']],
-   note:'A protocol runs several commands with one phrase: make one, then say its name to run it. In Chrome or Edge, turn on always listening with the HEY JARVIS switch, then start what you say with my name. Reboot to watch me power up again.'},
+  {k:'power',name:'Power',theme:'protocols and control',links:[['a movie night protocol','create movie night protocol: make the orb purple, then open the galaxy'],['movie night'],['list my protocols'],['house party'],["wake up, daddy's home","wake up daddy's home"],['always listening','always listen'],['reboot'],['install Jarvis'],['update Jarvis']],
+   note:'A protocol runs several commands with one phrase: make one, then say its name to run it. In Chrome or Edge, turn on always listening with the HEY JARVIS switch, then start what you say with my name. Reboot to watch me power up again. Install Jarvis puts me on your home screen, and after one visit I work offline. On an iPhone, the installed Jarvis has its own storage, separate from Safari\'s, so it starts fresh.'},
   {k:'time',name:'Time',theme:'follow-ups and memory',links:[['now Jupiter'],['bigger'],['slower'],['again'],['go back'],['why'],['show me your memory'],['what do you know about me'],['what do you save'],['back up my settings'],['restore my settings'],['send my settings to my phone'],['scan settings']],
    note:"Talk in fragments after a scene, and ask why after an answer. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit. Leave me alone for a few minutes and I'll dream. I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, so back them up to keep a copy, or send them to another device."},
   {k:'soul',name:'Soul',theme:'you and me',links:[['switch to Matrix'],['switch to Panthers'],['back to Jarvis'],['make the orb blue'],['speak faster'],['use imperial units'],['open with the galaxy'],['learn that'],['how well do you know me'],["what's my favourite"],["what haven't I tried"],['stop putting my favourites first']],
@@ -1198,10 +1216,10 @@ logHandle.addEventListener('pointerup',e=>{const dy=swipeY===null?0:e.clientY-sw
   const open=document.body.classList.contains('chat-open');
   if(dy<-24)chatOpen(true);else if(dy>24)chatOpen(false);else chatOpen(!open)}); // a swipe up or down, or a tap to switch
 logHandle.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();chatOpen(!document.body.classList.contains('chat-open'))}});
-let fullTag=false; // the answer being said came from the full brain (Session 14), so its chat line is marked
+let fullTag=false; // the answer being said came from the full brain (Session 14: true) or the supercharger (Session 17: CLOUD_TAG), so its chat line is marked
 function add(text,who){
   const d=document.createElement('div');d.className='msg '+who;
-  if(who==='ai'&&fullTag){fullTag=false;const g=document.createElement('span');g.className='brain-tag';g.textContent=FULL_TAG+' · '+LLM.short.toUpperCase();d.append(g)}
+  if(who==='ai'&&fullTag){const g=document.createElement('span');g.className=fullTag===CLOUD_TAG?'brain-tag cloud':'brain-tag';g.textContent=fullTag===CLOUD_TAG?CLOUD_TAG:FULL_TAG+' · '+LLM.short.toUpperCase();fullTag=false;d.append(g)}
   if(who==='ai'){
     let at=0,n=0;
     for(const m of String(text).matchAll(CHIP_RE)){
@@ -1378,7 +1396,7 @@ function shapePoints(name,N,word){return name==='text'?textPoints(N,word):SHAPES
 const SHAPE_LINES={heart:"Constructing a heart. Romance protocols engaged.",rocket:"Assembling a rocket. Mind the exhaust.",star:"Here's a star. Twinkle not included.",sphere:"A perfect sphere, give or take a few thousand particles.",dna:"The double helix, the blueprint of life.",reactor:"Arc reactor online. Try not to touch it.",avengers:"Avengers, assemble."};
 
 /* ---------- Holo-projector (three.js, loaded only when first needed) ---------- */
-const THREE_SRC='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+const THREE_SRC='jarvis/vendor/three.min.js'; // r128 from npm, byte-identical to the copy the page used to load from a CDN, so the SRI hash is the same (Session 17)
 const THREE_SRI='sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==';
 let threeP=null;
 function loadThree(){
@@ -2975,6 +2993,7 @@ function finishBoot(){
   let g=greeting();
   if(!greeted){greeted=true;g+=firstTime?" This looks like my first time on this device.":streak.days>1?' '+streakLine(streak.days):'';
     if(!firstTime){const x=greetExtras();if(x)g+=' '+x}} // Session 11: the level, then the recap or a nudge
+  if(charger.pending){g+=' '+charger.pending;charger.pending=''} // the supercharger turned on or off during the boot (Session 17)
   say(g);q.focus();
   // A favourite scene opens after the greeting; its intro goes in the log rather than cutting the greeting off.
   if(settings.scene)setTimeout(async()=>{if(H||booting)return;const r=await project({kind:settings.scene});if(r)add(r,'ai')},1200);
@@ -3233,7 +3252,7 @@ const NOT_COUNTED={
   'what do you save':'A privacy check, not something to discover.','what do you know about me':'A privacy check, not something to discover.',
   'list my protocols':'Part of protocols, counted when one runs.','now Jupiter':'A follow-up, which only means something after another command.',
   'bigger':'A follow-up.','slower':'A follow-up.','again':'A follow-up.','go back':'A follow-up.','why':'A follow-up.',
-  'which brain are you using':'A status question, not something to discover.','close':'Closing the projector.','reboot':'A restart, not a feature.','back to Jarvis':'Switching back to the skin you start in (see NOT_CAPABILITIES).'};
+  'which brain are you using':'A status question, not something to discover.','is your supercharger on':'A status question, and only the owner can switch it.','install Jarvis':'Installing the page, not a feature of Jarvis.','update Jarvis':'Reloading the latest version, not a feature.','close':'Closing the projector.','reboot':'A restart, not a feature.','back to Jarvis':'Switching back to the skin you start in (see NOT_CAPABILITIES).'};
 // What the browser needs for each kind of capability. Worked out once, when first asked.
 let canCache=null;
 const available=c=>{if(!c.can)return true;canCache=canCache||{wasm:typeof WebAssembly==='object',webgl:hasWebGL(),camera:!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia),mic:!!SR,wake:wakeOK,voices:!!synth,webgpu:!!navigator.gpu};return !!canCache[c.can]};
@@ -4210,7 +4229,8 @@ function brainReport(){
   if(mind.state==='on')parts.push('my language module');
   const fb=full.state==='on'?` and my full brain, ${LLM.name}, for anything those don't cover. Its answers are marked FULL BRAIN, and anything it says from its own memory starts "From memory, I may be wrong".`:
     full.state==='loading'?`. My full brain is installing now.`:`. My full brain isn't running. Say install your full brain to add it.`;
-  return `I'm using ${listWords(parts)}${fb}`;
+  const sc=charger.on?` My supercharger is on, so whatever those don't cover goes to Google's ${modelName(charger.model)} first, and those answers are marked CLOUD.`:'';
+  return `I'm using ${listWords(parts)}${fb}${sc}`;
 }
 // The commands it may pick: every protocol step except the waits, and never anything that deletes.
 const BRAIN_PICKS=Object.keys(STEPS).filter(id=>!id.startsWith('wait:')&&!DESTRUCTIVE.test(id)&&!DESTRUCTIVE.test(STEPS[id].text));
@@ -4320,6 +4340,142 @@ async function askBrain(text){
     `Because my full brain, ${LLM.short}, came up with that.`);
 }
 
+/* ---------- The supercharger (Session 17): Google's Gemini, through the proxy in jarvis/cloud/ ---------- */
+// The owner turns it on and off in Vercel, never here: nothing on this page can switch it. Off, the only request is
+// /api/status, which says whether it's on. On, what nothing on this device understood goes to Gemini through the
+// proxy, with the last few exchanges, and he says so when it turns on. Nothing from it is stored: the conversation
+// stays in memory for this visit, as with the full brain. The service worker never touches these requests, so with
+// no network the status read fails and the supercharger reads as off.
+const CLOUD='https://jarvis-cloud-gamma.vercel.app',CLOUD_TAG='CLOUD · GEMINI',CLOUD_EVERY=60000,CLOUD_WAIT=20000;
+const CLOUD_OWNER=/^[A-Za-z][A-Za-z .'-]{0,29}$/,CLOUD_MODEL=/^[a-z0-9][a-z0-9.-]{2,60}$/;
+const charger={on:false,owner:null,model:null,busy:false,turns:[],pending:'',checking:null,lead:'',toldOffline:false};
+function cloudFetch(path,opts={}){
+  const ac=typeof AbortController==='function'?new AbortController():null,t=ac&&setTimeout(()=>ac.abort(),CLOUD_WAIT);
+  // No cookies and no referrer. A POST body is a plain string, sent as text/plain, so there's no CORS preflight.
+  return fetch(CLOUD+path,{credentials:'omit',cache:'no-store',referrerPolicy:'no-referrer',...opts,signal:ac?ac.signal:undefined}).finally(()=>clearTimeout(t));
+}
+const modelName=m=>CLOUD_MODEL.test(String(m||''))?String(m).split('-').map(w=>/^\d/.test(w)?w:w[0].toUpperCase()+w.slice(1)).join(' '):'Gemini';
+// What the proxy says, checked: anything odd reads as off, and so does a failed read (st null: offline, or unreachable).
+function cloudSet(st,{quiet=false}={}){
+  const ok=!!st&&typeof st==='object',on=ok&&st.on===true,was=charger.on;
+  if(ok)charger.owner=typeof st.owner==='string'&&CLOUD_OWNER.test(st.owner.trim())?st.owner.trim():null;
+  charger.model=on&&typeof st.model==='string'&&CLOUD_MODEL.test(st.model)?st.model:null;
+  if(ok)charger.toldOffline=false;
+  if(on===was){
+    // Opened with no network at all: whether it was on can't be known, so he says once that it's unavailable.
+    if(!ok&&!quiet&&navigator.onLine===false&&!charger.toldOffline){charger.toldOffline=true;cloudAnnounce("I'm offline, so my supercharger is unavailable. Everything I say comes from this device.")}
+    return;
+  }
+  charger.on=on;superOn=on;
+  if(on)document.documentElement.dataset.supercharged='';else{delete document.documentElement.dataset.supercharged;charger.turns=[]}
+  orbColours();
+  if(quiet)return;
+  cloudAnnounce(on?`${charger.owner?charger.owner+' has':'My owner has'} turned on my supercharger for you. While it's on, anything I can't answer on this device goes to Google's Gemini, with the last few things we said, and those answers are marked cloud.`:
+    ok?"My supercharger has been turned off. I'm back on my on-device brain, and nothing you ask goes to Gemini.":
+    navigator.onLine===false?(charger.toldOffline=true,"My supercharger is unavailable offline. I'm on my on-device brain."):"I can't reach my supercharger, so it's off for now. I'm on my on-device brain.");
+}
+async function cloudCheck(){
+  if(charger.checking)return charger.checking;
+  charger.checking=(async()=>{
+    let st=null;
+    try{const r=await cloudFetch('/api/status');if(r.ok)st=await r.json()}catch(e){}
+    cloudSet(st);
+  })().finally(()=>{charger.checking=null});
+  return charger.checking;
+}
+// Said once the boot screen has gone (the greeting carries it), and never over an answer being said.
+function cloudAnnounce(t,tries=0){
+  if(!greeted||booting){charger.pending=t;return} // the greeting carries it (the boot screen fades for a moment after it)
+  if(tries<15&&(mode==='think'||(synth&&synth.speaking))){setTimeout(()=>cloudAnnounce(t,tries+1),1000);return}
+  say(t);
+}
+// "Is your supercharger on?", and anything asking to switch it: only the owner can, in Vercel.
+function cloudIntent(raw){const s=brainText(raw);return /\bsupercharg/.test(s)?(/\b(?:turn|switch|put|power|start|stop|enable|disable|activate)\b|^supercharge (?:me|yourself)\b/.test(s)?'switch':'status'):null}
+function cloudReport(kind){
+  const who=charger.owner||'My owner';
+  if(charger.on)return `My supercharger is on: ${who} switched it on. Anything I can't answer on this device goes to Google's ${modelName(charger.model)}, and those answers are marked cloud.${kind==='switch'?` Only ${who} can turn it off.`:''}`;
+  return `My supercharger is off${navigator.onLine===false?', and it is unavailable offline':''}. ${kind==='switch'?`Only ${who} can turn it on, and not from this page.`:"Everything I say comes from this device."}`;
+}
+// Asked after the built-in commands, protocols and fragments, and before the meaning module and the full brain. An
+// answer, or null to carry on down the line on this device (with charger.lead saying why, when it failed).
+async function askCloud(text){
+  if(!charger.on)return null;
+  if(charger.busy)return "I'm still thinking about your last question. Give me a moment.";
+  const q=String(text).replace(/\s+/g,' ').trim().slice(0,500);if(!q)return null;
+  if(!packGone)await packReady();
+  const facts=brainFacts(brainText(text)),told=memory.map(x=>x.text).filter(t=>typeof t==='string'&&t&&t.length<=160).slice(-10);
+  const body={skin,q,turns:charger.turns.slice(-6),told,actions:BRAIN_PICKS.map(id=>[id,STEPS[id].label])};
+  if(facts)body.facts=facts.slice(0,1500);
+  if(typeof userName==='string'&&userName&&userName.length<=40)body.name=userName;
+  charger.busy=true;let res=null,data=null,slow=false;
+  for(const e of protoHud)if(!running){e.textContent='SUPERCHARGER · THINKING';e.hidden=false}
+  try{res=await cloudFetch('/api/brain',{method:'POST',body:JSON.stringify(body)});data=await res.json().catch(()=>null)}catch(e){res=null;slow=!!e&&e.name==='AbortError'}
+  charger.busy=false;
+  if(!running)for(const e of protoHud){e.textContent='';e.hidden=true}
+  // Too slow (CLOUD_WAIT): it's still on, this answer just comes from here. Anything else: it can't be reached, so it's off.
+  if(!res&&slow){charger.lead="My supercharger took too long, so I answered that on this device. ";return null}
+  if(!res){cloudSet(null,{quiet:true});charger.lead=navigator.onLine===false?"My supercharger is unavailable offline, so I answered on this device. ":"I couldn't reach my supercharger, so it's off for now and I answered on this device. ";return null}
+  if(res.status===503&&data&&data.off){cloudSet({on:false,owner:data.owner},{quiet:true});charger.lead="My supercharger has just been turned off, so I answered that on this device. ";return null}
+  cloudCheck(); // and with every answer, whether it's still on
+  if(res.status===429){charger.lead="My supercharger is busy just now, so I answered that on this device. ";return null}
+  if(res.ok&&data&&data.blocked){fullTag=CLOUD_TAG;return because("I can't help with that one.","Because Google's safety filter stopped that answer.")}
+  const said=res.ok&&data&&typeof data.say==='string'?cleanSay(data.say):'';
+  if(!said){charger.lead="My supercharger didn't answer that time, so I answered on this device. ";return null}
+  // Its picks, checked like the full brain's: only from BRAIN_PICKS, at most one scene, run the way protocol steps are.
+  const run=[];let refused=0,scene=false;
+  for(const x of (Array.isArray(data.do)?data.do:[]).slice(0,3)){
+    const pk=checkPick(typeof x==='string'?x:'');if(pk.none)continue;
+    if(pk.refused){refused++;continue}
+    if(STEPS[pk.id].scene){if(scene){refused++;continue}scene=true}
+    if(!run.includes(pk.id))run.push(pk.id);
+  }
+  let ran='';
+  for(const id of run){const S=STEPS[id],r=S.run?S.run():await respond(S.text,true);if(!S.quiet&&typeof r==='string'&&r)ran+=' '+r}
+  charger.turns.push({q:q.slice(0,600),a:said.slice(0,600)});while(charger.turns.length>6)charger.turns.shift();
+  fullTag=CLOUD_TAG;
+  const m=modelName(data.model);
+  return because(`${said}${ran}${refused?" My supercharger asked for something that isn't on my list, so I didn't do it.":''}`,
+    refused?"Because my supercharger can only pick from my fixed list of commands, the same list protocols use, and I check every pick before running it.":
+    `Because my supercharger is on, so what my on-device patterns didn't understand went to Google's ${m}.`);
+}
+cloudCheck();
+setInterval(()=>{if(!document.hidden)cloudCheck()},CLOUD_EVERY);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)cloudCheck()});
+addEventListener('online',()=>cloudCheck());addEventListener('offline',()=>cloudCheck());
+
+/* ---------- Offline and install (Session 17) ---------- */
+// jarvis-test-sw.js keeps a copy of this page and of Jarvis's own files, so he works offline after one visit. Its scope
+// is this page alone, and it never touches another site's requests, so the supercharger always goes to the network.
+const SW_URL='jarvis-test-sw.js',SW_SCOPE='./jarvis-test.html',CACHE_PREFIX='jarvis-test-';
+let installPrompt=null,reloadPage=()=>location.reload();
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e}); // kept for "install Jarvis"
+addEventListener('appinstalled',()=>{installPrompt=null});
+if(window.isSecureContext&&navigator.serviceWorker)addEventListener('load',()=>{navigator.serviceWorker.register(SW_URL,{scope:SW_SCOPE}).catch(()=>{})});
+const installed=()=>!!(navigator.standalone||(window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches)));
+const appleDevice=()=>/iPhone|iPad|iPod/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
+function installIntent(raw){
+  // Not brainText(): that drops a trailing "jarvis", which is the point of "install Jarvis".
+  const s=normPhrase(raw).replace(/^(?:(?:hey |ok |okay )?jarvis |please |can you |could you |would you |will you )+/,'').replace(/(?: (?:please|now|for me))+$/,'');
+  if(/^(?:install|add) (?:jarvis|you|yourself|this app|the app|this)(?: (?:on|to) (?:my|the) home ?screen)?$|^(?:add|put) (?:jarvis|you|yourself|this|me) (?:on|to) (?:my|the) home ?screen$|^how (?:do|can) i install (?:you|jarvis|this|the app)$/.test(s))return 'install';
+  if(/^(?:update|refresh|reload) (?:jarvis|yourself|you)$|^check for (?:an )?updates?$|^get the latest (?:version|jarvis)$/.test(s))return 'update';
+  return null;
+}
+const OWN_STORAGE=" On an iPhone, the installed Jarvis keeps its own storage, separate from Safari's, so it starts fresh. Back up your settings first if you want them there.";
+function installJarvis(){
+  if(installed())return "I'm already installed: this is the home-screen copy of me.";
+  if(installPrompt){const e=installPrompt;installPrompt=null;try{e.prompt()}catch(x){}return "Your browser will ask you to install me. Once I'm on your home screen, I open full screen, and I work offline after one visit."}
+  if(appleDevice())return "In Safari, tap the Share button, then Add to Home Screen."+OWN_STORAGE;
+  return "Open your browser's menu and choose Install app, or Add to Home screen. Not every browser offers it. After one visit I work offline either way.";
+}
+async function updateJarvis(){
+  if(navigator.onLine===false)return "I can't update while you're offline. I'll pick up the latest version the next time you open me with a connection.";
+  // The page is always fetched fresh when there's a connection, so this only clears the saved files and reloads.
+  try{if(window.caches)for(const k of await caches.keys())if(k.startsWith(CACHE_PREFIX))await caches.delete(k)}catch(e){}
+  try{const r=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration(SW_SCOPE);if(r)await r.update()}catch(e){}
+  setTimeout(()=>reloadPage(),2500);
+  return "Updating. I've cleared my saved copy, and I'll reload with the latest version in a moment.";
+}
+
 /* ---------- Follow-ups (Session 10): see talk, near the top ---------- */
 // A question that "yes" or "no" answers on the very next turn. Anything else said drops it.
 function ask(text,yes,no){talk.question={yes,no};return text}
@@ -4415,6 +4571,8 @@ async function respond(text,inner=false){
   if(BRIEF_RE.test(normPhrase(text).replace(/^(?:jarvis )/,''))){track('cmd:briefing');note(null);return await briefing()}
   if(upgradeIntent(text)){note(null);return await upgradeBrain()}
   const fb=fullBrainIntent(text);if(fb){note(null);return fb==='install'?await installBrain():fb==='off'?await brainOff():brainReport()}
+  const ci=cloudIntent(text);if(ci){note(null);return cloudReport(ci)}
+  const ii=inner?null:installIntent(text);if(ii){note(null);return ii==='install'?installJarvis():await updateJarvis()}
   const it=intent(text);if(it){const need=lockOf(it);if(need>levelNow())return locked(need,it.kind==='tesseract'?'The Tesseract':'The Avengers logo');
     track(intentEvent(it));note(FRAMES[it.kind]?it.kind:null);return await project(it)}
   // A fact question (Session 13): before the chat answers, whose loose patterns ("fact", "launch") would take it.
@@ -4441,8 +4599,10 @@ const LEARN_THAT=/^(?:jarvis )?(?:please )?(?:learn (?:that|it|this|that one|wha
 const MEANT=/^(?:what\s+)?i\s+(?:was\s+(?:trying|going)\s+to\s+(?:say|ask)|tried\s+to\s+(?:say|ask)|wanted\s+to\s+(?:say|ask)|meant\s+to\s+(?:say|ask)|wanted\s+(?:you\s+)?to|want\s+(?:you\s+)?to|meant|mean)(?:\s+(?:was|is))?[\s,:]*/i;
 // One turn. The follow-up context is updated here: what was said, and the reason behind it for "why?".
 async function answer(text){
-  nextWhy=null;fullTag=false;
-  const r=await answerCore(text);
+  nextWhy=null;fullTag=false;charger.lead='';
+  let r=await answerCore(text);
+  if(charger.lead&&typeof r==='string')r=charger.lead+r; // the supercharger failed, so this came from the device (Session 17)
+  charger.lead='';
   if(typeof r==='string'){talk.lastAnswer=plainText(shownOf(r));talk.why=nextWhy}
   return r;
 }
@@ -4503,6 +4663,8 @@ async function answerCore(text){
   if(/^(?:jarvis )?wake up$/.test(p))return "I'm awake. Say wake up, daddy's home, for my whole boot protocol.";
   // Last of all, and only once the brain is upgraded: what it means, rather than how it's said (Session 12). The
   // knowledge pack is read first, so a fact question in your own words can name anything in it (Session 13).
+  // The supercharger, while the owner has it on (Session 17): before the meaning module and the full brain.
+  const cl=await askCloud(text);if(cl!==null)return cl;
   if(mind.state==='on'&&!packGone)await packReady();
   // With the full brain running, the meaning module only acts when it's sure: an unsure match would ask
   // "Did you mean …?" about something the full brain can simply answer. Without it, it asks as before.
@@ -4617,7 +4779,7 @@ if(SR){
   }
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={say,setTitle,GAUNTLET,GAUNTLET_TEXT,HELP_LINE,helpSplit,openGauntlet,closeGauntlet,pickStone,chatOpen,freeArea,full:()=>full,setLlmLib:f=>{llmLib=f},llmLibReal,gpuCheck,fullBrainIntent,BRAIN_PICKS,parseBrain,cleanSay,brainGuess,checkPick,systemPrompt,brainFacts,brainReport,LLM,micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
+window.__jarvis={charger,cloudSet,cloudCheck,askCloud,cloudIntent,cloudReport,modelName,CLOUD,CLOUD_TAG,installIntent,installJarvis,updateJarvis,setReload:f=>{reloadPage=f},setInstallPrompt:e=>{installPrompt=e},SW_URL,SW_SCOPE,say,setTitle,GAUNTLET,GAUNTLET_TEXT,HELP_LINE,helpSplit,openGauntlet,closeGauntlet,pickStone,chatOpen,freeArea,full:()=>full,setLlmLib:f=>{llmLib=f},llmLibReal,gpuCheck,fullBrainIntent,BRAIN_PICKS,parseBrain,cleanSay,brainGuess,checkPick,systemPrompt,brainFacts,brainReport,LLM,micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
   SETTING_CHOICES,cleanSettings,cleanStreak,streakLine,settingsIntent,applySetting,settings:()=>({...settings}),inUnits,ORB_COLOURS,ring:()=>ringRGB,SPEEDS,
   memoryTell,memoryAsk,memoryForget,memory:()=>memory.map(x=>({...x})),memoryStars,forgetStar,constellation,constellationLinks,get firstTime(){return firstTime},streak:()=>({...streak}),
   STEPS,BUILTIN,PROTO_MAX,PROTO_STEPS,stepOf,protoName,nameProblem,protoProblem,protoCreate,adjuster,noteScene,fragment,
