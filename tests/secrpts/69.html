@@ -193,7 +193,7 @@
     <h2><span class="num">02</span>Code quality</h2>
     <div class="item">
       <div class="item-head"><div class="item-title">The suite</div><span class="badge fixed">Confirmed clean</span></div>
-      <div class="item-body"><p>jarvis-test (jsdom): 1787 checks, all passing. One new check: after a failed answer, "why?" reads "The error was: Error: GPUValidationError: something went wrong" from the fake engine's error. A copy of the page that drops the error from the reason fails it, since the expected text is pinned in full.</p></div>
+      <div class="item-body"><p>jarvis-test (jsdom): 1787 checks, all passing. One new check: after a failed answer, "why?" reads "The error was: Error: GPUValidationError: something went wrong" from the fake engine's error. The whole reason is pinned, so one without the error text cannot pass (not run as a broken copy, since that is true by construction).</p></div>
     </div>
     <div class="item">
       <div class="item-head"><div class="item-title">The failure itself</div><span class="badge open">Open</span></div>
