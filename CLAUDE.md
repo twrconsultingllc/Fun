@@ -670,6 +670,19 @@ deployment limit. `refreshHours` is 0 to match, and the page then says
   the fetcher matches against each item's publisher. `wire-core` fails if a
   search gains a `-site:`.
 
+## Vercel builds only the project whose folder changed
+
+Three Vercel projects deploy from this repo: `fun` (`battle-bots/`), `funv2`
+(`battle-bots-V2/`) and `jarvis-cloud` (`jarvis/cloud/`). Each folder's
+`vercel.json` has the same `ignoreCommand`, which skips the build unless
+that folder changed since the commit Vercel last deployed for it. The user
+asked for this on 2026-10-11 ("if I'm working on BattleBots, it's
+BattleBots; if I'm working on Jarvis, it's Jarvis"), after every commit
+rebuilding all three projects used up the Vercel account's daily deployment
+limit. A new Vercel project gets the same line, and
+`tests/vercel-builds.test.mjs` (in `FOLDERS`) runs the real command against
+a scratch git repo. GitHub Pages isn't affected: it publishes every commit.
+
 ## The root `.gitignore`'s `.env.*` also swallows `.env.example`
 
 `.gitignore` has both `.env` and `.env.*` to keep real secrets out of every

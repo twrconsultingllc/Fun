@@ -52,9 +52,11 @@ has no home page either, so its bare address always answers 404. Check it at
 
 A change to the environment variables only reaches the function on a new
 deployment (Deployments → the latest one → Redeploy). `vercel.json` skips a
-Git-triggered build when nothing under `jarvis/cloud/` changed, so the Daily
-Wire's commits don't redeploy it. A commit that does change this folder
-deploys it.
+Git-triggered build when nothing under `jarvis/cloud/` changed since the
+commit Vercel last deployed (`VERCEL_GIT_PREVIOUS_SHA`), so other work in the
+repo doesn't redeploy it. A commit that does change this folder deploys it.
+The battle-bots projects use the same rule; `tests/vercel-builds.test.mjs`
+runs it.
 
 ## Environment variables
 
