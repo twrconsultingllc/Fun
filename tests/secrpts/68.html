@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #68 — J.A.R.V.I.S. test copy: teaching only when asked</title>
+<meta name="description" content="Review of the learned-phrases change in the J.A.R.V.I.S. test copy: a miss no longer asks what you meant and saves your next sentence, teaching is started with learn that or when I say X, I mean Y, and with the full brain running an unsure meaning match goes to the full brain instead of asking Did you mean.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #68 — J.A.R.V.I.S. test copy: teaching only when asked</h1>
+    <p class="sub">You found learned phrases too pushy. Every miss asked "What were you trying to say?", and whatever you said next was saved as the meaning, even a new question. With the full brain installed, the meaning module still got in first with "Did you mean …?", and a "no" started teaching mode. You chose two fixes: the full brain goes first (option A), and teaching only happens when you ask for it (option B).</p>
+    <div class="meta">Review performed 2026-10-11 · repo: <code>twrconsultingllc/Fun</code> · scope: <code>jarvis-test.html</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>jarvis/build-plan.html</code> · suite run: <code>jarvis-test</code> (jsdom) · <code>jarvis.html</code> unchanged</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 83%;"></div></div>
+    <div class="progress-label">12 items: 10 verified clean or fixed, 2 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security and privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Phrases are no longer saved without being asked</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Before, a miss quietly set <code>pendingTeach</code>, so your next sentence was written to the database as what the phrase meant, whatever it was. That was a write to storage that nobody asked for.</p></div>
+      <div class="fix-note"><b>Fix:</b> A miss now only remembers the phrase in memory (<code>lastMiss</code>), for the very next turn. Nothing is saved unless you say <i>learn that</i> and then answer, or say <i>when I say X, I mean Y</i>. A "no" to "Did you mean …?" no longer starts teaching either. <code>lastMiss</code> is cleared at the start of every turn, so "learn that" can only ever teach the phrase from the turn just before.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Every save still goes through the same checks</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Both ways of teaching end in one new function, <code>taught()</code>, which holds the code the old flow had: <code>personal()</code> on both the phrase and its meaning (refused, with the reason), short-term memory never saved as a phrase, and then <code>learn()</code>, which checks <code>personal()</code> again and saves through <code>store()</code>. The suite's checks still pass: no <code>localStorage</code> write anywhere in the page, and exactly one <code>'readwrite'</code> transaction. The phone-number refusal and "my cat is Tom" checks pass when taught through "learn that".</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The new link does only what it says</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The miss answer now carries a second link, <code>⟦learn that⟧</code>, from a fixed constant (<code>LEARN_IT</code>) that was added to <code>CHIP_CMDS</code>. Nothing typed becomes a link (that check passes unchanged). Tapping it saves nothing: it only asks "What did you mean by …?". "Learn that" was added to the teach capability and to the Soul stone of the gauntlet, so the checks "every command link belongs to a capability" and "every link command is understood" cover it.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Phrases are matched with regular expressions, not built from text</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>WHEN_I_SAY</code> and <code>LEARN_THAT</code> are fixed patterns run against the normalised phrase, which has only letters, digits, spaces and apostrophes. No pattern is built from what you type. <code>WHEN_I_SAY</code>'s lazy <code>(.+?)</code> is followed by a fixed set of words and anchored at both ends, so there is no nested quantifier to slow it down. The old <code>__proto__</code> check still passes through "learn that".</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">CSP and markup unchanged</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>No new host, element, style or script. The CSP meta tag is unchanged (the suite pins it).</p></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">With the full brain on, "Did you mean …?" came before it</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>In <code>answerCore()</code>, the meaning module was asked before the full brain. Any match between 0.60 and 0.80 asked "Did you mean …?" about something the full brain could simply have answered.</p></div>
+      <div class="fix-note"><b>Fix:</b> With the full brain running, the meaning module acts only when it's sure (the same <code>sure</code> test as before: at least 0.80, a clear gap to the next match, and never a command that asks first). An unsure match goes to the full brain. If the full brain doesn't answer (for example, the question is over 400 characters), the old "Did you mean …?" comes back. Without the full brain, nothing changes. Sure matches, patterns, the knowledge pack and protocols all still come first; the suite's 89 pinned phrasings still answer exactly as they do without the full brain.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Spoken phrasing without a comma</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>A phone sends "when i say lights please i mean make the orb blue" with no punctuation. The first draft of <code>WHEN_I_SAY</code> also split at "please", so the suite's check found "lights" taught to mean "i mean make the orb blue".</p></div>
+      <div class="fix-note"><b>Fix:</b> "Please" was taken out of the split words. It now splits only at "I mean", "I meant", "it means", "that means", "I want you to" and "you should". The spoken phrasing is pinned next to the typed one, as <code>CLAUDE.md</code> asks.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The words that describe teaching</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The Soul stone's note, the teach capability's hint, "what have you learned" with nothing learned, the miss answer's "why?", and the code comment all said "tell me what you meant". They now describe "learn that" and "when I say X, I mean Y". This page has no separate user guide. The build plan's Interim section has a dated follow-up note.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The suite</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>jarvis-test (jsdom): 1786 checks, all passing. The "Learned phrases" section was rewritten for the new flow: a miss offers "learn that" and teaches nothing, "learn that" a turn later has nothing to learn, "nothing" leaves it, "when I say …" typed and spoken, and a meaning it doesn't know isn't learned. The meaning module's "no" now offers "learn that" instead of teaching, and the full brain section checks that a sure match runs first while an unsure one goes to the full brain. Eleven older checks that taught the old way (miss, then "I meant …") now say "learn that" in between. Their expected answers weren't changed. Only the full brain check's phrase changed, from "tickle my funny bone" to "make me chuckle", because "funny" is already understood by a pattern and never reached the meaning module.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The suite fails when the page is broken</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Five copies of the page, each with one deliberate bug, were run against the suite, and all five failed it: a miss teaching your next sentence again (8+ failures), the meaning module asking before the full brain (3), a "no" starting teaching mode (3), "please" back in the spoken split (1), and the missed phrase not cleared after one turn (3).</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not tried with the real full brain or a real phone</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>The full brain needs WebGPU, which this container doesn't have, so the suite uses a fake engine. Whether the real model gives a good answer to the phrases that used to get "Did you mean …?" is for you to try. Nothing visual changed, so no screenshot was taken.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Carried</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>From reviews 66 and 67: the engine repository's missing licence file, the real model not running here, a Session 8 check with a fixed 80 ms wait, a failed save isn't reported, chat answers are counted by an approximate kind, and a Session 10 Chromium step can time out under load. Nothing here changes them.</p></div>
+    </div>
+  </section>
+  <footer>Previous review: <a href="67.html">#67</a> (screens on a phone).</footer>
+</div>
+</body>
+</html>
