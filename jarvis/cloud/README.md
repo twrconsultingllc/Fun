@@ -34,7 +34,13 @@ redeploy:
 
 Without Edge Config, the same settings come from the environment variables
 `SUPERCHARGE`, `SUPERCHARGE_UNTIL`, `OWNER_NAME` and `JARVIS_MODEL`, and a
-change needs a redeploy. If Edge Config can't be read, it's off.
+change needs a redeploy. Since 2026-10-11 it's **on by default** there: with
+`SUPERCHARGE` unset or empty it's on, and `SUPERCHARGE=false` (or `off`, `0`,
+anything but `true`/`on`) turns it off. The owner chose this so the
+supercharger works without any Vercel settings, with cost controlled by the
+budget and daily quota on Google's side. Without `OWNER_NAME`, Jarvis says
+"My owner has turned on my supercharger". If Edge Config is connected but
+can't be read, it's off. With no `GEMINI_API_KEY`, it's always off.
 
 ## Setting up the Vercel project
 
