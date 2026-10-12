@@ -595,13 +595,16 @@ export function createApp({ env, fetchImpl = fetch, now = Date.now, log = () => 
         const t0 = now(), chars = r.text.length;
         // The style goes as a system instruction. A model that refuses one (400) is asked again with the words alone,
         // and this instance stops sending it, so a 400 costs one extra call, once.
-        let style = voiceStyle;
+        // Jarvis always gets his style (the owner chose the British-sounding Charon it gives, 2026-10-12): a refusal drops
+        // it for that one request only, and never turns it off for the instance.
+        const always = r.skin === 'jarvis';
+        let style = always || voiceStyle;
         // Streamed first: he starts as soon as the first audio arrives. Logged when the stream ends, with how long the
         // first audio took (first) and the whole line (ms), in milliseconds, and how many characters were voiced.
         let st = await streamVoice({ env, fetchImpl, model, body: voiceBody(r, { style }), now });
         if (st.badRequest && style) {
             st = await streamVoice({ env, fetchImpl, model, body: voiceBody(r, { style: false }), now });
-            if (!st.badRequest) { style = voiceStyle = false; log({ event: 'voice', model, style: false, why: 'system instruction refused' }); }
+            if (!st.badRequest) { style = false; if (!always) voiceStyle = false; log({ event: 'voice', model, style: false, why: 'system instruction refused' }); }
         }
         if (st.quota) { log({ event: 'voice', model, stream: true, error: 429 }); return json(429, cors, { error: 'quota', status: 429 }); }
         if (st.blocked) { log({ event: 'voice', model, stream: true, error: 'blocked' }); return json(502, cors, { error: 'blocked', model }); }
@@ -618,7 +621,7 @@ export function createApp({ env, fetchImpl = fetch, now = Date.now, log = () => 
             out = await askGemini({ env, fetchImpl, model, body: voiceBody(r, { style }), bodyNoThinking: voiceBody(r, { style }) });
             if (out.status === 400 && style) {
                 out = await askGemini({ env, fetchImpl, model, body: voiceBody(r, { style: false }), bodyNoThinking: voiceBody(r, { style: false }) });
-                if (out.ok) { style = voiceStyle = false; log({ event: 'voice', model, style: false, why: 'system instruction refused' }); }
+                if (out.ok) { style = false; if (!always) voiceStyle = false; log({ event: 'voice', model, style: false, why: 'system instruction refused' }); }
             }
         } catch (e) {
             log({ event: 'voice', model, error: 'network' });

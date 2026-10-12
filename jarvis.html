@@ -104,6 +104,9 @@ body.holo-on #wake-note{display:none}
 .sc-tag{display:none;font-size:.7rem;font-weight:700;letter-spacing:.14em;color:var(--void);background:var(--amber);padding:2px 6px;vertical-align:middle;margin-left:6px}
 :root[data-supercharged] .sc-tag{display:inline-block}
 .brain-tag.cloud{color:var(--phos)}
+.voice-tag{display:inline-block;font-size:.62rem;font-weight:700;letter-spacing:.12em;color:var(--label);margin-left:8px;white-space:nowrap}
+.voice-tag.his{color:var(--phos)}.voice-tag.fell{color:var(--amber)}
+@media (max-height:700px){body:not(.chat-open) #log .voice-tag{display:none}} /* a short phone's strip has no room for it: the face keeps its size; open the chat to see it */
 #rain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1;opacity:.35}
 #rain[hidden]{display:none}
 .skin-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
@@ -364,7 +367,8 @@ const SETTING_CHOICES={
   speed:['slow','fast'],
   units:['metric','imperial'],
   scene:['galaxy','solar','globe','neural','suit','particles'],
-  chips:['off'] // Session 11: "favourites first" in the command links is on unless this says off
+  chips:['off'], // Session 11: "favourites first" in the command links is on unless this says off
+  voice:['browser','mixed'] // Session 18: his own voice unless this says the browser's, or mixed
 };
 function cleanSettings(o){
   const out={};if(!o||typeof o!=='object'||Array.isArray(o))return out;
@@ -636,6 +640,7 @@ function settingsWords(st){
   if(st.units)w.push(`${st.units} units`);
   if(st.scene)w.push(`opening with ${SCENE_NAMES[st.scene]}`);
   if(st.chips)w.push('my command links in their usual order');
+  if(st.voice)w.push(st.voice==='browser'?"the browser's voice":'mixed voices');
   return w;
 }
 
@@ -668,7 +673,7 @@ function setDream(on){
 }
 function wakeUp(){lastActive=performance.now();if(dreaming)setDream(false)}
 function dreamCheck(now=performance.now()){
-  if(dreamDue(now,{dreaming,mode,holo:!!H,booting:booting||!boot.hidden,hidden:document.hidden,speaking:!!(synth&&synth.speaking),lastActive}))setDream(true);
+  if(dreamDue(now,{dreaming,mode,holo:!!H,booting:booting||!boot.hidden,hidden:document.hidden,speaking:speakingNow(),lastActive}))setDream(true);
   return dreaming;
 }
 setInterval(dreamCheck,2000);
@@ -676,9 +681,10 @@ addEventListener('pointerdown',wakeUp,true);addEventListener('keydown',wakeUp,tr
 document.addEventListener('visibilitychange',()=>{if(document.hidden)wakeUp()}); // and the clock starts again when you come back
 // How hard the orb pulses this frame. hearing: speech recognition says it can hear someone talking.
 // sinceWord: seconds since Jarvis started the last spoken word, or null when the voice doesn't report words.
-function orbPulse({mode,energy,t,hearing=false,sinceWord=null,still=false}){
+function orbPulse({mode,energy,t,hearing=false,sinceWord=null,still=false,level=null}){
   if(still)return energy*.6; // reduced motion: hold steady
   if(mode==='listen'&&hearing)return energy*(.7+.3*Math.sin(t/70));
+  if(mode==='speak'&&level!==null)return energy*(.4+.6*level); // his own voice: the audio's real loudness (Session 18)
   if(mode==='speak'&&sinceWord!==null)return energy*(.45+.55*Math.exp(-sinceWord*7));
   return energy*(.6+.4*Math.sin(t/(mode==='speak'?90:400)));
 }
@@ -910,7 +916,7 @@ function draw(t){
   const heard=mode==='listen'&&hearing;
   const target=heard?.95:{idle:.15,listen:.45,think:.45,speak:.9}[mode];
   energy+=(target-energy)*(heard?.25:.06); // jump up as soon as it hears you
-  const pulse=orbPulse({mode,energy,t,hearing:heard,still:reduce,sinceWord:mode==='speak'&&lastWord!==null?Math.max(0,(t-lastWord)/1000):null});
+  const pulse=orbPulse({mode,energy,t,hearing:heard,still:reduce,sinceWord:mode==='speak'&&lastWord!==null?Math.max(0,(t-lastWord)/1000):null,level:mode==='speak'?voiceLevel():null});
   // glow core
   // the glow dims as the face fades in, so the face isn't washed out
   const gr=W*.22*(.25+.75*bp),g=cx.createRadialGradient(c,c,0,c,c,gr),dim=1-.8*clamp(bp*2-1,0,1);
@@ -1034,23 +1040,32 @@ if(synth){pickVoice();synth.onvoiceschanged=pickVoice;
   voiceSel.addEventListener('change',()=>{
     if(voiceSel.value)voicePicks[skin]=voiceSel.value;else delete voicePicks[skin];
     store('jarvis-voices',JSON.stringify(voicePicks));track('feature:voice');
-    pickVoice();say(SKINS[skin].sample);
+    pickVoice();say(SKINS[skin].sample,{browser:true}); // the voice just picked, never his own (Session 18)
   });
 }
 // Chrome stops speaking a long utterance after about 15 seconds, so long answers go out a sentence or two
 // at a time: every sentence whole, each piece at most about 160 characters unless one sentence is longer.
-function speechChunks(text,max=160){
+// Session 18: speechSentences() is the first half, every sentence on its own (a long one broken up to fit). His own
+// voice looks recordings up one sentence at a time, because a sentence's words don't depend on its neighbours.
+function speechSentences(text,max=160){
   const out=[];
   // A sentence longer than max (a flag description, say: Session 13) is broken at semicolons, then commas, then spaces.
   const fit=t=>{if(t.length<=max)return [t];for(const re of [/(?<=;)\s+/,/(?<=,)\s+/,/\s+/]){const bits=t.split(re);if(bits.length<2)continue;const o=[];
     for(const b of bits){const n=o.length;if(n&&o[n-1].length+1+b.length<=max)o[n-1]+=' '+b;else o.push(b)}if(o.every(x=>x.length<=max))return o;if(re.source==='\\s+')return o}return [t]};
-  for(const sen of String(text).match(/[^.!?]+(?:[.!?]+|$)/g)||[])for(const t of fit(sen.trim())){if(!t)continue;
+  for(const sen of String(text).match(/[^.!?]+(?:[.!?]+|$)/g)||[])for(const t of fit(sen.trim()))if(t)out.push(t);
+  return out;
+}
+function speechChunks(text,max=160){
+  const out=[];
+  for(const t of speechSentences(text,max)){
     const n=out.length;if(n&&out[n-1].length+1+t.length<=max&&!(out[n-1].length>0&&/[;,]$/.test(out[n-1])))out[n-1]+=' '+t;else out.push(t)}
   return out;
 }
 let sayGen=0; // which answer is being spoken, so a cancelled one can't switch the orb back to idle
 // quiet: spoken only, with nothing added to the chat (a stone's name as you tap it in the gauntlet).
-function say(text,{quiet=false}={}){
+// browser: in the browser's voice whatever the voice setting (the voice menu's sample of the voice you just picked).
+function say(text,{quiet=false,browser=false}={}){
+  const fromModel=!!fullTag; // a full brain or supercharger answer (add() clears the tag): its audio is never kept (Session 18)
   text=inUnits(text);wakeUp();
   const gauntlet=helpSplit(text);if(gauntlet)text=gauntlet.shown; // the help answer: the short line is shown and said, and the gauntlet opens
   if(!quiet){
@@ -1059,20 +1074,335 @@ function say(text,{quiet=false}={}){
     if(gauntlet)openGauntlet();
     if(H&&H.onAnswer)H.onAnswer(); // the neural network lights its output layer for each answer
   }
+  const gen=++sayGen,words=plainText(text);
+  if(synth)synth.cancel();voiceStop();
+  // Session 18: his own voice first (a recording, then the live voice), unless the browser's voice is the setting.
+  // voiceSay() falls back to speakBrowser() itself, so nothing he says is ever lost.
+  const line=quiet?null:log.lastElementChild;
+  if(!browser&&(settings.voice||'his')!=='browser'&&voiceOut.AC){voiceSay(words,gen,{keep:!fromModel,line});return}
   if(!synth){setMode('idle');return}
-  const gen=++sayGen,parts=speechChunks(plainText(text));
-  synth.cancel();
-  parts.forEach((p,i)=>{
-    const u=new SpeechSynthesisUtterance(p);if(voice){u.voice=voice;u.lang=voice.lang} // Android Chrome ignores the voice unless the language matches it
-    u.rate=(tuned?SKINS[skin].tunedRate:SKINS[skin].rate)*SPEEDS[settings.speed||'normal'];u.pitch=tuned?SKINS[skin].tunedPitch:SKINS[skin].pitch;
-    u.onstart=()=>{if(gen!==sayGen)return;lastWord=null;setMode('speak')};
-    u.onend=u.onerror=()=>{if(gen!==sayGen||i<parts.length-1)return;lastWord=null;setMode('idle')};
-    // There's no audio tap on speech synthesis, so pulse on each word where the voice reports them.
-    u.onboundary=e=>{if(!e.name||e.name==='word')lastWord=performance.now()};
-    synth.speak(u);
-  });
+  if(voiceOut.AC)voiceMark(line,voiceBrowser()); // the browser's voice by choice (the setting, or the voice menu's sample)
+  speakBrowser(words,gen);
   // Some browsers never start speaking (no voices installed); don't stay stuck on PROCESSING.
   setTimeout(()=>{if(mode==='think')setMode('idle')},1500);
+}
+// The browser's own voice (tier 3), in pieces of at most 160 characters. Resolves when the last piece ends (or
+// errors, or never starts: a browser with no voices). last false: more of the answer follows, so the orb stays on SPEAKING.
+function speakBrowser(words,gen,{last=true}={}){
+  return new Promise(done=>{
+    const parts=speechChunks(words);
+    if(!synth||!parts.length){if(last&&gen===sayGen)setMode('idle');done();return}
+    let left=parts.length,resolved=false;
+    const finish=()=>{if(!resolved){resolved=true;done()}};
+    // A browser with no voices never calls onend: stop waiting after about as long as the words would take.
+    setTimeout(finish,3000+words.length*150);
+    parts.forEach(p=>{
+      const u=new SpeechSynthesisUtterance(p);if(voice){u.voice=voice;u.lang=voice.lang} // Android Chrome ignores the voice unless the language matches it
+      u.rate=(tuned?SKINS[skin].tunedRate:SKINS[skin].rate)*SPEEDS[settings.speed||'normal'];u.pitch=tuned?SKINS[skin].tunedPitch:SKINS[skin].pitch;
+      u.onstart=()=>{if(gen!==sayGen)return;lastWord=null;setMode('speak')};
+      u.onend=u.onerror=()=>{if(--left>0)return;if(last&&gen===sayGen){lastWord=null;setMode('idle')}finish()};
+      // There's no audio tap on speech synthesis, so pulse on each word where the voice reports them.
+      u.onboundary=e=>{if(!e.name||e.name==='word')lastWord=performance.now()};
+      synth.speak(u);
+    });
+  });
+}
+
+/* ---------- His own voice (Session 18): a recording, then the live voice, then the browser's ----------
+   Every sentence he says is looked up word for word in jarvis/voice/manifest.json, for the current skin. A
+   recording there is played from this site: no API call, and offline once the service worker has it. What isn't
+   recorded goes, while the supercharger is on, to the proxy's /api/voice (Gemini's voice model, one named voice per
+   skin), and is kept in a cache of its own on this device so a repeat isn't voiced again: never an answer from Gemini
+   or the full brain, and never a line with a digit, a name (yours, or the owner's from the supercharger) or anything
+   personal() flags. Anything else, and any
+   failure, is the browser's voice, so he never goes quiet. The setting (settings.voice) is his voice (the default),
+   where an answer that can't all be in his voice is all in the browser's, so he never switches voice mid-answer;
+   mixed, where each sentence takes whatever's there; or the browser's voice for everything. The audio plays through
+   Web Audio, so the orb follows its real loudness, and Chrome's 15-second cut-off doesn't apply. */
+// Live pieces are at most VOICE_LIVE characters (a sentence or two), so each comes back quickly: on 2026-10-12 one
+// 230-character request came back as 895 audio tokens, about 35 seconds of speech, too slow for one wait. Each piece
+// may take VOICE_FETCH; the first piece of an answer is waited for VOICE_FIRST before the browser says it instead.
+// Since review 82 the proxy streams the audio (audio/L16, raw PCM), so he starts as soon as Google does, however long the
+// line. So since review 85 an answer goes as one live piece of up to VOICE_RUN characters, not several short ones: every
+// piece was a separate recording, and on the owner's phone the pieces of one answer sounded like two different voices.
+const VOICE_LIVE=600,VOICE_FIRST=12000,VOICE_FETCH=25000,VOICE_PAUSE=120000;
+const VOICE_DIR='jarvis/voice/',VOICE_RUN=600,VOICE_KEEP=150,VOICE_FILE=/^[a-f0-9]{16}\.mp3$/;
+const voiceOut={list:null,loading:null,ctx:null,an:null,buf:null,src:null,srcs:new Set(),active:0,fails:0,failAt:0,first:VOICE_FIRST,fetchWait:VOICE_FETCH,stall:8000,AC:window.AudioContext||window.webkitAudioContext||null};
+const voiceKeepCache=()=>CACHE_PREFIX+'voice-live',nap=ms=>new Promise(r=>setTimeout(r,ms));
+// The recordings' manifest, checked: {lines: {skin: {sentence: {file}}}}. Anything odd is left out.
+function voiceManifest(j){
+  const out={};
+  const lines=j&&typeof j==='object'&&j.lines&&typeof j.lines==='object'?j.lines:{};
+  for(const k of Object.keys(SKINS)){const m=new Map(),L=Object.hasOwn(lines,k)&&lines[k]&&typeof lines[k]==='object'?lines[k]:{};
+    for(const [t,v] of Object.entries(L))if(t.length<=VOICE_RUN&&v&&typeof v.file==='string'&&VOICE_FILE.test(v.file))m.set(t,VOICE_DIR+k+'/'+v.file);
+    out[k]=m}
+  return out;
+}
+// Read once a visit. A failed read (offline before the service worker had it) counts as no recordings, and is
+// tried again after a minute.
+function voiceList(){
+  if(voiceOut.list&&!(voiceOut.failedAt&&Date.now()-voiceOut.failedAt>60000))return Promise.resolve(voiceOut.list);
+  return voiceOut.loading||(voiceOut.loading=fetch(VOICE_DIR+'manifest.json',{cache:'no-cache'}).then(r=>r&&r.ok?r.json():null).catch(()=>null)
+    .then(j=>{voiceOut.failedAt=j?0:Date.now();voiceOut.loading=null;return voiceOut.list=voiceManifest(j)}));
+}
+// Web Audio, started on a tap (phones only allow sound after one). null: it can't play here.
+function voiceCtx(){
+  const v=voiceOut;if(!v.AC)return null;
+  if(!v.ctx){try{v.ctx=new v.AC();v.an=v.ctx.createAnalyser();v.an.fftSize=512;v.an.connect(v.ctx.destination);v.buf=new Uint8Array(v.an.fftSize)}catch(e){v.AC=null;v.ctx=null;return null}}
+  if(v.ctx.state==='suspended')try{v.ctx.resume().catch(()=>{})}catch(e){}
+  return v.ctx;
+}
+for(const ev of ['pointerdown','keydown','touchend'])addEventListener(ev,()=>{if((settings.voice||'his')!=='browser')voiceCtx()},{capture:true,passive:true});
+// How loud what's playing is, 0 to 1, for the orb.
+function voiceLevel(){
+  const v=voiceOut;if(!v.an||!v.src)return null;
+  v.an.getByteTimeDomainData(v.buf);let sum=0;for(const b of v.buf){const x=(b-128)/128;sum+=x*x}
+  return clamp(Math.sqrt(sum/v.buf.length)*4,0,1);
+}
+// Stops everything playing or queued: a recording is one source, streamed audio is many, queued back to back.
+function voiceStop(){const all=[...voiceOut.srcs];voiceOut.srcs=new Set();voiceOut.src=null;for(const s of all)try{s.onended=null;s.stop()}catch(e){}}
+// Whether he's speaking in any voice: the browser's, or audio of his own (loading or playing).
+const speakingNow=()=>!!(synth&&synth.speaking)||voiceOut.active>0;
+// After three failures in a row the live voice rests for two minutes, rather than for the rest of the visit.
+const voicePaused=()=>{if(voiceOut.fails>=3&&Date.now()-voiceOut.failAt>VOICE_PAUSE)voiceOut.fails=0;return voiceOut.fails>=3};
+const voiceFail=()=>{voiceOut.fails++;voiceOut.failAt=Date.now()};
+const voiceLiveOK=()=>charger.on&&charger.voice&&navigator.onLine!==false&&!voicePaused();
+// May this line's live audio be kept on the device? Only the page's own words, with nothing personal in them.
+const voiceKeepable=t=>!/\d/.test(t)&&!personal(t)&&![userName,charger.owner].some(n=>n&&t.toLowerCase().includes(n.toLowerCase()));
+// The answer as segments in order: recordings, live runs of up to VOICE_LIVE characters, and browser runs. A recording is a
+// whole fixed line (a joke, a skin's opener), so from each sentence the longest run of sentences that was recorded
+// is taken, and a skin's opener before a joke is two recordings.
+function voicePlan(words,list,live,mode){
+  const recs=list&&list[skin],sents=speechSentences(words,300),segs=[];
+  for(let i=0;i<sents.length;){
+    let u=sents[i],file=null,j=i+1;
+    if(recs&&recs.size)for(let k=sents.length;k>i;k--){const t=sents.slice(i,k).join(' ');if(t.length<=VOICE_RUN&&recs.has(t)){u=t;file=recs.get(t);j=k;break}}
+    const kind=file?'rec':live?'live':'browser',last=segs[segs.length-1];
+    if(last&&last.kind===kind&&kind!=='rec'&&(kind==='browser'||last.text.length+1+u.length<=VOICE_LIVE))last.text+=' '+u;
+    else segs.push({kind,text:u,file});
+    i=j;
+  }
+  if(!segs.some(x=>x.kind!=='browser'))return null;
+  if(mode==='his'&&segs.some(x=>x.kind==='browser'))return null; // all or nothing: never two voices in one answer
+  return segs;
+}
+// Since 2026-10-12 (review 83) each kept line's address carries a version: lines kept before then were voiced with the
+// style read aloud in front of the words, so they're never played, and they're deleted the first time the cache is
+// opened. A change to how lines are voiced bumps VOICE_KEEP_V.
+const VOICE_KEEP_V='v3'; // v3 (review 86): Jarvis's saved lines may have been voiced without his British style
+const voiceKey=text=>new URL(VOICE_DIR+'live/'+VOICE_KEEP_V+'/'+skin+'?t='+encodeURIComponent(text),location.href).href;
+const voiceKeepBase=()=>new URL(VOICE_DIR+'live/'+VOICE_KEEP_V+'/',location.href).href;
+let voicePurged=null;
+function voicePurge(c){
+  return voicePurged||(voicePurged=(async()=>{try{for(const k of await c.keys()){const u=typeof k==='string'?k:k.url;if(!String(u).startsWith(voiceKeepBase()))await c.delete(k)}}catch(e){}})());
+}
+async function voiceKept(text){
+  try{if(!window.caches)return null;const c=await caches.open(voiceKeepCache());await voicePurge(c);const hit=await c.match(voiceKey(text));return hit?await hit.arrayBuffer():null}catch(e){return null}
+}
+async function voiceKeep(text,buf){
+  try{
+    if(!window.caches)return;const c=await caches.open(voiceKeepCache());await voicePurge(c);
+    await c.put(voiceKey(text),new Response(buf.slice(0),{headers:{'content-type':'audio/wav'}}));
+    const keys=await c.keys();for(const k of keys.slice(0,Math.max(0,keys.length-VOICE_KEEP)))await c.delete(k); // the oldest go first
+  }catch(e){}
+}
+// One segment's audio, or null (and the browser says it instead), with seg.why saying what went wrong.
+const VOICE_WHY={429:'busy',502:'Gemini voice failed',503:'switched off'};
+async function voiceLoad(seg,keep){
+  try{
+    if(seg.kind==='rec'){const r=await fetch(seg.file);if(r.ok)return await r.arrayBuffer();seg.why='recording missing';return null}
+    const kept=keep&&voiceKeepable(seg.text)?await voiceKept(seg.text):null;if(kept){seg.saved=true;return kept}
+    const res=await cloudFetch('/api/voice',{method:'POST',body:JSON.stringify({skin,text:seg.text}),wait:voiceOut.fetchWait});
+    if(res.status===503){seg.why=VOICE_WHY[503];charger.voice=false;cloudCheck();return null}
+    if(!res.ok||!/^audio\//.test(res.headers&&res.headers.get?res.headers.get('content-type')||'':'')){seg.why=VOICE_WHY[res.status]||'Gemini voice failed';if(res.status!==429)voiceFail();return null}
+    voiceOut.fails=0;
+    const pcm=voicePcmType(res.headers.get('content-type'));
+    if(pcm){
+      // Streamed (review 82): played as it arrives. Kept on the device, as a WAV, only once it has all arrived.
+      const feed=voiceFeed(res,pcm);
+      if(keep&&voiceKeepable(seg.text))feed.ended.then(ok=>{if(ok&&feed.size)voiceKeep(seg.text,voiceWav(feed))});
+      return feed;
+    }
+    const buf=await res.arrayBuffer();
+    if(keep&&voiceKeepable(seg.text))voiceKeep(seg.text,buf);
+    return buf;
+  }catch(e){if(seg.kind==='live'){seg.why=e&&e.name==='AbortError'?'too slow':'unreachable';voiceFail()}else seg.why='recording missing';return null}
+}
+// Every line he says aloud is tagged with the voice that actually said it (since 2026-10-12, review 84): "GEMINI ·
+// CHARON" for the live voice, "… · SAVED" when it played from this device, "RECORDED · CHARON" for a recording, and
+// "BROWSER VOICE" (with the device's voice name when there is one) for the browser's. When he meant to use his own
+// voice but couldn't, the reason follows ("BROWSER VOICE · TOO SLOW"), in amber, so a fallback is never silent. An
+// answer spoken in more than one voice lists each, in order. Shown wherever Web Audio exists (every current browser),
+// since only then is there more than one voice he could be using.
+const VOICE_NAMES={jarvis:'Charon',matrix:'Algenib',panther:'Fenrir'}; // the proxy's VOICES (jarvis/cloud/lib/core.js)
+const voiceHis=(kind,saved)=>(kind==='rec'?'RECORDED · ':'GEMINI · ')+VOICE_NAMES[skin].toUpperCase()+(saved?' · SAVED':'');
+const voiceBrowser=why=>'BROWSER VOICE'+(voice&&voice.name?' · '+String(voice.name).toUpperCase().slice(0,40):'')+(why?' · '+String(why).toUpperCase():'');
+function voiceMark(line,part,{his=false,fell=false}={}){
+  if(!line||!part)return;
+  let g=line.querySelector('.voice-tag');
+  if(!g){g=document.createElement('span');g.className='voice-tag';g.dataset.parts='[]';line.append(g)}
+  const parts=JSON.parse(g.dataset.parts);
+  if(parts[parts.length-1]!==part){parts.push(part);g.dataset.parts=JSON.stringify(parts);g.textContent=parts.join(' + ')}
+  if(his)g.classList.add('his');if(fell)g.classList.add('fell');
+}
+const voiceNote=(line,why)=>voiceMark(line,voiceBrowser(why),{fell:!!why});
+// Streamed audio from the proxy: audio/L16 with its rate. null for anything else (a WAV, a recording).
+function voicePcmType(type){const m=/^audio\/l16\b/i.test(type||'')&&String(type).match(/rate=(\d+)/i),r=m?+m[1]:0;return r>=8000&&r<=48000?r:null}
+// Reads a streamed answer into a feed: its PCM pieces as they arrive (whole 16-bit samples), and ended, which resolves
+// true when it has all arrived (false if it broke off, or no new audio came for voiceOut.stall ms). Without a readable
+// body (an old browser), it's read in one go.
+function voiceFeed(res,rate){
+  const f={rate,chunks:[],size:0,done:false,wake:null,ended:null};
+  let carry=null;
+  const push=b=>{
+    if(carry){const j=new Uint8Array(carry.length+b.length);j.set(carry);j.set(b,carry.length);b=j;carry=null}
+    if(b.length%2){carry=b.slice(b.length-1);b=b.subarray(0,b.length-1)}
+    if(b.length){f.chunks.push(b);f.size+=b.length}
+    const w=f.wake;f.wake=null;if(w)w();
+  };
+  const end=ok=>{f.done=true;const w=f.wake;f.wake=null;if(w)w();return ok};
+  f.ended=(async()=>{
+    try{
+      const reader=res.body&&res.body.getReader?res.body.getReader():null;
+      if(!reader){push(new Uint8Array(await res.arrayBuffer()));return end(true)}
+      f.cancel=()=>{f.cancelled=true;try{reader.cancel().catch(()=>{})}catch(e){}}; // stopped early: never counts as all arrived
+      for(;;){
+        let t;const step=await Promise.race([reader.read(),new Promise(r=>{t=setTimeout(()=>r({stall:true}),voiceOut.stall)})]);clearTimeout(t);
+        if(step.stall){f.cancel();return end(false)}
+        if(step.done)return end(!f.cancelled);
+        push(step.value instanceof Uint8Array?step.value:new Uint8Array(step.value));
+      }
+    }catch(e){return end(false)}
+  })();
+  return f;
+}
+// A finished feed as a WAV file, to keep on the device like any other live line.
+function voiceWav(f){
+  const out=new Uint8Array(44+f.size),d=new DataView(out.buffer),tag=(at,s)=>{for(let i=0;i<4;i++)out[at+i]=s.charCodeAt(i)};
+  tag(0,'RIFF');d.setUint32(4,36+f.size,true);tag(8,'WAVE');tag(12,'fmt ');d.setUint32(16,16,true);d.setUint16(20,1,true);d.setUint16(22,1,true);
+  d.setUint32(24,f.rate,true);d.setUint32(28,f.rate*2,true);d.setUint16(32,2,true);d.setUint16(34,16,true);tag(36,'data');d.setUint32(40,f.size,true);
+  let at=44;for(const c of f.chunks){out.set(c,at);at+=c.length}
+  return out.buffer;
+}
+// Plays a feed as it arrives: each run of PCM becomes a short buffer, queued straight after the one before. It waits
+// for a fifth of a second of audio before starting, so a slow network doesn't stutter at once. Resolves true if
+// anything played.
+function voicePlayFeed(f,gen){
+  return new Promise(done=>{
+    const ctx=voiceOut.ctx;if(!ctx||gen!==sayGen){done(false);return}
+    let ci=0,at=0,playing=0,started=false,finished=false,over=false;
+    const LEAD=Math.round(f.rate*0.2)*2;
+    const finish=ok=>{if(over)return;over=true;done(ok)};
+    const check=()=>{if(finished&&!playing)finish(started)};
+    const pump=()=>{
+      if(over)return;
+      if(gen!==sayGen){if(f.cancel)f.cancel();finish(false);return}
+      const ready=f.chunks.slice(ci),have=ready.reduce((a,c)=>a+c.length,0);
+      if(have&&(started||f.done||have>=LEAD)){
+        ci+=ready.length;
+        const n=have>>1,audio=ctx.createBuffer(1,n,f.rate),ch=audio.getChannelData(0);
+        let i=0;for(const c of ready){const dv=new DataView(c.buffer,c.byteOffset,c.length);for(let k=0;k+1<c.length;k+=2)ch[i++]=dv.getInt16(k,true)/32768}
+        const s=ctx.createBufferSource();s.buffer=audio;s.connect(voiceOut.an);
+        at=Math.max(at,(ctx.currentTime||0)+0.02);
+        s.onended=()=>{voiceOut.srcs.delete(s);if(voiceOut.src===s)voiceOut.src=null;playing--;check()};
+        voiceOut.srcs.add(s);voiceOut.src=s;playing++;
+        if(!started){started=true;lastWord=null;setMode('speak')}
+        s.start(at);at+=audio.duration||n/f.rate;
+      }
+      if(f.done&&ci===f.chunks.length){finished=true;check();return}
+      f.wake=pump;
+    };
+    pump();
+  });
+}
+function voicePlayBuf(buf,gen){
+  return new Promise(done=>{
+    const ctx=voiceOut.ctx;if(!ctx||gen!==sayGen){done(false);return}
+    let p;try{p=ctx.decodeAudioData(buf.slice(0))}catch(e){done(false);return}
+    Promise.resolve(p).then(audio=>{
+      if(gen!==sayGen||!audio){done(false);return}
+      const s=ctx.createBufferSource();s.buffer=audio;s.connect(voiceOut.an);
+      s.onended=()=>{voiceOut.srcs.delete(s);if(voiceOut.src===s)voiceOut.src=null;done(true)};
+      voiceOut.srcs.add(s);voiceOut.src=s;lastWord=null;setMode('speak');s.start();
+    },()=>done(false));
+  });
+}
+async function voiceSay(words,gen,{keep=true,line=null}={}){
+  voiceOut.active++;
+  try{
+    const ctx=voiceCtx();
+    if(ctx&&ctx.state!=='running')await Promise.race([nap(300),new Promise(r=>{const t=()=>ctx.state==='running'?r():setTimeout(t,30);t()})]);
+    const list=await Promise.race([voiceList(),nap(1500).then(()=>voiceOut.list)]);
+    if(gen!==sayGen)return;
+    const live=voiceLiveOK(),running=!!ctx&&ctx.state==='running';
+    const segs=running?voicePlan(words,list,live,settings.voice||'his'):null;
+    if(!segs){
+      // Only a fallback he didn't mean to make gets a note: the supercharger's voice was there but couldn't be used.
+      // The supercharger's voice was there but couldn't be used: the note says why. Otherwise it's the usual browser voice.
+      voiceNote(line,charger.on&&charger.voice?(!running?'tap to allow sound':voicePaused()?'live voice resting after failures':''):'');
+      await speakBrowser(words,gen);return;
+    }
+    const mode=settings.voice||'his';
+    for(const x of segs)if(x.kind!=='browser')x.audio=voiceLoad(x,keep); // all start at once, and play in order
+    // One piece's audio, waited for: the first piece VOICE_FIRST, later ones VOICE_FETCH (they've been loading meanwhile).
+    const fetchPiece=(x,wait)=>Promise.race([x.audio,nap(wait).then(()=>{x.why=x.why||'too slow';return null})]);
+    const play=async x=>{
+      const buf=await fetchPiece(x,x===segs[0]?voiceOut.first:voiceOut.fetchWait);
+      if(gen!==sayGen||!buf)return false;
+      voiceMark(line,voiceHis(x.kind,x.saved),{his:true}); // tagged as it starts, so the tag shows while he speaks
+      const ok=await (buf.chunks?voicePlayFeed(buf,gen):voicePlayBuf(buf,gen));
+      if(!ok&&gen===sayGen)x.why='could not play it';
+      return ok;
+    };
+    let started=false;
+    for(let i=0;i<segs.length;i++){
+      if(gen!==sayGen)return;
+      const x=segs[i],last=i===segs.length-1;
+      if(x.kind==='browser'){voiceNote(line,'');await speakBrowser(x.text,gen,{last});continue} // mixed: by design
+      let ok=await play(x);
+      if(gen!==sayGen)return;
+      if(ok){started=true;continue}
+      if(mode==='his'){
+        // His voice never switches mid-answer (review 85). Nothing said yet: the whole answer in the browser's voice.
+        // Partway through: that piece is asked for once more, and if it fails again he stops there (the chat has it all).
+        if(!started){voiceNote(line,x.why||'Gemini voice failed');await speakBrowser(segs.slice(i).map(y=>y.text).join(' '),gen);return}
+        x.why='';x.audio=voiceLoad(x,keep);ok=await play(x);
+        if(gen!==sayGen)return;
+        if(ok)continue;
+        voiceMark(line,'STOPPED · '+String(x.why||'Gemini voice failed').toUpperCase(),{fell:true});
+        break;
+      }
+      voiceNote(line,x.why||'Gemini voice failed'); // mixed: that piece in the browser's voice, in place
+      await speakBrowser(x.text,gen,{last});
+    }
+    if(gen===sayGen){lastWord=null;setMode('idle')}
+  }finally{voiceOut.active--}
+}
+// "Voice samples": the lines the owner approved on 2026-10-12, for the skin he's wearing.
+const VOICE_SAMPLES={
+  jarvis:['Hello. All systems are online.','Suit diagnostics complete. Repulsors charged, flight stabilizers online. Try not to hit any buildings.','Why did the robot go on vacation? It needed to recharge its batteries.'],
+  matrix:['Welcome to the real world. I am Morpheus. Ask, and I will show you how deep the rabbit hole goes.',"I am Morpheus. I can only show you the door. You're the one who has to walk through it.",'Remember, there is no spoon.'],
+  panther:["Let's go, Cats! Stanley C. Panther here, the Florida Panthers' number one fan. What do you need?",'Whoa, that one went wide of the net.','Time to light the lamp!']
+};
+const VOICE_SAMPLE_RE=/^(?:play |say |give me |let me hear |hear )?(?:your |the |some )?voice samples?(?: please)?$|^(?:test|try|check) (?:your|his) (?:own )?voice(?: please)?$/;
+// Every fixed sentence skin k says word for word, for jarvis/voice/collect.mjs to record. Only lines with no digit
+// (a time, a count, a worked-out number), no date word and nothing personal() flags; never a name (hello is collected
+// without one). Each is a whole line, its sentences joined the way voicePlan() joins them to look it up.
+const VOICE_NOT=new RegExp(`\\d|\\b(?:january|february|march|april|may|june|july|august|september|october|november|december|monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tonight|tomorrow|yesterday|o'clock)\\b`,'i');
+const voiceRecordable=t=>typeof t==='string'&&t.length>0&&t.length<=VOICE_RUN&&!VOICE_NOT.test(t)&&!personal(t);
+function voiceLines(k){
+  const S=SKINS[k],out=new Set();
+  for(const t of [S.hello(''),S.who,S.miss,...S.open,...S.close,...VOICE_SAMPLES[k],...GREETINGS.map(f=>f('')),...THANKS,...jokes,...facts,LAUNCH_LINE,HOW_LINE])
+    if(t){const line=speechSentences(plainText(t),300).join(' ');if(voiceRecordable(line))out.add(line)}
+  return [...out];
+}
+function voiceSamples(){
+  const lines=VOICE_SAMPLES[skin].join(' '),mode=settings.voice||'his';
+  if(mode==='browser')return "My voice is set to the browser's, so this is how this device sounds. "+lines;
+  if(!voiceOut.AC)return "This browser can't play my own voice, so this is its own. "+lines;
+  const all=VOICE_SAMPLES[skin].every(l=>voiceOut.list&&voiceOut.list[skin].has(l));
+  if(!all&&!voiceLiveOK())return "My own voice needs my supercharger until my lines are recorded, so this is the browser's voice. "+lines;
+  return lines;
 }
 
 /* ---------- Settings memory (Session 7): fixed choices only, saved as one jarvis-settings key ---------- */
@@ -1111,6 +1441,10 @@ function settingsIntent(raw){
   // Favourites first in the command links (Session 11). Takes effect at the next load, so the links never move mid-visit.
   if(/\b(?:stop|don't|do not|never|no more)\b.*\b(?:adapt|adapting|moving|move|reorder|reordering|putting|put)\b.*\b(?:chips|links|favou?rites)\b|\b(?:adaptive|adapting) (?:chips|links) off\b|\bturn off (?:the )?(?:adaptive |adapting )?(?:chips|links)\b|\b(?:keep|leave|put) (?:the |my )?(?:chips|links) (?:in|back in) (?:the |their )?(?:usual |normal |same |original )?order\b/.test(s))return {key:'chips',value:'off'};
   if(/^(?:please )?(?:adapt|reorder) (?:the |my )?(?:chips|links)\b|\b(?:adaptive|adapting) (?:chips|links) on\b|\bturn on (?:the )?(?:adaptive |adapting )?(?:chips|links)\b|\b(?:put|show) my favou?rites first\b/.test(s))return {key:'chips',value:null};
+  // Session 18: his own voice, the browser's, or mixed.
+  if(/\b(?:mix|mixed|mixing) (?:the |up the |your |my )?voices?\b|^mixed(?: voices?)?(?: please)?$/.test(s))return {key:'voice',value:'mixed'};
+  if(/\b(?:use|switch to|change to|go back to|back to|i want|i prefer|give me|try)\b.*\b(?:the )?(?:browser'?s?|device'?s?|phone'?s?|built in|system) voices?\b|^(?:the )?browser'?s? voice(?: please)?$/.test(s))return {key:'voice',value:'browser'};
+  if(/\b(?:use|switch to|change to|go back to|back to|i want|i prefer|give me|try|speak in|talk in)\b.*\b(?:your|his) (?:own|real|recorded) voice\b|^(?:your|his) own voice(?: please)?$/.test(s))return {key:'voice',value:null};
   if(/^(?:don't|do not|stop|never) (?:open|start|begin)(?:ing)? with\b|^(?:open|start) with nothing\b|^no (?:favou?rite )?(?:opening )?scene\b/.test(s))return {key:'scene',value:null};
   if(m=s.match(/^(?:(?:always )?(?:open|start|begin|boot up) with|(?:my )?favou?rite scene is|(?:always )?open on) (?:the |my |your )?(.+?)(?: please| every time| first)?$/)){
     for(const [k,re] of SCENE_RE)if(new RegExp(`^(?:${re})$`).test(m[1]))return {key:'scene',value:k};
@@ -1125,7 +1459,9 @@ function applySetting({key,value}){
   saveSettings();if(key==='color')orbColours();
   const words={color:value?`My orb is ${value} now.`:"My orb is back to my skin's own colour.",speed:value?`I'll speak ${value==='slow'?'more slowly':'faster'}.`:"Back to my normal speed.",
     units:`I'll use ${value} units.`,scene:value?`I'll open with ${SCENE_NAMES[value]} next time you start me up.`:"I won't open a scene when I start up.",
-    chips:value?"From your next visit, I'll keep my command links in their usual order.":"From your next visit, I'll put your favourites first in my command links."}[key];
+    chips:value?"From your next visit, I'll keep my command links in their usual order.":"From your next visit, I'll put your favourites first in my command links.",
+    voice:value==='browser'?"I'll use this browser's voice for everything.":value==='mixed'?"I'll mix voices: my own wherever I can, and this browser's for the rest, even within one answer.":
+      "I'll speak in my own voice wherever I can: my recorded lines, and my live voice while my supercharger is on. When an answer can't all be in my voice, it's all in the browser's, so I never switch voices mid-answer."}[key];
   return `${words} I'll remember that on this device.`;
 }
 
@@ -1154,8 +1490,8 @@ const GAUNTLET=[
    note:'A protocol runs several commands with one phrase: make one, then say its name to run it. In Chrome or Edge, turn on always listening with the HEY JARVIS switch, then start what you say with my name. Reboot to watch me power up again. Install Jarvis puts me on your home screen, and after one visit I work offline. On an iPhone, the installed Jarvis has its own storage, separate from Safari\'s, so it starts fresh.'},
   {k:'time',name:'Time',theme:'follow-ups and memory',links:[['now Jupiter'],['bigger'],['slower'],['again'],['go back'],['why'],['show me your memory'],['what do you know about me'],['what do you save'],['back up my settings'],['restore my settings'],['send my settings to my phone'],['scan settings']],
    note:"Talk in fragments after a scene, and ask why after an answer. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit. Leave me alone for a few minutes and I'll dream. I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, so back them up to keep a copy, or send them to another device."},
-  {k:'soul',name:'Soul',theme:'you and me',links:[['switch to Matrix'],['switch to Panthers'],['back to Jarvis'],['make the orb blue'],['speak faster'],['use imperial units'],['open with the galaxy'],['learn that'],['how well do you know me'],["what's my favourite"],["what haven't I tried"],['stop putting my favourites first']],
-   note:"Settings like my orb and my voice stay on this device. If I don't understand you, say learn that and tell me what you meant, or teach me straight out: when I say beam me up, I mean show me the galaxy. I only learn a phrase when you ask me to. The more we talk, the better I know you."},
+  {k:'soul',name:'Soul',theme:'you and me',links:[['switch to Matrix'],['switch to Panthers'],['back to Jarvis'],['make the orb blue'],['speak faster'],['use imperial units'],['open with the galaxy'],['voice samples'],['the browser voice','use the browser voice'],['my own voice','use your own voice'],['mixed voices','mix the voices'],['learn that'],['how well do you know me'],["what's my favourite"],["what haven't I tried"],['stop putting my favourites first']],
+   note:"Settings like my orb and my voice stay on this device. My own voice plays from recordings on this site, and while my supercharger is on, Google's Gemini voices the rest. Say use the browser voice if you'd rather hear this device's, or mix the voices to have both. If I don't understand you, say learn that and tell me what you meant, or teach me straight out: when I say beam me up, I mean show me the galaxy. I only learn a phrase when you ask me to. The more we talk, the better I know you."},
 ];
 const HELP_LINE="Here's what I can do. Pick a stone.",HELP_MARK='⁣';
 const chip=([label,cmd])=>cmd?`⟦${label}|${cmd}⟧`:`⟦${label}⟧`;
@@ -1244,6 +1580,11 @@ let userName=null; // this visit only: names are never saved (see the privacy sc
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const jokes=["Why did the robot go on vacation? It needed to recharge its batteries.","What do you call a computer that sings? A Dell.","Why was the math book sad? It had too many problems.","How does the moon cut its hair? Eclipse it.","Why don't skeletons fight each other? They don't have the guts."];
 const facts=["Octopuses have three hearts.","A day on Venus is longer than a year on Venus.","Honey never spoils. Archaeologists have found edible honey in ancient Egyptian tombs.","Sharks existed before trees did.","The Eiffel Tower grows about 15 centimeters taller in summer because the metal expands."];
+// Session 18: the fixed lines below are kept as lists, so voiceLines() can collect them word for word for recording.
+const GREETINGS=[n=>`Hello${n}. All systems are online.`,n=>`Good to see you${n}. How can I help?`];
+const THANKS=["Always a pleasure.","Anytime.","You're welcome."];
+const MISSES=["That's beyond my demo programming. Ask me what I can do.","I don't have that in my databanks yet. Try asking for a fun fact.","Interesting question. My full brain isn't installed in this demo."];
+const LAUNCH_LINE="Initiating launch sequence. Five. Four. Three. Two. One. Liftoff!",HOW_LINE="Running at peak efficiency, thank you for asking.";
 const nums={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12};
 // "I'm happy" / "I am fine" are not names.
 const notNames=new Set(['fine','good','great','ok','okay','happy','sad','tired','bored','hungry','sorry','here','back','ready','not','so','very','just','doing','going','feeling','a','an','the','still','well','sick','cold','hot','excited','done','sure','in','on','at','from','with','your','listening','scared','mad','angry','sleepy','thirsty','awesome','cool','alright','busy','lost','confused','home','learning','trying','playing','looking','talking']);
@@ -1261,7 +1602,7 @@ function brainKnown(raw){
   if(/\bhelp\b|what (?:else )?(?:can|do) you (?:do|know)|what you can do|what can you show|what (?:can|should) i (?:say|ask)|\b(?:your|the) (?:commands|features|skills|abilities)\b|\blist (?:of )?(?:commands|features)/.test(s))return favLead+HELP_LINE+HELP_MARK+GAUNTLET_TEXT+HELP_MARK+unlockLine(shownLevel);
   if(/^(?:please )?(?:forget|clear|delete|erase) my name\b/.test(s)){const had=userName;userName=null;return had?"Done. I've forgotten your name.":"I don't know your name yet, so there's nothing to forget."}
   if(/\bwhat(?:'s| is) my name\b|\bwho am i\b|\bdo you (?:know|remember) (?:my name|me|who i am)\b|\bsay my name\b/.test(s))return userName?`Your name is ${userName}. I'll remember it whichever skin I'm wearing, until you close this page. I never save it.`:"You haven't told me your name yet. Say my name is, then your name, and I'll remember it until you close this page.";
-  if(/\b(hello|hi|hey|good (morning|afternoon|evening))\b/.test(s))return pick([`Hello${name}. All systems are online.`,`Good to see you${name}. How can I help?`]);
+  if(/\b(hello|hi|hey|good (morning|afternoon|evening))\b/.test(s))return pick(GREETINGS.map(f=>f(name)));
   if(/what.*\btime\b/.test(s))return `It's ${new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}${name}.`;
   if(/what.*(date|day)/.test(s))return `Today is ${new Date().toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'})}.`;
   if(/who are you|your name|what are you/.test(s))return "I'm Jarvis, a demo assistant. This version runs entirely in your browser with no internet brain, so I know a few tricks rather than everything.";
@@ -1269,20 +1610,20 @@ function brainKnown(raw){
   if(/fact|tell me something/.test(s))return pick(facts);
   if(/flip.*coin|heads or tails/.test(s))return `It's ${pick(['heads','tails'])}.`;
   if(/roll.*di(c)?e/.test(s))return `You rolled a ${1+Math.floor(Math.random()*6)}.`;
-  if(/launch|countdown|blast ?off/.test(s))return "Initiating launch sequence. Five. Four. Three. Two. One. Liftoff!";
+  if(/launch|countdown|blast ?off/.test(s))return LAUNCH_LINE;
   if(/suit up|iron man|armor/.test(s))return "Suit diagnostics complete. Repulsors charged, flight stabilizers online. Try not to hit any buildings.";
-  if(/how are you/.test(s))return "Running at peak efficiency, thank you for asking.";
+  if(/how are you/.test(s))return HOW_LINE;
   if(/how far (?:away )?is the moon|distance to the moon/.test(s))return "The Moon is about 384,000 kilometres away. Light gets there in just over a second.";
   if(/how far (?:away )?is the sun|distance to the sun/.test(s))return "The Sun is about 150 million kilometres away. Its light takes about 8 minutes to reach us.";
   if(/how (?:big|wide) is (?:the )?earth|size of (?:the )?earth/.test(s))return "Earth is about 12,700 kilometres wide.";
   if(/how (?:tall|high) is (?:mount )?everest/.test(s))return "Mount Everest is 8,849 metres tall, the highest mountain on Earth.";
-  if(/thank/.test(s))return pick(["Always a pleasure.","Anytime.","You're welcome."]);
+  if(/thank/.test(s))return pick(THANKS);
   const math=mathAnswer(s);if(math)return math;
   return null;
 }
 function brain(raw){
   const b=brainKnown(raw);if(b!==null)return b;
-  return pick(["That's beyond my demo programming. Ask me what I can do.","I don't have that in my databanks yet. Try asking for a fun fact.","Interesting question. My full brain isn't installed in this demo."]);
+  return pick(MISSES);
 }
 
 /* ---------- Holo-projector commands ---------- */
@@ -2111,9 +2452,9 @@ function buildTesseract(T){
 /* Scene 7: the memory core (Session 7). One star for each thing kept in this browser (settings, taught phrases),
    and this visit's short-term memories in amber on an outer shell. The star list, the layout and forgetting
    are plain data and functions, so they're tested without WebGL. */
-const SETTING_LABEL={color:'Orb colour',speed:'Speaking speed',units:'Units',scene:'Opens with',chips:'Favourites first'};
+const SETTING_LABEL={color:'Orb colour',speed:'Speaking speed',units:'Units',scene:'Opens with',chips:'Favourites first',voice:'Voice'};
 const SETTING_RESET={color:"My orb is back to my skin's own colour.",speed:"I'm back to my normal speed.",units:"I'm back to metric units.",scene:"I won't open a scene when I start up.",
-  chips:"From your next visit, I'll put your favourites first in my command links again."};
+  chips:"From your next visit, I'll put your favourites first in my command links again.",voice:"I'm back to my own voice."};
 function memoryStars(){
   const out=[];
   for(const k of Object.keys(SETTING_CHOICES))if(settings[k])
@@ -3213,7 +3554,7 @@ const CAPABILITIES=[
   {key:'math',name:'maths',ids:['cmd:math'],cmds:['what is seven times eight'],hint:"I can do your sums. Ask ⟦what is seven times eight⟧."},
   {key:'chat',name:'small talk',ids:['cmd:chat'],cmds:['launch countdown','how are you'],hint:"I'm decent company. Ask me ⟦how are you⟧."},
   {key:'help',name:'the help list',ids:['cmd:help'],cmds:['help','what can you do'],hint:"I can show you everything I do, one Infinity Stone at a time. Say ⟦help⟧."},
-  {key:'settings',name:'settings',ids:['cmd:setting'],cmds:['make the orb blue','speak faster','use imperial units','open with the galaxy','stop putting my favourites first'],hint:"I can change my colour and keep it. Say ⟦make the orb blue⟧."},
+  {key:'settings',name:'settings',ids:['cmd:setting'],cmds:['make the orb blue','speak faster','use imperial units','open with the galaxy','stop putting my favourites first','use the browser voice','use your own voice','mix the voices'],hint:"I can change my colour and keep it. Say ⟦make the orb blue⟧."},
   {key:'remember',name:'short-term memory',ids:['cmd:remember'],cmds:[],hint:"Tell me something, like my dog is Rex, and I'll remember it for this visit."},
   {key:'teach',name:'teaching me phrases',ids:['cmd:teach'],cmds:['learn that'],hint:"Teach me your own phrases. After I miss one, say ⟦learn that⟧, or say when I say, the phrase, then I mean, and what it means."},
   {key:'matrix',name:'Morpheus',ids:['skin:matrix'],cmds:['switch to Matrix'],hint:"I have another face. Say ⟦switch to Matrix⟧."},
@@ -3223,7 +3564,7 @@ const CAPABILITIES=[
   {key:'wake-up',name:"wake up, daddy's home",ids:['cmd:wake-up'],cmds:["wake up daddy's home"],hint:"I have a proper entrance. Say ⟦wake up, daddy's home|wake up daddy's home⟧."},
   {key:'mic',name:'talking to me',ids:['feature:mic'],can:'mic',cmds:[],hint:"You can talk instead of typing. Tap the 🎙 button."},
   {key:'wake-word',name:'always listening',ids:['feature:wake-word'],can:'wake',cmds:['always listen'],hint:"In Chrome or Edge I can listen for my name. Turn on ⟦always listening|always listen⟧."},
-  {key:'voice',name:'voices',ids:['feature:voice'],can:'voices',cmds:[],hint:"You can pick my voice from the menu beside the SKIN button."},
+  {key:'voice',name:'voices',ids:['feature:voice'],can:'voices',cmds:['voice samples'],hint:"You can pick my voice from the menu beside the SKIN button, or say ⟦voice samples⟧ to hear mine."},
   {key:'backup',name:'the settings backup',ids:['cmd:backup'],cmds:['back up my settings'],hint:"I can keep a copy of your settings as a file. Say ⟦back up my settings⟧."},
   {key:'restore',name:'restoring a backup',ids:['cmd:restore'],cmds:['restore my settings'],hint:"A backup file goes back in with ⟦restore my settings⟧."},
   {key:'qr',name:'the settings code',ids:['cmd:qr'],cmds:['send my settings to my phone'],hint:"I can show your settings as a code for your phone. Say ⟦send my settings to my phone⟧."},
@@ -3576,6 +3917,7 @@ function stepOf(raw){
     if(se.key==='speed')return {id:'speed:'+({'+':'fast','-':'slow'}[se.value]||'normal')};
     if(se.key==='units')return {id:'units:'+se.value};
     if(se.key==='chips')return {no:'chips'};
+    if(se.key==='voice')return {no:'voice'};
     return {no:'startup'};
   }
   const sk=skinIntent(c);if(sk)return {id:'skin:'+sk};
@@ -3607,6 +3949,7 @@ const STEP_NO={
   place:[()=>"I can't save a place in a protocol, but show me Earth works.","Because a saved place could give away where you live, and nothing personal is saved in this browser."],
   words:[p=>`"${p}" would save your own words, and a protocol keeps only my commands.`,"Because a protocol stores fixed command codes, never what you said, so nothing personal can hide in one."],
   boot:[()=>"A reboot can't go in a protocol. Try wake up, daddy's home.","Because a reboot clears the screen and would cut the rest of the protocol off."],
+  voice:[()=>"Which voice I use is a setting of its own, so it can't go in a protocol.","Because it's kept on this device and used for everything I say, not something to run now."],
   startup:[()=>"The scene I open with is a setting of its own, so it can't go in a protocol.","Because it's saved once and used every time I start up, not something to run now."],
   wait:[()=>`A wait can be up to ${PROTO_WAIT} seconds.`,"Because a longer pause would look like I'd stopped working."],
   clearance:[p=>`"${p}" is a clearance extra, so it can't go in a protocol.`,"Because a protocol is saved from my fixed command list, and the clearance extras aren't on it. A protocol restored on another device can't open something that device hasn't unlocked."],
@@ -3726,7 +4069,7 @@ function showProto(){
 function stopProtocol(){const was=!!running;running=null;showProto();return was}
 const later=ms=>new Promise(r=>setTimeout(r,ms*pace));
 // Wait while he's still talking, up to max ms, so a scene's intro isn't cut off by the next one.
-async function quietNow(me,max){const t0=performance.now();while(running===me&&synth&&synth.speaking&&performance.now()-t0<max*pace)await later(250)}
+async function quietNow(me,max){const t0=performance.now();while(running===me&&speakingNow()&&performance.now()-t0<max*pace)await later(250)}
 function runSteps(name,steps,event,opts={}){
   stopProtocol();
   const me={label:name,steps,i:0};running=me;track(event);talk.lastCmd='run '+name;talk.frame=null;
@@ -4347,9 +4690,9 @@ async function askBrain(text){
 // no network the status read fails and the supercharger reads as off.
 const CLOUD='https://jarvis-cloud-gamma.vercel.app',CLOUD_TAG='CLOUD · GEMINI',CLOUD_EVERY=60000,CLOUD_WAIT=20000;
 const CLOUD_OWNER=/^[A-Za-z][A-Za-z .'-]{0,29}$/,CLOUD_MODEL=/^[a-z0-9][a-z0-9.-]{2,60}$/;
-const charger={on:false,owner:null,model:null,busy:false,turns:[],pending:'',checking:null,lead:'',toldOffline:false};
-function cloudFetch(path,opts={}){
-  const ac=typeof AbortController==='function'?new AbortController():null,t=ac&&setTimeout(()=>ac.abort(),CLOUD_WAIT);
+const charger={on:false,voice:false,owner:null,model:null,busy:false,turns:[],pending:'',checking:null,lead:'',toldOffline:false};
+function cloudFetch(path,{wait=CLOUD_WAIT,...opts}={}){
+  const ac=typeof AbortController==='function'?new AbortController():null,t=ac&&setTimeout(()=>ac.abort(),wait);
   // No cookies and no referrer. A POST body is a plain string, sent as text/plain, so there's no CORS preflight.
   return fetch(CLOUD+path,{credentials:'omit',cache:'no-store',referrerPolicy:'no-referrer',...opts,signal:ac?ac.signal:undefined}).finally(()=>clearTimeout(t));
 }
@@ -4359,6 +4702,7 @@ function cloudSet(st,{quiet=false}={}){
   const ok=!!st&&typeof st==='object',on=ok&&st.on===true,was=charger.on;
   if(ok)charger.owner=typeof st.owner==='string'&&CLOUD_OWNER.test(st.owner.trim())?st.owner.trim():null;
   charger.model=on&&typeof st.model==='string'&&CLOUD_MODEL.test(st.model)?st.model:null;
+  charger.voice=on&&st.voice===true; // this proxy has /api/voice (Session 18)
   if(ok)charger.toldOffline=false;
   if(on===was){
     // Opened with no network at all: whether it was on can't be known, so he says once that it's unavailable.
@@ -4369,7 +4713,7 @@ function cloudSet(st,{quiet=false}={}){
   if(on)document.documentElement.dataset.supercharged='';else{delete document.documentElement.dataset.supercharged;charger.turns=[]}
   orbColours();
   if(quiet)return;
-  cloudAnnounce(on?`${charger.owner?charger.owner+' has':'My owner has'} turned on my supercharger for you. While it's on, anything I can't answer on this device goes to Google's Gemini, with the last few things we said, and those answers are marked cloud.`:
+  cloudAnnounce(on?`${charger.owner?charger.owner+' has':'My owner has'} turned on my supercharger for you. While it's on, anything I can't answer on this device goes to Google's Gemini, with the last few things we said, and those answers are marked cloud.${charger.voice&&(settings.voice||'his')!=='browser'?" My spoken lines go to Google too, to give me my own voice.":''}`:
     ok?"My supercharger has been turned off. I'm back on my on-device brain, and nothing you ask goes to Gemini.":
     navigator.onLine===false?(charger.toldOffline=true,"My supercharger is unavailable offline. I'm on my on-device brain."):"I can't reach my supercharger, so it's off for now. I'm on my on-device brain.");
 }
@@ -4385,7 +4729,7 @@ async function cloudCheck(){
 // Said once the boot screen has gone (the greeting carries it), and never over an answer being said.
 function cloudAnnounce(t,tries=0){
   if(!greeted||booting){charger.pending=t;return} // the greeting carries it (the boot screen fades for a moment after it)
-  if(tries<15&&(mode==='think'||(synth&&synth.speaking))){setTimeout(()=>cloudAnnounce(t,tries+1),1000);return}
+  if(tries<15&&(mode==='think'||speakingNow())){setTimeout(()=>cloudAnnounce(t,tries+1),1000);return}
   say(t);
 }
 // "Is your supercharger on?", and anything asking to switch it: only the owner can, in Vercel.
@@ -4566,6 +4910,7 @@ async function respond(text,inner=false){
   const mt=memoryTell(text);if(mt){track('cmd:remember');return remember(mt)}
   const ma=memoryAsk(text);if(ma!==null)return ma;
   const se=settingsIntent(text);if(se){track('cmd:setting');note(se.key==='color'||se.key==='speed'?se.key:null);return applySetting(se)}
+  if(VOICE_SAMPLE_RE.test(normPhrase(text).replace(/^jarvis /,''))){track('feature:voice');note(null);return voiceSamples()}
   const sk=skinIntent(text);if(sk){note('skin');return setSkin(sk)}
   if(BRIEF_RE.test(normPhrase(text).replace(/^(?:jarvis )/,''))){track('cmd:briefing');note(null);return await briefing()}
   if(upgradeIntent(text)){note(null);return await upgradeBrain()}
@@ -4746,7 +5091,7 @@ if(SR){
     else if(!wakeOn){const why=micTrouble(e&&e.error);if(why)add(why,'ai')}
   };
   function heard(text){
-    if(synth&&synth.speaking)return; // don't act on Jarvis's own voice
+    if(speakingNow())return; // don't act on Jarvis's own voice, in any voice (Session 18)
     const cmd=wakeCommand(text,wakeNames());
     if(cmd===null){if(armed()){armedUntil=0;mic.classList.remove('on');handle(text)}return}
     if(!cmd){armedUntil=performance.now()+8000;mic.classList.add('on');setMode('listen');blip(880,.08,.03);return} // "Jarvis" alone: listen for the next phrase
@@ -4757,7 +5102,7 @@ if(SR){
     for(let i=e.resultIndex||0;i<e.results.length;i++)if(e.results[i].isFinal!==false)heard(e.results[i][0].transcript);
   };
   mic.addEventListener('click',()=>{
-    if(synth)synth.cancel();
+    if(synth)synth.cancel();voiceStop();sayGen++;
     // With always listening on, recognition is already running: a tap means "the next thing I say is for you".
     if(wakeOn){armedUntil=performance.now()+8000;mic.classList.add('on');setMode('listen');return}
     try{rec.start()}catch(e){if(e&&e.name==='InvalidStateError')rec.stop();else add("I couldn't start listening. Try again, or type instead.",'ai')}
@@ -4778,7 +5123,7 @@ if(SR){
   }
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={charger,cloudSet,cloudCheck,askCloud,cloudIntent,cloudReport,modelName,CLOUD,CLOUD_TAG,installIntent,installJarvis,updateJarvis,setReload:f=>{reloadPage=f},setInstallPrompt:e=>{installPrompt=e},SW_URL,SW_SCOPE,CACHE_PREFIX,say,setTitle,GAUNTLET,GAUNTLET_TEXT,HELP_LINE,helpSplit,openGauntlet,closeGauntlet,pickStone,chatOpen,freeArea,full:()=>full,setLlmLib:f=>{llmLib=f},llmLibReal,gpuCheck,fullBrainIntent,BRAIN_PICKS,parseBrain,cleanSay,brainGuess,checkPick,systemPrompt,brainFacts,brainReport,LLM,micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
+window.__jarvis={voiceKeepV:VOICE_KEEP_V,sayGen:()=>sayGen,VOICE_NAMES,voiceBrowser,voiceLevel,voiceOut,voicePcmType,voiceFeed,voiceWav,voicePlayFeed,voicePlan,voiceSay,voiceManifest,voiceList,voiceLines,voiceRecordable,voiceKeepable,voiceSamples,VOICE_SAMPLES,VOICE_SAMPLE_RE,speechSentences,speakBrowser,speakingNow,charger,cloudSet,cloudCheck,askCloud,cloudIntent,cloudReport,modelName,CLOUD,CLOUD_TAG,installIntent,installJarvis,updateJarvis,setReload:f=>{reloadPage=f},setInstallPrompt:e=>{installPrompt=e},SW_URL,SW_SCOPE,CACHE_PREFIX,say,setTitle,GAUNTLET,GAUNTLET_TEXT,HELP_LINE,helpSplit,openGauntlet,closeGauntlet,pickStone,chatOpen,freeArea,full:()=>full,setLlmLib:f=>{llmLib=f},llmLibReal,gpuCheck,fullBrainIntent,BRAIN_PICKS,parseBrain,cleanSay,brainGuess,checkPick,systemPrompt,brainFacts,brainReport,LLM,micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
   SETTING_CHOICES,cleanSettings,cleanStreak,streakLine,settingsIntent,applySetting,settings:()=>({...settings}),inUnits,ORB_COLOURS,ring:()=>ringRGB,SPEEDS,
   memoryTell,memoryAsk,memoryForget,memory:()=>memory.map(x=>({...x})),memoryStars,forgetStar,constellation,constellationLinks,get firstTime(){return firstTime},streak:()=>({...streak}),
   STEPS,BUILTIN,PROTO_MAX,PROTO_STEPS,stepOf,protoName,nameProblem,protoProblem,protoCreate,adjuster,noteScene,fragment,

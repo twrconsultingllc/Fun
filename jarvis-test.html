@@ -105,8 +105,9 @@ body.holo-on #wake-note{display:none}
 .sc-tag{display:none;font-size:.7rem;font-weight:700;letter-spacing:.14em;color:var(--void);background:var(--amber);padding:2px 6px;vertical-align:middle;margin-left:6px}
 :root[data-supercharged] .sc-tag{display:inline-block}
 .brain-tag.cloud{color:var(--phos)}
-.voice-tag{display:block;font-size:.62rem;font-weight:700;letter-spacing:.12em;color:var(--label);margin-top:4px}
+.voice-tag{display:inline-block;font-size:.62rem;font-weight:700;letter-spacing:.12em;color:var(--label);margin-left:8px;white-space:nowrap}
 .voice-tag.his{color:var(--phos)}.voice-tag.fell{color:var(--amber)}
+@media (max-height:700px){body:not(.chat-open) #log .voice-tag{display:none}} /* a short phone's strip has no room for it: the face keeps its size; open the chat to see it */
 #rain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1;opacity:.35}
 #rain[hidden]{display:none}
 .skin-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
@@ -1160,7 +1161,7 @@ function voiceLevel(){
   return clamp(Math.sqrt(sum/v.buf.length)*4,0,1);
 }
 // Stops everything playing or queued: a recording is one source, streamed audio is many, queued back to back.
-function voiceStop(){const all=[...voiceOut.srcs];voiceOut.srcs.clear();voiceOut.src=null;for(const s of all)try{s.onended=null;s.stop()}catch(e){}}
+function voiceStop(){const all=[...voiceOut.srcs];voiceOut.srcs=new Set();voiceOut.src=null;for(const s of all)try{s.onended=null;s.stop()}catch(e){}}
 // Whether he's speaking in any voice: the browser's, or audio of his own (loading or playing).
 const speakingNow=()=>!!(synth&&synth.speaking)||voiceOut.active>0;
 // After three failures in a row the live voice rests for two minutes, rather than for the rest of the visit.
@@ -1189,7 +1190,7 @@ function voicePlan(words,list,live,mode){
 // Since 2026-10-12 (review 83) each kept line's address carries a version: lines kept before then were voiced with the
 // style read aloud in front of the words, so they're never played, and they're deleted the first time the cache is
 // opened. A change to how lines are voiced bumps VOICE_KEEP_V.
-const VOICE_KEEP_V='v2';
+const VOICE_KEEP_V='v3'; // v3 (review 86): Jarvis's saved lines may have been voiced without his British style
 const voiceKey=text=>new URL(VOICE_DIR+'live/'+VOICE_KEEP_V+'/'+skin+'?t='+encodeURIComponent(text),location.href).href;
 const voiceKeepBase=()=>new URL(VOICE_DIR+'live/'+VOICE_KEEP_V+'/',location.href).href;
 let voicePurged=null;
@@ -5123,7 +5124,7 @@ if(SR){
   }
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={sayGen:()=>sayGen,VOICE_NAMES,voiceBrowser,voiceLevel,voiceOut,voicePcmType,voiceFeed,voiceWav,voicePlayFeed,voicePlan,voiceSay,voiceManifest,voiceList,voiceLines,voiceRecordable,voiceKeepable,voiceSamples,VOICE_SAMPLES,VOICE_SAMPLE_RE,speechSentences,speakBrowser,speakingNow,charger,cloudSet,cloudCheck,askCloud,cloudIntent,cloudReport,modelName,CLOUD,CLOUD_TAG,installIntent,installJarvis,updateJarvis,setReload:f=>{reloadPage=f},setInstallPrompt:e=>{installPrompt=e},SW_URL,SW_SCOPE,CACHE_PREFIX,say,setTitle,GAUNTLET,GAUNTLET_TEXT,HELP_LINE,helpSplit,openGauntlet,closeGauntlet,pickStone,chatOpen,freeArea,full:()=>full,setLlmLib:f=>{llmLib=f},llmLibReal,gpuCheck,fullBrainIntent,BRAIN_PICKS,parseBrain,cleanSay,brainGuess,checkPick,systemPrompt,brainFacts,brainReport,LLM,micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
+window.__jarvis={voiceKeepV:VOICE_KEEP_V,sayGen:()=>sayGen,VOICE_NAMES,voiceBrowser,voiceLevel,voiceOut,voicePcmType,voiceFeed,voiceWav,voicePlayFeed,voicePlan,voiceSay,voiceManifest,voiceList,voiceLines,voiceRecordable,voiceKeepable,voiceSamples,VOICE_SAMPLES,VOICE_SAMPLE_RE,speechSentences,speakBrowser,speakingNow,charger,cloudSet,cloudCheck,askCloud,cloudIntent,cloudReport,modelName,CLOUD,CLOUD_TAG,installIntent,installJarvis,updateJarvis,setReload:f=>{reloadPage=f},setInstallPrompt:e=>{installPrompt=e},SW_URL,SW_SCOPE,CACHE_PREFIX,say,setTitle,GAUNTLET,GAUNTLET_TEXT,HELP_LINE,helpSplit,openGauntlet,closeGauntlet,pickStone,chatOpen,freeArea,full:()=>full,setLlmLib:f=>{llmLib=f},llmLibReal,gpuCheck,fullBrainIntent,BRAIN_PICKS,parseBrain,cleanSay,brainGuess,checkPick,systemPrompt,brainFacts,brainReport,LLM,micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
   SETTING_CHOICES,cleanSettings,cleanStreak,streakLine,settingsIntent,applySetting,settings:()=>({...settings}),inUnits,ORB_COLOURS,ring:()=>ringRGB,SPEEDS,
   memoryTell,memoryAsk,memoryForget,memory:()=>memory.map(x=>({...x})),memoryStars,forgetStar,constellation,constellationLinks,get firstTime(){return firstTime},streak:()=>({...streak}),
   STEPS,BUILTIN,PROTO_MAX,PROTO_STEPS,stepOf,protoName,nameProblem,protoProblem,protoCreate,adjuster,noteScene,fragment,

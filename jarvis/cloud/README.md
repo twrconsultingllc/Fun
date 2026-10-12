@@ -30,7 +30,9 @@ lives on GitHub Pages and can't keep a secret, so it asks this proxy instead.
   instruction, which isn't spoken (review 83). Before that it went in front
   of the words ("Say this …: words"), and every skin read it aloud. If a
   model refuses a system instruction (400), the line is asked again with the
-  words alone, and that instance stops sending it. The model is looked up in Google's live model list: the
+  words alone, and that instance stops sending it, except for Jarvis: his
+  style is always sent, and dropped only for a request Google refuses (the
+  owner chose the British-sounding Charon it gives, 2026-10-12). The model is looked up in Google's live model list: the
   newest Flash text-to-speech model, or `JARVIS_VOICE_MODEL` if Google lists
   it. If the list has none, it answers 502 and the page uses the browser's
   voice. The recordings on the site (`jarvis/voice/`) are made with the same
@@ -112,7 +114,7 @@ Every field the page sends is bounded (the question at 500 characters, six
 earlier turns, 1,500 characters of facts, 300 actions), answers are capped at
 512 tokens, and each address gets 12 questions a minute. `/api/voice` takes at most 600
 characters and has its own limit of 40 lines a minute per address (the page
-sends long answers as short pieces), and its function may run for 30 seconds
+sends each answer as one piece of up to 600 characters since review 85), and its function may run for 30 seconds
 (`vercel.json`). A streamed line passes on at most about 80 seconds of audio,
 the same cap as before.
 

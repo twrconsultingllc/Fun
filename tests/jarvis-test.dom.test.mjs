@@ -4668,7 +4668,8 @@ export async function ownVoice(t, page) {
             t.eq('…and his line says it played from this device', [...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag')?.textContent, 'GEMINI · CHARON · SAVED');
             const kept = () => [...(rig.caches.get(J.CACHE_PREFIX + 'voice-live') || new Map()).keys()].map((k) => decodeURIComponent(k));
             t.ok('in a cache of its own, named with the page\'s prefix, so "update Jarvis" clears it', kept().some((k) => k.includes('Running at peak efficiency')));
-            t.ok('…at a versioned address (review 83), so lines kept before the fix are never played', kept().every((k) => k.includes('/jarvis/voice/live/v2/')));
+            t.eq('the kept lines are at version v3 (review 86: Jarvis\'s may have lacked his style before)', J.voiceKeepV, 'v3');
+            t.ok('…at a versioned address (review 83), so lines kept before the fix are never played', kept().every((k) => k.includes('/jarvis/voice/live/' + J.voiceKeepV + '/')));
             await turn(env, rig, 'what is seven times eight');
             t.ok('a line with a number is voiced again, not kept', !kept().some((k) => /56/.test(k)) && P.voice().length === n1 + 1);
             await turn(env, rig, 'my name is tony');
@@ -4732,7 +4733,7 @@ export async function ownVoice(t, page) {
             J.voiceOut.failAt = Date.now() - 121000;
             await turn(env, rig, 'what is nine times five');
             t.ok('…for two minutes, not the rest of the visit', P.voice().length === v3 + 1 && P.voice().at(-1).body.includes('That would be 45.') && note() === 'GEMINI · ALGENIB' && !fell());
-            t.ok('the tag is styled: plain for the browser\'s voice, green for his own, amber for a fallback', /\.voice-tag\{display:block;[^}]*color:var\(--label\)/.test(src) && /\.voice-tag\.his\{color:var\(--phos\)\}/.test(src) && /\.voice-tag\.fell\{color:var\(--amber\)\}/.test(src));
+            t.ok('the tag is styled: plain for the browser\'s voice, green for his own, amber for a fallback', /\.voice-tag\{display:inline-block;[^}]*color:var\(--label\)/.test(src) && /@media \(max-height:700px\)\{body:not\(\.chat-open\) #log \.voice-tag\{display:none\}\}/.test(src) && /\.voice-tag\.his\{color:var\(--phos\)\}/.test(src) && /\.voice-tag\.fell\{color:var\(--amber\)\}/.test(src));
             P.on = false; P.redeploy(); J.voiceOut.fails = 0;
             from = rig.log.timeline.length;
             J.say('That would be 60.');
@@ -4843,7 +4844,7 @@ export async function ownVoice(t, page) {
                 const tlO = await turn(envO, rigO, 'how are you');
                 const keys = [...(rigO.caches.get(JO.CACHE_PREFIX + 'voice-live') || new Map()).keys()];
                 t.ok('a line kept before the fix is not played: it\'s voiced again', PO.voice().length === n0 + 1 && tlO.join(' | ') === 'live:Running at peak efficiency, thank you for asking.');
-                t.ok('…and the old copy is deleted, leaving only the new one', !keys.includes(old) && keys.some((k) => k.includes('/live/v2/')));
+                t.ok('…and the old copy is deleted, leaving only the new one', !keys.includes(old) && keys.some((k) => k.includes('/live/' + JO.voiceKeepV + '/')));
             } finally { envO.close(); }
         }
 
