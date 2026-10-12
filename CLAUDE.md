@@ -534,7 +534,15 @@ keeps its own IndexedDB database, `jarvis-test`, copies the localStorage
 values in once, and never writes localStorage. The promotion on 2026-10-11
 gave `jarvis.html` the same code with `DB_NAME` set to `jarvis`, so the two
 copies stay apart. A promotion must keep that one line different, like the
-TEST tag. The test copy's suite checks it ("kept apart from jarvis.html").
+TEST tag. Since Session 17 (promoted on 2026-10-12) the same goes for the
+offline worker: `SW_URL`, `SW_SCOPE` and `CACHE_PREFIX` (`jarvis-sw.js`,
+`./jarvis.html`, `jarvis-main-` on the main page; `jarvis-test-sw.js`,
+`./jarvis-test.html`, `jarvis-test-` on the test copy) and the manifest link
+(`jarvis/app/main.webmanifest` vs `test.webmanifest`). Never use plain
+`jarvis-` as a prefix: it also matches `jarvis-test-`, so one page would
+delete the other's caches. A change to `jarvis-test-sw.js` goes into
+`jarvis-sw.js` on promotion, keeping those names. `tests/jarvis-test-sw.test.mjs`
+runs for both pages and checks all of it. The test copy's suite checks it ("kept apart from jarvis.html").
 
 Speech recognition on a phone sends commands without punctuation. "Create
 movie night protocol: make the orb purple, speak slower, then open the

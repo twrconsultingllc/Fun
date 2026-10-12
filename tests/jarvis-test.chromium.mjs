@@ -49,6 +49,8 @@
  * the page, the font and a three.js scene load from the cache and he says the supercharger is unavailable; other
  * pages aren't kept. A new deploy shows on the next online load. No request leaves the site but the proxy's.
  *
+ * The promotion on 2026-10-12 added step 12: jarvis.html's own worker and manifest beside the test copy's, in one profile.
+ *
  * Review 67 added step 10: the screens on a phone. The face above the chat strip, the strip's handle, the Infinity Gauntlet
  * (inside the screen, every link reachable), and the projector's caption as a peek that MORE opens and HIDE tucks away, with the
  * memory core's labels apart and clear of it, Peru on the globe, and the settings code clear of it. At 1280×800, 390×844 and 360×640.
@@ -204,6 +206,10 @@ try {
     let st = await test.evaluate(() => ({ skin: window.__jarvis.skin(), color: window.__jarvis.settings().color, dbOK: window.__jarvis.dbOK() }));
     ok('the test copy copies jarvis.html\'s settings in on its first run', st.skin === 'panther' && st.color === 'pink' && st.dbOK, JSON.stringify(st));
     await test.evaluate(async () => { const J = window.__jarvis; await J.answer('switch to the matrix'); await J.answer('make the orb blue'); await J.answer('tell me a joke'); await J.answer('show me the galaxy'); await J.answer('close'); });
+    // Saves reach IndexedDB in a transaction a moment after the page makes them, and a reload in that moment cancels
+    // it. A reload straight after "close" lost the galaxy's count in 2 of 4 runs (2026-10-11 and -12). That's an
+    // instant reload, not what this checks, so the saves get time to land first.
+    await test.waitForTimeout(500);
     await test.reload(); await test.waitForFunction(() => window.__jarvis); await test.evaluate(() => window.__jarvis.ready);
     st = await test.evaluate(() => ({ skin: window.__jarvis.skin(), color: window.__jarvis.settings().color, first: window.__jarvis.firstTime }));
     ok('after a reload it keeps its own settings', st.skin === 'matrix' && st.color === 'blue' && st.first === false, JSON.stringify(st));
@@ -888,6 +894,47 @@ try {
             ok(`no sideways scroll at ${w}×${h}`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
             await p.close();
         } finally { DOWN = false; DEPLOY = 0; PX.on = false; PX.redeploy(); await ctxX.close(); await rm(join(work, `profile-x-${w}`), { recursive: true, force: true }); }
+    }
+
+    // 12. The promotion on 2026-10-12: jarvis.html has its own worker (jarvis-sw.js, caches jarvis-main-*) and manifest. In
+    // one profile, as on a phone with both pages open: each worker controls only its own page, the caches stay apart,
+    // "update Jarvis" on one leaves the other's alone, and the main page is installable and works offline.
+    {
+        const ctxP = await chromium.launchPersistentContext(join(work, 'profile-p'), { executablePath, headless: true,
+            args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: 390, height: 844 } });
+        await proxyRoute(ctxP);
+        PX.on = true; PX.redeploy();
+        try {
+            const keysOf = (pg) => pg.evaluate(async () => (await caches.keys()).sort());
+            const ready = async (pg) => { await pg.evaluate(() => navigator.serviceWorker.ready); await pg.reload(); await pg.waitForFunction(() => window.__jarvis); await pg.evaluate(() => window.__jarvis.ready); };
+            const tp = await open('jarvis-test.html', { width: 390, height: 844 }, ctxP); await ready(tp);
+            const mp = await open('jarvis.html', { width: 390, height: 844 }, ctxP); await ready(mp);
+            const scopes = await mp.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).map((r) => r.scope).sort());
+            ok('two workers in one profile, each scoped to its own page', JSON.stringify(scopes) === JSON.stringify([BASE + 'jarvis-test.html', BASE + 'jarvis.html']), JSON.stringify(scopes));
+            const ctl = async (pg) => pg.evaluate(() => navigator.serviceWorker.controller && navigator.serviceWorker.controller.scriptURL);
+            ok('jarvis.html is controlled by jarvis-sw.js, the test copy by jarvis-test-sw.js', (await ctl(mp)) === BASE + 'jarvis-sw.js' && (await ctl(tp)) === BASE + 'jarvis-test-sw.js', `${await ctl(mp)} ${await ctl(tp)}`);
+            const both = await keysOf(mp);
+            ok('their caches are apart: jarvis-main-* and jarvis-test-*', both.filter((k) => k.startsWith('jarvis-main-')).length === 2 && both.filter((k) => k.startsWith('jarvis-test-')).length === 2 && both.length === 4, both.join());
+            ok('the main page has the supercharger too', await mp.evaluate(() => window.__jarvis.charger.on === true) && await mp.evaluate(() => 'supercharged' in document.documentElement.dataset));
+            const cdp = await ctxP.newCDPSession(mp);
+            const inst = await cdp.send('Page.getInstallabilityErrors').catch((e) => ({ err: String(e) }));
+            ok('Chromium finds jarvis.html installable', Array.isArray(inst.installabilityErrors) && inst.installabilityErrors.length === 0, JSON.stringify(inst));
+            const man = await cdp.send('Page.getAppManifest').catch((e) => ({ err: String(e) }));
+            ok('with its own manifest, not the test copy\'s', man.url === BASE + 'jarvis/app/main.webmanifest' && (man.errors || []).length === 0, JSON.stringify(man.url));
+            await mp.evaluate(() => window.__jarvis.setReload(() => {}));
+            await mp.evaluate(() => window.__jarvis.answer('update jarvis')); await mp.waitForTimeout(500);
+            const after = await keysOf(tp);
+            ok('"update Jarvis" on the main page clears only its own caches', !after.some((k) => k.startsWith('jarvis-main-')) && after.filter((k) => k.startsWith('jarvis-test-')).length === 2, after.join());
+            await mp.reload(); await mp.waitForFunction(() => window.__jarvis); await mp.evaluate(() => window.__jarvis.ready); await mp.waitForTimeout(1500);
+            await ctxP.setOffline(true); DOWN = true;
+            await mp.reload(); await mp.waitForFunction(() => window.__jarvis); await mp.evaluate(() => window.__jarvis.ready);
+            ok('offline, jarvis.html loads from its own saved copy', (await mp.title()) === 'J.A.R.V.I.S. Demo');
+            await mp.click('#boot-skip'); await mp.waitForTimeout(1500);
+            ok('and says the supercharger is unavailable', /supercharger is unavailable/.test(await mp.evaluate(() => document.getElementById('log').textContent)));
+            await mp.screenshot({ path: join(OUT, 'main-offline-390.png') });
+            await ctxP.setOffline(false); DOWN = false;
+            await tp.close(); await mp.close();
+        } finally { DOWN = false; PX.on = false; PX.redeploy(); await ctxP.close(); await rm(join(work, 'profile-p'), { recursive: true, force: true }); }
     }
 
 } finally {

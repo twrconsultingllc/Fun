@@ -14,8 +14,9 @@
  *     and with no network the page reads the supercharger as off. Nothing here caches or answers for it.
  *   - never the full brain's model weights (jarvis/llm/resolve/) or its .wasm: WebLLM keeps its own copy of those.
  *
- * "Update Jarvis" on the page deletes these caches and reloads. On promotion, jarvis.html gets its own copy of this
- * file (jarvis-sw.js, PREFIX 'jarvis-', PAGE 'jarvis.html', its own manifest), so the two never share a cache. */
+ * "Update Jarvis" on the page deletes these caches and reloads. jarvis.html has its own copy of this file since the
+ * promotion on 2026-10-12 (jarvis-sw.js: PREFIX 'jarvis-main-', PAGE 'jarvis.html', its own manifest), so the two
+ * never share a scope, a cache or an install. Neither prefix may start the other: 'jarvis-' would match these. */
 
 const PREFIX = 'jarvis-test-';
 const PAGE = 'jarvis-test.html';
