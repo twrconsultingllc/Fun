@@ -1091,15 +1091,25 @@ try {
             ok('…and plays to the end of it', prog.ended >= 1400, JSON.stringify(prog));
             // Review 88: "compare voices", typed as the owner does, through his real thinking pause: all three versions play,
             // each tagged with its letter. The first version started before the intro and was cut off by it.
-            const tts0 = PX.tts.length;
+            const tts0 = PX.tts.length, c0 = await p.evaluate(() => document.querySelectorAll('#log .msg.ai').length);
             await p.fill('#q', 'compare voices'); await p.press('#q', 'Enter');
-            await p.waitForFunction(() => { const m = [...document.querySelectorAll('#log .msg.ai')].slice(-3); return m.length === 3 && m.every((x) => /^VERSION [ABC] /.test(x.querySelector('.voice-tag')?.textContent || '')) && !window.__jarvis.speakingNow(); }, null, { timeout: 30000 }).catch(() => {});
-            const cmp = await p.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].slice(-3).map((m) => m.querySelector('.voice-tag')?.textContent || '(no tag)'));
+            await p.waitForFunction((c0) => { const m = [...document.querySelectorAll('#log .msg.ai')].slice(c0); return m.length >= 4 && m.slice(1, 4).every((x) => /^VERSION [ABC] /.test(x.querySelector('.voice-tag')?.textContent || '')) && !window.__jarvis.speakingNow(); }, c0, { timeout: 30000 }).catch(() => {});
+            const cmp = await p.evaluate((c0) => [...document.querySelectorAll('#log .msg.ai')].slice(c0 + 1, c0 + 4).map((m) => m.querySelector('.voice-tag')?.textContent || '(no tag)'), c0);
             ok('"compare voices" plays all three versions, each tagged with its letter', cmp.join(' / ') === 'VERSION A · CHARON / VERSION B · CHARON / VERSION C · CHARON', cmp.join(' / '));
             ok('…as three requests to Google after the intro, A in front of the words, B as a system instruction, C alone', PX.tts.length - tts0 === 4 && /^Say this in a calm, precise, dryly British voice, like a polite butler: /.test(PX.tts.at(-3)?.contents[0].parts[0].text || '') && !!PX.tts.at(-2)?.systemInstruction && !PX.tts.at(-1)?.systemInstruction, `${PX.tts.length - tts0} requests`);
+            // On the owner's Android phone the versions never started: speechSynthesis.speaking stays true there after cancel(),
+            // and the first version waited for it to turn false. The same again with it stuck on, as on that phone.
+            await p.evaluate(() => Object.defineProperty(speechSynthesis, 'speaking', { configurable: true, get: () => true }));
+            const n0 = await p.evaluate(() => document.querySelectorAll('#log .msg.ai').length);
+            await p.fill('#q', 'compare voices'); await p.press('#q', 'Enter');
+            // Only lines after this one count: the intro, then the three versions.
+            await p.waitForFunction((n0) => { const m = [...document.querySelectorAll('#log .msg.ai')].slice(n0); return m.length >= 4 && m.slice(1, 4).every((x) => /^VERSION [ABC] /.test(x.querySelector('.voice-tag')?.textContent || '')); }, n0, { timeout: 30000 }).catch(() => {});
+            const stuck = await p.evaluate((n0) => [...document.querySelectorAll('#log .msg.ai')].slice(n0 + 1, n0 + 4).map((m) => m.querySelector('.voice-tag')?.textContent || '(no tag)'), n0);
+            ok('…and still with the speech engine stuck on "speaking", as on Android', stuck.join(' / ') === 'VERSION A · CHARON / VERSION B · CHARON / VERSION C · CHARON', stuck.join(' / '));
+            await p.evaluate(() => delete speechSynthesis.speaking);
             await p.evaluate(() => window.__jarvis.say('Anytime.')); await watchVoice(2000);
             const live = await p.evaluate(async () => (await caches.keys()).includes('jarvis-test-voice-live') ? (await (await caches.open('jarvis-test-voice-live')).keys()).map((r) => decodeURIComponent(r.url)) : []);
-            ok('a fixed line voiced live is kept on the device; one with a number isn\'t', live.some((u) => u.endsWith('?t=Anytime.')) && !live.some((u) => /56/.test(u)), live.join());
+            ok('a fixed line voiced live is kept on the device; one with a number isn\'t', live.some((u) => u.endsWith('?t=Anytime.')) && !live.some((u) => /56/.test(u.split('?t=')[1] || '')) /* the words only: the local port can contain 56 (review 88) */, live.join());
             await p.evaluate(() => window.__jarvis.setReload(() => {}));
             await p.evaluate(() => window.__jarvis.answer('update jarvis')); await p.waitForTimeout(500);
             ok('"update Jarvis" clears both voice caches', !(await p.evaluate(async () => (await caches.keys()).filter((k) => /voice/.test(k)))).length);
