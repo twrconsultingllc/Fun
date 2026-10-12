@@ -278,7 +278,11 @@ easy to skip because they don't look like "a page":
   "J.A.R.V.I.S.: bring in the language model (…)" commits that
   `.github/workflows/jarvis-llm.yml` makes when its "fetch" mode is run by hand
   (Session 14, 2026-10-10; it commits the pinned model weights under
-  `jarvis/llm/resolve/`). Any other address in `%ae`/`%ce` is a finding.
+  `jarvis/llm/resolve/`). The same bot identity is also expected on the
+  "J.A.R.V.I.S.: record his voice" commits that `.github/workflows/jarvis-voice.yml`
+  makes when its "record" mode is run by hand (Session 18, agreed 2026-10-12; it
+  commits only `jarvis/voice/`: MP3 recordings and `manifest.json`). Any other
+  address in `%ae`/`%ce` is a finding.
 
 Beyond those two, treat it as a real from-scratch sweep, not a rubber
 stamp: re-verify that prior fixes (CSP/referrer meta tags, the battle-bots
