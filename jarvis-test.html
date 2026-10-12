@@ -4943,9 +4943,11 @@ async function respond(text,inner=false){
   if(VOICE_COMPARE_RE.test(normPhrase(text).replace(/^jarvis /,''))){
     track('feature:voice');note(null);
     if(!voiceOut.AC||!voiceLiveOK())return "Comparing my voices needs my supercharger on, and a browser that can play sound.";
-    // After this line is said, the three versions play in turn.
-    setTimeout(function wait(){if(speakingNow())return setTimeout(wait,150);voiceCompare()},300);
-    return 'Three versions of my voice, the same line each time. Tell your engineer which letter sounds right.';
+    // The three versions play once this intro has been said: started any sooner, the intro (said after his thinking
+    // pause) would cut them off, which is what happened on the owner's phone the first time (review 88).
+    const intro='Three versions of my voice, the same line each time. Tell your engineer which letter sounds right.',t0=Date.now();
+    setTimeout(function wait(){if(Date.now()-t0>30000)return;if(talk.lastAnswer!==intro||speakingNow())return setTimeout(wait,150);voiceCompare()},150);
+    return intro;
   }
   const sk=skinIntent(text);if(sk){note('skin');return setSkin(sk)}
   if(BRIEF_RE.test(normPhrase(text).replace(/^(?:jarvis )/,''))){track('cmd:briefing');note(null);return await briefing()}
