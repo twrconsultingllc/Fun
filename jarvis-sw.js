@@ -10,6 +10,10 @@
  *   - libraries and models (three.js, the font, the hand tracker, the language module, the QR files, the coastlines,
  *     the full brain's loader, the icons): kept in a cache named after LIB_HASH, a fingerprint of those files.
  *     tests/jarvis-test-sw.test.mjs fails if a file changes and LIB_HASH doesn't, so a new version is never hidden.
+ *   - his recorded voice (Session 18): jarvis/voice/manifest.json network first like the page, and the recordings
+ *     (jarvis/voice/<skin>/<fingerprint>.mp3) kept once played, in a cache of their own. A recording's name is a
+ *     fingerprint of its words and voice, so a new recording is a new name and an old one is never stale. The cache
+ *     keeps the newest VOICE_MAX. Lines voiced live are kept by the page itself in PREFIX + 'voice-live'.
  *   - never another site. The supercharger proxy on Vercel is another site, so its requests always go to the network,
  *     and with no network the page reads the supercharger as off. Nothing here caches or answers for it.
  *   - never the full brain's model weights (jarvis/llm/resolve/) or its .wasm: WebLLM keeps its own copy of those.
@@ -21,11 +25,13 @@
 const PREFIX = 'jarvis-main-';
 const PAGE = 'jarvis.html';
 const LIB_HASH = 'c3be065fdbb619de';
-const SHELL = PREFIX + 'shell', LIBS = PREFIX + 'lib-' + LIB_HASH;
+const SHELL = PREFIX + 'shell', LIBS = PREFIX + 'lib-' + LIB_HASH, VOICE = PREFIX + 'voice', VOICE_LIVE = PREFIX + 'voice-live', VOICE_MAX = 2000;
 const BASE = new URL('./', self.location.href);
 
 // Network first: what can change on any deploy.
-const FRESH = [PAGE, 'jarvis/knowledge/pack.json', 'jarvis/app/main.webmanifest'];
+const VOICE_MANIFEST = 'jarvis/voice/manifest.json';
+const FRESH = [PAGE, 'jarvis/knowledge/pack.json', 'jarvis/app/main.webmanifest', VOICE_MANIFEST];
+const VOICE_FILE = /^jarvis\/voice\/(?:jarvis|matrix|panther)\/[a-f0-9]{16}\.mp3$/;
 // Kept by version: pinned files that only change with a new LIB_HASH.
 const LIB = [
     /^jarvis\/vendor\/(?:three\.min\.js|fonts\/[a-z0-9-]+\.woff2)$/,
@@ -47,7 +53,7 @@ const PRECACHE = [
     'jarvis/app/icon-512.png'
 ];
 
-// 'fresh', 'lib', or null for anything this worker must leave alone.
+// 'fresh', 'lib', 'voice', or null for anything this worker must leave alone.
 function route(url) {
     let u;
     try { u = new URL(url); } catch { return null; }
@@ -55,6 +61,7 @@ function route(url) {
     const path = u.pathname.slice(BASE.pathname.length);
     if (FRESH.includes(path)) return 'fresh';
     if (LIB.some((r) => r.test(path))) return 'lib';
+    if (VOICE_FILE.test(path)) return 'voice';
     return null;
 }
 const keyOf = (url) => { const u = new URL(url); u.search = ''; u.hash = ''; return u.href; };
@@ -64,6 +71,9 @@ self.addEventListener('install', (e) => {
         const shell = await caches.open(SHELL);
         const page = await fetch(new URL(PAGE, BASE).href, { cache: 'no-cache' });
         if (page.ok) await shell.put(new URL(PAGE, BASE).href, page);
+        // Session 18: the recordings' manifest too, so his recorded voice works offline after one visit, even when the
+        // page read it before this worker took over.
+        try { const m = await fetch(new URL(VOICE_MANIFEST, BASE).href, { cache: 'no-cache' }); if (m.ok) await shell.put(new URL(VOICE_MANIFEST, BASE).href, m); } catch { /* fetched on first use instead */ }
         const libs = await caches.open(LIBS);
         await Promise.all(PRECACHE.map(async (f) => {
             const url = new URL(f, BASE).href;
@@ -76,7 +86,7 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('activate', (e) => {
     e.waitUntil((async () => {
-        for (const k of await caches.keys()) if (k.startsWith(PREFIX) && k !== SHELL && k !== LIBS) await caches.delete(k);
+        for (const k of await caches.keys()) if (k.startsWith(PREFIX) && ![SHELL, LIBS, VOICE, VOICE_LIVE].includes(k)) await caches.delete(k);
         await self.clients.claim();
     })());
 });
@@ -86,7 +96,7 @@ self.addEventListener('fetch', (e) => {
     if (r.method !== 'GET' || r.headers.has('range')) return;
     const kind = route(r.url);
     if (!kind) return; // straight through, untouched
-    e.respondWith(kind === 'fresh' ? fresh(r) : lib(r));
+    e.respondWith(kind === 'fresh' ? fresh(r) : kind === 'voice' ? voice(r) : lib(r));
 });
 
 async function fresh(req) {
@@ -111,5 +121,18 @@ async function lib(req) {
     if (hit) return hit;
     const res = await fetch(req);
     if (res.ok && res.type === 'basic') await c.put(key, res.clone());
+    return res;
+}
+
+async function voice(req) {
+    const key = keyOf(req.url), c = await caches.open(VOICE);
+    const hit = await c.match(key);
+    if (hit) return hit;
+    const res = await fetch(req);
+    if (res.ok && res.type === 'basic') {
+        await c.put(key, res.clone());
+        const keys = await c.keys();
+        for (const k of keys.slice(0, Math.max(0, keys.length - VOICE_MAX))) await c.delete(k);
+    }
     return res;
 }

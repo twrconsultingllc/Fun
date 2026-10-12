@@ -120,7 +120,46 @@ const HAND_FILES = {
 
 export const name = 'J.A.R.V.I.S. (jarvis.html)';
 
+/* --section=<name>[,<name>] (tests/run.mjs) runs only these parts, for a small fix. With none, everything runs, as at
+ * the end of a session and before a promotion. The opening checks (the page loads, the brain, the CSP) are "core". */
+export const SECTIONS = ['core', 'voiceWiring', 'micErrors', 'wakeWiring', 'briefingChecks', 'speechWiring', 'skinsAndMemory', 'voicePicker', 'androidVoices', 'memoryChecks', 'memoryFoundation', 'protocolsAndFollowUps', 'backupAndQr', 'heRemembersYou', 'meaningModule', 'knowledgePack', 'fullBrain', 'supercharger', 'installAndUpdate', 'ownVoice', 'commandLinks', 'screens'];
 export default async function run(t, page) {
+    if (page.sections) {
+        const unknown = page.sections.filter((n) => !SECTIONS.includes(n));
+        if (unknown.length) { t.ok(`known sections (${unknown.join(', ')} isn't one; try ${SECTIONS.join(', ')})`, false); return; }
+        const parts = { voiceWiring, micErrors, wakeWiring, briefingChecks, speechWiring, skinsAndMemory, voicePicker, androidVoices, memoryChecks, memoryFoundation, protocolsAndFollowUps, backupAndQr, heRemembersYou, meaningModule, knowledgePack, fullBrain, supercharger, installAndUpdate, ownVoice, commandLinks, screens };
+        for (const n of page.sections) {
+            if (n === 'core') await runCore(t, page);
+            else await parts[n](t, page);
+        }
+        t.note(`sections run: ${page.sections.join(', ')}`);
+        return;
+    }
+    await runCore(t, page);
+    await voiceWiring(t, page);
+    await micErrors(t, page);
+    await wakeWiring(t, page);
+    await briefingChecks(t, page);
+    await speechWiring(t, page);
+    await skinsAndMemory(t, page);
+    await voicePicker(t, page);
+    await androidVoices(t, page);
+    await memoryChecks(t, page);
+    await memoryFoundation(t, page);
+    await protocolsAndFollowUps(t, page);
+    await backupAndQr(t, page);
+    await heRemembersYou(t, page);
+    await meaningModule(t, page);
+    await knowledgePack(t, page);
+    await fullBrain(t, page);
+    await supercharger(t, page);
+    await installAndUpdate(t, page);
+    await ownVoice(t, page);
+    await commandLinks(t, page);
+    await screens(t, page);
+}
+
+async function runCore(t, page) {
     let env;
     try {
         // An https origin, not the file:// one, so localStorage (the remembered name) works.
@@ -702,26 +741,6 @@ export default async function run(t, page) {
         close();
     }
 
-    await voiceWiring(t, page);
-    await micErrors(t, page);
-    await wakeWiring(t, page);
-    await briefingChecks(t, page);
-    await speechWiring(t, page);
-    await skinsAndMemory(t, page);
-    await voicePicker(t, page);
-    await androidVoices(t, page);
-    await memoryChecks(t, page);
-    await memoryFoundation(t, page);
-    await protocolsAndFollowUps(t, page);
-    await backupAndQr(t, page);
-    await heRemembersYou(t, page);
-    await meaningModule(t, page);
-    await knowledgePack(t, page);
-    await fullBrain(t, page);
-    await supercharger(t, page);
-    await installAndUpdate(t, page);
-    await commandLinks(t, page);
-    await screens(t, page);
 }
 
 // Session 11 of jarvis/build-plan.html: he remembers you (review 63). The recap, clearance levels, favourites and the
@@ -3968,13 +3987,39 @@ const PROXY_URL = 'https://jarvis-cloud-gamma.vercel.app';
 export async function fakeProxy({ on = true, owner = 'Tony', model = 'gemini-3.5-flash' } = {}) {
     const core = await import('../jarvis/cloud/lib/core.js');
     const jres = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => JSON.parse(JSON.stringify(body)) });
-    const st = { on, owner, model, down: false, slow: false, online: true, raw: null, statusRaw: null, gemini: null, fixedIp: null, gate: null, calls: [], asked: [] };
+    const st = { on, owner, model, down: false, slow: false, online: true, raw: null, statusRaw: null, gemini: null, fixedIp: null, gate: null, calls: [], asked: [], tts: [], ttsFail: 0, voiceFailN: 0, voiceGate: null, stream: false, streamCut: false, streamTypes: [] };
     let release = null;
     st.hold = () => { st.gate = new Promise((r) => { release = r; }); };
     st.release = () => { st.gate = null; release?.(); };
     const gemini = async (url, init = {}) => {
-        if (/\/models\?/.test(url)) return jres(200, { models: ['gemini-3.5-flash', 'gemini-3.5-flash-lite'].map((m) => ({ name: 'models/' + m, supportedGenerationMethods: ['generateContent', 'countTokens'] })) });
+        if (/\/models\?/.test(url)) return jres(200, { models: ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash-preview-tts'].map((m) => ({ name: 'models/' + m, supportedGenerationMethods: ['generateContent', 'countTokens'] })) });
         const body = JSON.parse(init.body);
+        // Review 82: the voice model streamed (streamGenerateContent?alt=sse). Off (st.stream false), it answers 404 as a
+        // model without streaming would, and the proxy asks the old way, so the Session 18 checks below run unchanged.
+        // On, the words come back as PCM in two events (split at an odd byte), then a last event with the token counts.
+        if (url.includes(':streamGenerateContent')) {
+            if (!st.stream) return jres(404, { error: { code: 404, message: 'not supported' } });
+            st.tts.push(body);
+            if (st.voiceGate) await st.voiceGate;
+            if (st.ttsFail) return jres(st.ttsFail, { error: { code: st.ttsFail, message: 'failed', status: 'UNAVAILABLE' } });
+            let words = body.contents[0].parts[0].text; // only the words are spoken since review 83 (the style is a system instruction)
+            if (words.length % 2) words += ' ';
+            const b = Buffer.from(words), cut = Math.max(1, (b.length >> 1) | 1);
+            const ev = (x) => 'data: ' + JSON.stringify({ candidates: [{ content: { role: 'model', parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: x.toString('base64') } }] }, index: 0 }] }) + '\r\n\r\n';
+            const tail = 'data: ' + JSON.stringify({ candidates: [{ content: { parts: [] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 9, candidatesTokenCount: 50 } }) + '\r\n\r\n';
+            // streamCut: Google breaks off after the first half (an error event), so the proxy ends the stream there.
+            return { ok: true, status: 200, json: async () => null, text: async () => ev(b.subarray(0, cut)) + (st.streamCut ? 'data: {"error":{"code":500}}\r\n\r\n' : '') + ev(b.subarray(cut)) + tail };
+        }
+        // Session 18: the voice model. It answers in the real text-to-speech shape: base64 16-bit PCM. Here the "audio"
+        // is the words themselves, so the fake Web Audio below can tell which line it's playing.
+        if (body.generationConfig?.responseModalities) {
+            st.tts.push(body);
+            if (st.voiceGate) await st.voiceGate;
+            if (st.ttsFail) return jres(st.ttsFail, { error: { code: st.ttsFail, message: 'failed', status: 'UNAVAILABLE' } });
+            let words = body.contents[0].parts[0].text; // only the words are spoken since review 83 (the style is a system instruction)
+            if (words.length % 2) words += ' ';
+            return jres(200, { candidates: [{ content: { role: 'model', parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: Buffer.from(words).toString('base64') } }] }, finishReason: 'STOP', index: 0 }], usageMetadata: { promptTokenCount: 9, candidatesTokenCount: 50 } });
+        }
         st.asked.push(body);
         if (st.gate) await st.gate;
         const g = typeof st.gemini === 'function' ? st.gemini(body) : st.gemini || { say: 'Gemini here.', do: [], kind: 'chat' };
@@ -3988,6 +4033,7 @@ export async function fakeProxy({ on = true, owner = 'Tony', model = 'gemini-3.5
     st.redeploy();
     st.status = () => st.calls.filter((c) => c.url === PROXY_URL + '/api/status').length;
     st.brain = () => st.calls.filter((c) => c.url === PROXY_URL + '/api/brain');
+    st.voice = () => st.calls.filter((c) => c.url === PROXY_URL + '/api/voice');
     st.install = (w) => {
         Object.defineProperty(w.navigator, 'onLine', { configurable: true, get: () => st.online });
         const prev = w.fetch;
@@ -4001,10 +4047,21 @@ export async function fakeProxy({ on = true, owner = 'Tony', model = 'gemini-3.5
             const path = new URL(url).pathname;
             if (path === '/api/status' && st.statusRaw) return jres(200, st.statusRaw);
             if (path === '/api/brain' && st.raw) return jres(200, st.raw);
-            const fn = { '/api/status': 'status', '/api/brain': 'brain' }[path];
+            const fn = { '/api/status': 'status', '/api/brain': 'brain', '/api/voice': 'voice' }[path];
             if (!fn) return jres(404, {});
+            // Review 85: the next voiceFailN lines fail at the proxy (502), as when Google fails both ways.
+            if (path === '/api/voice' && st.voiceFailN > 0) { st.voiceFailN--; return { ok: false, status: 502, headers: { get: (k) => (/content-type/i.test(k) ? 'application/json' : null) }, json: async () => ({ error: 'upstream' }), arrayBuffer: async () => new ArrayBuffer(0) }; }
             const out = await st.app[fn]({ method: opts.method || 'GET', headers: { origin: 'https://twrconsultingllc.github.io', 'x-forwarded-for': st.fixedIp || `203.0.113.${st.calls.length % 250}` }, body: opts.body });
-            return { ok: out.status >= 200 && out.status < 300, status: out.status, json: async () => JSON.parse(out.body) };
+            const hs = Object.fromEntries(Object.entries(out.headers).map(([k, v]) => [k.toLowerCase(), v]));
+            if (path === '/api/voice') st.streamTypes.push(hs['content-type']);
+            // Review 82: a streamed answer reaches the page as a real ReadableStream, a piece at a time.
+            if (out.stream) {
+                const it = out.stream[Symbol.asyncIterator]();
+                const body = new ReadableStream({ async pull(c) { await new Promise((r) => setTimeout(r, 2)); let n; try { n = await it.next(); } catch (e) { c.error(e); return; } if (n.done) c.close(); else c.enqueue(new Uint8Array(n.value)); }, cancel() { it.return(); } });
+                return { ok: true, status: out.status, headers: { get: (k) => hs[String(k).toLowerCase()] ?? null }, body, arrayBuffer: async () => { throw new Error('streamed'); } };
+            }
+            return { ok: out.status >= 200 && out.status < 300, status: out.status, headers: { get: (k) => hs[String(k).toLowerCase()] ?? null },
+                json: async () => JSON.parse(out.body), arrayBuffer: async () => (typeof out.body === 'string' ? new TextEncoder().encode(out.body) : out.body).slice().buffer };
         };
     };
     return st;
@@ -4026,7 +4083,7 @@ export async function supercharger(t, page) {
     t.ok('the page names exactly one proxy address', (src.match(/https:\/\/[a-z0-9-]+\.vercel\.app/g) || []).every((u) => u === PROXY_URL) && /const CLOUD='https:\/\/jarvis-cloud-gamma\.vercel\.app'/.test(src));
     t.eq('connect-src is this site and that address, nothing else', (env0Csp(src).match(/connect-src ([^;]+)/) || [])[1], "'self' " + PROXY_URL);
     t.ok('no other directive names it', env0Csp(src).split(';').filter((d) => d.includes('vercel')).length === 1);
-    t.ok('the only fetches to it are /api/status and /api/brain, through cloudFetch()', (src.match(/cloudFetch\('\/api\/[a-z]+'/g) || []).sort().join() === "cloudFetch('/api/brain',cloudFetch('/api/status'" && (src.match(/fetch\(CLOUD/g) || []).length === 1);
+    t.ok('the only fetches to it are /api/status, /api/brain and (Session 18) /api/voice, through cloudFetch()', (src.match(/cloudFetch\('\/api\/[a-z]+'/g) || []).sort().join() === "cloudFetch('/api/brain',cloudFetch('/api/status',cloudFetch('/api/voice'" && (src.match(/fetch\(CLOUD/g) || []).length === 1);
     t.ok('the switch can only be read: nothing on the page sends "on"', !/supercharge['"]?\s*:\s*(?:true|'on')|\/api\/(?:switch|on|set)/.test(src));
     const cloudSrc = (src.match(/\/\* ---------- The supercharger \(Session 17\)[\s\S]*?\n\/\* ---------- Offline and install/) || [''])[0].replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
     t.ok('its code never stores anything: no store(), save(), localStorage or IndexedDB', cloudSrc.length > 2000 && !/\bstore\(|\bsave\(|localStorage|indexedDB|\.transaction\(/.test(cloudSrc));
@@ -4304,4 +4361,559 @@ export async function installAndUpdate(t, page) {
         t.eq('then reloads', reloads, 1);
         t.ok('"upgrade your brain" is still the meaning module, not an update', !/Updating/.test(await typeIn(env, 'upgrade your brain')));
     } finally { env.close(); }
+}
+
+/* Session 18 of jarvis/build-plan.html: his own voice (review 79). jsdom has no Web Audio, so these windows get a fake
+ * AudioContext that "plays" a buffer by reading back what's in it: a recording here is the bytes "REC:<file>", and
+ * the live voice is the proxy's real WAV (jarvis/cloud/lib/core.js, as deployed) around the words the fake Gemini
+ * spoke. The browser's voice is a fake speechSynthesis that speaks each utterance in turn, as the real one does,
+ * calling onstart and onend later. Everything played or spoken goes on one timeline, so the order of an answer's
+ * pieces can be checked across the three voices. The recordings' manifest and files are served by a fake fetch. */
+function voiceRig({ state = 'running', resumes = true, playMs = 15, speakMs = 10, recordings = {}, bad = [] } = {}) {
+    const log = { timeline: [], ctx: 0, stopped: 0, level: 128, recFetches: [], manifestFetches: 0, sources: [] };
+    const manifest = { version: 1, lines: Object.fromEntries(['jarvis', 'matrix', 'panther'].map((k) => [k, Object.fromEntries(Object.entries(recordings[k] || {}).map(([t, f]) => [t, { file: f, sha256: 'x', bytes: 1 }]))])) };
+    const caches = new Map();
+    return {
+        log, manifest, caches,
+        beforeParse(w) {
+            let q = [], busy = false;
+            const next = () => {
+                if (busy || !q.length) return;
+                const u = q.shift(); busy = true; w.speechSynthesis.speaking = true;
+                setTimeout(() => { u.onstart?.(); log.timeline.push('tts:' + u.text); setTimeout(() => { busy = false; w.speechSynthesis.speaking = q.length > 0; u.onend?.(); next(); }, speakMs); }, 1);
+            };
+            w.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+            w.speechSynthesis = { speaking: false, getVoices: () => [], onvoiceschanged: null, speak(u) { q.push(u); next(); }, cancel() { const d = q.splice(0); setTimeout(() => d.forEach((u) => u.onerror?.({ error: 'interrupted' })), 0); } };
+            class Src {
+                connect() {}
+                start() { log.sources.push(this); log.timeline.push(this.buffer.tag); this.timer = setTimeout(() => this.onended?.(), playMs); }
+                stop() { log.stopped++; this.halted = true; clearTimeout(this.timer); }
+            }
+            w.AudioContext = class {
+                constructor() { log.ctx++; this.state = state; this.destination = {}; }
+                createAnalyser() { return { fftSize: 512, connect() {}, getByteTimeDomainData: (b) => b.fill(log.level) }; }
+                createBufferSource() { return new Src(); }
+                // Review 82: streamed PCM becomes buffers the page fills itself. The fake reads the words back from the
+                // samples (each pair of bytes is one 16-bit sample), so the timeline can say which line streamed.
+                createBuffer(ch, n, rate) {
+                    const data = new Float32Array(n);
+                    return { duration: n / rate, getChannelData: () => data, get tag() { const b = Buffer.alloc(n * 2); for (let i = 0; i < n; i++) b.writeInt16LE(Math.max(-32768, Math.min(32767, Math.round(data[i] * 32768))), i * 2); return 'stream:' + b.toString().trim(); } };
+                }
+                resume() { if (resumes) this.state = 'running'; return Promise.resolve(); }
+                decodeAudioData(buf) {
+                    const b = Buffer.from(buf), head = b.subarray(0, 4).toString();
+                    if (head === 'RIFF') return Promise.resolve({ tag: 'live:' + b.subarray(44).toString().trim() });
+                    if (head === 'REC:') return Promise.resolve({ tag: 'rec:' + b.subarray(4).toString() });
+                    return Promise.reject(new w.DOMException('Unable to decode audio data', 'EncodingError'));
+                }
+            };
+            w.Response = globalThis.Response;
+            // A Cache Storage of its own per window, with the parts the page uses.
+            w.caches = {
+                keys: async () => [...caches.keys()], delete: async (n) => caches.delete(n),
+                open: async (n) => {
+                    if (!caches.has(n)) caches.set(n, new Map());
+                    const m = caches.get(n);
+                    return { match: async (k) => m.get(String(k))?.clone(), put: async (k, r) => { m.set(String(k), r.clone()); }, keys: async () => [...m.keys()], delete: async (k) => m.delete(String(k)) };
+                }
+            };
+            const prev = w.fetch;
+            w.fetch = async (u, o) => {
+                const url = new URL(String(u), 'https://jarvis.test/');
+                if (url.pathname.endsWith('/jarvis/voice/manifest.json')) { log.manifestFetches++; return { ok: true, status: 200, json: async () => JSON.parse(JSON.stringify(manifest)) }; }
+                const m = url.pathname.match(/\/jarvis\/voice\/(\w+)\/([a-f0-9]{16}\.mp3)$/);
+                if (m) {
+                    log.recFetches.push(m[1] + '/' + m[2]);
+                    if (bad.includes(m[2])) return { ok: false, status: 404, arrayBuffer: async () => new ArrayBuffer(0) };
+                    const body = m[2].startsWith('bad') ? 'NOPE' : 'REC:' + m[2];
+                    return { ok: true, status: 200, arrayBuffer: async () => new TextEncoder().encode(body).buffer };
+                }
+                return prev(u, o);
+            };
+        }
+    };
+}
+
+export async function ownVoice(t, page) {
+    const URL_ = 'https://jarvis.test/jarvis.html', quiet = { ignore: /getContext|HTMLCanvasElement/ };
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const src = page.html;
+    const F = (n) => n.toString(16).padStart(16, 'a').slice(-16) + '.mp3'; // a fingerprint-shaped file name
+    const JOKE = 'Why did the robot go on vacation? It needed to recharge its batteries.';
+    const until = async (fn, ms = 3000) => { const t0 = Date.now(); while (!fn() && Date.now() - t0 < ms) await wait(10); return fn(); };
+    const open = async (rig, proxy, more = {}) => {
+        const env = await openDom(page.html, URL_, { ...quiet, ...more, beforeParse(w) { w.Math.random = () => 0; proxy?.install(w); rig.beforeParse(w); more.beforeParse?.(w); } });
+        env.window.__jarvis.finishBoot(); await wait(80);
+        return env;
+    };
+    const typeIn = async (env, text) => { const { document, window } = env; document.getElementById('q').value = text; document.getElementById('f').dispatchEvent(new window.Event('submit', { cancelable: true })); };
+    // Waits for him to finish saying whatever the last turn started, and returns the timeline since `from`.
+    const quietNow = (env) => !env.window.__jarvis.speakingNow() && !['SPEAKING', 'PROCESSING'].includes(env.document.getElementById('state').textContent);
+    const said = async (env, rig, from, ms = 4000) => {
+        await until(() => rig.log.timeline.length > from, ms);
+        // Quiet for a little while: nothing playing, nothing queued, and no new piece on the timeline.
+        for (let n = rig.log.timeline.length, k = 0; k < 400; k++) { await wait(15); if (quietNow(env) && rig.log.timeline.length === n) { await wait(60); if (quietNow(env) && rig.log.timeline.length === n) break; } n = rig.log.timeline.length; }
+        return rig.log.timeline.slice(from);
+    };
+    const turn = async (env, rig, text) => { const from = rig.log.timeline.length; await typeIn(env, text); return said(env, rig, from); };
+    const settle = async (env, rig) => { await said(env, rig, 0, 1500); rig.log.timeline.length = 0; };
+
+    t.section('His own voice: the pieces (Session 18)');
+    {
+        const env = await openDom(page.html, URL_, quiet);
+        try {
+            const J = env.window.__jarvis;
+            t.eq('jsdom has no Web Audio, so everything here before this section used the browser\'s voice', J.voiceOut.AC, null);
+            t.eq('speechSentences: every sentence on its own', JSON.stringify(J.speechSentences(JOKE)), JSON.stringify(['Why did the robot go on vacation?', 'It needed to recharge its batteries.']));
+            t.eq('speechChunks is unchanged: the same sentences merged into pieces', JSON.stringify(J.speechChunks(JOKE)), JSON.stringify([JOKE]));
+            const list = J.voiceManifest({ lines: { jarvis: { [JOKE]: { file: F(1) }, 'Bad name.': { file: '../../jarvis-test.html' }, 'Wav.': { file: 'aaaaaaaaaaaaaaaa.wav' }, ['x'.repeat(601)]: { file: F(2) }, 'No file.': {} }, ultron: { 'Hi.': { file: F(3) } }, __proto__: { 'Hi.': { file: F(4) } } } });
+            t.ok('the manifest: a recording is kept as its path on this site', list.jarvis.get(JOKE) === 'jarvis/voice/jarvis/' + F(1));
+            t.ok('…a file name that isn\'t a fingerprint, another type, an overlong line or no file is dropped', list.jarvis.size === 1);
+            t.ok('…and an unknown skin is never read', Object.keys(list).sort().join() === 'jarvis,matrix,panther' && list.matrix.size === 0);
+            t.ok('…nonsense reads as no recordings', J.voiceManifest(null).jarvis.size === 0 && J.voiceManifest({ lines: 7 }).panther.size === 0 && J.voiceManifest({ lines: { jarvis: 'x' } }).jarvis.size === 0);
+            const plan = (w, live, mode, recs = { [JOKE]: F(1) }) => J.voicePlan(w, J.voiceManifest({ lines: { jarvis: Object.fromEntries(Object.entries(recs).map(([k, v]) => [k, { file: v }])) } }), live, mode);
+            const show = (p) => p && p.map((x) => x.kind + ':' + x.text).join(' | ');
+            t.eq('a recorded line, whole: one recording', show(plan(JOKE, false, 'his')), 'rec:' + JOKE);
+            t.eq('around other words, the longest recorded run is found', show(plan('Listen carefully. ' + JOKE + ' Free your mind.', false, 'mixed', { [JOKE]: F(1), 'Listen carefully.': F(2) })), 'rec:Listen carefully. | rec:' + JOKE + ' | browser:Free your mind.');
+            t.eq('his voice (the default), supercharger off, part not recorded: all in the browser\'s voice (null)', String(show(plan(JOKE + ' That would be 56.', false, 'his'))), 'null');
+            t.eq('mixed: each piece takes what\'s there', show(plan(JOKE + ' That would be 56.', false, 'mixed')), 'rec:' + JOKE + ' | browser:That would be 56.');
+            // Since review 85: one live piece per answer (up to 600 characters). The stream starts him quickly anyway, and
+            // separate pieces were separate recordings that sounded like different voices.
+            t.eq('supercharger on: the rest is voiced live, as one piece', show(plan(JOKE + ' That would be 56. Anything else?', true, 'his')), 'rec:' + JOKE + ' | live:That would be 56. Anything else?');
+            t.eq('…a whole unrecorded answer is one live piece', show(plan('That would be 56. Anything else? Free your mind.', true, 'his', {})), 'live:That would be 56. Anything else? Free your mind.');
+            const long = Array.from({ length: 12 }, (_, i) => `Sentence number ${i} is here and is quite a long one indeed.`).join(' ');
+            const lp = plan(long, true, 'his', {});
+            t.ok('an answer over 600 characters is split, at whole sentences, into as few pieces as fit (at most 600 each), and together they are the whole answer', long.length > 600 && lp.every((x) => x.kind === 'live' && x.text.length <= 600) && lp.length === 2 && lp.map((x) => x.text).join(' ') === long);
+            t.eq('nothing recorded and the supercharger off: the browser\'s voice (null)', String(plan('That would be 56.', false, 'mixed', {})), 'null');
+            t.eq('his voice in the orb: the audio\'s loudness', J.orbPulse({ mode: 'speak', energy: 1, t: 0, level: 1 }), 1);
+            t.eq('…quiet audio dims it', J.orbPulse({ mode: 'speak', energy: 1, t: 0, level: 0 }), 0.4);
+            t.ok('…and the orb is drawn with voiceLevel() while he speaks', /level:mode==='speak'\?voiceLevel\(\):null/.test(src));
+            t.ok('reduced motion still holds it steady', J.orbPulse({ mode: 'speak', energy: 1, t: 0, level: 1, still: true }) === 0.6);
+            for (const [txt, ok] of [['Anytime.', true], ["It's 3:45.", false], ['Today is Monday.', false], ['Your birthday is in May.', false], ['That would be 56.', false], ['My email is a@b.co.', false]])
+                t.eq(`voiceRecordable("${txt}")`, J.voiceRecordable(txt), ok);
+            t.ok('every recording plays from this site: no new address in the CSP (it is exactly the Session 17 policy)', env0Csp(src) === CSP_S17);
+            t.ok('the only fetch to the proxy for his voice is /api/voice, through cloudFetch()', (src.match(/cloudFetch\('\/api\/voice'/g) || []).length === 1);
+            const core = await import('../jarvis/cloud/lib/core.js');
+            t.eq('the voice names his tag shows are the proxy\'s own (review 84)', JSON.stringify(J.VOICE_NAMES), JSON.stringify(Object.fromEntries(Object.entries(core.VOICES).map(([k, v]) => [k, v.name]))));
+            t.eq('with no device voice picked, the browser tag is just BROWSER VOICE', J.voiceBrowser(''), 'BROWSER VOICE');
+        } finally { env.close(); }
+    }
+
+    t.section('His own voice: a recording first (Session 18)');
+    {
+        const rig = voiceRig({ recordings: { jarvis: { [JOKE]: F(1) } } });
+        const off = await fakeProxy({ on: false });
+        const env = await open(rig, off);
+        try {
+            const J = env.window.__jarvis;
+            await settle(env, rig);
+            let from = rig.log.timeline.length;
+            await typeIn(env, 'tell me a joke');
+            let tl = await said(env, rig, from);
+            t.eq('"tell me a joke", supercharger off: the recording plays', tl.join(' | '), 'rec:' + F(1));
+            t.eq('…and his line says it was a recording in Charon\'s voice (review 84)', [...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag')?.textContent, 'RECORDED · CHARON');
+            t.ok('from this site, at its path in the manifest', rig.log.recFetches.at(-1) === 'jarvis/' + F(1));
+            t.eq('no call to /api/voice (it needs no API call)', off.voice().length, 0);
+            t.eq('and no browser voice', tl.filter((x) => x.startsWith('tts:')).length, 0);
+            t.eq('the manifest was read once', rig.log.manifestFetches, 1);
+            t.ok('back to STANDBY after', env.document.getElementById('state').textContent === 'STANDBY');
+            from = rig.log.timeline.length;
+            await typeIn(env, 'what is seven times eight');
+            tl = await said(env, rig, from);
+            t.eq('a line with no recording, supercharger off: the browser\'s voice', tl.join(' | '), 'tts:That would be 56.');
+            // Since review 84 every line says which voice spoke it. This is the usual state, so it's plain, not amber.
+            const tag0 = [...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag');
+            t.ok('his line says the browser\'s voice spoke it, with no reason (it\'s the usual state, so not amber)', tag0?.textContent === 'BROWSER VOICE' && !tag0.classList.contains('fell'));
+            t.eq('(still no call to /api/voice)', off.voice().length, 0);
+            from = rig.log.timeline.length;
+            await typeIn(env, 'voice samples');
+            tl = await said(env, rig, from);
+            t.ok('"voice samples", none recorded, supercharger off: he says so, in the browser\'s voice', /^tts:My own voice needs my supercharger until my lines are recorded/.test(tl[0] || '') && tl.every((x) => x.startsWith('tts:')));
+            t.ok('…and then the three approved lines', J.VOICE_SAMPLES.jarvis.every((l) => tl.join(' ').includes(l.split('. ')[0])));
+            // While a recording plays, he's speaking: always listening ignores it, and so does the boredom timer.
+            rig.log.timeline.length = 0;
+            J.say(JOKE); await until(() => rig.log.timeline.length > 0, 1000);
+            t.ok('while a recording plays, speakingNow() is true (always listening ignores his own voice)', J.speakingNow() === true);
+            rig.log.level = 200;
+            t.ok('and the orb reads the audio\'s loudness', env.window.__jarvis.voiceOut.an && true);
+            J.say('Anytime.'); await wait(5);
+            t.ok('a new answer stops the one playing', rig.log.stopped >= 1);
+            await said(env, rig, 0);
+        } finally { env.close(); }
+
+        // A recording that can't be fetched or decoded falls back to the browser, in place.
+        const rig2 = voiceRig({ recordings: { jarvis: { "You're welcome.": F(7) } }, bad: [F(7)] });
+        const env2 = await open(rig2, await fakeProxy({ on: false }));
+        try {
+            await settle(env2, rig2);
+            let from = rig2.log.timeline.length;
+            env2.window.__jarvis.say("You're welcome.");
+            t.eq('a recording that won\'t download (404): the browser says it instead', (await said(env2, rig2, from)).join(' | '), "tts:You're welcome.");
+        } finally { env2.close(); }
+        const rig3 = voiceRig({ recordings: { jarvis: { 'Anytime.': 'baddadbaddadbadd.mp3' } } });
+        const env3 = await open(rig3, await fakeProxy({ on: false }));
+        try {
+            await settle(env3, rig3);
+            env3.window.__jarvis.say('Anytime.');
+            t.eq('a recording that won\'t decode: the browser says it instead', (await said(env3, rig3, 0)).join(' | '), 'tts:Anytime.');
+        } finally { env3.close(); }
+        const rig4 = voiceRig({ recordings: { jarvis: { 'Anytime.': F(9) } }, state: 'suspended', resumes: false });
+        const env4 = await open(rig4, await fakeProxy({ on: true }));
+        try {
+            await until(() => /supercharger for you/.test(env4.document.getElementById('log').textContent), 5000);
+            await settle(env4, rig4);
+            env4.window.__jarvis.say('Anytime.');
+            t.eq('sound not allowed yet (no tap on a phone): the browser\'s voice, no gap', (await said(env4, rig4, 0)).join(' | '), 'tts:Anytime.');
+            t.eq('…and with the supercharger on, his line says to tap', [...env4.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag')?.textContent, 'BROWSER VOICE · TAP TO ALLOW SOUND');
+        } finally { env4.close(); }
+    }
+
+    t.section('His own voice: live, while the supercharger is on (Session 18)');
+    {
+        const rig = voiceRig({ recordings: { jarvis: { [JOKE]: F(1) }, matrix: { 'Listen carefully.': F(2), 'Free your mind.': F(3) } } });
+        const P = await fakeProxy({ on: true });
+        const idb = new (await import('fake-indexeddb')).IDBFactory();
+        let lsWrites = 0;
+        const env = await open(rig, P, { idb, beforeParse(w) { const set = w.localStorage.setItem.bind(w.localStorage); w.localStorage.setItem = (...a) => { lsWrites++; return set(...a); }; } });
+        try {
+            const J = env.window.__jarvis, logText = () => env.document.getElementById('log').textContent;
+            // The turn-on announcement waits for a quiet moment, so wait for it before timing anything else.
+            await until(() => /My spoken lines go to Google too/.test(logText()), 5000);
+            await settle(env, rig);
+            t.ok('turning on, he says his spoken lines go to Google too', /My spoken lines go to Google too, to give me my own voice\./.test(logText()));
+            t.ok('/api/status said the proxy has the voice', J.charger.voice === true);
+            let from = rig.log.timeline.length, v0 = P.voice().length;
+            await typeIn(env, 'what is seven times eight');
+            let tl = await said(env, rig, from);
+            t.eq('a line with no recording: the live voice', tl.join(' | '), 'live:That would be 56.');
+            const call = P.voice().at(-1);
+            t.ok('POST /api/voice with the skin and the words, no cookies, no referrer, a plain string body', call && call.method === 'POST' && call.credentials === 'omit' && call.referrerPolicy === 'no-referrer' && JSON.stringify(JSON.parse(call.body)) === JSON.stringify({ skin: 'jarvis', text: 'That would be 56.' }));
+            t.ok('in Charon\'s voice, through the real proxy', P.tts.at(-1)?.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName === 'Charon');
+            t.eq('…and Google is asked to speak exactly his line, with nothing in front of it (review 83)', P.tts.at(-1)?.contents[0].parts[0].text, 'That would be 56.');
+            from = rig.log.timeline.length;
+            await typeIn(env, 'tell me a joke');
+            tl = await said(env, rig, from);
+            t.eq('a recorded line still plays the recording, with no call', tl.join(' | ') + ' ' + (P.voice().length - v0), 'rec:' + F(1) + ' 1');
+
+            // Kept on the device: a fixed line, yes. A digit, a name, or anything from Gemini, never.
+            from = rig.log.timeline.length;
+            await typeIn(env, 'how are you'); await said(env, rig, from);
+            const n1 = P.voice().length;
+            from = rig.log.timeline.length;
+            await typeIn(env, 'how are you');
+            tl = await said(env, rig, from);
+            t.eq('a fixed line voiced live is kept: the repeat makes no new call', P.voice().length, n1);
+            t.eq('…and still plays in his voice', tl.join(' | '), 'live:Running at peak efficiency, thank you for asking.');
+            t.eq('…and his line says it played from this device', [...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag')?.textContent, 'GEMINI · CHARON · SAVED');
+            const kept = () => [...(rig.caches.get(J.CACHE_PREFIX + 'voice-live') || new Map()).keys()].map((k) => decodeURIComponent(k));
+            t.ok('in a cache of its own, named with the page\'s prefix, so "update Jarvis" clears it', kept().some((k) => k.includes('Running at peak efficiency')));
+            t.eq('the kept lines are at version v3 (review 86: Jarvis\'s may have lacked his style before)', J.voiceKeepV, 'v3');
+            t.ok('…at a versioned address (review 83), so lines kept before the fix are never played', kept().every((k) => k.includes('/jarvis/voice/live/' + J.voiceKeepV + '/')));
+            await turn(env, rig, 'what is seven times eight');
+            t.ok('a line with a number is voiced again, not kept', !kept().some((k) => /56/.test(k)) && P.voice().length === n1 + 1);
+            await turn(env, rig, 'my name is tony');
+            t.eq('a line with a name (yours, or the owner\'s in the supercharger announcement) is never kept', kept().filter((k) => /tony/i.test(k)).join(' // '), '');
+            P.gemini = { say: 'Paris is lovely in spring, sir.', do: [], kind: 'chat' };
+            from = rig.log.timeline.length;
+            await typeIn(env, 'what do you think about paris');
+            tl = await said(env, rig, from);
+            t.eq('Gemini\'s answer is voiced live', tl.join(' | '), 'live:Paris is lovely in spring, sir.');
+            await turn(env, rig, 'what do you think about paris');
+            t.ok('but never kept: asked again, it\'s voiced again', !kept().some((k) => /Paris/.test(k)) && P.voice().filter((c) => /Paris/.test(c.body)).length === 2);
+            const dump = JSON.stringify(await dbDump(idb));
+            t.eq('nothing he said is in IndexedDB', String((dump.match(/.{0,80}(?:peak efficiency|lovely in spring|would be|robot|nice to meet you).{0,80}/i) || [])[0]), 'undefined');
+            t.eq('and nothing went to localStorage', lsWrites, 0);
+
+            // Order: recordings and live pieces in one answer, the live one slower than the rest.
+            await turn(env, rig, 'switch to matrix');
+            await turn(env, rig, 'mix the voices');
+            P.voiceGate = new Promise((r) => setTimeout(r, 120));
+            from = rig.log.timeline.length;
+            J.say('Listen carefully. That would be 56. Free your mind.');
+            tl = await said(env, rig, from);
+            t.eq('an answer\'s pieces play in order, a slow live piece included', tl.join(' | '), `rec:${F(2)} | live:That would be 56. | rec:${F(3)}`);
+            t.ok('in Algenib\'s voice for Morpheus', P.tts.at(-1)?.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName === 'Algenib');
+            P.voiceGate = null;
+
+            // Failures: each falls back to the browser for that piece, in place.
+            P.ttsFail = 500;
+            from = rig.log.timeline.length;
+            J.say('Listen carefully. That would be 57. Free your mind.');
+            t.eq('Gemini fails (502 from the proxy): that piece in the browser\'s voice, in order', (await said(env, rig, from)).join(' | '), `rec:${F(2)} | tts:That would be 57. | rec:${F(3)}`);
+            P.ttsFail = 429;
+            from = rig.log.timeline.length;
+            J.say('Listen carefully. That would be 58.');
+            t.eq('busy (429): the same', (await said(env, rig, from)).join(' | '), `rec:${F(2)} | tts:That would be 58.`);
+            P.ttsFail = 0; P.down = true;
+            from = rig.log.timeline.length;
+            J.say('That would be 59. Free your mind.');
+            t.eq('the proxy unreachable: the same', (await said(env, rig, from)).join(' | '), `tts:That would be 59. | rec:${F(3)}`);
+            P.down = false;
+            // Since the fix after review 79: when he meant to use his own voice but couldn't, his chat line says why.
+            const tagEl = () => [...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag');
+            const note = () => tagEl()?.textContent || '';
+            const fell = () => !!tagEl()?.classList.contains('fell');
+            J.voiceOut.fails = 0; P.ttsFail = 500;
+            await turn(env, rig, 'what is nine times nine');
+            // Morpheus's closer is recorded here, so the tag lists both voices, in the order he used them (review 84).
+            t.eq('Gemini fails: his chat line says the browser\'s voice was used, and why, after the recording that played', note(), 'RECORDED · ALGENIB + BROWSER VOICE · GEMINI VOICE FAILED');
+            t.ok('…in amber, because it\'s a fallback', fell());
+            P.ttsFail = 0; J.voiceOut.fails = 0;
+            let openGate; J.voiceOut.first = 60; P.voiceGate = new Promise((r) => { openGate = r; });
+            await turn(env, rig, 'what is nine times eight');
+            t.eq('Gemini too slow for the first piece: "too slow"', note(), 'BROWSER VOICE · TOO SLOW');
+            openGate(); P.voiceGate = null; J.voiceOut.first = 12000; await wait(50);
+            await turn(env, rig, 'what is nine times seven');
+            t.ok('when it works, the tag names his Gemini voice, not amber', note() === 'GEMINI · ALGENIB' && !fell() && tagEl().classList.contains('his'));
+            J.voiceOut.fails = 3; J.voiceOut.failAt = Date.now();
+            const v3 = P.voice().length;
+            await turn(env, rig, 'what is nine times six');
+            t.ok('after three failures in a row the live voice rests, and the note says so', note() === 'BROWSER VOICE · LIVE VOICE RESTING AFTER FAILURES' && P.voice().length === v3);
+            J.voiceOut.failAt = Date.now() - 121000;
+            await turn(env, rig, 'what is nine times five');
+            t.ok('…for two minutes, not the rest of the visit', P.voice().length === v3 + 1 && P.voice().at(-1).body.includes('That would be 45.') && note() === 'GEMINI · ALGENIB' && !fell());
+            t.ok('the tag is styled: plain for the browser\'s voice, green for his own, amber for a fallback', /\.voice-tag\{display:block;[^}]*color:var\(--label\)/.test(src) && /\.voice-tag\.his\{color:var\(--phos\)\}/.test(src) && /\.voice-tag\.fell\{color:var\(--amber\)\}/.test(src));
+            P.on = false; P.redeploy(); J.voiceOut.fails = 0;
+            from = rig.log.timeline.length;
+            J.say('That would be 60.');
+            t.eq('turned off between status reads (503): the browser\'s voice', (await said(env, rig, from))[0], 'tts:That would be 60.');
+            await until(() => J.charger.voice === false, 1000);
+            t.ok('and he stops asking for the live voice', J.charger.voice === false);
+        } finally { env.close(); }
+    }
+
+    // Review 82: the proxy streams the audio as Google makes it (audio/L16), and the page plays it as it arrives.
+    t.section('His own voice: streamed, so he starts sooner (review 82)');
+    {
+        const env0 = await openDom(page.html, URL_, quiet);
+        try {
+            const J = env0.window.__jarvis;
+            t.eq('audio/L16 with its rate is streamed audio', J.voicePcmType('audio/L16;rate=24000;channels=1'), 24000);
+            t.ok('…anything else isn\'t (a WAV, no rate, a silly rate)', J.voicePcmType('audio/wav') === null && J.voicePcmType('audio/L16') === null && J.voicePcmType('audio/L16;rate=999999') === null && J.voicePcmType(null) === null);
+            // Pieces as the network cuts them: odd sizes are put back together as whole 16-bit samples.
+            const parts = [[1, 2, 3], [4], [5, 6, 7, 8, 9], [10]];
+            const res = { body: new ReadableStream({ start(c) { for (const x of parts) c.enqueue(Uint8Array.from(x)); c.close(); } }) };
+            const f = J.voiceFeed(res, 24000);
+            t.eq('a streamed answer is read to the end', await f.ended, true);
+            t.ok('…in whole samples, every byte in order', f.chunks.every((c) => c.length % 2 === 0) && Buffer.concat(f.chunks.map((c) => Buffer.from(c))).equals(Buffer.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])) && f.size === 10);
+            const w = Buffer.from(J.voiceWav(f));
+            t.ok('…and kept as a WAV: RIFF, mono, 16-bit, its rate, the samples after a 44-byte header', w.subarray(0, 4).toString() === 'RIFF' && w.readUInt16LE(22) === 1 && w.readUInt16LE(34) === 16 && w.readUInt32LE(24) === 24000 && w.readUInt32LE(40) === 10 && w[44] === 1 && w.length === 54);
+            J.voiceOut.stall = 40;
+            const stuck = J.voiceFeed({ body: new ReadableStream({ start(c) { c.enqueue(Uint8Array.from([1, 2])); } }) }, 24000);
+            t.ok('a stream that stops sending is given up (false), keeping what came', (await stuck.ended) === false && stuck.size === 2);
+            const broken = J.voiceFeed({ body: new ReadableStream({ start(c) { c.error(new Error('reset')); } }) }, 24000);
+            t.eq('a stream that breaks: false', await broken.ended, false);
+            const old = J.voiceFeed({ arrayBuffer: async () => Uint8Array.from([1, 2, 3, 4]).buffer }, 24000);
+            t.ok('a browser with no readable body reads it in one go', (await old.ended) === true && old.size === 4);
+        } finally { env0.close(); }
+
+        // A long streamed piece is several buffers queued back to back. A new answer must stop every one of them, not
+        // only the latest (playMs is long here, so they're all still queued when it does).
+        {
+            const rigQ = voiceRig({ playMs: 3000 });
+            const envQ = await open(rigQ, await fakeProxy({ on: false }));
+            try {
+                const J = envQ.window.__jarvis;
+                await settle(envQ, rigQ);
+                J.say('Anytime.'); await wait(50); // starts Web Audio on this page
+                const k = 12000; // a quarter of a second each, more than the 0.2 s lead
+                const f = J.voiceFeed({ body: new ReadableStream({ async start(c) { for (let i = 0; i < 3; i++) { c.enqueue(new Uint8Array(k)); await wait(20); } c.close(); } }) }, 24000);
+                const n0 = rigQ.log.sources.length;
+                J.voicePlayFeed(f, J.sayGen());
+                await until(() => rigQ.log.sources.length - n0 >= 3, 2000);
+                const queued = rigQ.log.sources.slice(n0);
+                t.ok('a streamed piece arriving in three runs is queued as three buffers', queued.length === 3 && J.voiceOut.srcs.size === 3);
+                J.say('Anytime.'); await wait(5);
+                t.ok('a new answer stops every queued buffer, not only the latest', queued.every((x) => x.halted));
+            } finally { envQ.close(); }
+        }
+
+        // Review 85: in his voice (the default), an answer never switches voice partway. A recording plays, then the live
+        // piece: if it fails it's asked for once more, and if that fails too he stops there rather than switch voices.
+        {
+            const rigH = voiceRig({ recordings: { jarvis: { [JOKE]: F(1) } } });
+            const PH = await fakeProxy({ on: true }); PH.stream = true;
+            const envH = await open(rigH, PH);
+            try {
+                const JH = envH.window.__jarvis;
+                await until(() => /My spoken lines go to Google too/.test(envH.document.getElementById('log').textContent), 5000);
+                await settle(envH, rigH);
+                const tagH = () => [...envH.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag')?.textContent || '';
+                PH.voiceFailN = 1; JH.voiceOut.fails = 0;
+                let from = rigH.log.timeline.length;
+                JH.say(JOKE + ' That would be 70.');
+                let tl = await said(envH, rigH, from);
+                t.eq('his voice: a piece that fails after he has begun is asked for once more, and plays in his voice', tl.join(' | '), `rec:${F(1)} | stream:That would be 70.`);
+                t.eq('…no browser voice, and the tag shows only his voices', tagH(), 'RECORDED · CHARON + GEMINI · CHARON');
+                PH.voiceFailN = 2; JH.voiceOut.fails = 0;
+                from = rigH.log.timeline.length;
+                JH.say(JOKE + ' That would be 71.');
+                tl = await said(envH, rigH, from);
+                t.eq('…if it fails again, he stops there rather than switch to the browser\'s voice', tl.join(' | '), `rec:${F(1)}`);
+                t.eq('…and the tag says he stopped, and why', tagH(), 'RECORDED · CHARON + STOPPED · GEMINI VOICE FAILED');
+                t.ok('…back to STANDBY', envH.document.getElementById('state').textContent === 'STANDBY');
+                PH.voiceFailN = 1; JH.voiceOut.fails = 0;
+                from = rigH.log.timeline.length;
+                JH.say('That would be 72. Anything else?');
+                tl = await said(envH, rigH, from);
+                t.eq('his voice failing before he has said anything: the whole answer in the browser\'s voice, never a mix', tl.join(' | '), 'tts:That would be 72. Anything else?');
+                t.eq('…tagged with why', tagH(), 'BROWSER VOICE · GEMINI VOICE FAILED');
+                // An answer over 600 characters is two live pieces. The first failing must put both in the browser's voice,
+                // never the second in his.
+                const longH = Array.from({ length: 12 }, (_, i) => `Sentence number ${i} is here and is quite a long one indeed.`).join(' ');
+                PH.voiceFailN = 1; JH.voiceOut.fails = 0;
+                from = rigH.log.timeline.length;
+                JH.say(longH);
+                tl = await said(envH, rigH, from, 8000);
+                t.ok('…an answer in two pieces whose first fails: all of it in the browser\'s voice, none in his', tl.length > 1 && tl.every((x) => x.startsWith('tts:')) && tl.map((x) => x.slice(4)).join(' ') === longH);
+            } finally { envH.close(); }
+        }
+
+        // Lines kept before review 83 had the style read aloud in front of them: they're deleted, never played.
+        {
+            const rigO = voiceRig({});
+            const old = 'https://jarvis.test/jarvis/voice/live/jarvis?t=' + encodeURIComponent('Running at peak efficiency, thank you for asking.');
+            const PO = await fakeProxy({ on: true });
+            const envO = await open(rigO, PO, { beforeParse(w) { w.caches.open('jarvis-main-voice-live').then((c) => c.put(old, new Response(new Uint8Array([1, 2, 3, 4])))); } });
+            try {
+                const JO = envO.window.__jarvis;
+                await until(() => /My spoken lines go to Google too/.test(envO.document.getElementById('log').textContent), 5000);
+                await settle(envO, rigO);
+                const n0 = PO.voice().length;
+                const tlO = await turn(envO, rigO, 'how are you');
+                const keys = [...(rigO.caches.get(JO.CACHE_PREFIX + 'voice-live') || new Map()).keys()];
+                t.ok('a line kept before the fix is not played: it\'s voiced again', PO.voice().length === n0 + 1 && tlO.join(' | ') === 'live:Running at peak efficiency, thank you for asking.');
+                t.ok('…and the old copy is deleted, leaving only the new one', !keys.includes(old) && keys.some((k) => k.includes('/live/' + JO.voiceKeepV + '/')));
+            } finally { envO.close(); }
+        }
+
+        const rig = voiceRig({});
+        const P = await fakeProxy({ on: true });
+        P.stream = true;
+        const env = await open(rig, P);
+        try {
+            const J = env.window.__jarvis, logText = () => env.document.getElementById('log').textContent;
+            await until(() => /My spoken lines go to Google too/.test(logText()), 5000);
+            await settle(env, rig);
+            let from = rig.log.timeline.length;
+            await typeIn(env, 'what is seven times eight');
+            let tl = await said(env, rig, from);
+            t.eq('a line with no recording is streamed and played as it arrives', tl.join(' | '), 'stream:That would be 56.');
+            t.eq('…tagged with his Gemini voice', [...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag')?.textContent, 'GEMINI · CHARON');
+            t.eq('…the proxy answered audio/L16', P.streamTypes.at(-1), 'audio/L16;rate=24000;channels=1');
+            t.ok('…from one call to Google, the streamed one', P.tts.length > 0 && P.tts.at(-1).generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName === 'Charon');
+            t.ok('back to STANDBY after', env.document.getElementById('state').textContent === 'STANDBY');
+            from = rig.log.timeline.length;
+            const v0 = P.voice().length;
+            J.say('That would be 56. Anything else? Shall I go on?');
+            tl = await said(env, rig, from);
+            t.eq('a longer answer: one streamed piece, one voice, no seams (review 85)', tl.join(' | '), 'stream:That would be 56. Anything else? Shall I go on?');
+            t.ok('…as one call', P.voice().length === v0 + 1 && JSON.parse(P.voice()[v0].body).text === 'That would be 56. Anything else? Shall I go on?');
+            // Kept on the device once it has all arrived, as a WAV: the repeat is played from there, with no call.
+            await turn(env, rig, 'how are you');
+            const n1 = P.voice().length;
+            from = rig.log.timeline.length;
+            await typeIn(env, 'how are you');
+            tl = await said(env, rig, from);
+            t.ok('a fixed line streamed live is kept: the repeat makes no new call, and plays the kept WAV', P.voice().length === n1 && tl.join(' | ') === 'live:Running at peak efficiency, thank you for asking.');
+            const kept = () => [...(rig.caches.get(J.CACHE_PREFIX + 'voice-live') || new Map()).keys()].map((k) => decodeURIComponent(k));
+            await turn(env, rig, 'what is seven times eight');
+            t.ok('a streamed line with a number is still never kept', !kept().some((k) => /56/.test(k)));
+            // A new answer stops one that's streaming.
+            const s0 = rig.log.stopped;
+            J.say('That would be 61. ' + 'And this goes on for quite a while. '.repeat(3));
+            await until(() => J.voiceOut.srcs.size > 0, 2000);
+            J.say('Anytime.');
+            await wait(5);
+            t.ok('a new answer stops the streamed one', rig.log.stopped > s0 && J.voiceOut.srcs.size <= 1);
+            await said(env, rig, 0);
+            // A feed stopped early never counts as all arrived, so a cut-off line is never kept.
+            const cf = J.voiceFeed({ body: new ReadableStream({ start(c) { c.enqueue(Uint8Array.from([1, 2])); } }) }, 24000);
+            await wait(5); cf.cancel();
+            t.eq('a stream stopped by a new answer is never counted as complete (so never kept)', await cf.ended, false);
+            // A stream that breaks after it began: what arrived plays, and it isn't kept.
+            P.streamCut = true;
+            from = rig.log.timeline.length;
+            J.say('Very good, then.');
+            tl = await said(env, rig, from);
+            t.ok('a stream cut short plays what arrived (the first half)', tl.length === 1 && tl[0] === 'stream:Very goo');
+            await wait(30);
+            t.ok('…and isn\'t kept', !kept().some((k) => k.endsWith('?t=Very good, then.')));
+            P.streamCut = false;
+            // Too slow for the first piece: the browser says it, as before.
+            let openGate; J.voiceOut.first = 60; P.voiceGate = new Promise((r) => { openGate = r; });
+            from = rig.log.timeline.length;
+            J.say('That would be 62.');
+            t.eq('Google too slow for the first audio: the browser\'s voice, as before', (await said(env, rig, from)).join(' | '), 'tts:That would be 62.');
+            openGate(); P.voiceGate = null; J.voiceOut.first = 12000;
+        } finally { env.close(); }
+    }
+
+    t.section('His own voice: the setting (Session 18)');
+    {
+        const rig = voiceRig({ recordings: { jarvis: { [JOKE]: F(1), 'Anytime.': F(5) } } });
+        const idb = new (await import('fake-indexeddb')).IDBFactory();
+        let env = await open(rig, await fakeProxy({ on: false }), { idb });
+        try {
+            const J = env.window.__jarvis, lastMsg = () => [...env.document.querySelectorAll('#log .msg.ai')].pop();
+            const lastAi = () => [...lastMsg().childNodes].filter((n) => !(n.classList && n.classList.contains('voice-tag'))).map((n) => n.textContent).join('');
+            await settle(env, rig);
+            for (const [q, v] of [['use the browser voice', 'browser'], ["switch to the browser's voice", 'browser'], ['use the device voice', 'browser'], ['mix the voices', 'mixed'], ['mixed voices', 'mixed'],
+                ['use your own voice', null], ['go back to your own voice', null], ['his own voice', null]]) {
+                const se = J.settingsIntent(q);
+                t.eq(`"${q}"`, se && se.key === 'voice' ? String(se.value) : 'not a voice setting', String(v));
+            }
+            for (const q of ['make the orb blue', 'speak faster', 'what voices do you have', 'change your voice to morpheus', 'switch to matrix'])
+                t.ok(`"${q}" is not the voice setting`, J.settingsIntent(q)?.key !== 'voice');
+            await turn(env, rig, 'use the browser voice');
+            t.eq('he says what changed', lastAi(), "I'll use this browser's voice for everything. I'll remember that on this device.");
+            t.eq('…in the browser\'s voice, and the tag says so', lastMsg().querySelector('.voice-tag')?.textContent, 'BROWSER VOICE');
+            let from = rig.log.timeline.length;
+            await typeIn(env, 'tell me a joke');
+            t.eq('the browser\'s voice even for a recorded line', (await said(env, rig, from)).join(' | '), 'tts:' + JOKE);
+            const dump = await dbDump(idb);
+            t.eq('saved like every setting, in jarvis-settings', dump.kept?.['jarvis-settings'], '{"voice":"browser"}');
+            await turn(env, rig, 'what do you save');
+            t.ok('"what do you save" reads it back', /the browser's voice/.test(lastAi()));
+        } finally { env.close(); }
+        rig.log.timeline.length = 0;
+        env = await open(rig, await fakeProxy({ on: false }), { idb });
+        try {
+            const J = env.window.__jarvis;
+            await settle(env, rig);
+            t.eq('kept across a reload', J.settings().voice, 'browser');
+            await typeIn(env, 'tell me a joke');
+            t.eq('…and used', (await said(env, rig, 0)).join(' | '), 'tts:' + JOKE);
+            const ctx0 = rig.log.ctx;
+            env.document.body.dispatchEvent(new env.window.Event('pointerdown', { bubbles: true }));
+            t.eq('the browser setting never starts Web Audio, even on a tap', rig.log.ctx, ctx0);
+            await turn(env, rig, 'mix the voices');
+            rig.log.timeline.length = 0;
+            J.say(JOKE + ' Anytime. That would be 56.');
+            t.eq('mixed: recordings and the browser\'s voice in one answer', (await said(env, rig, 0)).join(' | '), `rec:${F(1)} | rec:${F(5)} | tts:That would be 56.`);
+            t.eq('…and the tag lists both, in order, once each (review 84)', [...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag')?.textContent, 'RECORDED · CHARON + BROWSER VOICE');
+            await turn(env, rig, 'use your own voice');
+            rig.log.timeline.length = 0;
+            J.say(JOKE + ' Anytime. That would be 56.');
+            t.eq('his voice: the same answer all in the browser\'s, so it never switches mid-answer', (await said(env, rig, 0)).join(' | '), 'tts:' + JOKE + ' Anytime. That would be 56.');
+            t.ok('his voice is the default: the setting is removed, not saved', !('voice' in J.settings()));
+            const r = await J.answer('create test voice protocol: use the browser voice, then tell me a joke');
+            t.ok('the voice setting can\'t go in a protocol', /Which voice I use is a setting of its own, so it can't go in a protocol\./.test(String(r)));
+        } finally { env.close(); }
+    }
+
+    t.section('His own voice: the help and the guide lines (Session 18)');
+    {
+        const env = await openDom(page.html, URL_, quiet);
+        try {
+            const J = env.window.__jarvis, soul = J.GAUNTLET.find((g) => g.k === 'soul');
+            for (const c of ['voice samples', 'use the browser voice', 'use your own voice', 'mix the voices'])
+                t.ok(`the Soul stone links "${c}"`, soul.links.some((l) => (l[1] || l[0]) === c));
+            t.ok('and its note says where his voice comes from', /recordings on this site/.test(soul.note) && /Gemini voices the rest/.test(soul.note));
+            for (const q of ['voice samples', 'play your voice samples', 'test your voice', 'jarvis voice samples']) t.ok(`"${q}" plays the samples`, J.VOICE_SAMPLE_RE.test(q.replace(/^jarvis /, '')));
+            t.ok('"what voices do you have" is not the samples', !J.VOICE_SAMPLE_RE.test('what voices do you have'));
+            t.eq('three approved sample lines per skin', Object.values(J.VOICE_SAMPLES).map((l) => l.length).join(), '3,3,3');
+            t.ok('every sample is a line the page records', ['jarvis', 'matrix', 'panther'].every((k) => J.VOICE_SAMPLES[k].every((l) => J.voiceLines(k).includes(l))));
+        } finally { env.close(); }
+    }
 }

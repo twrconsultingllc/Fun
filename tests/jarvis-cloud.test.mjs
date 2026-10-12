@@ -582,14 +582,34 @@ export default async function run(t) {
         const reqs = [], slogs = [];
         const picky = (init) => { const b = JSON.parse(init.body); reqs.push(b); return b.systemInstruction ? { status: 400, json: { error: { code: 400, message: 'systemInstruction is not supported for this model' } } } : null; };
         a = app({}, [edge({ supercharge: true }), catalog(TTS), streamG((url, init) => picky(init) || { status: 200, text: SSE })], slogs);
-        r = await vpost(a);
+        r = await vpost(a, { skin: 'matrix', text: 'All systems are online.' });
         t.ok('system instruction refused on the stream: asked again with the words alone, and it streams', r.status === 200 && r.stream && reqs.length === 2 && !reqs[1].systemInstruction && reqs[1].contents[0].parts[0].text === 'All systems are online.');
         await drain(r.stream); await new Promise((res) => setTimeout(res, 0));
         t.ok('…logged once as refused, and the line logged with style false', slogs.filter((l) => l.why === 'system instruction refused').length === 1 && slogs.some((l) => l.stream === true && l.style === false));
         reqs.length = 0;
-        r = await vpost(a);
+        r = await vpost(a, { skin: 'panther', text: 'All systems are online.' });
         await drain(r.stream);
         t.ok('…and the next line goes without it straight away (one call, not two)', reqs.length === 1 && !reqs[0].systemInstruction);
+        // Review 86: Jarvis always gets his style (the British-sounding Charon the owner chose). Even on an instance that
+        // has stopped sending it for the others, his request carries it; a refusal drops it for that request only.
+        reqs.length = 0;
+        r = await vpost(a, { skin: 'jarvis', text: 'All systems are online.' });
+        await drain(r.stream);
+        t.ok('Jarvis still asks with his style on that instance, and is refused, then retried without it, for that line only', reqs.length === 2 && !!reqs[0].systemInstruction && reqs[0].systemInstruction.parts[0].text.startsWith(VOICES.jarvis.style) && !reqs[1].systemInstruction);
+        reqs.length = 0;
+        r = await vpost(a, { skin: 'jarvis', text: 'All systems are online.' });
+        await drain(r.stream);
+        t.ok('…and his next line asks with it again', reqs.length === 2 && !!reqs[0].systemInstruction);
+        const jreqs = [], jlogs = [];
+        let refuse = true;
+        a = app({}, [edge({ supercharge: true }), catalog(TTS), streamG((url, init) => { const b = JSON.parse(init.body); jreqs.push(b); return b.systemInstruction && refuse ? { status: 400, json: { error: { code: 400, message: 'x' } } } : { status: 200, text: SSE }; })], jlogs);
+        r = await vpost(a, { skin: 'jarvis', text: 'All systems are online.' }); await drain(r.stream);
+        refuse = false; jreqs.length = 0;
+        r = await vpost(a, { skin: 'matrix', text: 'All systems are online.' }); await drain(r.stream);
+        t.ok('a refusal on a Jarvis line never turns the style off for the other skins', jreqs.length === 1 && !!jreqs[0].systemInstruction);
+        jreqs.length = 0;
+        r = await vpost(a, { skin: 'jarvis', text: 'All systems are online.' }); await drain(r.stream);
+        t.ok('…and once Google accepts it again, Jarvis is British again with no retry', jreqs.length === 1 && !!jreqs[0].systemInstruction);
         const preqs = [];
         a = app({}, [edge({ supercharge: true }), catalog(TTS), streamG(() => ({ status: 404, json: {} })), plainG((url, init) => { const b = JSON.parse(init.body); preqs.push(b); return b.systemInstruction ? { status: 400, json: { error: { code: 400, message: 'no system instruction' } } } : ttsOk(); })]);
         r = await vpost(a);
