@@ -4550,6 +4550,9 @@ export async function ownVoice(t, page) {
                 t.eq(`voiceRecordable("${txt}")`, J.voiceRecordable(txt), ok);
             t.ok('every recording plays from this site: no new address in the CSP (it is exactly the Session 17 policy)', env0Csp(src) === CSP_S17);
             t.ok('the only fetch to the proxy for his voice is /api/voice, through cloudFetch()', (src.match(/cloudFetch\('\/api\/voice'/g) || []).length === 1);
+            const core = await import('../jarvis/cloud/lib/core.js');
+            t.eq('the voice names his tag shows are the proxy\'s own (review 84)', JSON.stringify(J.VOICE_NAMES), JSON.stringify(Object.fromEntries(Object.entries(core.VOICES).map(([k, v]) => [k, v.name]))));
+            t.eq('with no device voice picked, the browser tag is just BROWSER VOICE', J.voiceBrowser(''), 'BROWSER VOICE');
         } finally { env.close(); }
     }
 
@@ -4565,6 +4568,7 @@ export async function ownVoice(t, page) {
             await typeIn(env, 'tell me a joke');
             let tl = await said(env, rig, from);
             t.eq('"tell me a joke", supercharger off: the recording plays', tl.join(' | '), 'rec:' + F(1));
+            t.eq('…and his line says it was a recording in Charon\'s voice (review 84)', [...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag')?.textContent, 'RECORDED · CHARON');
             t.ok('from this site, at its path in the manifest', rig.log.recFetches.at(-1) === 'jarvis/' + F(1));
             t.eq('no call to /api/voice (it needs no API call)', off.voice().length, 0);
             t.eq('and no browser voice', tl.filter((x) => x.startsWith('tts:')).length, 0);
@@ -4574,7 +4578,9 @@ export async function ownVoice(t, page) {
             await typeIn(env, 'what is seven times eight');
             tl = await said(env, rig, from);
             t.eq('a line with no recording, supercharger off: the browser\'s voice', tl.join(' | '), 'tts:That would be 56.');
-            t.ok('and that\'s the usual state, so no note on his line', ![...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag'));
+            // Since review 84 every line says which voice spoke it. This is the usual state, so it's plain, not amber.
+            const tag0 = [...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag');
+            t.ok('his line says the browser\'s voice spoke it, with no reason (it\'s the usual state, so not amber)', tag0?.textContent === 'BROWSER VOICE' && !tag0.classList.contains('fell'));
             t.eq('(still no call to /api/voice)', off.voice().length, 0);
             from = rig.log.timeline.length;
             await typeIn(env, 'voice samples');
@@ -4655,6 +4661,7 @@ export async function ownVoice(t, page) {
             tl = await said(env, rig, from);
             t.eq('a fixed line voiced live is kept: the repeat makes no new call', P.voice().length, n1);
             t.eq('…and still plays in his voice', tl.join(' | '), 'live:Running at peak efficiency, thank you for asking.');
+            t.eq('…and his line says it played from this device', [...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag')?.textContent, 'GEMINI · CHARON · SAVED');
             const kept = () => [...(rig.caches.get(J.CACHE_PREFIX + 'voice-live') || new Map()).keys()].map((k) => decodeURIComponent(k));
             t.ok('in a cache of its own, named with the page\'s prefix, so "update Jarvis" clears it', kept().some((k) => k.includes('Running at peak efficiency')));
             t.ok('…at a versioned address (review 83), so lines kept before the fix are never played', kept().every((k) => k.includes('/jarvis/voice/live/v2/')));
@@ -4699,17 +4706,21 @@ export async function ownVoice(t, page) {
             t.eq('the proxy unreachable: the same', (await said(env, rig, from)).join(' | '), `tts:That would be 59. | rec:${F(3)}`);
             P.down = false;
             // Since the fix after review 79: when he meant to use his own voice but couldn't, his chat line says why.
-            const note = () => [...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag')?.textContent || '';
+            const tagEl = () => [...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag');
+            const note = () => tagEl()?.textContent || '';
+            const fell = () => !!tagEl()?.classList.contains('fell');
             J.voiceOut.fails = 0; P.ttsFail = 500;
             await turn(env, rig, 'what is nine times nine');
-            t.eq('Gemini fails: his chat line says the browser\'s voice was used, and why', note(), 'BROWSER VOICE · GEMINI VOICE FAILED');
+            // Morpheus's closer is recorded here, so the tag lists both voices, in the order he used them (review 84).
+            t.eq('Gemini fails: his chat line says the browser\'s voice was used, and why, after the recording that played', note(), 'RECORDED · ALGENIB + BROWSER VOICE · GEMINI VOICE FAILED');
+            t.ok('…in amber, because it\'s a fallback', fell());
             P.ttsFail = 0; J.voiceOut.fails = 0;
             let openGate; J.voiceOut.first = 60; P.voiceGate = new Promise((r) => { openGate = r; });
             await turn(env, rig, 'what is nine times eight');
             t.eq('Gemini too slow for the first piece: "too slow"', note(), 'BROWSER VOICE · TOO SLOW');
             openGate(); P.voiceGate = null; J.voiceOut.first = 12000; await wait(50);
             await turn(env, rig, 'what is nine times seven');
-            t.eq('when it works, no note', note(), '');
+            t.ok('when it works, the tag names his Gemini voice, not amber', note() === 'GEMINI · ALGENIB' && !fell() && tagEl().classList.contains('his'));
             J.voiceOut.fails = 3; J.voiceOut.failAt = Date.now();
             const v3 = P.voice().length;
             await turn(env, rig, 'what is nine times six');
@@ -4718,8 +4729,8 @@ export async function ownVoice(t, page) {
             await turn(env, rig, 'what is nine times five');
             // Since review 82 the first sentence goes on its own, so this two-sentence line ("That would be 45." and
             // Morpheus's closer) is two calls.
-            t.ok('…for two minutes, not the rest of the visit', P.voice().length === v3 + 2 && P.voice().at(-2).body.includes('That would be 45.') && note() === '');
-            t.ok('the note is a styled tag, and amber like the other tags', /\.voice-tag\{display:block;[^}]*color:var\(--amber\)/.test(src));
+            t.ok('…for two minutes, not the rest of the visit', P.voice().length === v3 + 2 && P.voice().at(-2).body.includes('That would be 45.') && note() === 'GEMINI · ALGENIB' && !fell());
+            t.ok('the tag is styled: plain for the browser\'s voice, green for his own, amber for a fallback', /\.voice-tag\{display:block;[^}]*color:var\(--label\)/.test(src) && /\.voice-tag\.his\{color:var\(--phos\)\}/.test(src) && /\.voice-tag\.fell\{color:var\(--amber\)\}/.test(src));
             P.on = false; P.redeploy(); J.voiceOut.fails = 0;
             from = rig.log.timeline.length;
             J.say('That would be 60.');
@@ -4805,6 +4816,7 @@ export async function ownVoice(t, page) {
             await typeIn(env, 'what is seven times eight');
             let tl = await said(env, rig, from);
             t.eq('a line with no recording is streamed and played as it arrives', tl.join(' | '), 'stream:That would be 56.');
+            t.eq('…tagged with his Gemini voice', [...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag')?.textContent, 'GEMINI · CHARON');
             t.eq('…the proxy answered audio/L16', P.streamTypes.at(-1), 'audio/L16;rate=24000;channels=1');
             t.ok('…from one call to Google, the streamed one', P.tts.length > 0 && P.tts.at(-1).generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName === 'Charon');
             t.ok('back to STANDBY after', env.document.getElementById('state').textContent === 'STANDBY');
@@ -4860,7 +4872,8 @@ export async function ownVoice(t, page) {
         const idb = new (await import('fake-indexeddb')).IDBFactory();
         let env = await open(rig, await fakeProxy({ on: false }), { idb });
         try {
-            const J = env.window.__jarvis, lastAi = () => [...env.document.querySelectorAll('#log .msg.ai')].pop()?.textContent;
+            const J = env.window.__jarvis, lastMsg = () => [...env.document.querySelectorAll('#log .msg.ai')].pop();
+            const lastAi = () => [...lastMsg().childNodes].filter((n) => !(n.classList && n.classList.contains('voice-tag'))).map((n) => n.textContent).join('');
             await settle(env, rig);
             for (const [q, v] of [['use the browser voice', 'browser'], ["switch to the browser's voice", 'browser'], ['use the device voice', 'browser'], ['mix the voices', 'mixed'], ['mixed voices', 'mixed'],
                 ['use your own voice', null], ['go back to your own voice', null], ['his own voice', null]]) {
@@ -4871,6 +4884,7 @@ export async function ownVoice(t, page) {
                 t.ok(`"${q}" is not the voice setting`, J.settingsIntent(q)?.key !== 'voice');
             await turn(env, rig, 'use the browser voice');
             t.eq('he says what changed', lastAi(), "I'll use this browser's voice for everything. I'll remember that on this device.");
+            t.eq('…in the browser\'s voice, and the tag says so', lastMsg().querySelector('.voice-tag')?.textContent, 'BROWSER VOICE');
             let from = rig.log.timeline.length;
             await typeIn(env, 'tell me a joke');
             t.eq('the browser\'s voice even for a recorded line', (await said(env, rig, from)).join(' | '), 'tts:' + JOKE);
@@ -4894,6 +4908,7 @@ export async function ownVoice(t, page) {
             rig.log.timeline.length = 0;
             J.say(JOKE + ' Anytime. That would be 56.');
             t.eq('mixed: recordings and the browser\'s voice in one answer', (await said(env, rig, 0)).join(' | '), `rec:${F(1)} | rec:${F(5)} | tts:That would be 56.`);
+            t.eq('…and the tag lists both, in order, once each (review 84)', [...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag')?.textContent, 'RECORDED · CHARON + BROWSER VOICE');
             await turn(env, rig, 'use your own voice');
             rig.log.timeline.length = 0;
             J.say(JOKE + ' Anytime. That would be 56.');

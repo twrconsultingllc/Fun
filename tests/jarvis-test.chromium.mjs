@@ -1014,6 +1014,9 @@ try {
             ok('the orb follows its real loudness while it plays', levels.length > 5 && Math.max(...levels) > 0.2, JSON.stringify(levels.slice(0, 8)));
             ok('SPEAKING while it plays, then STANDBY', seen.some((x) => x[1] && x[2] === 'SPEAKING') && seen.at(-1)[2] === 'STANDBY', JSON.stringify(seen.map((x) => x[2]).slice(-3)));
             ok('no call to /api/voice, with the supercharger off', !PX.hits.some((x) => x.path === '/api/voice'));
+            const lastTag = () => p.evaluate(() => { const g = [...document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag'); return g ? [g.textContent, getComputedStyle(g).color, g.className] : null; });
+            const recTag = await lastTag();
+            ok('his line is tagged RECORDED · CHARON (review 84)', recTag?.[0] === 'RECORDED · CHARON' && /\bhis\b/.test(recTag[2]), JSON.stringify(recTag));
             await p.screenshot({ path: join(OUT, 'voice-recording-390.png') });
             await p.evaluate(() => navigator.serviceWorker.ready);
             const vc = await p.evaluate(async () => (await caches.keys()).includes('jarvis-test-voice') ? (await (await caches.open('jarvis-test-voice')).keys()).map((r) => r.url) : []);
@@ -1038,6 +1041,10 @@ try {
             ok('in Charon\'s voice, only the words spoken (the style is a system instruction)', PX.tts[0]?.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName === 'Charon' && PX.tts[0]?.contents[0].parts[0].text === 'That would be 56.' && !!PX.tts[0]?.systemInstruction);
             const lv = seen.filter((x) => x[1]).map((x) => x[0]);
             ok('the orb follows the live voice too', lv.length > 3 && Math.max(...lv) > 0.2, JSON.stringify(lv.slice(0, 6)));
+            const liveTag = await lastTag();
+            ok('…and his line is tagged GEMINI · CHARON, in his own colour', liveTag?.[0] === 'GEMINI · CHARON' && /\bhis\b/.test(liveTag[2]), JSON.stringify(liveTag));
+            await p.evaluate(() => document.getElementById('log').scrollTop = 1e6);
+            await p.screenshot({ path: join(OUT, 'voice-tags-390.png') });
             ok('SPEAKING while the stream plays, then STANDBY', seen.some((x) => x[1] && x[2] === 'SPEAKING') && seen.at(-1)[2] === 'STANDBY', JSON.stringify(seen.map((x) => x[2]).slice(-3)));
             // The tone is one second: played as one run, it should be heard for about that long, not cut or doubled.
             const heard = seen.filter((x) => x[1]).length * 50;
@@ -1045,6 +1052,8 @@ try {
             // Without streaming (an older model), the old way still works: a whole WAV.
             PX.noStream = true; PX.tts.length = 0;
             seen = await sayIt('what is seven times nine');
+            const wavTag = await lastTag();
+            ok('the old way is tagged the same (GEMINI · CHARON)', wavTag?.[0] === 'GEMINI · CHARON', JSON.stringify(wavTag));
             ok('a model without streaming: the proxy asks the old way, and a real WAV plays', PX.tts.length === 1 && PX.types.at(-1) === 'audio/wav' && seen.some((x) => x[1]), `${PX.tts.length} tts, ${PX.types.at(-1)}`);
             PX.noStream = false;
             // Played as it arrives: a stream that sends 1.5 s of tone in six pieces a quarter of a second apart, through

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #84 — Which voice said it: a tag on every line</title>
+<meta name="description" content="Short review of 2026-10-12's page-only change to jarvis-test.html: every line J.A.R.V.I.S. says is tagged with the voice that said it (Gemini, saved, recorded or the browser's), with the reason for any fallback.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #84 — Which voice said it</h1>
+    <p class="sub">Small change after <a href="83.html">review 83</a>, in <code>jarvis-test.html</code> only, with no Vercel deploy. Switching skins, you couldn't tell which voice you were hearing. Every line he says aloud is now tagged with the voice that actually said it.</p>
+    <div class="meta">Review performed 2026-10-12 · scope: <code>jarvis-test.html</code> (<code>voiceMark</code>, <code>say</code>, <code>voiceSay</code>, the tag's CSS) · suites run: <code>jarvis-test --section=ownVoice</code>, <code>jarvis-test.chromium.mjs --step=13</code>.</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">2 items: 2 verified clean.</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The tag is text only</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The tag is set with <code>textContent</code>, never HTML, and its parts are fixed words, the skin's voice name from a fixed list (<code>VOICE_NAMES</code>, checked against the proxy's <code>VOICES</code>), a reason from the page's own list, and the device voice's name cut to 40 characters. The list of parts is kept in a <code>data-</code> attribute on the tag as JSON and read back only by the same function. Nothing is stored and nothing is sent anywhere. No new address, so the CSP is unchanged.</p></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Every voice he uses is named, in order</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The tags are <code>GEMINI · CHARON</code> (live), <code>GEMINI · CHARON · SAVED</code> (played from this device), <code>RECORDED · CHARON</code>, and <code>BROWSER VOICE</code> with the device voice's name when one is picked. A fallback adds the reason as before. An answer in more than one voice lists each in order, once per run. His own voice is tagged as it starts, so the tag shows while he speaks. Colours: plain (<code>--label</code>) for the browser's voice, green (<code>--phos</code>) for his own, amber for a fallback. Contrast against each theme's lighter background (<code>--deep</code>), computed: Jarvis 6.1 / 13.9 / 11.5, Morpheus 8.4 / 13.4 / 11.4, Stanley 7.6 / 5.7 / 7.6, hot-rod HUD 8.5 / 11.9 / 7.2, supercharged 8.7 / 10.3 / 12.6, all above 4.5:1. On Stanley, plain and amber are the same gold, so there the reason's words tell them apart. The tag appears wherever Web Audio exists, as in every current browser. The rest of the page suite runs in jsdom, which has none, so its checks of his words are untouched. <code>ownVoice</code>: 144 checks (up from 136); six earlier checks expected no tag and were changed to the tag each line should now carry. Chromium step 13: 23 checks, including the recorded, streamed and WAV tags, with a screenshot of <code>GEMINI · CHARON</code> under his line at 390 px.</p>
+      <div class="fix-note"><b>Broken copies (each failed):</b> his own voice never tagged (7 checks); a saved line not marked saved (1); the browser setting untagged (1); a fallback not amber (1); the parts replaced instead of listed (2); the wrong voice name for Morpheus (4).</div></div>
+    </div>
+  </section>
+  <footer>Review #84 · previous: <a href="83.html">review 83</a></footer>
+</div>
+</body>
+</html>
