@@ -171,7 +171,7 @@
   <header>
     <h1>Review #87 — Compare voices</h1>
     <p class="sub">After <a href="86.html">review 86</a>, you heard no British Jarvis, and every voice sounded wrong. 86 rested on a guess about which request gave the British voice, and that guess was wrong. Nothing here can hear Google's voice. So <code>jarvis-test.html</code> now plays the same line three ways, labelled A, B and C, and you pick by ear. <code>jarvis.html</code> is not touched.</p>
-    <div class="meta">Review performed 2026-10-12 · scope: <code>jarvis-test.html</code> (<code>voiceCompare</code>, <code>finishBoot</code>), <code>jarvis/cloud/lib/core.js</code> (<code>variantBody</code>, <code>readVoiceRequest</code>, <code>voice</code>) · suites run: <code>jarvis-cloud</code> in full, <code>jarvis-test --section=core,supercharger,ownVoice</code>, Chromium all 13 steps (CHROMIUM).</div>
+    <div class="meta">Review performed 2026-10-12 · scope: <code>jarvis-test.html</code> (<code>voiceCompare</code>, <code>finishBoot</code>), <code>jarvis/cloud/lib/core.js</code> (<code>variantBody</code>, <code>readVoiceRequest</code>, <code>voice</code>) · suites run: <code>jarvis-cloud</code> in full, <code>jarvis-test --section=core,supercharger,ownVoice</code>, Chromium all 13 steps: one console check failed at first, a harness race (a status request that failed while offline reached the console just after the network came back, because the opening now waits on that request), fixed with a 2-second grace for that offline message only, then steps 12 and 13 passed (32 checks) and the other steps had passed in the full run.</div>
     <div class="legend">
       <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
       <span><span class="dot open"></span> Open</span>

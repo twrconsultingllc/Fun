@@ -115,6 +115,10 @@ const PACK = await KB.buildPack(await KB.fixtureGetter(join(ROOT, 'tests/fixture
 // Session 17: DEPLOY > 0 serves a changed jarvis-test.html (a new deploy); DOWN drops every connection, the way a phone
 // in airplane mode finds no network, even for requests Playwright's offline switch might not reach.
 let DEPLOY = 0, DOWN = false;
+// Review 87: a request that failed while offline can reach the console a moment after the network is back (the opening
+// now waits on the supercharger's status, which moved the timings). That message is still the network having been gone,
+// so it's let through for 2 seconds after going back online; requests themselves are routed by DOWN as before.
+let downGrace = 0;
 // Session 18: recordings for step 13, served at their real paths. VOICE.manifest replaces jarvis/voice/manifest.json
 // (the committed one lists none until the workflow runs); VOICE.files maps a path to its bytes; VOICE.hits counts.
 const VOICE = { manifest: null, files: new Map(), hits: [] };
@@ -214,7 +218,7 @@ async function open(file, size = { width: 1280, height: 800 }, on = ctx) {
     // shows. The page treats it as no recordings, which is right; it's the network being gone, so it's let through
     // only while offline, like the others.
     const OFFLINE_ICON = /^Error while trying to use the following icon from the Manifest: |^Failed to load resource: net::ERR_(?:INTERNET_DISCONNECTED|FAILED)$/;
-    page.on('console', (m) => { if (DOWN && OFFLINE_ICON.test(m.text())) return; if ((m.type() === 'error' && !MEDIAPIPE_LOG.test(m.text())) || /Refused/.test(m.text())) problems.push(`${file} console: ${m.text()}`); });
+    page.on('console', (m) => { if ((DOWN || Date.now() < downGrace) && OFFLINE_ICON.test(m.text())) return; if ((m.type() === 'error' && !MEDIAPIPE_LOG.test(m.text())) || /Refused/.test(m.text())) problems.push(`${file} console: ${m.text()}`); });
     await page.goto(BASE + file); await page.waitForFunction(() => window.__jarvis);
     await page.evaluate(() => window.__jarvis.ready);
     return page;
@@ -931,14 +935,14 @@ try {
             watch = true;
             ok('other pages aren\'t kept: the landing page doesn\'t load offline', idxOffline);
             await other.close();
-            await ctxX.setOffline(false); DOWN = false;
+            await ctxX.setOffline(false); DOWN = false; downGrace = Date.now() + 2000;
             DEPLOY = 1;
             await p.reload(); await p.waitForFunction(() => window.__jarvis);
             ok(`a new deploy shows on the next online load at ${w}×${h}`, (await p.title()) === 'J.A.R.V.I.S. Test · deploy 1');
             await ctxX.setOffline(true); DOWN = true;
             await p.reload(); await p.waitForFunction(() => window.__jarvis);
             ok('and becomes the offline copy', (await p.title()) === 'J.A.R.V.I.S. Test · deploy 1');
-            await ctxX.setOffline(false); DOWN = false; DEPLOY = 0;
+            await ctxX.setOffline(false); DOWN = false; downGrace = Date.now() + 2000; DEPLOY = 0;
             await p.reload(); await p.waitForFunction(() => window.__jarvis); await p.evaluate(() => window.__jarvis.ready);
             await p.click('#boot-skip'); await p.waitForTimeout(1200);
             PX.on = false; PX.redeploy();
@@ -993,7 +997,7 @@ try {
             await mp.click('#boot-skip'); await mp.waitForTimeout(1500);
             ok('and says the supercharger is unavailable', /supercharger is unavailable/.test(await mp.evaluate(() => document.getElementById('log').textContent)));
             await mp.screenshot({ path: join(OUT, 'main-offline-390.png') });
-            await ctxP.setOffline(false); DOWN = false;
+            await ctxP.setOffline(false); DOWN = false; downGrace = Date.now() + 2000;
             await tp.close(); await mp.close();
         } finally { DOWN = false; PX.on = false; PX.redeploy(); await ctxP.close(); await rm(join(work, 'profile-p'), { recursive: true, force: true }); }
     }
@@ -1039,7 +1043,7 @@ try {
             seen = await sayIt('how are you');
             ok('offline, the recording still plays, from the cache', seen.some((x) => x[1]) && VOICE.hits.length === hits0, `${VOICE.hits.length - hits0} hits`);
             await p.waitForTimeout(1000); // let the offline page's failed requests be logged while still offline
-            await ctxV.setOffline(false); DOWN = false;
+            await ctxV.setOffline(false); DOWN = false; downGrace = Date.now() + 2000;
             PX.on = true; PX.redeploy();
             await p.reload(); await p.waitForFunction(() => window.__jarvis); await p.evaluate(() => window.__jarvis.ready);
             await p.click('#boot-skip'); await p.waitForTimeout(400);
