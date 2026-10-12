@@ -1122,9 +1122,10 @@ function speakBrowser(words,gen,{last=true}={}){
 // Live pieces are at most VOICE_LIVE characters (a sentence or two), so each comes back quickly: on 2026-10-12 one
 // 230-character request came back as 895 audio tokens, about 35 seconds of speech, too slow for one wait. Each piece
 // may take VOICE_FETCH; the first piece of an answer is waited for VOICE_FIRST before the browser says it instead.
-// Since review 82: the first live piece of an answer is its first sentence only, so it comes back soonest, and the proxy
-// streams the audio (audio/L16, raw PCM) so he starts as soon as Google does. The rest loads while it plays.
-const VOICE_LIVE=160,VOICE_FIRST=12000,VOICE_FETCH=25000,VOICE_PAUSE=120000;
+// Since review 82 the proxy streams the audio (audio/L16, raw PCM), so he starts as soon as Google does, however long the
+// line. So since review 85 an answer goes as one live piece of up to VOICE_RUN characters, not several short ones: every
+// piece was a separate recording, and on the owner's phone the pieces of one answer sounded like two different voices.
+const VOICE_LIVE=600,VOICE_FIRST=12000,VOICE_FETCH=25000,VOICE_PAUSE=120000;
 const VOICE_DIR='jarvis/voice/',VOICE_RUN=600,VOICE_KEEP=150,VOICE_FILE=/^[a-f0-9]{16}\.mp3$/;
 const voiceOut={list:null,loading:null,ctx:null,an:null,buf:null,src:null,srcs:new Set(),active:0,fails:0,failAt:0,first:VOICE_FIRST,fetchWait:VOICE_FETCH,stall:8000,AC:window.AudioContext||window.webkitAudioContext||null};
 const voiceKeepCache=()=>CACHE_PREFIX+'voice-live',nap=ms=>new Promise(r=>setTimeout(r,ms));
@@ -1177,9 +1178,8 @@ function voicePlan(words,list,live,mode){
     let u=sents[i],file=null,j=i+1;
     if(recs&&recs.size)for(let k=sents.length;k>i;k--){const t=sents.slice(i,k).join(' ');if(t.length<=VOICE_RUN&&recs.has(t)){u=t;file=recs.get(t);j=k;break}}
     const kind=file?'rec':live?'live':'browser',last=segs[segs.length-1];
-    // The first live piece stays one sentence (first), so the first thing he says in his voice comes back soonest.
-    if(last&&last.kind===kind&&kind!=='rec'&&!last.first&&(kind==='browser'||last.text.length+1+u.length<=VOICE_LIVE))last.text+=' '+u;
-    else segs.push({kind,text:u,file,first:kind==='live'&&!segs.some(x=>x.kind==='live')});
+    if(last&&last.kind===kind&&kind!=='rec'&&(kind==='browser'||last.text.length+1+u.length<=VOICE_LIVE))last.text+=' '+u;
+    else segs.push({kind,text:u,file});
     i=j;
   }
   if(!segs.some(x=>x.kind!=='browser'))return null;
@@ -1342,23 +1342,38 @@ async function voiceSay(words,gen,{keep=true,line=null}={}){
       voiceNote(line,charger.on&&charger.voice?(!running?'tap to allow sound':voicePaused()?'live voice resting after failures':''):'');
       await speakBrowser(words,gen);return;
     }
+    const mode=settings.voice||'his';
     for(const x of segs)if(x.kind!=='browser')x.audio=voiceLoad(x,keep); // all start at once, and play in order
+    // One piece's audio, waited for: the first piece VOICE_FIRST, later ones VOICE_FETCH (they've been loading meanwhile).
+    const fetchPiece=(x,wait)=>Promise.race([x.audio,nap(wait).then(()=>{x.why=x.why||'too slow';return null})]);
+    const play=async x=>{
+      const buf=await fetchPiece(x,x===segs[0]?voiceOut.first:voiceOut.fetchWait);
+      if(gen!==sayGen||!buf)return false;
+      voiceMark(line,voiceHis(x.kind,x.saved),{his:true}); // tagged as it starts, so the tag shows while he speaks
+      const ok=await (buf.chunks?voicePlayFeed(buf,gen):voicePlayBuf(buf,gen));
+      if(!ok&&gen===sayGen)x.why='could not play it';
+      return ok;
+    };
+    let started=false;
     for(let i=0;i<segs.length;i++){
       if(gen!==sayGen)return;
       const x=segs[i],last=i===segs.length-1;
-      let ok=false;
-      if(x.kind!=='browser'){
-        // The first piece is waited for VOICE_FIRST; later ones have been loading while the earlier ones played.
-        const buf=await Promise.race([x.audio,nap(i===0?voiceOut.first:voiceOut.fetchWait).then(()=>{x.why=x.why||'too slow';return null})]);
+      if(x.kind==='browser'){voiceNote(line,'');await speakBrowser(x.text,gen,{last});continue} // mixed: by design
+      let ok=await play(x);
+      if(gen!==sayGen)return;
+      if(ok){started=true;continue}
+      if(mode==='his'){
+        // His voice never switches mid-answer (review 85). Nothing said yet: the whole answer in the browser's voice.
+        // Partway through: that piece is asked for once more, and if it fails again he stops there (the chat has it all).
+        if(!started){voiceNote(line,x.why||'Gemini voice failed');await speakBrowser(segs.slice(i).map(y=>y.text).join(' '),gen);return}
+        x.why='';x.audio=voiceLoad(x,keep);ok=await play(x);
         if(gen!==sayGen)return;
-        if(buf){
-          // Tagged as it starts, so the tag shows while he's speaking it.
-          if(gen===sayGen)voiceMark(line,voiceHis(x.kind,x.saved),{his:true});
-          ok=await (buf.chunks?voicePlayFeed(buf,gen):voicePlayBuf(buf,gen));if(!ok&&gen===sayGen)x.why='could not play it'
-        }
-        if(!ok)voiceNote(line,x.why||'Gemini voice failed');
-      }else voiceNote(line,''); // mixed: this piece is in the browser's voice by design
-      if(!ok)await speakBrowser(x.text,gen,{last});
+        if(ok)continue;
+        voiceMark(line,'STOPPED · '+String(x.why||'Gemini voice failed').toUpperCase(),{fell:true});
+        break;
+      }
+      voiceNote(line,x.why||'Gemini voice failed'); // mixed: that piece in the browser's voice, in place
+      await speakBrowser(x.text,gen,{last});
     }
     if(gen===sayGen){lastWord=null;setMode('idle')}
   }finally{voiceOut.active--}

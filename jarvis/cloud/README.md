@@ -112,7 +112,7 @@ Every field the page sends is bounded (the question at 500 characters, six
 earlier turns, 1,500 characters of facts, 300 actions), answers are capped at
 512 tokens, and each address gets 12 questions a minute. `/api/voice` takes at most 600
 characters and has its own limit of 40 lines a minute per address (the page
-sends long answers as short pieces), and its function may run for 30 seconds
+sends each answer as one piece of up to 600 characters since review 85), and its function may run for 30 seconds
 (`vercel.json`). A streamed line passes on at most about 80 seconds of audio,
 the same cap as before.
 

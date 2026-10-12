@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #85 — One answer, one voice</title>
+<meta name="description" content="Short review of 2026-10-12's page-only change to jarvis-test.html: each answer goes to Gemini as one streamed piece instead of several, and in his voice an answer never switches to the browser's voice partway through.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #85 — One answer, one voice</h1>
+    <p class="sub">Small fix after <a href="84.html">review 84</a>, in <code>jarvis-test.html</code> only, with no Vercel deploy. On your phone, the first paragraph on Jarvis switched several times between two voices. Each answer now goes to Gemini as one piece. And in his voice (the default), an answer never switches to the browser's voice partway through.</p>
+    <div class="meta">Review performed 2026-10-12 · scope: <code>jarvis-test.html</code> (<code>voicePlan</code>, <code>voiceSay</code>) · suites run: <code>jarvis-test --section=ownVoice</code>, <code>jarvis-test.chromium.mjs --step=13</code>.</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 67%;"></div></div>
+    <div class="progress-label">3 items: 2 fixed, 1 open (only a live listen can check it).</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Separate pieces sounded like separate voices</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Since <a href="82.html">review 82</a>, an answer's first sentence went alone, then up to 160 characters a piece, and each piece was its own Gemini recording. Those can differ in pitch and delivery, so one answer could sound like two speakers. Streaming makes the split unnecessary: a long line starts as fast as a short one. <code>VOICE_LIVE</code> is now 600, the proxy's limit, and the first-sentence rule is gone. An answer over 600 characters splits at whole sentences into as few pieces as fit. That is two for the suite's 12-sentence answer.</p>
+      <div class="fix-note"><b>Broken copy:</b> pieces back to 160 characters (failed 1 check).</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">His voice switched to the browser's partway through</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The "all or nothing" rule for his voice applied only when an answer was planned. A piece that failed while he spoke was said by the browser in place. Now, in his voice: if a piece fails before he has said anything, the rest of the answer is said in the browser's voice in one go. If a piece fails after he has begun, it is asked for once more, and if it fails again he stops there. His tag then ends <code>STOPPED · GEMINI VOICE FAILED</code> in amber, and the chat still shows the whole answer. "Mixed" keeps the piece-by-piece fallback it is meant to have. The suite fails the proxy at <code>/api/voice</code> itself (a Google failure on the stream alone is recovered by the proxy's own fallback, which the first version of this check didn't account for). It covers a retry that works, a retry that fails, a one-piece answer failing first, and a two-piece answer failing first. <code>ownVoice</code>: 152 checks, up from 144. Chromium step 13: 23 checks, no page errors, no CSP violations.</p>
+      <div class="fix-note"><b>Broken copies (each failed):</b> his voice falling back mid-answer like mixed (4 checks); no second try (2); a stop not tagged (1); a first failure saying only that piece in the browser's voice. That last one first <b>passed</b>, because the check used a one-piece answer, where "that piece" and "the rest" are the same. A two-piece check was added, and the copy then failed it (1).</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Whether one long piece starts quickly on the phone</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>With streaming (confirmed live: <code>stream: true</code>), he should start as soon as Google's first audio arrives, however long the answer. If the proxy ever has to fall back to the old request, one long piece has to be made in full first, and an answer that takes more than 12 seconds is said in the browser's voice, all of it. The log's <code>first</code> (now measured from the call) shows the real start time. The proxy's 30-second limit covers about 40 seconds of speech at the roughly 4 times real-time speed seen live.</p></div>
+    </div>
+  </section>
+  <footer>Review #85 · previous: <a href="84.html">review 84</a></footer>
+</div>
+</body>
+</html>

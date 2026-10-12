@@ -4048,7 +4048,7 @@ const PROXY_URL = 'https://jarvis-cloud-gamma.vercel.app';
 export async function fakeProxy({ on = true, owner = 'Tony', model = 'gemini-3.5-flash' } = {}) {
     const core = await import('../jarvis/cloud/lib/core.js');
     const jres = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => JSON.parse(JSON.stringify(body)) });
-    const st = { on, owner, model, down: false, slow: false, online: true, raw: null, statusRaw: null, gemini: null, fixedIp: null, gate: null, calls: [], asked: [], tts: [], ttsFail: 0, voiceGate: null, stream: false, streamCut: false, streamTypes: [] };
+    const st = { on, owner, model, down: false, slow: false, online: true, raw: null, statusRaw: null, gemini: null, fixedIp: null, gate: null, calls: [], asked: [], tts: [], ttsFail: 0, voiceFailN: 0, voiceGate: null, stream: false, streamCut: false, streamTypes: [] };
     let release = null;
     st.hold = () => { st.gate = new Promise((r) => { release = r; }); };
     st.release = () => { st.gate = null; release?.(); };
@@ -4110,6 +4110,8 @@ export async function fakeProxy({ on = true, owner = 'Tony', model = 'gemini-3.5
             if (path === '/api/brain' && st.raw) return jres(200, st.raw);
             const fn = { '/api/status': 'status', '/api/brain': 'brain', '/api/voice': 'voice' }[path];
             if (!fn) return jres(404, {});
+            // Review 85: the next voiceFailN lines fail at the proxy (502), as when Google fails both ways.
+            if (path === '/api/voice' && st.voiceFailN > 0) { st.voiceFailN--; return { ok: false, status: 502, headers: { get: (k) => (/content-type/i.test(k) ? 'application/json' : null) }, json: async () => ({ error: 'upstream' }), arrayBuffer: async () => new ArrayBuffer(0) }; }
             const out = await st.app[fn]({ method: opts.method || 'GET', headers: { origin: 'https://twrconsultingllc.github.io', 'x-forwarded-for': st.fixedIp || `203.0.113.${st.calls.length % 250}` }, body: opts.body });
             const hs = Object.fromEntries(Object.entries(out.headers).map(([k, v]) => [k.toLowerCase(), v]));
             if (path === '/api/voice') st.streamTypes.push(hs['content-type']);
@@ -4536,11 +4538,13 @@ export async function ownVoice(t, page) {
             t.eq('around other words, the longest recorded run is found', show(plan('Listen carefully. ' + JOKE + ' Free your mind.', false, 'mixed', { [JOKE]: F(1), 'Listen carefully.': F(2) })), 'rec:Listen carefully. | rec:' + JOKE + ' | browser:Free your mind.');
             t.eq('his voice (the default), supercharger off, part not recorded: all in the browser\'s voice (null)', String(show(plan(JOKE + ' That would be 56.', false, 'his'))), 'null');
             t.eq('mixed: each piece takes what\'s there', show(plan(JOKE + ' That would be 56.', false, 'mixed')), 'rec:' + JOKE + ' | browser:That would be 56.');
-            t.eq('supercharger on: the rest is voiced live, its first sentence on its own (review 82, so he starts sooner)', show(plan(JOKE + ' That would be 56. Anything else?', true, 'his')), 'rec:' + JOKE + ' | live:That would be 56. | live:Anything else?');
-            t.eq('…and after the first live piece, sentences are joined again', show(plan('That would be 56. Anything else? Free your mind.', true, 'his', {})), 'live:That would be 56. | live:Anything else? Free your mind.');
+            // Since review 85: one live piece per answer (up to 600 characters). The stream starts him quickly anyway, and
+            // separate pieces were separate recordings that sounded like different voices.
+            t.eq('supercharger on: the rest is voiced live, as one piece', show(plan(JOKE + ' That would be 56. Anything else?', true, 'his')), 'rec:' + JOKE + ' | live:That would be 56. Anything else?');
+            t.eq('…a whole unrecorded answer is one live piece', show(plan('That would be 56. Anything else? Free your mind.', true, 'his', {})), 'live:That would be 56. Anything else? Free your mind.');
             const long = Array.from({ length: 12 }, (_, i) => `Sentence number ${i} is here and is quite a long one indeed.`).join(' ');
             const lp = plan(long, true, 'his', {});
-            t.ok('a live piece is at most 160 characters (a sentence or two, so each comes back quickly), and together they are the whole answer', lp.every((x) => x.kind === 'live' && x.text.length <= 160) && lp.length >= 4 && lp.map((x) => x.text).join(' ') === long);
+            t.ok('an answer over 600 characters is split, at whole sentences, into as few pieces as fit (at most 600 each), and together they are the whole answer', long.length > 600 && lp.every((x) => x.kind === 'live' && x.text.length <= 600) && lp.length === 2 && lp.map((x) => x.text).join(' ') === long);
             t.eq('nothing recorded and the supercharger off: the browser\'s voice (null)', String(plan('That would be 56.', false, 'mixed', {})), 'null');
             t.eq('his voice in the orb: the audio\'s loudness', J.orbPulse({ mode: 'speak', energy: 1, t: 0, level: 1 }), 1);
             t.eq('…quiet audio dims it', J.orbPulse({ mode: 'speak', energy: 1, t: 0, level: 0 }), 0.4);
@@ -4727,9 +4731,7 @@ export async function ownVoice(t, page) {
             t.ok('after three failures in a row the live voice rests, and the note says so', note() === 'BROWSER VOICE · LIVE VOICE RESTING AFTER FAILURES' && P.voice().length === v3);
             J.voiceOut.failAt = Date.now() - 121000;
             await turn(env, rig, 'what is nine times five');
-            // Since review 82 the first sentence goes on its own, so this two-sentence line ("That would be 45." and
-            // Morpheus's closer) is two calls.
-            t.ok('…for two minutes, not the rest of the visit', P.voice().length === v3 + 2 && P.voice().at(-2).body.includes('That would be 45.') && note() === 'GEMINI · ALGENIB' && !fell());
+            t.ok('…for two minutes, not the rest of the visit', P.voice().length === v3 + 1 && P.voice().at(-1).body.includes('That would be 45.') && note() === 'GEMINI · ALGENIB' && !fell());
             t.ok('the tag is styled: plain for the browser\'s voice, green for his own, amber for a fallback', /\.voice-tag\{display:block;[^}]*color:var\(--label\)/.test(src) && /\.voice-tag\.his\{color:var\(--phos\)\}/.test(src) && /\.voice-tag\.fell\{color:var\(--amber\)\}/.test(src));
             P.on = false; P.redeploy(); J.voiceOut.fails = 0;
             from = rig.log.timeline.length;
@@ -4786,6 +4788,47 @@ export async function ownVoice(t, page) {
             } finally { envQ.close(); }
         }
 
+        // Review 85: in his voice (the default), an answer never switches voice partway. A recording plays, then the live
+        // piece: if it fails it's asked for once more, and if that fails too he stops there rather than switch voices.
+        {
+            const rigH = voiceRig({ recordings: { jarvis: { [JOKE]: F(1) } } });
+            const PH = await fakeProxy({ on: true }); PH.stream = true;
+            const envH = await open(rigH, PH);
+            try {
+                const JH = envH.window.__jarvis;
+                await until(() => /My spoken lines go to Google too/.test(envH.document.getElementById('log').textContent), 5000);
+                await settle(envH, rigH);
+                const tagH = () => [...envH.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag')?.textContent || '';
+                PH.voiceFailN = 1; JH.voiceOut.fails = 0;
+                let from = rigH.log.timeline.length;
+                JH.say(JOKE + ' That would be 70.');
+                let tl = await said(envH, rigH, from);
+                t.eq('his voice: a piece that fails after he has begun is asked for once more, and plays in his voice', tl.join(' | '), `rec:${F(1)} | stream:That would be 70.`);
+                t.eq('…no browser voice, and the tag shows only his voices', tagH(), 'RECORDED · CHARON + GEMINI · CHARON');
+                PH.voiceFailN = 2; JH.voiceOut.fails = 0;
+                from = rigH.log.timeline.length;
+                JH.say(JOKE + ' That would be 71.');
+                tl = await said(envH, rigH, from);
+                t.eq('…if it fails again, he stops there rather than switch to the browser\'s voice', tl.join(' | '), `rec:${F(1)}`);
+                t.eq('…and the tag says he stopped, and why', tagH(), 'RECORDED · CHARON + STOPPED · GEMINI VOICE FAILED');
+                t.ok('…back to STANDBY', envH.document.getElementById('state').textContent === 'STANDBY');
+                PH.voiceFailN = 1; JH.voiceOut.fails = 0;
+                from = rigH.log.timeline.length;
+                JH.say('That would be 72. Anything else?');
+                tl = await said(envH, rigH, from);
+                t.eq('his voice failing before he has said anything: the whole answer in the browser\'s voice, never a mix', tl.join(' | '), 'tts:That would be 72. Anything else?');
+                t.eq('…tagged with why', tagH(), 'BROWSER VOICE · GEMINI VOICE FAILED');
+                // An answer over 600 characters is two live pieces. The first failing must put both in the browser's voice,
+                // never the second in his.
+                const longH = Array.from({ length: 12 }, (_, i) => `Sentence number ${i} is here and is quite a long one indeed.`).join(' ');
+                PH.voiceFailN = 1; JH.voiceOut.fails = 0;
+                from = rigH.log.timeline.length;
+                JH.say(longH);
+                tl = await said(envH, rigH, from, 8000);
+                t.ok('…an answer in two pieces whose first fails: all of it in the browser\'s voice, none in his', tl.length > 1 && tl.every((x) => x.startsWith('tts:')) && tl.map((x) => x.slice(4)).join(' ') === longH);
+            } finally { envH.close(); }
+        }
+
         // Lines kept before review 83 had the style read aloud in front of them: they're deleted, never played.
         {
             const rigO = voiceRig({});
@@ -4824,8 +4867,8 @@ export async function ownVoice(t, page) {
             const v0 = P.voice().length;
             J.say('That would be 56. Anything else? Shall I go on?');
             tl = await said(env, rig, from);
-            t.eq('a longer answer: the first sentence on its own, the rest in one piece, played in order', tl.join(' | '), 'stream:That would be 56. | stream:Anything else? Shall I go on?');
-            t.ok('…as two calls, the first holding only the first sentence', P.voice().length === v0 + 2 && JSON.parse(P.voice()[v0].body).text === 'That would be 56.');
+            t.eq('a longer answer: one streamed piece, one voice, no seams (review 85)', tl.join(' | '), 'stream:That would be 56. Anything else? Shall I go on?');
+            t.ok('…as one call', P.voice().length === v0 + 1 && JSON.parse(P.voice()[v0].body).text === 'That would be 56. Anything else? Shall I go on?');
             // Kept on the device once it has all arrived, as a WAV: the repeat is played from there, with no call.
             await turn(env, rig, 'how are you');
             const n1 = P.voice().length;
