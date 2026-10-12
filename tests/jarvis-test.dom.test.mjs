@@ -4830,6 +4830,41 @@ export async function ownVoice(t, page) {
             } finally { envH.close(); }
         }
 
+        // Review 87: "compare voices" plays one line three ways (A, B, C), each tagged with its letter, for the owner to
+        // pick by ear. And the opening waits for the supercharger, so it's in his voice.
+        {
+            const rigC = voiceRig({});
+            const PC = await fakeProxy({ on: true }); PC.stream = true;
+            const envC = await open(rigC, PC);
+            try {
+                const JC = envC.window.__jarvis, msgs = () => [...envC.document.querySelectorAll('#log .msg.ai')];
+                await until(() => /My spoken lines go to Google too/.test(envC.document.getElementById('log').textContent), 5000);
+                const opening = msgs().find((m) => /supercharger for you/.test(m.textContent));
+                t.ok('the opening waits for the supercharger: the greeting and its announcement are one line, in his voice', opening && /^(?:Good|Hello|Evening|Morning|Afternoon|Welcome)/i.test(opening.textContent) && opening.querySelector('.voice-tag')?.textContent === 'GEMINI · CHARON', opening?.textContent);
+                await settle(envC, rigC);
+                for (const q of ['compare voices', 'compare your voices', 'voice versions', 'jarvis compare voices']) t.ok(`"${q}" plays the versions`, JC.VOICE_COMPARE_RE.test(q.replace(/^jarvis /, '')));
+                t.ok('"voice samples" is still the samples', !JC.VOICE_COMPARE_RE.test('voice samples'));
+                const v0 = PC.voice().length, n0 = msgs().length;
+                await typeIn(envC, 'compare voices');
+                await until(() => msgs().length >= n0 + 4 && !JC.speakingNow(), 8000); await said(envC, rigC, 0, 3000);
+                const tags = msgs().slice(-3).map((m) => m.querySelector('.voice-tag')?.textContent);
+                t.eq('three lines, one per version, each tagged with its letter and his voice', tags.join(' / '), 'VERSION A · CHARON / VERSION B · CHARON / VERSION C · CHARON');
+                const bodies = PC.voice().slice(v0).map((c) => JSON.parse(c.body)).filter((b) => b.variant); // the intro line goes first, in his usual voice
+                t.ok('…the same line each time, asked for as A, B and C', bodies.length === 3 && bodies.map((b) => b.variant).join() === 'A,B,C' && bodies.every((b) => b.text === JC.VOICE_SAMPLES.jarvis[1]));
+                t.ok('…version A sent the first style in front of the words', /^Say this in a calm, precise, dryly British voice, like a polite butler: /.test(PC.tts.at(-3).contents[0].parts[0].text) && !PC.tts.at(-3).systemInstruction);
+                t.ok('…and nothing from it is kept on the device', ![...(rigC.caches.get(JC.CACHE_PREFIX + 'voice-live') || new Map()).keys()].some((k) => k.includes('Suit%20diagnostics')));
+                PC.voiceFailN = 1; JC.voiceOut.fails = 0;
+                const n1 = msgs().length;
+                await typeIn(envC, 'compare voices');
+                await until(() => msgs().length >= n1 + 4 && !JC.speakingNow(), 8000); await said(envC, rigC, 0, 3000);
+                t.eq('a version that fails says so on its line, and the others still play', msgs().slice(-3).map((m) => m.querySelector('.voice-tag')?.textContent).join(' / '), 'VERSION A · GEMINI VOICE FAILED / VERSION B · CHARON / VERSION C · CHARON');
+                PC.voiceFailN = 3; JC.voiceOut.fails = 0;
+                await JC.voiceCompare();
+                t.ok('all three failing: each line says so', msgs().slice(-3).every((m) => /GEMINI VOICE FAILED$/.test(m.querySelector('.voice-tag')?.textContent || '')));
+                t.eq('…and none of it counts towards resting the live voice', JC.voiceOut.fails, 0);
+            } finally { envC.close(); }
+        }
+
         // Lines kept before review 83 had the style read aloud in front of them: they're deleted, never played.
         {
             const rigO = voiceRig({});
