@@ -4446,7 +4446,7 @@ function voiceRig({ state = 'running', resumes = true, playMs = 15, speakMs = 10
             class Src {
                 connect() {}
                 start() { log.sources.push(this); log.timeline.push(this.buffer.tag); this.timer = setTimeout(() => this.onended?.(), playMs); }
-                stop() { log.stopped++; clearTimeout(this.timer); }
+                stop() { log.stopped++; this.halted = true; clearTimeout(this.timer); }
             }
             w.AudioContext = class {
                 constructor() { log.ctx++; this.state = state; this.destination = {}; }
@@ -4751,6 +4751,27 @@ export async function ownVoice(t, page) {
             const old = J.voiceFeed({ arrayBuffer: async () => Uint8Array.from([1, 2, 3, 4]).buffer }, 24000);
             t.ok('a browser with no readable body reads it in one go', (await old.ended) === true && old.size === 4);
         } finally { env0.close(); }
+
+        // A long streamed piece is several buffers queued back to back. A new answer must stop every one of them, not
+        // only the latest (playMs is long here, so they're all still queued when it does).
+        {
+            const rigQ = voiceRig({ playMs: 3000 });
+            const envQ = await open(rigQ, await fakeProxy({ on: false }));
+            try {
+                const J = envQ.window.__jarvis;
+                await settle(envQ, rigQ);
+                J.say('Anytime.'); await wait(50); // starts Web Audio on this page
+                const k = 12000; // a quarter of a second each, more than the 0.2 s lead
+                const f = J.voiceFeed({ body: new ReadableStream({ async start(c) { for (let i = 0; i < 3; i++) { c.enqueue(new Uint8Array(k)); await wait(20); } c.close(); } }) }, 24000);
+                const n0 = rigQ.log.sources.length;
+                J.voicePlayFeed(f, J.sayGen());
+                await until(() => rigQ.log.sources.length - n0 >= 3, 2000);
+                const queued = rigQ.log.sources.slice(n0);
+                t.ok('a streamed piece arriving in three runs is queued as three buffers', queued.length === 3 && J.voiceOut.srcs.size === 3);
+                J.say('Anytime.'); await wait(5);
+                t.ok('a new answer stops every queued buffer, not only the latest', queued.every((x) => x.halted));
+            } finally { envQ.close(); }
+        }
 
         const rig = voiceRig({});
         const P = await fakeProxy({ on: true });
