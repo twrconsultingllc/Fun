@@ -116,6 +116,7 @@ export default async function run(t, page) {
             const body = JSON.parse(init.body);
             if (mode === 'busy-once') { mode = 'ok'; return json(429, { error: { code: 429, message: 'slow down' } }); }
             if (mode === 'fail') return json(400, { error: { code: 400, message: `bad request key=${KEY}` } });
+            if (mode === 'wav') return json(200, { candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/wav', data: Buffer.from('RIFF-a-real-file').toString('base64url') } }] }, finishReason: 'STOP' }] });
             const words = body.contents[0].parts[0].text.replace(/^[^:]*: /, '');
             return json(200, { candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: Buffer.from(words.length % 2 ? words + ' ' : words).toString('base64') } }] }, finishReason: 'STOP' }] });
         };
@@ -156,6 +157,10 @@ export default async function run(t, page) {
         const failLogs = [];
         out = await R.record({ lines: { ...changed, panther: ['Go Panthers!'] }, dir, key: KEY, fetchImpl, encode, log: (x) => failLogs.push(x), pace: 0 });
         t.ok('a refused line is counted, not recorded, and the error is scrubbed of the key', out.failed === 1 && out.done === 0 && !failLogs.join('\n').includes(KEY) && !(await R.readManifest(dir)).lines.panther['Go Panthers!']);
+        mode = 'wav';
+        const fed = [];
+        out = await R.record({ lines: { ...changed, panther: ['Puck drop!'] }, dir, key: KEY, fetchImpl, encode: async (b) => { fed.push(Buffer.from(b).toString()); return Buffer.from('MP3:x'); }, log: () => {}, pace: 0 });
+        t.ok('audio Google sends as a file (a WAV, URL-safe base64) goes to the encoder as it is (the fix after review 79)', out.done === 1 && fed[0] === 'RIFF-a-real-file');
         mode = 'ok';
         out = await R.record({ lines: { jarvis: lines.jarvis.slice(0, 6), matrix: [], panther: [] }, dir, key: KEY, fetchImpl, encode, log: () => {}, pace: 0, limit: 2 });
         t.eq('--limit caps one run', out.done, 2);

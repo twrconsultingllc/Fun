@@ -356,6 +356,24 @@ export default async function run(t) {
         t.ok('data that isn\'t base64: error', !!readVoice({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;rate=24000', data: '<script>' } }] } }] }).error);
         t.ok('audio far too long (over about 80 seconds): error', !!readVoice({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;rate=24000', data: 'A'.repeat(5400000) } }] } }] }).error);
         t.ok('blocked: {blocked}', readVoice({ promptFeedback: { blockReason: 'SAFETY' } }).blocked === true && readVoice({ candidates: [{ finishReason: 'SAFETY' }] }).blocked === true);
+        // After review 79: the real model's answer (gemini-3.8-flash-tts, 2026-10-12) was refused by the first, strict reader
+        // with a 502 the log couldn't explain. These are the shapes it now accepts, and what it still refuses.
+        const one = (inline, extra = {}) => ({ candidates: [{ content: { parts: [{ ...extra, ...inline }] }, finishReason: 'STOP' }] });
+        const urlSafe = Buffer.from(Uint8Array.from({ length: 300 }, (_, i) => (i * 251) & 255)).toString('base64url');
+        t.ok('URL-safe base64 with no padding is read', readVoice(one({ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: urlSafe } })).pcm?.length === 300 && /[-_]/.test(urlSafe));
+        t.ok('base64 broken across lines is read', readVoice(one({ inlineData: { mimeType: 'audio/L16;rate=24000', data: b64.replace(/(.{76})/g, '$1\n') } })).pcm?.length === 4800);
+        t.ok('inline_data (snake case) is read', readVoice(one({ inline_data: { mime_type: 'audio/L16;rate=24000', data: b64 } })).pcm?.length === 4800);
+        const twoParts = { candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;rate=24000', data: Buffer.from(pcm.subarray(0, 2400)).toString('base64') } }, { text: 'note' }, { inlineData: { mimeType: 'audio/L16;rate=24000', data: Buffer.from(pcm.subarray(2400)).toString('base64') } }] } }] };
+        const tp = readVoice(twoParts);
+        t.ok('audio split across several parts is joined in order', tp.pcm?.length === 4800 && tp.pcm[2401] === pcm[2401] && tp.info.parts === 2);
+        t.eq('audio/pcm with no rate is taken as 24 kHz', readVoice(one({ inlineData: { mimeType: 'audio/pcm', data: b64 } })).rate, 24000);
+        t.eq('another PCM label (audio/s16le) is still PCM', readVoice(one({ inlineData: { mimeType: 'audio/s16le;rate=24000', data: b64 } })).pcm?.length, 4800);
+        const asWav = readVoice(one({ inlineData: { mimeType: 'audio/wav', data: Buffer.from(wav(pcm, 24000)).toString('base64') } }));
+        t.ok('a WAV file from Google is passed through as it is', asWav.type === 'audio/wav' && asWav.file?.length === 4844 && !asWav.pcm);
+        t.eq('an MP3 likewise', readVoice(one({ inlineData: { mimeType: 'audio/mpeg', data: 'SUQz' } })).type, 'audio/mpeg');
+        t.ok('every result says what Google named its audio, for the log', readVoice(one({ inlineData: { mimeType: 'image/png', data: b64 } })).info?.mime === 'image/png');
+        t.ok('still refused: a media type that isn\'t audio', readVoice(one({ inlineData: { mimeType: 'text/html', data: b64 } })).error === 'audio type');
+        t.ok('still refused: no media type at all', readVoice(one({ inlineData: { data: b64 } })).error === 'audio type');
         const w = wav(rv.pcm, 24000), dv = new DataView(w.buffer);
         t.ok('wrapped as a WAV: RIFF, WAVE, PCM, mono, 16-bit, 24 kHz, the data after a 44-byte header',
             Buffer.from(w.subarray(0, 4)).toString() === 'RIFF' && Buffer.from(w.subarray(8, 12)).toString() === 'WAVE' && dv.getUint16(20, true) === 1 && dv.getUint16(22, true) === 1 &&
@@ -425,6 +443,17 @@ export default async function run(t) {
         x = gem(() => geminiOk('Here is some text instead of audio.'));
         r = await vpost(x);
         t.ok('text instead of audio: 502 format', r.status === 502 && parse(r).error === 'format' && typeof r.body === 'string');
+        const flogs = [];
+        x = app({}, [edge({ supercharge: true }), catalog(TTS), gemini(() => ({ status: 200, json: { candidates: [{ content: { parts: [{ inlineData: { mimeType: 'video/mp4', data: b64 } }] }, finishReason: 'STOP' }] } }))], flogs);
+        r = await vpost(x, { skin: 'jarvis', text: 'Hidden words here.' });
+        const fl = flogs.find(l => l.error === 'format');
+        t.ok('a refused answer is logged with why and what Google named it, so the reason shows in Vercel', fl && fl.detail === 'audio type' && fl.mime === 'video/mp4' && fl.parts === 1 && fl.bytes === 0);
+        t.ok('…and still never the words', !JSON.stringify(flogs).includes('Hidden'));
+        x = app({}, [edge({ supercharge: true }), catalog(TTS), gemini(() => ({ status: 200, json: { candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/wav', data: Buffer.from(wav(pcm, 24000)).toString('base64') } }] } }] } }))]);
+        r = await vpost(x);
+        t.ok('a WAV from Google goes to the page unchanged, as audio/wav', r.status === 200 && r.headers['Content-Type'] === 'audio/wav' && r.body.length === 4844);
+        x = app({}, [edge({ supercharge: true }), catalog(TTS), gemini(() => ({ status: 200, json: { candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: Buffer.from(pcm).toString('base64url') } }] } }] } }))]);
+        t.eq('URL-safe base64 from Google: 200 audio/wav', (await vpost(x)).status, 200);
     }
 
 }
