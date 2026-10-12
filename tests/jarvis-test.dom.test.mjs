@@ -4492,7 +4492,7 @@ export async function ownVoice(t, page) {
             t.eq('supercharger on: the rest is voiced live', show(plan(JOKE + ' That would be 56. Anything else?', true, 'his')), 'rec:' + JOKE + ' | live:That would be 56. Anything else?');
             const long = Array.from({ length: 12 }, (_, i) => `Sentence number ${i} is here and is quite a long one indeed.`).join(' ');
             const lp = plan(long, true, 'his', {});
-            t.ok('a live run is at most 600 characters, and together they are the whole answer', lp.every((x) => x.kind === 'live' && x.text.length <= 600) && lp.length >= 2 && lp.map((x) => x.text).join(' ') === long);
+            t.ok('a live piece is at most 160 characters (a sentence or two, so each comes back quickly), and together they are the whole answer', lp.every((x) => x.kind === 'live' && x.text.length <= 160) && lp.length >= 4 && lp.map((x) => x.text).join(' ') === long);
             t.eq('nothing recorded and the supercharger off: the browser\'s voice (null)', String(plan('That would be 56.', false, 'mixed', {})), 'null');
             t.eq('his voice in the orb: the audio\'s loudness', J.orbPulse({ mode: 'speak', energy: 1, t: 0, level: 1 }), 1);
             t.eq('…quiet audio dims it', J.orbPulse({ mode: 'speak', energy: 1, t: 0, level: 0 }), 0.4);
@@ -4526,6 +4526,7 @@ export async function ownVoice(t, page) {
             await typeIn(env, 'what is seven times eight');
             tl = await said(env, rig, from);
             t.eq('a line with no recording, supercharger off: the browser\'s voice', tl.join(' | '), 'tts:That would be 56.');
+            t.ok('and that\'s the usual state, so no note on his line', ![...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag'));
             t.eq('(still no call to /api/voice)', off.voice().length, 0);
             from = rig.log.timeline.length;
             await typeIn(env, 'voice samples');
@@ -4560,11 +4561,13 @@ export async function ownVoice(t, page) {
             t.eq('a recording that won\'t decode: the browser says it instead', (await said(env3, rig3, 0)).join(' | '), 'tts:Anytime.');
         } finally { env3.close(); }
         const rig4 = voiceRig({ recordings: { jarvis: { 'Anytime.': F(9) } }, state: 'suspended', resumes: false });
-        const env4 = await open(rig4, await fakeProxy({ on: false }));
+        const env4 = await open(rig4, await fakeProxy({ on: true }));
         try {
+            await until(() => /supercharger for you/.test(env4.document.getElementById('log').textContent), 5000);
             await settle(env4, rig4);
             env4.window.__jarvis.say('Anytime.');
             t.eq('sound not allowed yet (no tap on a phone): the browser\'s voice, no gap', (await said(env4, rig4, 0)).join(' | '), 'tts:Anytime.');
+            t.eq('…and with the supercharger on, his line says to tap', [...env4.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag')?.textContent, 'BROWSER VOICE · TAP TO ALLOW SOUND');
         } finally { env4.close(); }
     }
 
@@ -4645,6 +4648,26 @@ export async function ownVoice(t, page) {
             J.say('That would be 59. Free your mind.');
             t.eq('the proxy unreachable: the same', (await said(env, rig, from)).join(' | '), `tts:That would be 59. | rec:${F(3)}`);
             P.down = false;
+            // Since the fix after review 79: when he meant to use his own voice but couldn't, his chat line says why.
+            const note = () => [...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag')?.textContent || '';
+            J.voiceOut.fails = 0; P.ttsFail = 500;
+            await turn(env, rig, 'what is nine times nine');
+            t.eq('Gemini fails: his chat line says the browser\'s voice was used, and why', note(), 'BROWSER VOICE · GEMINI VOICE FAILED');
+            P.ttsFail = 0; J.voiceOut.fails = 0;
+            let openGate; J.voiceOut.first = 60; P.voiceGate = new Promise((r) => { openGate = r; });
+            await turn(env, rig, 'what is nine times eight');
+            t.eq('Gemini too slow for the first piece: "too slow"', note(), 'BROWSER VOICE · TOO SLOW');
+            openGate(); P.voiceGate = null; J.voiceOut.first = 12000; await wait(50);
+            await turn(env, rig, 'what is nine times seven');
+            t.eq('when it works, no note', note(), '');
+            J.voiceOut.fails = 3; J.voiceOut.failAt = Date.now();
+            const v3 = P.voice().length;
+            await turn(env, rig, 'what is nine times six');
+            t.ok('after three failures in a row the live voice rests, and the note says so', note() === 'BROWSER VOICE · LIVE VOICE RESTING AFTER FAILURES' && P.voice().length === v3);
+            J.voiceOut.failAt = Date.now() - 121000;
+            await turn(env, rig, 'what is nine times five');
+            t.ok('…for two minutes, not the rest of the visit', P.voice().length === v3 + 1 && note() === '');
+            t.ok('the note is a styled tag, and amber like the other tags', /\.voice-tag\{display:block;[^}]*color:var\(--amber\)/.test(src));
             P.on = false; P.redeploy(); J.voiceOut.fails = 0;
             from = rig.log.timeline.length;
             J.say('That would be 60.');

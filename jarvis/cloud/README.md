@@ -88,8 +88,17 @@ proxy keeps running its last deployed code. Check what it runs with
 Every field the page sends is bounded (the question at 500 characters, six
 earlier turns, 1,500 characters of facts, 300 actions), answers are capped at
 512 tokens, and each address gets 12 questions a minute. `/api/voice` takes at most 600
-characters and has its own limit of 20 lines a minute per address, and its
-function may run for 30 seconds (`vercel.json`). Those limits reset
+characters and has its own limit of 40 lines a minute per address (the page
+sends long answers as short pieces), and its function may run for 30 seconds
+(`vercel.json`).
+
+If Google's audio answer can't be read, `/api/voice` answers 502 and logs
+`{"event":"voice","error":"format","detail":…,"mime":…,"parts":…,"bytes":…}`:
+which check failed and what Google called its audio, never the words. The
+reader accepts audio in any part, either base64 alphabet, any 16-bit PCM label
+(24 kHz unless it names a rate), and passes a WAV, MP3 or other audio file
+through unchanged. On 2026-10-12 the first, stricter reader refused the real
+model's answer this way, with nothing in the log to say why. Those limits reset
 when Vercel starts a new instance, so the real limits are on Google's side:
 a budget alert and a daily request quota on the key's project.
 

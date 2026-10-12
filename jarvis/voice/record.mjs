@@ -69,7 +69,7 @@ export async function plan(lines, manifest, dir = DIR) {
     return { todo, stale, keep, chars, bytes, estimate: bytes + chars * BYTES_PER_CHAR };
 }
 
-// WAV to MP3 with ffmpeg: mono, 24 kHz, 48 kbit/s, no metadata (so the same audio always makes the same bytes).
+// Audio (a WAV, or any file Google sent) to MP3 with ffmpeg: mono, 24 kHz, 48 kbit/s, no metadata (so the same audio always makes the same bytes).
 export function ffmpegEncode(wavBytes) {
     return new Promise((resolve, reject) => {
         const base = join(tmpdir(), 'jarvis-voice-' + process.pid + '-' + Math.random().toString(36).slice(2));
@@ -116,8 +116,14 @@ export async function record({ lines, dir = DIR, key, fetchImpl = fetch, encode 
             out = readVoice(data);
             break;
         }
-        if (!out || !out.pcm) { failed++; log(`Not recorded (${item.skin}, ${item.text.length} characters): ${out ? out.error || 'blocked' : 'no answer'}`); continue; }
-        const mp3 = await encode(wav(out.pcm, out.rate));
+        if (!out || !(out.pcm || out.file)) {
+            failed++;
+            const why = out ? out.error || 'blocked' : 'no answer', i = out && out.info;
+            log(`Not recorded (${item.skin}, ${item.text.length} characters): ${why}${i ? ` (audio type ${i.mime || 'none'}, ${i.parts} parts, ${i.bytes} bytes)` : ''}`);
+            continue;
+        }
+        // Raw PCM is wrapped as a WAV first; audio that's already a file goes to ffmpeg as it is.
+        const mp3 = await encode(out.file || wav(out.pcm, out.rate));
         await mkdir(join(dir, item.skin), { recursive: true });
         await writeFile(join(dir, item.skin, item.file), mp3);
         (manifest.lines[item.skin] ||= {})[item.text] = { file: item.file, sha256: createHash('sha256').update(mp3).digest('hex'), bytes: mp3.length };

@@ -862,7 +862,8 @@ try {
             ok('after a reload it controls the page', await p.evaluate(() => !!navigator.serviceWorker.controller));
             const cached = await p.evaluate(async () => { const o = {}; for (const k of await caches.keys()) o[k] = (await (await caches.open(k)).keys()).map((r) => r.url); return o; });
             const sw = await readFile(join(ROOT, 'jarvis-test-sw.js'), 'utf8'), libHash = (sw.match(/LIB_HASH = '([0-9a-f]+)'/) || [])[1];
-            ok('it keeps two caches of its own, the libraries named for LIB_HASH', Object.keys(cached).sort().join() === `jarvis-test-lib-${libHash},jarvis-test-shell`, Object.keys(cached).join());
+            // Since Session 18 his live voice plays here too, and the page keeps fixed lines it voiced in its own voice-live cache.
+            ok('it keeps its own caches, the libraries named for LIB_HASH (and, since Session 18, his kept voice lines)', Object.keys(cached).filter((k) => !/^jarvis-test-voice(?:-live)?$/.test(k)).sort().join() === `jarvis-test-lib-${libHash},jarvis-test-shell` && Object.keys(cached).every((k) => k.startsWith('jarvis-test-')), Object.keys(cached).join());
             ok('with the page, the font and three.js in them', JSON.stringify(cached).includes(BASE + 'jarvis-test.html') && JSON.stringify(cached).includes('chakra-petch-latin-500-normal.woff2') && JSON.stringify(cached).includes('three.min.js'));
             ok('and nothing from the supercharger proxy', !JSON.stringify(cached).includes('vercel'));
             const hits0 = PX.hits.length;
@@ -908,8 +909,13 @@ try {
             await p.reload(); await p.waitForFunction(() => window.__jarvis); await p.evaluate(() => window.__jarvis.ready);
             await p.click('#boot-skip'); await p.waitForTimeout(1200);
             PX.on = false; PX.redeploy();
-            await p.evaluate(() => window.__jarvis.cloudCheck()); await p.waitForTimeout(1500);
-            ok('switched off: he notices and says so, and the colours go', (await log()).includes('My supercharger has been turned off.') && !(await p.isVisible('#sc-tag')));
+            await p.evaluate(() => window.__jarvis.cloudCheck()); await p.waitForTimeout(300);
+            ok('switched off: the colours go at once', !(await p.isVisible('#sc-tag')));
+            // He says so at the next gap in what he's saying. Since Session 18 his own voice is playing here, so that can take
+            // a while: the announcement waits up to 15 s for a gap (cloudAnnounce), then speaks anyway.
+            const t0 = Date.now();
+            await p.waitForFunction(() => document.getElementById('log').textContent.includes('My supercharger has been turned off.'), null, { timeout: 20000 }).catch(() => {});
+            ok(`and he says so, within the announcement's 15 s wait for a gap (${((Date.now() - t0) / 1000).toFixed(1)} s)`, (await log()).includes('My supercharger has been turned off.'));
             await p.screenshot({ path: join(OUT, `supercharger-off-${w}.png`) });
             const away = asked.filter((u) => !u.startsWith(BASE) && !/^(data|blob):/.test(u));
             ok(`no request left the site but the supercharger's three (status, brain and, since Session 18, voice) at ${w}×${h}`, away.every((u) => [PROXY + '/api/status', PROXY + '/api/brain', PROXY + '/api/voice'].includes(u)) && !asked.some((u) => /googleapis|gstatic|cdnjs/.test(u)), [...new Set(away)].join());

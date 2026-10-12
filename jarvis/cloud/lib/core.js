@@ -34,7 +34,8 @@ export const LIMITS = {
 export const RATE = { perIpPerMinute: 12, perInstancePerMinute: 120 };
 // The live voice (Session 18): one call per answer, usually, so a little more room than questions get.
 export const VOICE_LIMITS = { body: 2000, text: 600 };
-export const VOICE_RATE = { perIpPerMinute: 20, perInstancePerMinute: 200 };
+// Since the fix after review 79, the page sends a long answer as several short pieces, so a little more room again.
+export const VOICE_RATE = { perIpPerMinute: 40, perInstancePerMinute: 300 };
 const SWITCH_TTL = 30000;     // Edge Config read at most every 30 s per instance
 const CATALOG_TTL = 3600000;  // the live model list, at most hourly
 
@@ -318,27 +319,57 @@ export function voiceBody(r) {
         generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: v.name } } } }
     };
 }
-// Gemini's audio answer: base64 PCM (mimeType "audio/L16;codec=pcm;rate=24000", 16-bit mono), read back to
-// {pcm, rate}, or {blocked} / {error}.
-const MAX_PCM = 4000000; // about 80 seconds at 24 kHz, well over what 600 characters take to say
+// Gemini's audio answer, read back to {pcm, rate} (raw 16-bit mono PCM, wrapped as a WAV below) or {file, type} (audio
+// that's already a file, passed through), or {blocked} / {error}. Every result carries `info`: the media type Google
+// named, how many audio parts and how many bytes, so a rejection can be logged without the words (Session 18).
+//
+// The first version (review 79) accepted only one exact shape and, on 2026-10-12, rejected the real model's answer
+// (gemini-3.8-flash-tts) with a 502 that the log couldn't explain. So this reads it the tolerant way: audio in any
+// part, inlineData or inline_data, the parts joined in order, either base64 alphabet, padded or not, line breaks
+// allowed, and any audio/ media type: a known file type is passed through, anything else is taken as 16-bit PCM at
+// the rate it names (24 kHz if it names none).
+const MAX_AUDIO = 4000000;    // bytes: about 80 seconds of 24 kHz PCM, and under Vercel's 4.5 MB response limit
+const FILE_TYPES = { 'audio/wav': 'audio/wav', 'audio/x-wav': 'audio/wav', 'audio/wave': 'audio/wav', 'audio/mpeg': 'audio/mpeg', 'audio/mp3': 'audio/mpeg',
+    'audio/ogg': 'audio/ogg', 'audio/opus': 'audio/ogg', 'audio/webm': 'audio/webm', 'audio/aac': 'audio/aac', 'audio/flac': 'audio/flac', 'audio/mp4': 'audio/mp4' };
+function unbase64(s) {
+    const t = String(s).replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/').replace(/=+$/, '');
+    if (!/^[A-Za-z0-9+/]*$/.test(t) || t.length % 4 === 1) return null;
+    try {
+        const bin = atob(t + '='.repeat((4 - t.length % 4) % 4)), out = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+        return out;
+    } catch { return null; }
+}
 export function readVoice(data) {
-    if (!data || typeof data !== 'object') return { error: 'empty' };
-    if (data.promptFeedback && data.promptFeedback.blockReason) return { blocked: true };
+    const info = { mime: null, parts: 0, bytes: 0 };
+    if (!data || typeof data !== 'object') return { error: 'empty', info };
+    if (data.promptFeedback && data.promptFeedback.blockReason) return { blocked: true, info };
     const c = Array.isArray(data.candidates) && data.candidates[0];
-    if (!c) return { error: 'no candidate' };
-    if (c.finishReason === 'SAFETY' || c.finishReason === 'PROHIBITED_CONTENT' || c.finishReason === 'BLOCKLIST') return { blocked: true };
-    const part = ((c.content && c.content.parts) || []).find(p => p && p.inlineData && typeof p.inlineData.data === 'string');
-    if (!part) return { error: 'no audio' };
-    const mime = String(part.inlineData.mimeType || '');
-    if (!/^audio\/(?:L16|pcm)\b/i.test(mime)) return { error: 'audio type' };
-    const rate = Number((mime.match(/rate=(\d+)/) || [0, 24000])[1]);
-    if (!(rate >= 8000 && rate <= 48000)) return { error: 'audio rate' };
-    const b64 = part.inlineData.data;
-    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(b64) || b64.length * 3 / 4 > MAX_PCM) return { error: 'audio data' };
-    let pcm;
-    try { const bin = atob(b64); pcm = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) pcm[i] = bin.charCodeAt(i); } catch { return { error: 'audio data' }; }
-    if (pcm.length < 2) return { error: 'no audio' };
-    return { pcm: pcm.length % 2 ? pcm.subarray(0, pcm.length - 1) : pcm, rate };
+    if (!c) return { error: 'no candidate', info };
+    if (c.finishReason === 'SAFETY' || c.finishReason === 'PROHIBITED_CONTENT' || c.finishReason === 'BLOCKLIST') return { blocked: true, info };
+    const parts = ((c.content && c.content.parts) || []).map(p => p && (p.inlineData || p.inline_data)).filter(d => d && typeof d.data === 'string');
+    info.parts = parts.length;
+    if (!parts.length) return { error: 'no audio', info };
+    const mime = String(parts[0].mimeType || parts[0].mime_type || '').trim();
+    info.mime = mime.slice(0, 60);
+    const base = mime.split(';')[0].trim().toLowerCase();
+    if (!/^audio\/[a-z0-9.+-]+$/.test(base)) return { error: 'audio type', info };
+    const chunks = [];
+    for (const p of parts) {
+        const b = unbase64(p.data);
+        if (!b) return { error: 'audio data', info };
+        info.bytes += b.length;
+        if (info.bytes > MAX_AUDIO) return { error: 'audio too long', info };
+        chunks.push(b);
+    }
+    const all = new Uint8Array(info.bytes);
+    let at = 0;
+    for (const b of chunks) { all.set(b, at); at += b.length; }
+    if (FILE_TYPES[base]) return all.length > 0 ? { file: all, type: FILE_TYPES[base], info } : { error: 'no audio', info };
+    const m = mime.match(/rate=(\d+)/i), rate = m ? Number(m[1]) : 24000;
+    if (!(rate >= 8000 && rate <= 48000)) return { error: 'audio rate', info };
+    if (all.length < 2) return { error: 'no audio', info };
+    return { pcm: all.length % 2 ? all.subarray(0, all.length - 1) : all, rate, info };
 }
 // The PCM wrapped as a WAV file (44-byte header), which every browser can decode.
 export function wav(pcm, rate) {
@@ -435,8 +466,11 @@ export function createApp({ env, fetchImpl = fetch, now = Date.now, log = () => 
         const u = (out.data && out.data.usageMetadata) || {};
         log({ event: 'voice', model, in: u.promptTokenCount || 0, out: u.candidatesTokenCount || 0 });
         const a = readVoice(out.data);
-        if (a.blocked) return json(502, cors, { error: 'blocked', model });
-        if (a.error) return json(502, cors, { error: 'format', detail: a.error, model });
+        // Why an answer was refused, logged with what Google named its audio (never the words), so a mismatch shows in
+        // Vercel's logs the first time it happens.
+        if (a.blocked) { log({ event: 'voice', model, error: 'blocked' }); return json(502, cors, { error: 'blocked', model }); }
+        if (a.error) { log({ event: 'voice', model, error: 'format', detail: a.error, ...a.info }); return json(502, cors, { error: 'format', detail: a.error, model }); }
+        if (a.file) return { status: 200, headers: { ...cors, 'Content-Type': a.type, 'X-Content-Type-Options': 'nosniff' }, body: a.file };
         return { status: 200, headers: { ...cors, 'Content-Type': 'audio/wav', 'X-Content-Type-Options': 'nosniff' }, body: wav(a.pcm, a.rate) };
     }
 

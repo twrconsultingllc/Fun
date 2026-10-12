@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #80 — J.A.R.V.I.S.: why his live voice fell silent, and the fix</title>
+<meta name="description" content="Review of the fix after the first live try of Session 18 on 2026-10-12: the proxy refused the real Gemini text-to-speech answer with an unexplained 502, and the page fell back to the browser voice silently.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #80 — J.A.R.V.I.S.: why his live voice fell silent, and the fix</h1>
+    <p class="sub">On the first live try of Session 18 (<a href="79.html">review 79</a>), the owner heard only the phone's voice. Google answered, but the proxy refused its audio with a 502 that the log couldn't explain, and the page fell back without a word. This review covers the fix: a reader that accepts the real answer's likely shapes, a log line that says why, shorter live pieces with longer waits, and a visible note whenever he falls back.</p>
+    <div class="meta">Review performed 2026-10-12 · scope: <code>jarvis/cloud/lib/core.js</code>, <code>jarvis/cloud/README.md</code>, <code>jarvis-test.html</code>, <code>jarvis/voice/record.mjs</code>, <code>tests/jarvis-cloud.test.mjs</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>tests/jarvis-voice.test.mjs</code>, <code>jarvis/build-plan.html</code> · suites run: <code>--page=jarvis-test.html</code> (<code>jarvis-test</code>, <code>jarvis-cloud</code>, <code>jarvis-test-sw</code>, <code>jarvis-voice</code>), <code>--only=jarvis-sw</code>, then <code>jarvis-test.chromium.mjs</code> on its own.</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 78%;"></div></div>
+    <div class="progress-label">9 items: 7 verified clean or fixed, 2 open or partial.</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Security and privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What the live try showed</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>On the owner's phone, <code>/api/status</code> answered <code>"voice": true</code>, and "voice samples" didn't say the supercharger was needed, so the page asked for the live voice. Vercel's log for that request read <code>{event: "voice", model: "gemini-3.8-flash-tts", in: 128, out: 895}</code>, and the response was 502. The proxy logs those token counts only after Google answers successfully. So the model was found in Google's live list and Google answered. What refused the answer was <code>readVoice()</code>, the proxy's own check, which review 79 had called clean on the strength of a fake built to the format as documented.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Reading the real answer</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The first reader took one exact shape: the first <code>inlineData</code> part, a media type of <code>audio/L16</code> or <code>audio/pcm</code>, and standard padded base64. Which of these the real answer broke can't be known, because the 502's reason never reached a log.</p></div>
+      <div class="fix-note"><b>Fix:</b> <code>readVoice()</code> now takes audio from every part in order, under <code>inlineData</code> or <code>inline_data</code>. It accepts either base64 alphabet, padded or not, with line breaks, and any 16-bit PCM label (24 kHz unless a rate is named). It passes a WAV, MP3, Ogg, WebM, AAC, FLAC or MP4 file through with its own type. It still refuses anything that isn't audio, no media type at all, data that isn't base64, more than 4 MB (under Vercel's 4.5 MB response limit) and a rate outside 8–48 kHz. The recorder shares the reader and sends a passed-through file to ffmpeg as it is.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A refusal now says why, without the words</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Review 79 kept the log to the model and token counts so nothing said would ever be logged. That also hid the one fact needed here.</p></div>
+      <div class="fix-note"><b>Fix:</b> A refused answer now logs <code>error: "format"</code> with <code>detail</code> (which check), <code>mime</code> (what Google called its audio, cut to 60 characters), <code>parts</code> and <code>bytes</code>. A check sends a request with known words and confirms that none of them reaches the log.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Rate limit raised to fit shorter pieces</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>A long answer is now several requests, so the per-address limit for <code>/api/voice</code> went from 20 to 40 lines a minute (300 per instance). It is still separate from the 12 questions a minute, and the other gates (origin, on only while the supercharger is, 600 characters) are unchanged and still checked.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Whether the real answer is now read</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Still not testable from the container: Google can't be reached. If the real answer is something the new reader still refuses, the Vercel log will now name the check and the media type on the first try.</p></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Too slow for one wait</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>895 output tokens is about 35 seconds of speech for the 230-character sample answer. The page sent it as one request and waited 8 seconds, so even a readable answer would have come too late.</p></div>
+      <div class="fix-note"><b>Fix:</b> Live lines go in pieces of at most 160 characters (the size the browser voice already uses). All pieces start at once and play in order. The first piece of an answer is waited for 12 seconds, and each later one up to 25 (Vercel allows the function 30). A piece that arrives after its wait is still kept on the device if it may be, so a repeat plays at once.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The fallback was silent</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The page fell back to the phone's voice on any failure without a word, which made this impossible to see on the phone.</p></div>
+      <div class="fix-note"><b>Fix:</b> When he meant to use his own voice and didn't, his chat line gets an amber tag: "BROWSER VOICE ·" then "GEMINI VOICE FAILED", "TOO SLOW", "BUSY", "UNREACHABLE", "SWITCHED OFF", "COULD NOT PLAY IT", "RECORDING MISSING", "TAP TO ALLOW SOUND" or "LIVE VOICE RESTING AFTER FAILURES". The usual fallbacks, with the supercharger off or the browser voice chosen, get no tag. The tag reuses the amber of the existing brain tags, so its contrast is unchanged.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Three failures ended his voice for the whole visit</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>After three failures in a row the page stopped asking for the rest of the visit, so a fix on the proxy wouldn't have been heard without a reload.</p></div>
+      <div class="fix-note"><b>Fix:</b> The live voice now rests for two minutes, then tries again. The note says it's resting.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Review 79's "verified" was too strong</div><span class="badge partial">Partial</span></div>
+      <div class="item-body"><p>Review 79 marked the response checks clean, against a fake that matched the documented shape. They failed on the first real answer. As in CLAUDE.md's lesson from the full brain's errors, a fake shows only what its author believed. The new checks feed the reader every shape a real answer might reasonably take, and the log now covers the case nobody predicted. Partial, because the real shape is still unseen.</p></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">03</span>Checks</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What ran</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><ul>
+        <li><code>jarvis-cloud</code>: 200 checks (up from 185), with the real answer's likely shapes, the logged reason and the file passthrough.</li>
+        <li><code>jarvis-test</code>: 2,005 checks, with the notes, the 160-character pieces, the first-piece wait and the two-minute rest.</li>
+        <li><code>jarvis-voice</code>: 60 checks, with the recorder taking a file Google sends.</li>
+        <li><code>jarvis-test-sw</code>: 105 checks, and <code>jarvis-sw</code>: 86.</li>
+        <li><code>jarvis-test.chromium.mjs</code>: 336 checks. Now that the live voice plays in Chromium, two step-11 checks needed changing. The page now keeps a third cache of its own (<code>jarvis-test-voice-live</code>), so that step now allows it. The "turned off" line now waits for him to stop speaking, so the step waits for the line instead of a fixed 1.5 s. It came after 3.7 and 3.8 seconds, and the colours went at once. No page errors and no CSP violations.</li>
+      </ul></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Copies broken on purpose</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Each had one bug planted and failed its suite: the strict base64 back (2 checks), no reason logged (1), only the first audio part read (1), no file passthrough (3), live pieces back to 600 characters (1), a silent fallback (4), resting for the whole visit (1), and no separate wait for the first piece (1). The four page copies ran against the "His own voice" part of the page suite. The proxy copies ran the whole <code>jarvis-cloud</code> suite.</p></div>
+    </div>
+  </section>
+  <footer>Review #80 · previous: <a href="79.html">review 79</a></footer>
+</div>
+</body>
+</html>
