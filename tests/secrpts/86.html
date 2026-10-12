@@ -171,7 +171,7 @@
   <header>
     <h1>Review #86 — Jarvis British, and the test copy promoted</h1>
     <p class="sub">Two things, in one merge. You chose the British-sounding Charon for Jarvis, so the proxy now always sends his style, and Morpheus and Stanley are left as they are. Then the test copy was promoted to <code>jarvis.html</code>, bringing his own voice to the main page. The recordings are still left for later.</p>
-    <div class="meta">Review performed 2026-10-12 · scope: <code>jarvis/cloud/lib/core.js</code>, <code>jarvis/cloud/README.md</code>, <code>jarvis-test.html</code> (<code>VOICE_KEEP_V</code>), <code>jarvis.html</code>, <code>jarvis-sw.js</code>, <code>tests/jarvis.dom.test.mjs</code>, <code>jarvis/build-plan.html</code> · suites run, all in full because this is a promotion: RUNS</div>
+    <div class="meta">Review performed 2026-10-12 · scope: <code>jarvis/cloud/lib/core.js</code>, <code>jarvis/cloud/README.md</code>, <code>jarvis-test.html</code> (<code>VOICE_KEEP_V</code>), <code>jarvis.html</code>, <code>jarvis-sw.js</code>, <code>tests/jarvis.dom.test.mjs</code>, <code>jarvis/build-plan.html</code> · suites run, all in full because this is a promotion: <code>jarvis</code> (2,036), <code>jarvis-test</code> (2,050), <code>jarvis-cloud</code> (248), <code>jarvis-voice</code> (60), <code>jarvis-test-sw</code> (105), <code>jarvis-sw</code> (86), <code>vercel-builds</code> (13), and all 13 Chromium steps (347), all passing on the second full run.</div>
     <div class="legend">
       <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
       <span><span class="dot open"></span> Open</span>
@@ -184,7 +184,7 @@
     <div class="item">
       <div class="item-head"><div class="item-title">The main page keeps its own storage, worker and manifest</div><span class="badge fixed">Confirmed clean</span></div>
       <div class="item-body"><p><code>jarvis.html</code> was built from the test copy by reversing exactly the differences the last promotion (<code>53abf12</code>) set up: the title, description and TEST tag; <code>DB_NAME</code> <code>jarvis</code>; <code>SW_URL</code> <code>jarvis-sw.js</code>, <code>SW_SCOPE</code> <code>./jarvis.html</code> and <code>CACHE_PREFIX</code> <code>jarvis-main-</code>; and <code>main.webmanifest</code>. The page has no other difference from the test copy, and nothing in it still says "test copy" or "jarvis-test" except the comments naming the other page. <code>jarvis-sw.js</code> gained Session 18's voice handling (the recordings' manifest network first, the recordings cache, the page's live-voice cache kept on activation) with its own names. The worker suite runs for both pages and checks that neither prefix can delete the other's caches. The CSP is unchanged: the proxy was already in <code>connect-src</code> since Session 17. The data note in the plan now says the main page sends unrecorded lines to Google's voice model too while the supercharger is on, which Jarvis also says when it turns on.</p>
-      SECURITY_RESULTS</div>
+      <div class="fix-note"><b>Checked:</b> <code>diff jarvis-test.html jarvis.html</code> shows only those identity lines. <code>jarvis-sw</code>: 86 checks, and Chromium step 12 confirms <code>jarvis.html</code> is controlled by <code>jarvis-sw.js</code>, the test copy by <code>jarvis-test-sw.js</code>, with caches apart (<code>jarvis-main-*</code> and <code>jarvis-test-*</code>).</div></div>
     </div>
   </section>
   <section>
@@ -197,7 +197,7 @@
     <div class="item">
       <div class="item-head"><div class="item-title">The suite copied over, minus the test-copy parts</div><span class="badge fixed">Confirmed clean</span></div>
       <div class="item-body"><p><code>tests/jarvis.dom.test.mjs</code> is the test copy's suite with the last promotion's changes applied again: the database name <code>jarvis</code>, the suite's name, no "Test copy" section, and no "kept apart" part (it is about the two copies, so it stays only in the test copy's suite, and it was removed from <code>SECTIONS</code> too). One line was adjusted by hand: the check that old kept lines are deleted now seeds the main page's cache (<code>jarvis-main-voice-live</code>).</p>
-      SUITE_RESULTS</div>
+      <div class="fix-note"><b>Checked:</b> <code>jarvis</code> 2,036 checks and <code>jarvis-test</code> 2,050. The 14-check difference is the "Test copy" and "kept apart" sections.</div></div>
     </div>
     <div class="item">
       <div class="item-head"><div class="item-title">What the full runs found that the targeted runs missed</div><span class="badge fixed">Fixed</span></div>
