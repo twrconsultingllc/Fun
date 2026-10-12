@@ -1062,6 +1062,10 @@ function speechChunks(text,max=160){
     const n=out.length;if(n&&out[n-1].length+1+t.length<=max&&!(out[n-1].length>0&&/[;,]$/.test(out[n-1])))out[n-1]+=' '+t;else out.push(t)}
   return out;
 }
+// sayAfter (review 88): something to run once the next answer has been said in full, in whatever voice. "Compare voices"
+// uses it, because waiting on speakingNow() never ended on the owner's Android phone, where speechSynthesis.speaking can
+// stay true after cancel().
+let sayAfter=null;
 let sayGen=0; // which answer is being spoken, so a cancelled one can't switch the orb back to idle
 // quiet: spoken only, with nothing added to the chat (a stone's name as you tap it in the gauntlet).
 // browser: in the browser's voice whatever the voice setting (the voice menu's sample of the voice you just picked).
@@ -1075,15 +1079,16 @@ function say(text,{quiet=false,browser=false}={}){
     if(gauntlet)openGauntlet();
     if(H&&H.onAnswer)H.onAnswer(); // the neural network lights its output layer for each answer
   }
-  const gen=++sayGen,words=plainText(text);
+  const gen=++sayGen,words=plainText(text),after=quiet?null:sayAfter;if(!quiet)sayAfter=null;
+  const then=()=>{if(after&&gen===sayGen)after()};
   if(synth)synth.cancel();voiceStop();
   // Session 18: his own voice first (a recording, then the live voice), unless the browser's voice is the setting.
   // voiceSay() falls back to speakBrowser() itself, so nothing he says is ever lost.
   const line=quiet?null:log.lastElementChild;
-  if(!browser&&(settings.voice||'his')!=='browser'&&voiceOut.AC){voiceSay(words,gen,{keep:!fromModel,line});return}
-  if(!synth){setMode('idle');return}
+  if(!browser&&(settings.voice||'his')!=='browser'&&voiceOut.AC){voiceSay(words,gen,{keep:!fromModel,line}).then(then);return}
+  if(!synth){setMode('idle');then();return}
   if(voiceOut.AC)voiceMark(line,voiceBrowser()); // the browser's voice by choice (the setting, or the voice menu's sample)
-  speakBrowser(words,gen);
+  speakBrowser(words,gen).then(then);
   // Some browsers never start speaking (no voices installed); don't stay stuck on PROCESSING.
   setTimeout(()=>{if(mode==='think')setMode('idle')},1500);
 }
@@ -4943,8 +4948,9 @@ async function respond(text,inner=false){
   if(VOICE_COMPARE_RE.test(normPhrase(text).replace(/^jarvis /,''))){
     track('feature:voice');note(null);
     if(!voiceOut.AC||!voiceLiveOK())return "Comparing my voices needs my supercharger on, and a browser that can play sound.";
-    // After this line is said, the three versions play in turn.
-    setTimeout(function wait(){if(speakingNow())return setTimeout(wait,150);voiceCompare()},300);
+    // The three versions play once this intro has been said in full (sayAfter). The first version waited for
+    // speakingNow() to turn false, which never happened on the owner's Android phone (review 88).
+    sayAfter=()=>setTimeout(voiceCompare,250);
     return 'Three versions of my voice, the same line each time. Tell your engineer which letter sounds right.';
   }
   const sk=skinIntent(text);if(sk){note('skin');return setSkin(sk)}

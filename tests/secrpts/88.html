@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #88 — Compare voices never started on Android</title>
+<meta name="description" content="Short review of 2026-10-12's fix to jarvis-test.html: compare voices said its intro and then nothing on the owner's Android phone, because it waited for speechSynthesis.speaking to turn false; it now starts when the intro finishes.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #88 — Compare voices never started on Android</h1>
+    <p class="sub">Small fix after <a href="87.html">review 87</a>, in <code>jarvis-test.html</code> only, with no Vercel deploy. On your phone, "compare voices" said its intro and then nothing.</p>
+    <div class="meta">Review performed 2026-10-12 · scope: <code>jarvis-test.html</code> (<code>say</code>, the compare-voices command) · suites run: <code>jarvis-test --section=core,speechWiring,voiceWiring,supercharger,protocolsAndFollowUps</code> and <code>--section=ownVoice</code>, Chromium step 13.</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">2 items: 2 fixed.</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The versions waited for a flag that never cleared</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The versions started once <code>speakingNow()</code> turned false. That reads <code>speechSynthesis.speaking</code>, which on Android Chrome can stay true after <code>cancel()</code> even when nothing is playing, so they never started. My first idea was a timing race with his thinking pause. It didn't reproduce, and the old page passed the new end-to-end check, so I didn't claim it. With <code>speechSynthesis.speaking</code> forced true in Chromium, as on the phone, the page you had failed the check, and the fixed page passed it. The fix is <code>sayAfter</code>: <code>say()</code> runs it once that answer has been said in full, in whatever voice. The versions now start from the intro's own end, and nothing asks the speech engine.</p>
+      <div class="fix-note"><b>Reproduced:</b> Chromium step 13 types "compare voices" twice, once normally and once with the speech flag stuck on. The live page (<code>82934b1</code>) failed the second run. The fixed page passed both, tagged <code>VERSION A · CHARON</code>, <code>B</code> and <code>C</code>, with four requests to Google (the intro, then A, B and C). The first draft of that check passed against the broken page, because it read the tags left from the earlier run. It now reads only lines after the command.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A latent check that depended on the port</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Step 13 checked that no kept address contains "56", the answer to seven times eight. This run's random local port, 45641, contains "56". The check now looks only at the kept words. That's a test bug, not a page bug. <code>ownVoice</code>: 166 checks; the other sections: 622; step 13: 26. None failed.</p></div>
+    </div>
+  </section>
+  <footer>Review #88 · previous: <a href="87.html">review 87</a></footer>
+</div>
+</body>
+</html>
