@@ -51,6 +51,12 @@
  *
  * The promotion on 2026-10-12 added step 12: jarvis.html's own worker and manifest beside the test copy's, in one profile.
  *
+ * Session 18 added step 13: his own voice. A real MP3 recording (a tone made with ffmpeg, listed in a manifest the server
+ * hands out) plays through Web Audio when he says that line, with the orb following its loudness; the service worker
+ * keeps it, so it plays offline; and with the supercharger on, a line with no recording comes back from the proxy's
+ * /api/voice as a real WAV, which Chromium decodes and plays. Since real Chromium has Web Audio, every other step's
+ * speech now goes through the three tiers too.
+ *
  * Review 67 added step 10: the screens on a phone. The face above the chat strip, the strip's handle, the Infinity Gauntlet
  * (inside the screen, every link reachable), and the projector's caption as a peek that MORE opens and HIDE tucks away, with the
  * memory core's labels apart and clear of it, Peru on the globe, and the settings code clear of it. At 1280×800, 390×844 and 360×640.
@@ -104,9 +110,15 @@ const PACK = await KB.buildPack(await KB.fixtureGetter(join(ROOT, 'tests/fixture
 // Session 17: DEPLOY > 0 serves a changed jarvis-test.html (a new deploy); DOWN drops every connection, the way a phone
 // in airplane mode finds no network, even for requests Playwright's offline switch might not reach.
 let DEPLOY = 0, DOWN = false;
+// Session 18: recordings for step 13, served at their real paths. VOICE.manifest replaces jarvis/voice/manifest.json
+// (the committed one lists none until the workflow runs); VOICE.files maps a path to its bytes; VOICE.hits counts.
+const VOICE = { manifest: null, files: new Map(), hits: [] };
 function serve() {
     const server = createServer(async (req, res) => {
         if (DOWN) { req.socket.destroy(); return; }
+        const vp = new URL(req.url, 'http://x').pathname;
+        if (VOICE.manifest && vp === '/jarvis/voice/manifest.json') { res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(VOICE.manifest)); return; }
+        if (VOICE.files.has(vp)) { VOICE.hits.push(vp); res.writeHead(200, { 'content-type': 'audio/mpeg' }).end(VOICE.files.get(vp)); return; }
         if (DEPLOY && new URL(req.url, 'http://x').pathname === '/jarvis-test.html') {
             const html = (await readFile(join(ROOT, 'jarvis-test.html'), 'utf8')).replace('<title>J.A.R.V.I.S. Test</title>', `<title>J.A.R.V.I.S. Test · deploy ${DEPLOY}</title>`);
             res.writeHead(200, { 'content-type': 'text/html' }).end(html); return;
@@ -137,11 +149,18 @@ const executablePath = (await exists('/opt/pw-browsers/chromium')) ? '/opt/pw-br
 // /api/status as it loads. PX.on is the switch (a change is a redeploy, as with the environment variables).
 const PROXY = 'https://jarvis-cloud-gamma.vercel.app';
 const CORE = await import('../jarvis/cloud/lib/core.js');
-const PX = { on: false, owner: 'Tony', gemini: { say: 'Paris is lovely in spring.', do: [], kind: 'chat' }, hits: [], app: null };
+const PX = { on: false, owner: 'Tony', gemini: { say: 'Paris is lovely in spring.', do: [], kind: 'chat' }, hits: [], app: null, tts: [] };
 const gjson = (status, body) => ({ ok: status < 300, status, json: async () => body });
+// Session 18: the voice model's answer, in its real shape: base64 16-bit mono PCM at 24 kHz. A second of a 330 Hz tone
+// that swells and fades, so the orb has a loudness to follow.
+const TONE = (() => { const n = 24000, b = Buffer.alloc(n * 2); for (let i = 0; i < n; i++) b.writeInt16LE(Math.round(Math.sin(2 * Math.PI * 330 * i / 24000) * Math.sin(Math.PI * i / n) * 20000), i * 2); return b.toString('base64'); })();
 PX.redeploy = () => { PX.app = CORE.createApp({ env: { GEMINI_API_KEY: 'test-key', SUPERCHARGE: PX.on ? 'true' : 'false', OWNER_NAME: PX.owner, ALLOWED_ORIGINS: BASE.replace(/\/$/, '') }, log: () => {},
-    fetchImpl: async (url) => /\/models\?/.test(url) ? gjson(200, { models: [{ name: 'models/gemini-3.5-flash', supportedGenerationMethods: ['generateContent'] }] })
-        : gjson(200, { candidates: [{ content: { role: 'model', parts: [{ text: JSON.stringify(PX.gemini) }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 10 } }) }); };
+    fetchImpl: async (url, init) => {
+        if (/\/models\?/.test(url)) return gjson(200, { models: ['gemini-3.5-flash', 'gemini-2.5-flash-preview-tts'].map((m) => ({ name: 'models/' + m, supportedGenerationMethods: ['generateContent'] })) });
+        const body = JSON.parse(init.body);
+        if (body.generationConfig?.responseModalities) { PX.tts.push(body); return gjson(200, { candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: TONE } }] }, finishReason: 'STOP' }] }); }
+        return gjson(200, { candidates: [{ content: { role: 'model', parts: [{ text: JSON.stringify(PX.gemini) }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 10 } });
+    } }); };
 PX.redeploy();
 async function proxyRoute(c) {
     await c.route(PROXY + '/**', async (route) => {
@@ -150,10 +169,10 @@ async function proxyRoute(c) {
         // Offline, the proxy is as unreachable as everything else. Playwright's route would answer it even with the
         // context offline, so it's dropped here.
         if (DOWN) { await route.abort('internetdisconnected'); return; }
-        const fn = { '/api/status': 'status', '/api/brain': 'brain' }[path];
+        const fn = { '/api/status': 'status', '/api/brain': 'brain', '/api/voice': 'voice' }[path];
         if (!fn) { await route.fulfill({ status: 404, body: '' }); return; }
         const out = await PX.app[fn]({ method: rq.method(), headers, body: rq.postData() });
-        await route.fulfill({ status: out.status, headers: out.headers, body: out.body });
+        await route.fulfill({ status: out.status, headers: out.headers, body: typeof out.body === 'string' ? out.body : Buffer.from(out.body) });
     });
 }
 const ctx = await chromium.launchPersistentContext(join(work, 'profile'), { executablePath, headless: true,
@@ -514,7 +533,10 @@ try {
             const p = await open('jarvis-test.html', { width: w, height: h }, ctxM);
             await p.click('#boot-skip'); await p.waitForTimeout(800);
             const lastAi = () => p.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent || '');
-            const type = async (q) => { await p.fill('#q', q); await p.press('#q', 'Enter'); await p.waitForTimeout(900); return lastAi(); };
+            // Waits for his answer to appear (about 2 s for the upgrade under SwiftShader, before Session 18 too), then 900 ms more.
+            const type = async (q) => { const n = await p.evaluate(() => document.querySelectorAll('#log .msg').length); await p.fill('#q', q); await p.press('#q', 'Enter');
+                await p.waitForFunction((n) => { const m = [...document.querySelectorAll('#log .msg')]; return m.length >= n + 2 && m.at(-1).classList.contains('ai'); }, n, { timeout: 10000 }).catch(() => {});
+                await p.waitForTimeout(900); return lastAi(); };
             ok(`nothing is fetched from jarvis/text/ at start-up at ${w}×${h}`, !asked.some((u) => u.includes('/jarvis/text/')) && await p.evaluate(() => window.__jarvis.mind().state) === 'off');
             const dbBefore = await dbOf(p);
             const said = await type('jarvis upgrade your brain please');
@@ -890,7 +912,7 @@ try {
             ok('switched off: he notices and says so, and the colours go', (await log()).includes('My supercharger has been turned off.') && !(await p.isVisible('#sc-tag')));
             await p.screenshot({ path: join(OUT, `supercharger-off-${w}.png`) });
             const away = asked.filter((u) => !u.startsWith(BASE) && !/^(data|blob):/.test(u));
-            ok(`no request left the site but the supercharger's two at ${w}×${h}`, away.every((u) => u === PROXY + '/api/status' || u === PROXY + '/api/brain') && !asked.some((u) => /googleapis|gstatic|cdnjs/.test(u)), [...new Set(away)].join());
+            ok(`no request left the site but the supercharger's three (status, brain and, since Session 18, voice) at ${w}×${h}`, away.every((u) => [PROXY + '/api/status', PROXY + '/api/brain', PROXY + '/api/voice'].includes(u)) && !asked.some((u) => /googleapis|gstatic|cdnjs/.test(u)), [...new Set(away)].join());
             ok(`no sideways scroll at ${w}×${h}`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
             await p.close();
         } finally { DOWN = false; DEPLOY = 0; PX.on = false; PX.redeploy(); await ctxX.close(); await rm(join(work, `profile-x-${w}`), { recursive: true, force: true }); }
@@ -935,6 +957,68 @@ try {
             await ctxP.setOffline(false); DOWN = false;
             await tp.close(); await mp.close();
         } finally { DOWN = false; PX.on = false; PX.redeploy(); await ctxP.close(); await rm(join(work, 'profile-p'), { recursive: true, force: true }); }
+    }
+
+    // 13. Session 18: his own voice. A recording, offline too, and the live voice, with the orb following the audio.
+    {
+        const ctxV = await chromium.launchPersistentContext(join(work, 'profile-v'), { executablePath, headless: true,
+            args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: 390, height: 844 } });
+        await proxyRoute(ctxV);
+        const asked = []; ctxV.on('request', (rq) => asked.push(rq.url()));
+        const LINE = 'Running at peak efficiency, thank you for asking.', FILE = '0123456789abcdef.mp3';
+        const mp3 = join(work, 'tone.mp3');
+        execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'sine=frequency=220:duration=2', '-af', 'volume=0.9', '-ac', '1', '-ar', '24000', '-codec:a', 'libmp3lame', '-b:a', '48k', mp3]);
+        VOICE.manifest = { version: 1, lines: { jarvis: { [LINE]: { file: FILE, sha256: 'x', bytes: 1 } }, matrix: {}, panther: {} } };
+        VOICE.files.set('/jarvis/voice/jarvis/' + FILE, await readFile(mp3)); VOICE.hits.length = 0;
+        PX.on = false; PX.redeploy(); PX.tts.length = 0; PX.hits.length = 0;
+        try {
+            let p = await open('jarvis-test.html', { width: 390, height: 844 }, ctxV);
+            await p.click('#boot-skip'); await p.waitForTimeout(1500);
+            // Samples the orb's loudness and what's playing while he speaks: [level, playing, state] every 50 ms.
+            const watchVoice = (ms) => p.evaluate((ms) => new Promise((res) => { const out = [], t0 = performance.now();
+                const tick = () => { const J = window.__jarvis; out.push([J.voiceLevel(), !!J.voiceOut.src, document.getElementById('state').textContent]); if (performance.now() - t0 < ms) setTimeout(tick, 50); else res(out); }; tick(); }), ms);
+            const sayIt = async (q, ms = 3500) => { await p.fill('#q', q); await p.press('#q', 'Enter'); return watchVoice(ms); };
+            let seen = await sayIt('how are you');
+            ok('Web Audio runs after a tap', await p.evaluate(() => window.__jarvis.voiceOut.ctx?.state) === 'running', await p.evaluate(() => window.__jarvis.voiceOut.ctx?.state));
+            ok('a recorded line plays the recording from this site', VOICE.hits.includes('/jarvis/voice/jarvis/' + FILE) && seen.some((x) => x[1]), VOICE.hits.join());
+            const levels = seen.filter((x) => x[1]).map((x) => x[0]);
+            ok('the orb follows its real loudness while it plays', levels.length > 5 && Math.max(...levels) > 0.2, JSON.stringify(levels.slice(0, 8)));
+            ok('SPEAKING while it plays, then STANDBY', seen.some((x) => x[1] && x[2] === 'SPEAKING') && seen.at(-1)[2] === 'STANDBY', JSON.stringify(seen.map((x) => x[2]).slice(-3)));
+            ok('no call to /api/voice, with the supercharger off', !PX.hits.some((x) => x.path === '/api/voice'));
+            await p.screenshot({ path: join(OUT, 'voice-recording-390.png') });
+            await p.evaluate(() => navigator.serviceWorker.ready);
+            const vc = await p.evaluate(async () => (await caches.keys()).includes('jarvis-test-voice') ? (await (await caches.open('jarvis-test-voice')).keys()).map((r) => r.url) : []);
+            ok('the service worker kept the recording, in a cache of its own', vc.includes(BASE + 'jarvis/voice/jarvis/' + FILE), vc.join());
+            await p.reload(); await p.waitForFunction(() => window.__jarvis); await p.evaluate(() => window.__jarvis.ready);
+            await ctxV.setOffline(true); DOWN = true;
+            await p.reload(); await p.waitForFunction(() => window.__jarvis); await p.evaluate(() => window.__jarvis.ready);
+            await p.click('#boot-skip'); await p.waitForTimeout(1500);
+            const hits0 = VOICE.hits.length;
+            seen = await sayIt('how are you');
+            ok('offline, the recording still plays, from the cache', seen.some((x) => x[1]) && VOICE.hits.length === hits0, `${VOICE.hits.length - hits0} hits`);
+            await p.waitForTimeout(1000); // let the offline page's failed requests be logged while still offline
+            await ctxV.setOffline(false); DOWN = false;
+            PX.on = true; PX.redeploy();
+            await p.reload(); await p.waitForFunction(() => window.__jarvis); await p.evaluate(() => window.__jarvis.ready);
+            await p.click('#boot-skip'); await p.waitForTimeout(400);
+            await watchVoice(6000); // the supercharger's announcement, in the live voice
+            ok('turned on, he says his spoken lines go to Google too', /My spoken lines go to Google too/.test(await p.evaluate(() => document.getElementById('log').textContent)));
+            PX.tts.length = 0;
+            seen = await sayIt('what is seven times eight');
+            ok('a line with no recording: the live voice, a real WAV from the proxy, decoded and played', PX.tts.length === 1 && seen.some((x) => x[1]) && PX.hits.some((x) => x.path === '/api/voice' && x.method === 'POST' && /^text\/plain/.test(x.type)), `${PX.tts.length} tts`);
+            ok('in Charon\'s voice, the words exact', PX.tts[0]?.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName === 'Charon' && /: That would be 56\.$/.test(PX.tts[0]?.contents[0].parts[0].text || ''));
+            const lv = seen.filter((x) => x[1]).map((x) => x[0]);
+            ok('the orb follows the live voice too', lv.length > 3 && Math.max(...lv) > 0.2, JSON.stringify(lv.slice(0, 6)));
+            await p.evaluate(() => window.__jarvis.say('Anytime.')); await watchVoice(2000);
+            const live = await p.evaluate(async () => (await caches.keys()).includes('jarvis-test-voice-live') ? (await (await caches.open('jarvis-test-voice-live')).keys()).map((r) => decodeURIComponent(r.url)) : []);
+            ok('a fixed line voiced live is kept on the device; one with a number isn\'t', live.some((u) => u.endsWith('?t=Anytime.')) && !live.some((u) => /56/.test(u)), live.join());
+            await p.evaluate(() => window.__jarvis.setReload(() => {}));
+            await p.evaluate(() => window.__jarvis.answer('update jarvis')); await p.waitForTimeout(500);
+            ok('"update Jarvis" clears both voice caches', !(await p.evaluate(async () => (await caches.keys()).filter((k) => /voice/.test(k)))).length);
+            const away = asked.filter((u) => !u.startsWith(BASE) && !/^(data|blob):/.test(u));
+            ok('no request left the site but the supercharger\'s', away.every((u) => u.startsWith(PROXY + '/api/')), [...new Set(away)].join());
+            await p.close();
+        } finally { DOWN = false; PX.on = false; PX.redeploy(); VOICE.manifest = null; VOICE.files.clear(); await ctxV.close(); await rm(join(work, 'profile-v'), { recursive: true, force: true }); }
     }
 
 } finally {

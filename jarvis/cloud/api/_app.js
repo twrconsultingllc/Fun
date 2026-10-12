@@ -9,6 +9,7 @@ export function serve(which) {
     return async function handler(req, res) {
         const out = await app[which]({ method: req.method, headers: req.headers, body: req.body });
         for (const [k, v] of Object.entries(out.headers)) res.setHeader(k, v);
-        res.status(out.status).send(out.body);
+        // /api/voice answers with audio bytes (a Uint8Array); everything else is text.
+        res.status(out.status).send(typeof out.body === 'string' ? out.body : Buffer.from(out.body));
     };
 }

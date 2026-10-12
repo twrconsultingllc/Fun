@@ -4,14 +4,25 @@ A small Vercel project that holds the Gemini API key for `jarvis-test.html`
 (Session 17 of [`jarvis/build-plan.html`](../build-plan.html#s17)). The page
 lives on GitHub Pages and can't keep a secret, so it asks this proxy instead.
 
-- `GET /api/status` → `{on, owner, model, until}`: is the supercharger on?
-  Cached by Vercel's edge for 20 seconds.
+- `GET /api/status` → `{on, owner, model, until, voice}`: is the supercharger
+  on? `voice` says this deployment has `/api/voice`. Cached by Vercel's edge
+  for 20 seconds.
 - `POST /api/brain` → `{say, do, kind, model}`: one question to Gemini while
   it's on. `do` holds at most three action IDs, only ones the page listed.
   The page checks them again before running anything.
+- `POST /api/voice` → `audio/wav`: one line he says, `{skin, text}` with at
+  most 600 characters, spoken by Gemini's text-to-speech model while the
+  supercharger is on (Session 18). Each skin has its own named voice and
+  style (`VOICES` in `lib/core.js`): Charon for Jarvis, Algenib for Morpheus,
+  Fenrir for Stanley. The model is looked up in Google's live model list: the
+  newest Flash text-to-speech model, or `JARVIS_VOICE_MODEL` if Google lists
+  it. If the list has none, it answers 502 and the page uses the browser's
+  voice. The recordings on the site (`jarvis/voice/`) are made with the same
+  request, so they sound the same.
 
-Nothing anyone asks is logged. Each answer logs only the model and its token
-counts, so cost can be read from Vercel's logs.
+Nothing anyone asks, and nothing he says, is logged. Each answer and each
+voiced line logs only the model and its token counts, so cost can be read
+from Vercel's logs.
 
 ## The switch
 
@@ -70,12 +81,15 @@ proxy keeps running its last deployed code. Check what it runs with
 | `GEMINI_API_KEY` | The paid Gemini API key. Required. Without it, it's always off. |
 | `EDGE_CONFIG` | Set by Vercel when an Edge Config store is connected. |
 | `ALLOWED_ORIGINS` | Optional, comma-separated. Default `https://twrconsultingllc.github.io`. |
+| `JARVIS_VOICE_MODEL` | Optional. A text-to-speech model to use for `/api/voice`, if Google lists it. |
 
 ## Limits
 
 Every field the page sends is bounded (the question at 500 characters, six
 earlier turns, 1,500 characters of facts, 300 actions), answers are capped at
-512 tokens, and each address gets 12 questions a minute. Those limits reset
+512 tokens, and each address gets 12 questions a minute. `/api/voice` takes at most 600
+characters and has its own limit of 20 lines a minute per address, and its
+function may run for 30 seconds (`vercel.json`). Those limits reset
 when Vercel starts a new instance, so the real limits are on Google's side:
 a budget alert and a daily request quota on the key's project.
 

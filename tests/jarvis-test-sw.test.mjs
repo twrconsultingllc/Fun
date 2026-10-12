@@ -73,7 +73,7 @@ async function loadWorker(src, net, swFile = 'jarvis-test-sw.js') {
         return net(url, init);
     };
     const ctx = vm.createContext({ self, caches: caches.api, fetch, URL, Request, Response, Headers, Promise, console });
-    vm.runInContext(src + '\n;globalThis.__sw={route,PREFIX,PAGE,LIB_HASH,SHELL,LIBS,PRECACHE,FRESH};', ctx);
+    vm.runInContext(src + "\n;globalThis.__sw={route,PREFIX,PAGE,LIB_HASH,SHELL,LIBS,PRECACHE,FRESH,VOICE:typeof VOICE==='undefined'?null:VOICE,VOICE_LIVE:typeof VOICE_LIVE==='undefined'?null:VOICE_LIVE};", ctx);
     const sw = ctx.__sw;
     const lifecycle = async (type) => { let p; listeners[type]({ waitUntil: (x) => { p = x; } }); await p; };
     // A fetch event: whether the worker answered it, and with what.
@@ -208,6 +208,32 @@ export default async function run(t, page) {
     const W2 = await loadWorker(src, basic(async () => new Response('nope', { status: 404 })), C.sw);
     await W2.request(SITE + 'jarvis/qr/qrcode.js');
     t.ok('a failed answer (404) is never saved', ![...W2.caches.store.values()].some((m) => m.size));
+
+    // Session 18: his recorded voice, on the test copy until it's promoted.
+    if (C.test) {
+        t.section('Service worker: his recorded voice (Session 18)');
+        t.eq('the recordings\' manifest: network first, like the page', sw.route(SITE + 'jarvis/voice/manifest.json'), 'fresh');
+        for (const k of ['jarvis', 'matrix', 'panther']) t.eq(`a ${k} recording: kept once played`, sw.route(SITE + `jarvis/voice/${k}/0123456789abcdef.mp3`), 'voice');
+        for (const [u, what] of [['jarvis/voice/ultron/0123456789abcdef.mp3', 'another skin'], ['jarvis/voice/jarvis/../../jarvis-test.html', 'a path that climbs out'], ['jarvis/voice/jarvis/short.mp3', 'a name that isn\'t a fingerprint'],
+            ['jarvis/voice/jarvis/0123456789abcdef.wav', 'another type'], ['jarvis/voice/collect.mjs', 'the collector'], ['jarvis/voice/live/jarvis?t=Hello', 'a live-voice key (the page keeps those itself)']])
+            t.eq(`left alone: ${what}`, sw.route(SITE + u), null);
+        t.ok('/api/voice on the proxy is never answered', !(await W.request(PROXY + '/api/voice', { method: 'POST', body: '{"text":"hi"}' })).answered && sw.route(PROXY + '/api/voice') === null);
+        const v0 = W.calls.length, rec = SITE + 'jarvis/voice/jarvis/0123456789abcdef.mp3';
+        t.eq('a recording comes from the network the first time', (await W.request(rec)).text, 'net:/Fun/jarvis/voice/jarvis/0123456789abcdef.mp3');
+        online = false;
+        t.eq('then from its cache, offline too', (await W.request(rec)).text, 'net:/Fun/jarvis/voice/jarvis/0123456789abcdef.mp3');
+        t.eq('with one network request in all', W.calls.length, v0 + 1);
+        online = true;
+        t.ok('the manifest was saved when the worker installed, so it\'s there offline after one visit', W.caches.store.get(sw.SHELL)?.has(SITE + 'jarvis/voice/manifest.json'));
+        t.ok('in a cache of its own, carrying the prefix', sw.VOICE === C.prefix + 'voice' && W.caches.store.get(sw.VOICE)?.has(rec) && !W.caches.store.get(sw.LIBS)?.has(rec));
+        W.caches.store.set(sw.VOICE_LIVE, new Map());
+        await W.lifecycle('activate');
+        t.ok('activating keeps the recordings and the live-voice cache the page fills', W.caches.store.has(sw.VOICE) && W.caches.store.has(sw.VOICE_LIVE) && sw.VOICE_LIVE === C.prefix + 'voice-live');
+        t.ok('the page\'s live-voice cache has the same name', /voiceKeepCache=\(\)=>CACHE_PREFIX\+'voice-live'/.test(page.html));
+        const W3 = await loadWorker(src, basic(async () => new Response('nope', { status: 404 })), C.sw);
+        await W3.request(rec);
+        t.ok('a missing recording (404) is never saved', ![...W3.caches.store.values()].some((m) => m.size));
+    }
 
     t.section('Service worker: LIB_HASH matches the files it keeps');
     const { hash, files } = await libHash(sw.route);

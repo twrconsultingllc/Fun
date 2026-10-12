@@ -137,6 +137,15 @@ fake Cache Storage and network. It also recomputes `LIB_HASH` from the
 library files it keeps, so changing one of them without changing `LIB_HASH`
 fails the suite.
 
+Session 18 (his own voice) adds `jarvis-voice.test.mjs` (`--only=jarvis-voice`).
+It checks that every line `jarvis/voice/collect.mjs` would record is said word
+for word in a typed turn, and that none has a digit, a date word or a name.
+It also checks the recordings' manifest against its files, and runs
+`jarvis/voice/record.mjs` against a fake Gemini. The page side, in
+`jarvis-test.dom.test.mjs`, uses a fake Web Audio that "plays" a buffer by
+reading back what's in it. Step 13 of the Chromium check plays a real MP3
+and a real WAV from the proxy.
+
 ```bash
 node jarvis-test.chromium.mjs                     # screenshots go to a new temp folder
 node jarvis-test.chromium.mjs --out=../shots

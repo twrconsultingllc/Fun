@@ -1,0 +1,23 @@
+{
+ "version": 1,
+ "model": null,
+ "voices": {
+  "jarvis": {
+   "name": "Charon",
+   "style": "Say this in a calm, precise, dryly British voice, like a polite butler"
+  },
+  "matrix": {
+   "name": "Algenib",
+   "style": "Say this slowly, in a low, deliberate, gravelly voice"
+  },
+  "panther": {
+   "name": "Fenrir",
+   "style": "Say this loud and quick, with hockey-announcer energy"
+  }
+ },
+ "lines": {
+  "jarvis": {},
+  "matrix": {},
+  "panther": {}
+ }
+}

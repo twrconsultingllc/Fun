@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #79 — J.A.R.V.I.S.: his own voice (Session 18, test copy)</title>
+<meta name="description" content="Review of Session 18 in jarvis-test.html: his own voice from recordings on the site, a live Gemini voice through the new /api/voice route on the supercharger proxy, and the browser voice as the fallback, with the line collector, recorder and recording workflow.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #79 — J.A.R.V.I.S.: his own voice (Session 18, test copy)</h1>
+    <p class="sub">Session 18 of <code>jarvis/build-plan.html</code> in <code>jarvis-test.html</code> only. Every line he says is tried as a recording on the site first, then, while the supercharger is on, as Gemini's live voice through a new <code>/api/voice</code> route on the proxy, then in the browser's voice. One named Gemini voice per skin. A collector lists every fixed line word for word, and a hand-run workflow records them. Nothing has been recorded yet.</p>
+    <div class="meta">Review performed 2026-10-12 · scope: <code>jarvis-test.html</code>, <code>jarvis-test-sw.js</code>, <code>jarvis/cloud/lib/core.js</code>, <code>jarvis/cloud/api/voice.js</code> (new), <code>jarvis/cloud/api/_app.js</code>, <code>jarvis/cloud/vercel.json</code>, <code>jarvis/cloud/README.md</code>, <code>jarvis/voice/</code> (new: <code>collect.mjs</code>, <code>record.mjs</code>, <code>manifest.json</code>, <code>README.md</code>), <code>.github/workflows/jarvis-voice.yml</code> (new), <code>tests/jarvis-voice.test.mjs</code> (new), <code>tests/jarvis-test.dom.test.mjs</code>, <code>tests/jarvis-cloud.test.mjs</code>, <code>tests/jarvis-test-sw.test.mjs</code>, <code>tests/jarvis-test.chromium.mjs</code>, <code>tests/run.mjs</code>, <code>jarvis/build-plan.html</code> · suites run: <code>--page=jarvis-test.html</code> (<code>jarvis-test</code>, <code>jarvis-cloud</code>, <code>jarvis-test-sw</code>, <code>jarvis-voice</code>), <code>--only=jarvis-sw</code> (the worker suite is shared), then <code>jarvis-test.chromium.mjs</code> on its own. <code>jarvis.html</code> is unchanged.</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 80%;"></div></div>
+    <div class="progress-label">20 items: 16 verified clean or fixed, 4 open or partial.</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Security and privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title"><code>/api/voice</code>: who may call it, and what it takes</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The new route has the same gates as <code>/api/brain</code>, in the same order: a preflight gets CORS and nothing else, anything but POST is 405, and a missing or foreign <code>Origin</code> is 403. While the supercharger is off, or with no key, it answers 503 <code>{off}</code> and never asks Gemini. Each address gets 20 lines a minute on a limiter of its own, so voicing can't use up the 12 questions a minute. The body is at most 2,000 characters. The text is at most 600 characters, must be a non-empty string, and has its line breaks and control characters flattened, the way facts are, so it can't start a line of its own. An unknown skin becomes Jarvis. The proxy suite checks every gate, and none of them calls Gemini.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What goes to Google, and what is logged</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The request to Gemini holds the skin's fixed style, the words and the voice name, and nothing else: no system prompt, no tools, no earlier turns. The key goes in the <code>x-goog-api-key</code> header, never a URL, and error text is scrubbed of it (checked with an upstream error and a network error that both name the key). Only <code>{event, model, in, out}</code> is logged. A check that the log never holds the words passed.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What comes back from Gemini is checked before it reaches the page</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>readVoice()</code> takes only an <code>inlineData</code> part whose type is <code>audio/L16</code> or <code>audio/pcm</code>, with a sample rate between 8 and 48 kHz, plain base64, and at most about 4 MB (about 80 seconds at 24 kHz). An image, text instead of audio, a silly rate, data that isn't base64 or audio that's far too long is a 502, and the page uses the browser's voice. The proxy writes the WAV header itself, so what the page decodes is always the proxy's file, served as <code>audio/wav</code> with <code>nosniff</code> and <code>no-store</code>. <code>vercel.json</code>'s CSP still allows nothing (<code>default-src 'none'</code>), which is fine for audio fetched with <code>fetch()</code>.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The page's CSP is unchanged</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Recordings come from this site (<code>connect-src 'self'</code>) and the live voice from the proxy address the CSP already allows. Both are fetched and decoded through Web Audio, not loaded in an <code>&lt;audio&gt;</code> element, so no <code>media-src</code> is needed. The suite pins the policy to exactly the Session 17 one, and Chromium logged no CSP violation in step 13.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Which spoken lines are kept on the device</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The plan asked for lines voiced live to be kept so a repeat isn't voiced again. That cache is outside IndexedDB, so the <code>save()</code> checks don't cover it. Kept audio has the words in it, so the "no personal data" rule had to be applied here by hand. A line is kept only if it's the page's own words (never an answer from Gemini or the full brain), has no digit, contains no name, and passes <code>personal()</code>. Kept lines go in <code>jarvis-test-voice-live</code>, at most 150, oldest first out, and "update Jarvis" clears them.</p></div>
+      <div class="fix-note"><b>Fix:</b> The first version checked only <em>your</em> name. The jsdom check found the supercharger's turn-on announcement being kept, with the owner's name in it. <code>voiceKeepable()</code> now refuses the owner's name too. With the check removed again (broken copy b7) the suite fails.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The recordings' manifest and file names, read by the page and the worker</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The page reads only <code>lines</code>, only for the three skins it knows (<code>Object.hasOwn</code>, so <code>__proto__</code> can't add one), and only file names of exactly 16 hex characters and <code>.mp3</code>. Anything else, like a path that climbs out of the folder, another type or an overlong line, is dropped. The service worker answers only <code>jarvis/voice/(jarvis|matrix|panther)/[a-f0-9]{16}.mp3</code>, saves only same-origin 200 answers, and keeps at most 2,000. The proxy is still never answered or cached, <code>/api/voice</code> included.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The recording workflow and its key</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>.github/workflows/jarvis-voice.yml</code> runs only by hand (<code>workflow_dispatch</code>, no schedule, no push trigger), and a dry run is the default. The key is read in one place, the Record step's environment, which runs only for <code>record</code>. Inputs reach the shell through the environment, never as <code>${{ }}</code> in a <code>run</code> line. Checkout keeps no token (<code>persist-credentials: false</code>). Both actions are pinned to the same commits as the knowledge pack's. The workflow commits only <code>jarvis/voice/</code>, as <code>github-actions[bot]</code>, with a fixed message. The recorder sends the key only as a header and scrubs it from what it prints. Its log names counts and the model, never a line's words.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Your voice and his words now go to Google while the supercharger is on</div><span class="badge partial">Partial</span></div>
+      <div class="item-body"><p>With the supercharger on and the default setting, every line he says that has no recording goes to Google's voice model. That includes a line with your name in it ("Nice to meet you, …"). He says so when it turns on ("My spoken lines go to Google too, to give me my own voice"), and "use the browser voice" stops it. That's the design the plan asked for. It is marked Partial because the announcement is the only notice, and it's given once a visit.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Keeping generated audio: Google's terms</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Not checked yet. Recording is ready and has not been run. You said you hadn't yet checked the <code>ai.google.dev/gemini-api/terms</code> page on keeping generated audio and playing it back, or added the Actions secret. Until both are done, no recording exists and tier 1 finds nothing.</p></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Three tiers, in order, with a fallback for every failure</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The page tries a recording, then the live voice while the supercharger is on, then the browser's voice. All of an answer's pieces load at once and play in order: a slow live piece in the middle still plays second. jsdom checks each fallback through a real turn: a recording that won't download (404) or won't decode, Gemini failing (502), busy (429), unreachable, switched off between status reads (503, after which the page stops asking), and sound not yet allowed on a phone. Each one moves only that piece to the browser's voice, in place.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A recorded line is a whole line, matched across sentences</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The first collector split every line into sentences. A joke became two recordings, and "Stanley C. Panther" was cut at "C.". A recording is now the whole fixed line. The page takes the longest run of an answer's sentences that was recorded, so a skin's opener and a joke are two files played back to back.</p></div>
+      <div class="fix-note"><b>Fix:</b> <code>voicePlan()</code> searches longest first. The collector stores each line with its sentences joined by one space, the way the page joins them, and the voice suite checks every line is written that way.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Every recorded line is something he really says</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The voice suite drives each skin through typed turns ("hello", "thank you", jokes, fun facts, "how are you", "launch countdown", "who are you", a miss, "voice samples", skin switches), with six different random picks, and requires every collected line to appear word for word in an answer. That check found the three "databanks" misses, which no typed turn reaches, and the voice menu's sample.</p></div>
+      <div class="fix-note"><b>Fix:</b> The misses are no longer collected. The voice menu's sample now always plays in the browser voice you just picked (<code>say(…, {browser: true})</code>), which is what that menu is for, so it isn't recorded either.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Nothing with a time, a date, a name or a worked-out number is recorded</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>voiceRecordable()</code> refuses any digit, any month or weekday, "today", "tomorrow", "o'clock" and so on, and anything <code>personal()</code> flags. The greeting is collected without a name. The suite checks every collected line against the same patterns. The Eiffel Tower fact (15 centimetres) is left out.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">His voice by default; mixed only if you choose it</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The plan worried that switching between a recording and the phone's voice would be jarring. With the default, an answer that can't be all in his voice is all in the browser's, so he never switches voice mid-answer. "Mix the voices" allows switching, and "use the browser voice" turns his voice off. The setting is saved in <code>jarvis-settings</code> through <code>store()</code>, is read back by "what do you save", can't go in a protocol, and with the browser setting a tap never starts Web Audio.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Everything that asked "is he speaking?" now asks about his own voice too</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Four places read <code>speechSynthesis.speaking</code>: always listening ignoring his own voice, the dream timer, protocol pacing and the supercharger announcement waiting for a gap. Audio the page plays itself doesn't show there. All four now use <code>speakingNow()</code>, which also counts his own voice while it loads and plays. A tap on the mic stops it too.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The recordings offline</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Chromium step 13 found that offline he fell back to the browser's voice. On the first visit the page read the manifest before the service worker took over, so it was never saved, and with no manifest there are no recordings.</p></div>
+      <div class="fix-note"><b>Fix:</b> The worker now saves <code>jarvis/voice/manifest.json</code> when it installs, as it does the page. The page tries a failed manifest read again after a minute instead of keeping it empty for the visit. Step 13 now plays the recording offline from the cache, with no request to the server.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The orb follows the real audio</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>While a recording or the live voice plays, <code>orbPulse()</code> takes the audio's loudness from an <code>AnalyserNode</code>. In Chromium, sampled every 50 ms during a real MP3 and a real WAV from the proxy, the level rose above 0.2, with SPEAKING shown while it played and STANDBY after. Reduced motion still holds it steady.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The Chromium step that timed out</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Step 7 ("jarvis upgrade your brain please") failed twice at 1280×800. The same command on the page from before this session also took about 2 seconds to answer under SwiftShader, so the step's fixed 900 ms wait was already too short. This session didn't cause it.</p></div>
+      <div class="fix-note"><b>Fix:</b> The step now waits up to 10 seconds for the answer to appear, then 900 ms, as before.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Cost before anything is recorded</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Until the workflow has run, every line he says while the supercharger is on is a text-to-speech call, the greeting and every command's reply included. The dry run puts the first recording at 67 lines (18 for Jarvis, 25 for Morpheus, 24 for Stanley), 2,809 characters and about 1.3 MB. After that, only Gemini's answers and lines with numbers or names go live. A WAV of 600 characters is about 2 MB on a phone's data.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Not testable here</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Google's API can't be reached from the container, so neither the real voices nor the real TTS model's answer shape has been heard or seen. The fake answers in the shape Google documents. Also untested: whether an open Web Audio context interferes with speech recognition on a phone (the iPhone especially). These are yours to try on the live test copy.</p></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">03</span>Checks</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What ran</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><ul>
+        <li><code>jarvis-cloud</code>: 185 checks (up from 123). The new route against a fake Gemini that answers in the real text-to-speech shape, with every gate, limit and error path.</li>
+        <li><code>jarvis-test</code>: 1,997 checks (up from 1,897), with a new "His own voice" part (100 checks). It uses a fake Web Audio, fake recordings, a fake speech engine that speaks in turn the way the real one does, and the real proxy code.</li>
+        <li><code>jarvis-voice</code> (new): 59 checks. The collector against what the page really says, the manifest against its files, the recorder against a fake Gemini, and the workflow's shape.</li>
+        <li><code>jarvis-test-sw</code>: 105 checks, and <code>jarvis-sw</code>: 86, unchanged for the main page.</li>
+        <li><code>jarvis-test.chromium.mjs</code>: 334 checks, with a new step 13: a real MP3 played through Web Audio with the orb following it, again offline from the worker's cache, and a real WAV from <code>/api/voice</code>. No page errors and no CSP violations.</li>
+      </ul></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Copies broken on purpose</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Each copy below had one bug planted, the way a real one would look, and the suite was run against it. Every one failed. The nine page copies were run against the "His own voice" part of the page suite. The others ran their whole suite: <code>jarvis-cloud</code>, <code>jarvis-voice</code> or <code>jarvis-test-sw</code>.</p><ul>
+        <li>The page ignores recordings: 14 checks failed.</li>
+        <li>The page keeps every live line on the device: 2 checks failed.</li>
+        <li>It keeps Gemini's answers too: 1 check failed.</li>
+        <li><em>His voice</em> mixes voices within an answer: 4 checks failed.</li>
+        <li>No fallback when a piece fails: 7 checks failed.</li>
+        <li>The pieces play out of order: 5 checks failed.</li>
+        <li>The owner's name isn't checked before keeping a line: 1 check failed.</li>
+        <li>The voice setting is ignored: 2 checks failed.</li>
+        <li>The live voice is used with the supercharger off: 5 checks failed.</li>
+        <li>Proxy: <code>/api/voice</code> works while the supercharger is off: 1 check failed.</li>
+        <li>Proxy: no Origin check: 4 checks failed.</li>
+        <li>Proxy: no 600-character cap: 2 checks failed.</li>
+        <li>Proxy: the words are logged: 1 check failed.</li>
+        <li>Proxy: voicing shares the questions' rate limit: 2 checks failed.</li>
+        <li>Proxy: any media type accepted as audio: 1 check failed.</li>
+        <li>Proxy: a TTS model name trusted from memory when Google lists none: 3 checks failed.</li>
+        <li>Recorder: records every line again on each run: 6 checks failed.</li>
+        <li>Recorder: the key in the URL: 1 check failed.</li>
+        <li>Recorder: lines the page no longer says are kept: 1 check failed.</li>
+        <li>Collector: the voice menu's sample is recorded: 4 checks failed.</li>
+        <li>Collector: lines with numbers and dates are recorded: 2 checks failed.</li>
+        <li>Worker: answers anything under <code>jarvis/voice/</code>: 5 checks failed.</li>
+        <li>Worker: activating deletes the voice caches: 1 check failed.</li>
+        <li>Worker: the manifest isn't saved at install: 1 check failed.</li>
+      </ul></div>
+    </div>
+  </section>
+  <footer>Review #79 · previous: <a href="78.html">review 78</a> · the supercharger itself: <a href="73.html">review 73</a></footer>
+</div>
+</body>
+</html>
