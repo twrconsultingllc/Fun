@@ -12,11 +12,23 @@ lives on GitHub Pages and can't keep a secret, so it asks this proxy instead.
 - `POST /api/brain` → `{say, do, kind, model}`: one question to Gemini while
   it's on. `do` holds at most three action IDs, only ones the page listed.
   The page checks them again before running anything.
-- `POST /api/voice` → `audio/wav`: one line he says, `{skin, text}` with at
+- `POST /api/voice` → audio: one line he says, `{skin, text}` with at
   most 600 characters, spoken by Gemini's text-to-speech model while the
-  supercharger is on (Session 18). Each skin has its own named voice and
-  style (`VOICES` in `lib/core.js`): Charon for Jarvis, Algenib for Morpheus,
-  Fenrir for Stanley. The model is looked up in Google's live model list: the
+  supercharger is on (Session 18). Since review 82 the audio is **streamed**:
+  the proxy asks Google's `streamGenerateContent` (`?alt=sse`) and passes the
+  raw PCM on as it arrives, as `audio/L16;rate=24000;channels=1`, so he
+  starts speaking about when Google starts instead of when it finishes. If
+  anything goes wrong before the first audio (no streaming for that model,
+  no audio in the stream, an audio file instead of PCM), the line is asked
+  for the old way and comes back as one `audio/wav`. A quota error (429) or
+  a blocked line is answered as it is, never asked twice. If Google breaks
+  off after the audio has begun, the proxy breaks the connection rather
+  than ending it cleanly, so the page plays what came but never keeps it.
+  Each skin has its own named voice and style (`VOICES` in `lib/core.js`):
+  Charon for Jarvis, Algenib for Morpheus, Fenrir for Stanley. Each style
+  asks for a natural pace (since review 82: the first styles asked for a
+  calm, slow delivery, and a 230-character line came back as about 36
+  seconds of speech, twice a natural pace). The model is looked up in Google's live model list: the
   newest Flash text-to-speech model, or `JARVIS_VOICE_MODEL` if Google lists
   it. If the list has none, it answers 502 and the page uses the browser's
   voice. The recordings on the site (`jarvis/voice/`) are made with the same
@@ -24,7 +36,12 @@ lives on GitHub Pages and can't keep a secret, so it asks this proxy instead.
 
 Nothing anyone asks, and nothing he says, is logged. Each answer and each
 voiced line logs only the model and its token counts, so cost can be read
-from Vercel's logs.
+from Vercel's logs. A voiced line also logs `chars` (how many characters were
+voiced), `ms` (how long Google took for the whole line), and, when streamed,
+`stream: true` and `first` (milliseconds until the first audio). At Google's
+25 audio tokens a second, `out / 25` is the seconds of speech, so `chars`
+against that shows the pace. A line that couldn't stream logs
+`stream: false` and `why`.
 
 ## The switch
 
@@ -92,7 +109,8 @@ earlier turns, 1,500 characters of facts, 300 actions), answers are capped at
 512 tokens, and each address gets 12 questions a minute. `/api/voice` takes at most 600
 characters and has its own limit of 40 lines a minute per address (the page
 sends long answers as short pieces), and its function may run for 30 seconds
-(`vercel.json`).
+(`vercel.json`). A streamed line passes on at most about 80 seconds of audio,
+the same cap as before.
 
 If Google's audio answer can't be read, `/api/voice` answers 502 and logs
 `{"event":"voice","error":"format","detail":…,"mime":…,"parts":…,"bytes":…}`:

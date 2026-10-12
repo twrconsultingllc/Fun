@@ -29,7 +29,8 @@ function fakeFetch(routes) {
             const out = await r(String(url), init);
             if (out) {
                 if (out.throw) throw new Error(out.throw);
-                return { ok: out.status >= 200 && out.status < 300, status: out.status, json: async () => { if (out.raw !== undefined) throw new SyntaxError('bad json'); return out.json; } };
+                return { ok: out.status >= 200 && out.status < 300, status: out.status, json: async () => { if (out.raw !== undefined) throw new SyntaxError('bad json'); return out.json; },
+                    ...(out.text !== undefined ? { text: async () => out.text } : {}), ...(out.body ? { body: out.body } : {}) };
             }
         }
         return { ok: false, status: 404, json: async () => ({ error: { code: 404, message: 'not found', status: 'NOT_FOUND' } }) };
@@ -322,7 +323,10 @@ export default async function run(t) {
         const vpost = (a, body = { skin: 'jarvis', text: 'All systems are online.' }, headers = { origin: ORIGIN, 'x-forwarded-for': '203.0.113.7' }) => a.voice({ method: 'POST', headers, body: typeof body === 'string' ? body : JSON.stringify(body) });
 
         t.eq('each skin has its approved voice', Object.entries(VOICES).map(([k, v]) => k + ':' + v.name).join(), 'jarvis:Charon,matrix:Algenib,panther:Fenrir');
-        t.ok('…and a style for how it speaks', /dryly British/.test(VOICES.jarvis.style) && /slowly.*low.*deliberate/.test(VOICES.matrix.style) && /hockey-announcer/.test(VOICES.panther.style));
+        t.ok('…and a style for how it speaks', /dryly British/.test(VOICES.jarvis.style) && /low.*gravelly/.test(VOICES.matrix.style) && /hockey-announcer/.test(VOICES.panther.style));
+        // After the first live try: 895 audio tokens (about 36 s) for 230 characters, twice a natural pace. Every style asks
+        // for a natural pace now, and none asks for slow speech.
+        t.ok('…at a natural pace: every style says so, and none says slowly or deliberate', Object.values(VOICES).every((v) => /natural speaking pace|fast/.test(v.style) && !/slow|deliberate/i.test(v.style)));
         t.ok('a good request', readVoiceRequest(JSON.stringify({ skin: 'matrix', text: 'Free your mind.' })).req?.skin === 'matrix');
         t.ok('no text', !!readVoiceRequest({ skin: 'jarvis', text: '' }).error);
         t.ok('only spaces', !!readVoiceRequest({ skin: 'jarvis', text: '   ' }).error);
@@ -407,7 +411,7 @@ export default async function run(t) {
         t.ok('…an odd name is ignored', /gemini-2\.5-flash-preview-tts:generateContent$/.test(sent.url));
 
         const gem = (fn, list = TTS, items = { supercharge: true }) => app({}, [edge(items), catalog(list), gemini(fn)]);
-        const asked = x => x.f.calls.some(c => c.url.includes(':generateContent'));
+        const asked = x => x.f.calls.some(c => /:(?:stream)?[gG]enerateContent/.test(c.url)); // streamed or not (review 82)
         let x = gem(() => ttsOk(), TTS, { supercharge: false, owner: 'Tony' });
         r = await vpost(x);
         t.ok('off: 503 {off}, and Gemini is never asked', r.status === 503 && parse(r).off === true && !asked(x));
@@ -458,6 +462,108 @@ export default async function run(t) {
         t.ok('a WAV from Google goes to the page unchanged, as audio/wav', r.status === 200 && r.headers['Content-Type'] === 'audio/wav' && r.body.length === 4844);
         x = app({}, [edge({ supercharge: true }), catalog(TTS), gemini(() => ({ status: 200, json: { candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: Buffer.from(pcm).toString('base64url') } }] } }] } }))]);
         t.eq('URL-safe base64 from Google: 200 audio/wav', (await vpost(x)).status, 200);
+    }
+
+    /* Review 82: the live voice, streamed. Google's streamGenerateContent (?alt=sse) sends the audio in events as it's
+     * made; the proxy passes the PCM on as it comes (audio/L16), so he starts about a second after Google does. Each
+     * event is the usual answer shape. Anything odd before the first audio, and the line is asked for the old way. */
+    t.section('The live voice, streamed (review 82)');
+    {
+        const { streamVoice, sseEvents, PCM_TYPE, VOICES } = core;
+        const TTS = ['gemini-3.5-flash', 'gemini-3.8-flash-tts'];
+        const pcm = Uint8Array.from({ length: 4801 }, (_, i) => (i * 37) & 255);
+        const ev = (bytes, extra = {}) => 'data: ' + JSON.stringify({ candidates: [{ content: { role: 'model', parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: Buffer.from(bytes).toString('base64') } }] }, index: 0 }], ...extra }) + '\r\n\r\n';
+        const tail = 'data: ' + JSON.stringify({ candidates: [{ content: { role: 'model', parts: [] }, finishReason: 'STOP', index: 0 }], usageMetadata: { promptTokenCount: 30, candidatesTokenCount: 120 } }) + '\r\n\r\n';
+        // An odd split on purpose: 1,001 bytes then 3,800, so one byte has to be carried to keep whole samples.
+        const SSE = ev(pcm.subarray(0, 1001)) + ev(pcm.subarray(1001)) + tail;
+        const streamG = fn => (url, init) => url.includes(':streamGenerateContent') ? fn(url, init) : null;
+        const plainG = fn => (url, init) => url.includes(':generateContent') ? fn(url, init) : null;
+        const ttsOk = () => ({ status: 200, json: { candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;rate=24000', data: Buffer.from(pcm.subarray(0, 4800)).toString('base64') } }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 14, candidatesTokenCount: 75 } } });
+        const vpost = (a, body = { skin: 'jarvis', text: 'All systems are online.' }) => a.voice({ method: 'POST', headers: { origin: ORIGIN, 'x-forwarded-for': '203.0.113.8' }, body: JSON.stringify(body) });
+        const drain = async (it) => { const out = []; try { for await (const c of it) out.push(c); } catch (e) { out.error = e.message; } return out; };
+        const join = (cs) => Buffer.concat(cs.map((c) => Buffer.from(c)));
+
+        let sent = null;
+        const logs = [];
+        let a = app({}, [edge({ supercharge: true }), catalog(TTS), streamG((url, init) => { sent = { url, init }; return { status: 200, text: SSE }; })], logs);
+        let r = await vpost(a, { skin: 'jarvis', text: 'Hidden words. All systems are online.' });
+        t.ok('200, streamed: audio/L16 at the rate Google named, and no body to buffer', r.status === 200 && r.headers['Content-Type'] === PCM_TYPE(24000) && r.headers['Content-Type'] === 'audio/L16;rate=24000;channels=1' && r.stream && r.body === undefined);
+        t.ok('CORS for the Pages site, no-store, nosniff', r.headers['Access-Control-Allow-Origin'] === ORIGIN && r.headers['Cache-Control'] === 'no-store' && r.headers['X-Content-Type-Options'] === 'nosniff');
+        t.eq('POSTed to streamGenerateContent as server-sent events', sent.url, 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-tts:streamGenerateContent?alt=sse');
+        t.ok('…the same request as before: the skin\'s voice and style, the words exact, the key in a header only', JSON.stringify(JSON.parse(sent.init.body)) === JSON.stringify(core.voiceBody({ skin: 'jarvis', text: 'Hidden words. All systems are online.' })) && sent.init.headers['x-goog-api-key'] === KEY && !sent.url.includes(KEY));
+        t.ok('only one call to Google for the line', a.f.calls.filter(c => /enerateContent/.test(c.url)).length === 1);
+        const got = await drain(r.stream);
+        t.ok('the PCM arrives in order, every byte but the odd last one', join(got).equals(Buffer.from(pcm.subarray(0, 4800))));
+        t.ok('…each piece whole 16-bit samples (an odd split is carried over)', got.length === 2 && got.every((c) => c.length % 2 === 0) && got[0].length === 1000);
+        await new Promise((res) => setTimeout(res, 0));
+        const sl = logs.find((l) => l.event === 'voice' && l.stream === true);
+        t.ok('logged when the stream ends: streamed, characters, token counts, how long the first audio and the whole line took', sl && sl.chars === 37 && sl.in === 30 && sl.out === 120 && typeof sl.first === 'number' && typeof sl.ms === 'number' && sl.bytes === 4800 && !sl.cut);
+        t.ok('…and never the words', !JSON.stringify(logs).includes('Hidden'));
+
+        // A real ReadableStream, cut at awkward places (mid-event, mid-line), the way the network delivers it.
+        const enc = new TextEncoder().encode(SSE), cuts = [7, 300, 301, 2000, enc.length];
+        const body = new ReadableStream({ start(c) { let at = 0; for (const n of cuts) { c.enqueue(enc.subarray(at, n)); at = n; } c.close(); } });
+        const evs = []; for await (const e of sseEvents({ body })) evs.push(e);
+        t.ok('events split across network reads are put back together', evs.length === 3 && evs[2].usageMetadata.candidatesTokenCount === 120);
+        const crlf = []; for await (const e of sseEvents({ text: async () => 'data: {"a":1}\n\n: comment\n\ndata: [DONE]\n\ndata: {nope}\n\ndata: {"a":2}' })) crlf.push(e.a);
+        t.eq('plain line breaks, comments, [DONE] and a broken event are all handled', crlf.join(), '1,2');
+
+        // Fallbacks: anything odd before the first audio, and the line is asked for the old way (a WAV), once.
+        const both = (sfn, gfn = () => ttsOk(), l = []) => app({}, [edge({ supercharge: true }), catalog(TTS), streamG(sfn), plainG(gfn)], l);
+        const flogs = [];
+        a = both(() => ({ status: 404, json: { error: { code: 404, message: 'not supported' } } }), undefined, flogs);
+        r = await vpost(a);
+        t.ok('streaming not offered (404): asked the old way, a WAV', r.status === 200 && r.headers['Content-Type'] === 'audio/wav' && r.body.length === 4844);
+        t.ok('…and the log says why it didn\'t stream', flogs.some((l) => l.stream === false && l.why === 'status 404'));
+        a = both(() => ({ status: 200, text: 'data: ' + JSON.stringify({ candidates: [{ content: { parts: [{ text: 'Words, not audio.' }] } }] }) + '\n\n' }));
+        t.eq('a stream with no audio in it: asked the old way', (await vpost(a)).headers['Content-Type'], 'audio/wav');
+        a = both(() => ({ status: 200, text: 'data: ' + JSON.stringify({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/wav', data: 'UklGRg==' } }] } }] }) + '\n\n' }));
+        t.eq('a stream of a WAV file (which can\'t be played as it comes): asked the old way', (await vpost(a)).headers['Content-Type'], 'audio/wav');
+        a = both(() => ({ status: 200 }));
+        t.eq('a 200 with nothing readable: asked the old way', (await vpost(a)).headers['Content-Type'], 'audio/wav');
+        a = both(() => ({ throw: 'ECONNRESET' }));
+        t.eq('a network error on the stream: asked the old way', (await vpost(a)).headers['Content-Type'], 'audio/wav');
+        a = both(() => ({ status: 200, text: ev(pcm.subarray(0, 100)).replace('rate=24000', 'rate=999999') }));
+        t.eq('a silly rate in the stream: asked the old way', (await vpost(a)).headers['Content-Type'], 'audio/wav');
+        let n = 0;
+        a = both(() => ({ status: 429, json: { error: { code: 429, message: 'Quota exceeded' } } }), () => { n++; return ttsOk(); });
+        r = await vpost(a);
+        t.ok('Google\'s quota reached on the stream: 429, and not asked again the old way', r.status === 429 && JSON.parse(r.body).error === 'quota' && n === 0);
+        a = both(() => ({ status: 200, text: 'data: ' + JSON.stringify({ promptFeedback: { blockReason: 'SAFETY' } }) + '\n\n' }), () => { n++; return ttsOk(); });
+        r = await vpost(a);
+        t.ok('blocked in the stream: 502 blocked, and not asked again', r.status === 502 && JSON.parse(r.body).error === 'blocked' && n === 0);
+        a = both(() => ({ status: 200, text: 'data: ' + JSON.stringify({ candidates: [{ finishReason: 'SAFETY' }] }) + '\n\n' }), () => { n++; return ttsOk(); });
+        t.ok('…a SAFETY finish likewise', (await vpost(a)).status === 502 && n === 0);
+        a = both(() => ({ status: 403, json: { error: { code: 403, message: `API key ${KEY} not valid` } } }), () => ({ status: 403, json: { error: { code: 403, message: `API key ${KEY} not valid` } } }));
+        r = await vpost(a);
+        t.ok('a bad key: the old way fails too, 502, scrubbed', r.status === 502 && !r.body.includes(KEY));
+
+        // After the first audio, the answer has begun: a break ends the stream, and the log says it was cut short.
+        const clogs = [];
+        a = both(() => ({ status: 200, text: ev(pcm.subarray(0, 1000)) + 'data: ' + JSON.stringify({ error: { code: 500, message: 'internal' } }) + '\n\n' + ev(pcm.subarray(1000, 2000)) }), undefined, clogs);
+        r = await vpost(a);
+        const part = await drain(r.stream);
+        await new Promise((res) => setTimeout(res, 0));
+        t.ok('a stream that breaks after it began: what arrived is sent, then it ends with an error (the adapter breaks the connection, so the page won\'t keep it)', r.status === 200 && join(part).length === 1000 && part.error === 'voice cut short');
+        t.ok('a stream that ends normally ends without one', !got.error);
+        t.ok('the adapter breaks the connection on that error rather than ending cleanly', /catch \{\s*res\.destroy\(\)/.test(await readFile(ROOT + 'api/_app.js', 'utf8')));
+        t.ok('…logged as cut', clogs.some((l) => l.stream === true && l.cut === true && l.bytes === 1000));
+        const big = Buffer.alloc(1200000, 1);
+        a = both(() => ({ status: 200, text: [1, 2, 3, 4].map(() => ev(big)).join('') }));
+        r = await vpost(a);
+        t.ok('no more than about 80 seconds of audio is passed on (the same cap as before)', join(await drain(r.stream)).length <= 4000000);
+        // The page goes away mid-line: closing the stream stops reading from Google.
+        let cancelled = false;
+        const slow = new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode(ev(pcm.subarray(0, 1000)))); }, cancel() { cancelled = true; } });
+        a = both(() => ({ status: 200, body: slow }));
+        r = await vpost(a);
+        const it = r.stream[Symbol.asyncIterator]();
+        await it.next(); await it.return();
+        await new Promise((res) => setTimeout(res, 0));
+        t.ok('closing the stream early cancels the read from Google', cancelled);
+        t.eq('the style still goes in front of the words in the streamed request', JSON.parse(sent.init.body).contents[0].parts[0].text, VOICES.jarvis.style + ': Hidden words. All systems are online.');
+        t.ok('the Vercel adapter writes a stream as it comes, and stops when the page goes away', /if \(out\.stream\)/.test(await readFile(ROOT + 'api/_app.js', 'utf8')) && /res\.write\(/.test(await readFile(ROOT + 'api/_app.js', 'utf8')) && /res\.on\('close'/.test(await readFile(ROOT + 'api/_app.js', 'utf8')));
+        void streamVoice;
     }
 
 }

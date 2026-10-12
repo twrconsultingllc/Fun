@@ -4048,13 +4048,29 @@ const PROXY_URL = 'https://jarvis-cloud-gamma.vercel.app';
 export async function fakeProxy({ on = true, owner = 'Tony', model = 'gemini-3.5-flash' } = {}) {
     const core = await import('../jarvis/cloud/lib/core.js');
     const jres = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => JSON.parse(JSON.stringify(body)) });
-    const st = { on, owner, model, down: false, slow: false, online: true, raw: null, statusRaw: null, gemini: null, fixedIp: null, gate: null, calls: [], asked: [], tts: [], ttsFail: 0, voiceGate: null };
+    const st = { on, owner, model, down: false, slow: false, online: true, raw: null, statusRaw: null, gemini: null, fixedIp: null, gate: null, calls: [], asked: [], tts: [], ttsFail: 0, voiceGate: null, stream: false, streamCut: false, streamTypes: [] };
     let release = null;
     st.hold = () => { st.gate = new Promise((r) => { release = r; }); };
     st.release = () => { st.gate = null; release?.(); };
     const gemini = async (url, init = {}) => {
         if (/\/models\?/.test(url)) return jres(200, { models: ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash-preview-tts'].map((m) => ({ name: 'models/' + m, supportedGenerationMethods: ['generateContent', 'countTokens'] })) });
         const body = JSON.parse(init.body);
+        // Review 82: the voice model streamed (streamGenerateContent?alt=sse). Off (st.stream false), it answers 404 as a
+        // model without streaming would, and the proxy asks the old way, so the Session 18 checks below run unchanged.
+        // On, the words come back as PCM in two events (split at an odd byte), then a last event with the token counts.
+        if (url.includes(':streamGenerateContent')) {
+            if (!st.stream) return jres(404, { error: { code: 404, message: 'not supported' } });
+            st.tts.push(body);
+            if (st.voiceGate) await st.voiceGate;
+            if (st.ttsFail) return jres(st.ttsFail, { error: { code: st.ttsFail, message: 'failed', status: 'UNAVAILABLE' } });
+            let words = body.contents[0].parts[0].text.replace(/^[^:]*: /, '');
+            if (words.length % 2) words += ' ';
+            const b = Buffer.from(words), cut = Math.max(1, (b.length >> 1) | 1);
+            const ev = (x) => 'data: ' + JSON.stringify({ candidates: [{ content: { role: 'model', parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: x.toString('base64') } }] }, index: 0 }] }) + '\r\n\r\n';
+            const tail = 'data: ' + JSON.stringify({ candidates: [{ content: { parts: [] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 9, candidatesTokenCount: 50 } }) + '\r\n\r\n';
+            // streamCut: Google breaks off after the first half (an error event), so the proxy ends the stream there.
+            return { ok: true, status: 200, json: async () => null, text: async () => ev(b.subarray(0, cut)) + (st.streamCut ? 'data: {"error":{"code":500}}\r\n\r\n' : '') + ev(b.subarray(cut)) + tail };
+        }
         // Session 18: the voice model. It answers in the real text-to-speech shape: base64 16-bit PCM. Here the "audio"
         // is the words themselves, so the fake Web Audio below can tell which line it's playing.
         if (body.generationConfig?.responseModalities) {
@@ -4096,6 +4112,13 @@ export async function fakeProxy({ on = true, owner = 'Tony', model = 'gemini-3.5
             if (!fn) return jres(404, {});
             const out = await st.app[fn]({ method: opts.method || 'GET', headers: { origin: 'https://twrconsultingllc.github.io', 'x-forwarded-for': st.fixedIp || `203.0.113.${st.calls.length % 250}` }, body: opts.body });
             const hs = Object.fromEntries(Object.entries(out.headers).map(([k, v]) => [k.toLowerCase(), v]));
+            if (path === '/api/voice') st.streamTypes.push(hs['content-type']);
+            // Review 82: a streamed answer reaches the page as a real ReadableStream, a piece at a time.
+            if (out.stream) {
+                const it = out.stream[Symbol.asyncIterator]();
+                const body = new ReadableStream({ async pull(c) { await new Promise((r) => setTimeout(r, 2)); let n; try { n = await it.next(); } catch (e) { c.error(e); return; } if (n.done) c.close(); else c.enqueue(new Uint8Array(n.value)); }, cancel() { it.return(); } });
+                return { ok: true, status: out.status, headers: { get: (k) => hs[String(k).toLowerCase()] ?? null }, body, arrayBuffer: async () => { throw new Error('streamed'); } };
+            }
             return { ok: out.status >= 200 && out.status < 300, status: out.status, headers: { get: (k) => hs[String(k).toLowerCase()] ?? null },
                 json: async () => JSON.parse(out.body), arrayBuffer: async () => (typeof out.body === 'string' ? new TextEncoder().encode(out.body) : out.body).slice().buffer };
         };
@@ -4423,12 +4446,18 @@ function voiceRig({ state = 'running', resumes = true, playMs = 15, speakMs = 10
             class Src {
                 connect() {}
                 start() { log.sources.push(this); log.timeline.push(this.buffer.tag); this.timer = setTimeout(() => this.onended?.(), playMs); }
-                stop() { log.stopped++; clearTimeout(this.timer); }
+                stop() { log.stopped++; this.halted = true; clearTimeout(this.timer); }
             }
             w.AudioContext = class {
                 constructor() { log.ctx++; this.state = state; this.destination = {}; }
                 createAnalyser() { return { fftSize: 512, connect() {}, getByteTimeDomainData: (b) => b.fill(log.level) }; }
                 createBufferSource() { return new Src(); }
+                // Review 82: streamed PCM becomes buffers the page fills itself. The fake reads the words back from the
+                // samples (each pair of bytes is one 16-bit sample), so the timeline can say which line streamed.
+                createBuffer(ch, n, rate) {
+                    const data = new Float32Array(n);
+                    return { duration: n / rate, getChannelData: () => data, get tag() { const b = Buffer.alloc(n * 2); for (let i = 0; i < n; i++) b.writeInt16LE(Math.max(-32768, Math.min(32767, Math.round(data[i] * 32768))), i * 2); return 'stream:' + b.toString().trim(); } };
+                }
                 resume() { if (resumes) this.state = 'running'; return Promise.resolve(); }
                 decodeAudioData(buf) {
                     const b = Buffer.from(buf), head = b.subarray(0, 4).toString();
@@ -4507,7 +4536,8 @@ export async function ownVoice(t, page) {
             t.eq('around other words, the longest recorded run is found', show(plan('Listen carefully. ' + JOKE + ' Free your mind.', false, 'mixed', { [JOKE]: F(1), 'Listen carefully.': F(2) })), 'rec:Listen carefully. | rec:' + JOKE + ' | browser:Free your mind.');
             t.eq('his voice (the default), supercharger off, part not recorded: all in the browser\'s voice (null)', String(show(plan(JOKE + ' That would be 56.', false, 'his'))), 'null');
             t.eq('mixed: each piece takes what\'s there', show(plan(JOKE + ' That would be 56.', false, 'mixed')), 'rec:' + JOKE + ' | browser:That would be 56.');
-            t.eq('supercharger on: the rest is voiced live', show(plan(JOKE + ' That would be 56. Anything else?', true, 'his')), 'rec:' + JOKE + ' | live:That would be 56. Anything else?');
+            t.eq('supercharger on: the rest is voiced live, its first sentence on its own (review 82, so he starts sooner)', show(plan(JOKE + ' That would be 56. Anything else?', true, 'his')), 'rec:' + JOKE + ' | live:That would be 56. | live:Anything else?');
+            t.eq('…and after the first live piece, sentences are joined again', show(plan('That would be 56. Anything else? Free your mind.', true, 'his', {})), 'live:That would be 56. | live:Anything else? Free your mind.');
             const long = Array.from({ length: 12 }, (_, i) => `Sentence number ${i} is here and is quite a long one indeed.`).join(' ');
             const lp = plan(long, true, 'his', {});
             t.ok('a live piece is at most 160 characters (a sentence or two, so each comes back quickly), and together they are the whole answer', lp.every((x) => x.kind === 'live' && x.text.length <= 160) && lp.length >= 4 && lp.map((x) => x.text).join(' ') === long);
@@ -4684,7 +4714,9 @@ export async function ownVoice(t, page) {
             t.ok('after three failures in a row the live voice rests, and the note says so', note() === 'BROWSER VOICE · LIVE VOICE RESTING AFTER FAILURES' && P.voice().length === v3);
             J.voiceOut.failAt = Date.now() - 121000;
             await turn(env, rig, 'what is nine times five');
-            t.ok('…for two minutes, not the rest of the visit', P.voice().length === v3 + 1 && note() === '');
+            // Since review 82 the first sentence goes on its own, so this two-sentence line ("That would be 45." and
+            // Morpheus's closer) is two calls.
+            t.ok('…for two minutes, not the rest of the visit', P.voice().length === v3 + 2 && P.voice().at(-2).body.includes('That would be 45.') && note() === '');
             t.ok('the note is a styled tag, and amber like the other tags', /\.voice-tag\{display:block;[^}]*color:var\(--amber\)/.test(src));
             P.on = false; P.redeploy(); J.voiceOut.fails = 0;
             from = rig.log.timeline.length;
@@ -4692,6 +4724,113 @@ export async function ownVoice(t, page) {
             t.eq('turned off between status reads (503): the browser\'s voice', (await said(env, rig, from))[0], 'tts:That would be 60.');
             await until(() => J.charger.voice === false, 1000);
             t.ok('and he stops asking for the live voice', J.charger.voice === false);
+        } finally { env.close(); }
+    }
+
+    // Review 82: the proxy streams the audio as Google makes it (audio/L16), and the page plays it as it arrives.
+    t.section('His own voice: streamed, so he starts sooner (review 82)');
+    {
+        const env0 = await openDom(page.html, URL_, quiet);
+        try {
+            const J = env0.window.__jarvis;
+            t.eq('audio/L16 with its rate is streamed audio', J.voicePcmType('audio/L16;rate=24000;channels=1'), 24000);
+            t.ok('…anything else isn\'t (a WAV, no rate, a silly rate)', J.voicePcmType('audio/wav') === null && J.voicePcmType('audio/L16') === null && J.voicePcmType('audio/L16;rate=999999') === null && J.voicePcmType(null) === null);
+            // Pieces as the network cuts them: odd sizes are put back together as whole 16-bit samples.
+            const parts = [[1, 2, 3], [4], [5, 6, 7, 8, 9], [10]];
+            const res = { body: new ReadableStream({ start(c) { for (const x of parts) c.enqueue(Uint8Array.from(x)); c.close(); } }) };
+            const f = J.voiceFeed(res, 24000);
+            t.eq('a streamed answer is read to the end', await f.ended, true);
+            t.ok('…in whole samples, every byte in order', f.chunks.every((c) => c.length % 2 === 0) && Buffer.concat(f.chunks.map((c) => Buffer.from(c))).equals(Buffer.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])) && f.size === 10);
+            const w = Buffer.from(J.voiceWav(f));
+            t.ok('…and kept as a WAV: RIFF, mono, 16-bit, its rate, the samples after a 44-byte header', w.subarray(0, 4).toString() === 'RIFF' && w.readUInt16LE(22) === 1 && w.readUInt16LE(34) === 16 && w.readUInt32LE(24) === 24000 && w.readUInt32LE(40) === 10 && w[44] === 1 && w.length === 54);
+            J.voiceOut.stall = 40;
+            const stuck = J.voiceFeed({ body: new ReadableStream({ start(c) { c.enqueue(Uint8Array.from([1, 2])); } }) }, 24000);
+            t.ok('a stream that stops sending is given up (false), keeping what came', (await stuck.ended) === false && stuck.size === 2);
+            const broken = J.voiceFeed({ body: new ReadableStream({ start(c) { c.error(new Error('reset')); } }) }, 24000);
+            t.eq('a stream that breaks: false', await broken.ended, false);
+            const old = J.voiceFeed({ arrayBuffer: async () => Uint8Array.from([1, 2, 3, 4]).buffer }, 24000);
+            t.ok('a browser with no readable body reads it in one go', (await old.ended) === true && old.size === 4);
+        } finally { env0.close(); }
+
+        // A long streamed piece is several buffers queued back to back. A new answer must stop every one of them, not
+        // only the latest (playMs is long here, so they're all still queued when it does).
+        {
+            const rigQ = voiceRig({ playMs: 3000 });
+            const envQ = await open(rigQ, await fakeProxy({ on: false }));
+            try {
+                const J = envQ.window.__jarvis;
+                await settle(envQ, rigQ);
+                J.say('Anytime.'); await wait(50); // starts Web Audio on this page
+                const k = 12000; // a quarter of a second each, more than the 0.2 s lead
+                const f = J.voiceFeed({ body: new ReadableStream({ async start(c) { for (let i = 0; i < 3; i++) { c.enqueue(new Uint8Array(k)); await wait(20); } c.close(); } }) }, 24000);
+                const n0 = rigQ.log.sources.length;
+                J.voicePlayFeed(f, J.sayGen());
+                await until(() => rigQ.log.sources.length - n0 >= 3, 2000);
+                const queued = rigQ.log.sources.slice(n0);
+                t.ok('a streamed piece arriving in three runs is queued as three buffers', queued.length === 3 && J.voiceOut.srcs.size === 3);
+                J.say('Anytime.'); await wait(5);
+                t.ok('a new answer stops every queued buffer, not only the latest', queued.every((x) => x.halted));
+            } finally { envQ.close(); }
+        }
+
+        const rig = voiceRig({});
+        const P = await fakeProxy({ on: true });
+        P.stream = true;
+        const env = await open(rig, P);
+        try {
+            const J = env.window.__jarvis, logText = () => env.document.getElementById('log').textContent;
+            await until(() => /My spoken lines go to Google too/.test(logText()), 5000);
+            await settle(env, rig);
+            let from = rig.log.timeline.length;
+            await typeIn(env, 'what is seven times eight');
+            let tl = await said(env, rig, from);
+            t.eq('a line with no recording is streamed and played as it arrives', tl.join(' | '), 'stream:That would be 56.');
+            t.eq('…the proxy answered audio/L16', P.streamTypes.at(-1), 'audio/L16;rate=24000;channels=1');
+            t.ok('…from one call to Google, the streamed one', P.tts.length > 0 && P.tts.at(-1).generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName === 'Charon');
+            t.ok('back to STANDBY after', env.document.getElementById('state').textContent === 'STANDBY');
+            from = rig.log.timeline.length;
+            const v0 = P.voice().length;
+            J.say('That would be 56. Anything else? Shall I go on?');
+            tl = await said(env, rig, from);
+            t.eq('a longer answer: the first sentence on its own, the rest in one piece, played in order', tl.join(' | '), 'stream:That would be 56. | stream:Anything else? Shall I go on?');
+            t.ok('…as two calls, the first holding only the first sentence', P.voice().length === v0 + 2 && JSON.parse(P.voice()[v0].body).text === 'That would be 56.');
+            // Kept on the device once it has all arrived, as a WAV: the repeat is played from there, with no call.
+            await turn(env, rig, 'how are you');
+            const n1 = P.voice().length;
+            from = rig.log.timeline.length;
+            await typeIn(env, 'how are you');
+            tl = await said(env, rig, from);
+            t.ok('a fixed line streamed live is kept: the repeat makes no new call, and plays the kept WAV', P.voice().length === n1 && tl.join(' | ') === 'live:Running at peak efficiency, thank you for asking.');
+            const kept = () => [...(rig.caches.get(J.CACHE_PREFIX + 'voice-live') || new Map()).keys()].map((k) => decodeURIComponent(k));
+            await turn(env, rig, 'what is seven times eight');
+            t.ok('a streamed line with a number is still never kept', !kept().some((k) => /56/.test(k)));
+            // A new answer stops one that's streaming.
+            const s0 = rig.log.stopped;
+            J.say('That would be 61. ' + 'And this goes on for quite a while. '.repeat(3));
+            await until(() => J.voiceOut.srcs.size > 0, 2000);
+            J.say('Anytime.');
+            await wait(5);
+            t.ok('a new answer stops the streamed one', rig.log.stopped > s0 && J.voiceOut.srcs.size <= 1);
+            await said(env, rig, 0);
+            // A feed stopped early never counts as all arrived, so a cut-off line is never kept.
+            const cf = J.voiceFeed({ body: new ReadableStream({ start(c) { c.enqueue(Uint8Array.from([1, 2])); } }) }, 24000);
+            await wait(5); cf.cancel();
+            t.eq('a stream stopped by a new answer is never counted as complete (so never kept)', await cf.ended, false);
+            // A stream that breaks after it began: what arrived plays, and it isn't kept.
+            P.streamCut = true;
+            from = rig.log.timeline.length;
+            J.say('Very good, then.');
+            tl = await said(env, rig, from);
+            t.ok('a stream cut short plays what arrived (the first half)', tl.length === 1 && tl[0] === 'stream:Very goo');
+            await wait(30);
+            t.ok('…and isn\'t kept', !kept().some((k) => k.endsWith('?t=Very good, then.')));
+            P.streamCut = false;
+            // Too slow for the first piece: the browser says it, as before.
+            let openGate; J.voiceOut.first = 60; P.voiceGate = new Promise((r) => { openGate = r; });
+            from = rig.log.timeline.length;
+            J.say('That would be 62.');
+            t.eq('Google too slow for the first audio: the browser\'s voice, as before', (await said(env, rig, from)).join(' | '), 'tts:That would be 62.');
+            openGate(); P.voiceGate = null; J.voiceOut.first = 12000;
         } finally { env.close(); }
     }
 

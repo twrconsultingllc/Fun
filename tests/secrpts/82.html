@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #82 — His own voice, faster: pace, streaming and a shorter first piece</title>
+<meta name="description" content="Review of 2026-10-12's speed-up of J.A.R.V.I.S.'s own voice in jarvis-test.html: styles asking for a natural pace, audio streamed from Google through the proxy and played as it arrives, and a first live piece of one sentence.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #82 — His own voice, faster</h1>
+    <p class="sub">Follow-up to Session 18. You heard Charon live, but he was slow to start. One 230-character line came back as 895 audio tokens, about 36 seconds at Google's 25 tokens a second, twice a natural pace. Three changes, in <code>jarvis-test.html</code> and one proxy deploy. The styles now ask for a natural pace. The proxy streams Google's audio (<code>streamGenerateContent</code>) to the page as raw PCM, and the page plays it as it arrives. And an answer's first live piece is its first sentence only. Recordings were left for later, at your request.</p>
+    <div class="meta">Review performed 2026-10-12 · scope: <code>jarvis-test.html</code> (his own voice), <code>jarvis/cloud/lib/core.js</code>, <code>jarvis/cloud/api/_app.js</code>, <code>jarvis/voice/manifest.json</code> (the styles), <code>jarvis/cloud/README.md</code>, <code>jarvis/voice/README.md</code>, <code>jarvis/build-plan.html</code> · suites run: <code>jarvis-cloud</code> in full (a proxy change); <code>jarvis-test --section=ownVoice</code>; <code>jarvis-voice</code> (the manifest's styles); <code>jarvis-test.chromium.mjs --step=13</code>.</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 80%;"></div></div>
+    <div class="progress-label">5 items: 4 fixed or verified clean, 1 open (only a live listen can check it).</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The streamed route keeps every guard of the old one</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Streaming changes only how Google is asked and how the audio comes back. The checks before it are the same code: the origin, the switch, the key, the voice rate limit, the 600-character request, and the model from the live list. The suite's "off", "no key", "another site", "no Origin" and "601 characters" checks now count a streamed call as a call to Google too, and still see none. The key goes only in <code>x-goog-api-key</code>, never in the <code>?alt=sse</code> URL. The log gains <code>chars</code>, <code>first</code>, <code>ms</code>, <code>bytes</code>, <code>stream</code> and <code>why</code> (a fixed phrase such as <code>status 404</code>), and never the words: a check sends a line containing "Hidden" and searches every log entry for it. A streamed line passes on at most the same 4,000,000 bytes (about 80 seconds) as before. A 429 or a blocked line on the stream is answered as it is, so a quota or a refusal is never paid for twice. The page's CSP is unchanged: the audio still comes only from the proxy address <code>connect-src</code> already names, and <code>audio/L16</code> is a CORS-safelisted <code>Content-Type</code>, so the page can read it.</p>
+      <div class="fix-note"><b>Broken copies (proxy, each failed <code>jarvis-cloud</code>):</b> an odd byte dropped per streamed piece (1 check); no fallback when streaming fails (the suite stopped early); the styles slow again (1); a cut stream ended cleanly (1); a 429 on the stream asked again the old way (3); a blocked stream asked again (2); no audio cap on the stream (1); the words in the stream's log (1); the adapter ending a cut stream with <code>res.end()</code> (1). <code>jarvis-cloud</code>: 234 checks, up from 185.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A line cut short is never kept on the device</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Found while building it. The first version ended a stream cleanly when Google broke off mid-line, so the page saw a complete answer and cached a cut-off line as if it were whole. The proxy now throws when a stream is cut, and the Vercel adapter answers that by breaking the connection (<code>res.destroy()</code>) instead of <code>res.end()</code>. The page then plays what came but never keeps it. A second case: when a new answer interrupted a streaming line, cancelling the read counted as "all arrived". A cancelled feed now always ends <code>false</code>. Both have checks, and each failed when its fix was undone (below).</p></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Streaming can only make him faster, never quieter</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Before the first audio arrives, anything odd falls back to the old request, one WAV, and the log says why. That covers: no streaming for the model (404), a stream with no audio, an audio file instead of PCM, a 200 with nothing readable, a network error, and a silly rate. The proxy waits for the first audio before answering, so every error before it still reaches the page as a proper status, and the page's 12-second first-piece wait and "BROWSER VOICE · …" notes work as before. A real <code>ReadableStream</code> cut mid-event and mid-line is put back together. Raw PCM in odd-sized pieces is carried a byte at a time to keep whole 16-bit samples, on both the proxy and the page. That also turned up a real bug before it shipped: <code>readVoice()</code> dropped every streamed piece's odd last byte, which would have shifted every later sample into noise. It now takes <code>{odd: true}</code> for streamed pieces.</p>
+      <div class="fix-note"><b>Broken copies (page, each failed <code>--section=ownVoice</code>):</b> the first sentence not kept on its own (5 checks); <code>audio/L16</code> never recognised (6); the odd byte not carried (1); a cancelled stream counted as complete (1); a broken stream kept (2); a stall never given up (the run hung and was killed after 240 s); <code>voiceStop()</code> stopping only the latest source. That last one first <b>passed</b>: each short line in the fake streamed as a single buffer, so stopping "the latest" looked the same as stopping all. A new check queues three buffers and confirms a new answer stops all three, and the broken copy then failed it. <code>ownVoice</code>: 132 checks, up from 108. Two older checks changed on purpose, each re-derived. A plan of "That would be 56. Anything else?" is now two live pieces, because the first sentence goes alone. And the "two minutes, not the whole visit" check now expects two calls for its two-sentence line.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Played as it arrives, in real Chromium</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Step 13 now runs the proxy's streamed answer through the page in headless Chromium with real Web Audio. It plays as <code>audio/L16</code>, the orb follows its loudness, it shows SPEAKING then STANDBY, and the one-second tone plays once, in full. With streaming refused (404), the old WAV still plays. Playwright can only hand the page a whole body, so a second check gives the page's own fetch a stream sending 1.5 seconds of tone in six pieces, a quarter of a second apart: <b>sound started at 24 ms, and the last piece arrived at 1,518 ms</b>. Step 13: 20 checks (up from 15), no page errors, no CSP violations.</p>
+      <div class="fix-note"><b>Broken copy (Chromium):</b> with the page holding the audio until the whole stream had arrived, step 13 failed: sound at 1,534 ms, after the last piece at 1,514 ms. The real page: sound at 21 ms, last piece at 1,523 ms.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Whether Vercel and Google stream for real</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>The container can't reach Google or <code>*.vercel.app</code>, and couldn't open Google's docs: the streaming route was confirmed from search-result summaries of Google's speech-generation page, not the page itself. Two things only a live listen can show. Whether <code>gemini-3.8-flash-tts</code> streams: Vercel's log says <code>"stream":true</code> with a <code>first</code> time if it does, or <code>"stream":false</code> and a <code>why</code> if it doesn't, in which case he works the old way. And whether Vercel passes the stream on as it's written: if it holds it to the end, he still speaks, just without the head start. The pace change is measurable in the same log: <code>out / 25</code> seconds of speech for <code>chars</code> characters should now be near 15 characters a second, against about 6.4 before.</p></div>
+    </div>
+  </section>
+  <footer>Review #82 · previous: <a href="81.html">review 81</a></footer>
+</div>
+</body>
+</html>
