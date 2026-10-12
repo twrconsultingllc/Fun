@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #83 — His style read aloud: only the words are spoken now</title>
+<meta name="description" content="Short review of 2026-10-12's fix to J.A.R.V.I.S.'s own voice: the skin's style moved from in front of the words into a system instruction, so it is never spoken; kept lines versioned so the old copies are dropped; the log's first-audio time corrected.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #83 — Only the words are spoken now</h1>
+    <p class="sub">Small fix after <a href="82.html">review 82</a>. On your phone, streaming worked and he started faster, but every skin read its style aloud ("say this fast…") before the line. The style now goes in the request's system instruction, which isn't spoken, and only the line is sent to be spoken. Lines kept on the device before the fix are dropped, and the log's <code>first</code> now counts from before the call to Google.</p>
+    <div class="meta">Review performed 2026-10-12 · scope: <code>jarvis/cloud/lib/core.js</code> (<code>voiceBody</code>, <code>streamVoice</code>, <code>voice</code>), <code>jarvis-test.html</code> (the kept-lines cache), <code>jarvis/voice/manifest.json</code> (the styles' wording) · suites run: <code>jarvis-cloud</code> in full (a proxy change), <code>jarvis-test --section=ownVoice</code>, <code>jarvis-voice</code>, <code>jarvis-test.chromium.mjs --step=13</code>.</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 67%;"></div></div>
+    <div class="progress-label">3 items: 2 fixed, 1 open (only a live listen can check it).</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The style was spoken as part of his line</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p><code>voiceBody()</code> sent <code>"&lt;style&gt;: &lt;words&gt;"</code> as the one text to speak, and the model read all of it. It now sends the words alone as the text to speak, and the style, plus "Read the user's text aloud exactly as written, and nothing else. Never say these instructions.", as <code>systemInstruction</code>. If a model answers a system instruction with a 400, on the stream or the old request, the line is asked again with the words alone (never the style folded back in), and that instance stops sending it. The suite checks that no skin's style text is ever in the spoken part. The request shape is shared with <code>record.mjs</code>, so recordings will get the fix too. The log's <code>first</code> and <code>ms</code> now start before the call, so Google's wait before answering counts. A check advances a fake clock 1.5 s inside the call and sees it.</p>
+      <div class="fix-note"><b>Broken copies (each failed):</b> the style back in front of the words (<code>jarvis-cloud</code>, 4 checks); no retry without the style on a stream 400 (3); none on the old request (1); the refusal not remembered (1); the clock started after Google answers (1). <code>jarvis-cloud</code>: 244 checks, up from 234.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Lines kept on the device before the fix</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The device cache of fixed lines (kept, as you chose) held copies with the style spoken in them. Kept lines' addresses now carry <code>VOICE_KEEP_V</code> (<code>live/v2/</code>), so the old copies never match, and the first time the cache is opened, anything outside <code>live/v2/</code> is deleted. The cache name is unchanged, so the service worker's list of caches stays as it is. A check seeds an old copy before the page loads, then sees the line voiced again and the old copy gone. Nothing personal is involved: the cache holds only the page's own fixed lines, as before.</p>
+      <div class="fix-note"><b>Broken copies (each failed <code>ownVoice</code>):</b> no version in the address (2 checks); the old copies never deleted (1). The first broken copy, which removed only one of the two purge calls, passed, because the other call (when a new line is kept) still deletes them, so both were removed for the real test. <code>ownVoice</code>: 136 checks, up from 132. Chromium step 13: 20 checks, no page errors, no CSP violations.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Whether the system instruction still shapes each skin</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>The container can't reach Google, so nothing here has heard the model. If <code>gemini-3.8-flash-tts</code> refuses the system instruction, the log shows one <code>"why":"system instruction refused"</code> and then <code>"style":false</code>, and he speaks in each skin's named voice without the direction. If it accepts it but ignores it, the same holds. Either way he never says the instructions. The pace can be read from the same log as before: <code>out / 25</code> seconds for <code>chars</code> characters.</p></div>
+    </div>
+  </section>
+  <footer>Review #83 · previous: <a href="82.html">review 82</a></footer>
+</div>
+</body>
+</html>

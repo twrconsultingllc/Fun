@@ -4,15 +4,15 @@
  "voices": {
   "jarvis": {
    "name": "Charon",
-   "style": "Say this at a brisk, natural speaking pace, in a precise, dryly British voice, like a polite butler"
+   "style": "Speak at a brisk, natural speaking pace, in a precise, dryly British voice, like a polite butler"
   },
   "matrix": {
    "name": "Algenib",
-   "style": "Say this at a natural speaking pace, in a low, calm, gravelly voice"
+   "style": "Speak at a natural speaking pace, in a low, calm, gravelly voice"
   },
   "panther": {
    "name": "Fenrir",
-   "style": "Say this fast, loud and excited, with hockey-announcer energy"
+   "style": "Speak fast, loud and excited, with hockey-announcer energy"
   }
  },
  "lines": {

@@ -25,10 +25,12 @@ lives on GitHub Pages and can't keep a secret, so it asks this proxy instead.
   off after the audio has begun, the proxy breaks the connection rather
   than ending it cleanly, so the page plays what came but never keeps it.
   Each skin has its own named voice and style (`VOICES` in `lib/core.js`):
-  Charon for Jarvis, Algenib for Morpheus, Fenrir for Stanley. Each style
-  asks for a natural pace (since review 82: the first styles asked for a
-  calm, slow delivery, and a 230-character line came back as about 36
-  seconds of speech, twice a natural pace). The model is looked up in Google's live model list: the
+  Charon for Jarvis, Algenib for Morpheus, Fenrir for Stanley. Google is
+  asked to speak only the line: the style goes in the request's system
+  instruction, which isn't spoken (review 83). Before that it went in front
+  of the words ("Say this …: words"), and every skin read it aloud. If a
+  model refuses a system instruction (400), the line is asked again with the
+  words alone, and that instance stops sending it. The model is looked up in Google's live model list: the
   newest Flash text-to-speech model, or `JARVIS_VOICE_MODEL` if Google lists
   it. If the list has none, it answers 502 and the page uses the browser's
   voice. The recordings on the site (`jarvis/voice/`) are made with the same
@@ -38,7 +40,9 @@ Nothing anyone asks, and nothing he says, is logged. Each answer and each
 voiced line logs only the model and its token counts, so cost can be read
 from Vercel's logs. A voiced line also logs `chars` (how many characters were
 voiced), `ms` (how long Google took for the whole line), and, when streamed,
-`stream: true` and `first` (milliseconds until the first audio). At Google's
+`stream: true` and `first` (milliseconds from asking Google until the first
+audio), and `style` (false once a model has refused the system
+instruction). At Google's
 25 audio tokens a second, `out / 25` is the seconds of speech, so `chars`
 against that shows the pace. A line that couldn't stream logs
 `stream: false` and `why`.

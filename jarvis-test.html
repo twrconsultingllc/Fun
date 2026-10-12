@@ -1183,13 +1183,22 @@ function voicePlan(words,list,live,mode){
   if(mode==='his'&&segs.some(x=>x.kind==='browser'))return null; // all or nothing: never two voices in one answer
   return segs;
 }
-async function voiceKept(text){
-  try{if(!window.caches)return null;const c=await caches.open(voiceKeepCache()),hit=await c.match(voiceKey(text));return hit?await hit.arrayBuffer():null}catch(e){return null}
+// Since 2026-10-12 (review 83) each kept line's address carries a version: lines kept before then were voiced with the
+// style read aloud in front of the words, so they're never played, and they're deleted the first time the cache is
+// opened. A change to how lines are voiced bumps VOICE_KEEP_V.
+const VOICE_KEEP_V='v2';
+const voiceKey=text=>new URL(VOICE_DIR+'live/'+VOICE_KEEP_V+'/'+skin+'?t='+encodeURIComponent(text),location.href).href;
+const voiceKeepBase=()=>new URL(VOICE_DIR+'live/'+VOICE_KEEP_V+'/',location.href).href;
+let voicePurged=null;
+function voicePurge(c){
+  return voicePurged||(voicePurged=(async()=>{try{for(const k of await c.keys()){const u=typeof k==='string'?k:k.url;if(!String(u).startsWith(voiceKeepBase()))await c.delete(k)}}catch(e){}})());
 }
-const voiceKey=text=>new URL(VOICE_DIR+'live/'+skin+'?t='+encodeURIComponent(text),location.href).href;
+async function voiceKept(text){
+  try{if(!window.caches)return null;const c=await caches.open(voiceKeepCache());await voicePurge(c);const hit=await c.match(voiceKey(text));return hit?await hit.arrayBuffer():null}catch(e){return null}
+}
 async function voiceKeep(text,buf){
   try{
-    if(!window.caches)return;const c=await caches.open(voiceKeepCache());
+    if(!window.caches)return;const c=await caches.open(voiceKeepCache());await voicePurge(c);
     await c.put(voiceKey(text),new Response(buf.slice(0),{headers:{'content-type':'audio/wav'}}));
     const keys=await c.keys();for(const k of keys.slice(0,Math.max(0,keys.length-VOICE_KEEP)))await c.delete(k); // the oldest go first
   }catch(e){}
