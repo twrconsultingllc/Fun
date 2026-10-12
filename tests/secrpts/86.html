@@ -176,8 +176,8 @@
       <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
       <span><span class="dot open"></span> Open</span>
     </div>
-    <div class="progress-bar"><div class="progress-fill" style="width: 75%;"></div></div>
-    <div class="progress-label">4 items: 3 fixed or verified clean, 1 open (only a live listen can check it).</div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 80%;"></div></div>
+    <div class="progress-label">5 items: 4 fixed or verified clean, 1 open (only a live listen can check it).</div>
   </header>
   <section>
     <h2><span class="num">01</span>Security</h2>
@@ -198,6 +198,16 @@
       <div class="item-head"><div class="item-title">The suite copied over, minus the test-copy parts</div><span class="badge fixed">Confirmed clean</span></div>
       <div class="item-body"><p><code>tests/jarvis.dom.test.mjs</code> is the test copy's suite with the last promotion's changes applied again: the database name <code>jarvis</code>, the suite's name, no "Test copy" section, and no "kept apart" part (it is about the two copies, so it stays only in the test copy's suite, and it was removed from <code>SECTIONS</code> too). One line was adjusted by hand: the check that old kept lines are deleted now seeds the main page's cache (<code>jarvis-main-voice-live</code>).</p>
       SUITE_RESULTS</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What the full runs found that the targeted runs missed</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The promotion's full runs failed at first: 1 check in each page suite and 16 in Chromium. All four causes came from today's earlier small fixes, which had run only their own sections and step 13.</p>
+      <ul>
+        <li><b>The voice tag in Chromium's checks of his words.</b> Real Chromium has Web Audio, so since <a href="84.html">review 84</a> every line carries a tag, and 13 checks in steps 5 to 11 read it as part of his words (for example, "…opens it.BROWSER VOICE"). Review 84 said the rest of the suite never sees a tag. That holds for jsdom, not for Chromium. Every Chromium check of his words now reads the line without the tag.</li>
+        <li><b>A real layout regression on short phones.</b> At 360×640 the tag's extra line made the chat strip taller and shrank Jarvis's face from at least 140 px to 131 px. Moving the tag to the end of the line wasn't enough (129 px). It now sits at the end of his line, and is hidden in the collapsed strip on screens under 700 px tall. It shows when the chat is open, and on taller phones such as a Galaxy S24 (about 780 px tall in the browser). With the tag hidden, the face measured at least 140 px again. A new check confirms the tag is hidden at 360×640 and shown at 390×844 and 1280×800.</li>
+        <li><b>A false positive in the storage guard.</b> The check that nothing but <code>save()</code> writes to IndexedDB flags any <code>.clear()</code>, and <code>voiceStop()</code> cleared a JavaScript <code>Set</code>. The page now replaces the <code>Set</code> instead, so the guard stays as strict as it was.</li>
+        <li><b>A console message offline on the main page.</b> After "update Jarvis" clears its caches, the main page went offline in step 12 before fetching the recordings' manifest again. The worker had nothing to answer with, so Chrome logged <code>net::ERR_FAILED</code>. The page handled it correctly (no recordings, the browser's voice, no page error). The checker already lets the "network gone" message through while offline, and now lets <code>ERR_FAILED</code> through too, only while offline.</li>
+      </ul></div>
     </div>
     <div class="item">
       <div class="item-head"><div class="item-title">Hearing it on the main page</div><span class="badge open">Open</span></div>
