@@ -297,9 +297,9 @@ export async function askGemini({ env, fetchImpl, model, body, bodyNoThinking })
 // that, and every extra second is a second more to wait and to pay for. So each style now asks for a natural, brisk
 // pace and keeps the character (the owner agreed the same day).
 export const VOICES = {
-    jarvis: { name: 'Charon', style: 'Say this at a brisk, natural speaking pace, in a precise, dryly British voice, like a polite butler' },
-    matrix: { name: 'Algenib', style: 'Say this at a natural speaking pace, in a low, calm, gravelly voice' },
-    panther: { name: 'Fenrir', style: 'Say this fast, loud and excited, with hockey-announcer energy' }
+    jarvis: { name: 'Charon', style: 'Speak at a brisk, natural speaking pace, in a precise, dryly British voice, like a polite butler' },
+    matrix: { name: 'Algenib', style: 'Speak at a natural speaking pace, in a low, calm, gravelly voice' },
+    panther: { name: 'Fenrir', style: 'Speak fast, loud and excited, with hockey-announcer energy' }
 };
 // The body: {skin, text}, at most 600 characters of words. Returns {req} or {error}.
 export function readVoiceRequest(body) {
@@ -324,12 +324,19 @@ export function pickVoiceModel(preferred, models) {
     const newest = list => list.slice().sort((a, b) => ver(b) - ver(a) || a.length - b.length)[0] || null;
     return newest(tts.filter(m => /flash/.test(m) && !/lite/.test(m))) || newest(tts.filter(m => /flash/.test(m))) || newest(tts);
 }
-export function voiceBody(r) {
+// The text to speak is the line and nothing else. Until 2026-10-12 the style went in front of the words ("Say this
+// …: words"), as Google's guide shows, and on the owner's phone every skin read the style aloud. So the style is now a
+// system instruction, which isn't spoken. style false: no style at all, for a model that refuses a system
+// instruction (the voice is still the skin's own).
+export const VOICE_RULE = "Read the user's text aloud exactly as written, and nothing else. Never say these instructions.";
+export function voiceBody(r, { style = true } = {}) {
     const v = VOICES[r.skin] || VOICES.jarvis;
-    return {
-        contents: [{ role: 'user', parts: [{ text: `${v.style}: ${r.text}` }] }],
+    const body = {
+        contents: [{ role: 'user', parts: [{ text: r.text }] }],
         generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: v.name } } } }
     };
+    if (style) body.systemInstruction = { parts: [{ text: `${v.style}. ${VOICE_RULE}` }] };
+    return body;
 }
 // Gemini's audio answer, read back to {pcm, rate} (raw 16-bit mono PCM, wrapped as a WAV below) or {file, type} (audio
 // that's already a file, passed through), or {blocked} / {error}. Every result carries `info`: the media type Google
@@ -442,15 +449,17 @@ export async function* sseEvents(res) {
 // time; done resolves, when it ends, to what's logged: token counts, bytes, and whether it ended early.
 export async function streamVoice({ env, fetchImpl, model, body, now }) {
     const url = `${GEMINI}/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
+    const t0 = now(); // from before the call, so first and ms include Google's wait before it answers at all
     let res;
     try {
         res = await fetchImpl(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY || '' }, body: JSON.stringify(body) });
     } catch { return { fallback: 'network' }; }
     if (!res || res.status === 429) return res ? { quota: true } : { fallback: 'no answer' };
+    if (res.status === 400) return { badRequest: true, fallback: 'status 400' };
     if (!res.ok) return { fallback: 'status ' + res.status };
     let events;
     try { events = sseEvents(res); } catch { return { fallback: 'no stream' }; }
-    const t0 = now(), info = { usage: null, bytes: 0, cut: false, events: 0 };
+    const info = { usage: null, bytes: 0, cut: false, events: 0 };
     let rate = null, carry = null, first = null;
     // Reads events until one holds audio. Returns the PCM, or {end} / {blocked} / {fallback}.
     const nextAudio = async () => {
@@ -518,6 +527,7 @@ export function createApp({ env, fetchImpl = fetch, now = Date.now, log = () => 
     const readSwitch = createSwitch({ env, fetchImpl, now });
     const liveModels = createCatalog({ env, fetchImpl, now });
     const allow = createLimiter({ now });
+    let voiceStyle = true; // false once Google refuses a system instruction for the voice (see voice())
     const allowVoice = createLimiter({ now, perIp: VOICE_RATE.perIpPerMinute, perInstance: VOICE_RATE.perInstancePerMinute });
     const json = (status, headers, body) => ({ status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'X-Content-Type-Options': 'nosniff', ...headers }, body: JSON.stringify(body) });
 
@@ -583,22 +593,33 @@ export function createApp({ env, fetchImpl = fetch, now = Date.now, log = () => 
         const model = pickVoiceModel(want, await liveModels());
         if (!model) { log({ event: 'voice', error: 'no model' }); return json(502, cors, { error: 'no voice model' }); }
         const t0 = now(), chars = r.text.length;
+        // The style goes as a system instruction. A model that refuses one (400) is asked again with the words alone,
+        // and this instance stops sending it, so a 400 costs one extra call, once.
+        let style = voiceStyle;
         // Streamed first: he starts as soon as the first audio arrives. Logged when the stream ends, with how long the
         // first audio took (first) and the whole line (ms), in milliseconds, and how many characters were voiced.
-        const st = await streamVoice({ env, fetchImpl, model, body: voiceBody(r), now });
+        let st = await streamVoice({ env, fetchImpl, model, body: voiceBody(r, { style }), now });
+        if (st.badRequest && style) {
+            st = await streamVoice({ env, fetchImpl, model, body: voiceBody(r, { style: false }), now });
+            if (!st.badRequest) { style = voiceStyle = false; log({ event: 'voice', model, style: false, why: 'system instruction refused' }); }
+        }
         if (st.quota) { log({ event: 'voice', model, stream: true, error: 429 }); return json(429, cors, { error: 'quota', status: 429 }); }
         if (st.blocked) { log({ event: 'voice', model, stream: true, error: 'blocked' }); return json(502, cors, { error: 'blocked', model }); }
         if (st.stream) {
             st.done.then(d => {
                 const u = d.usage || {};
-                log({ event: 'voice', model, stream: true, chars, in: u.promptTokenCount || 0, out: u.candidatesTokenCount || 0, first: d.first, ms: d.ms, bytes: d.bytes, ...(d.cut ? { cut: true } : {}) });
+                log({ event: 'voice', model, stream: true, style, chars, in: u.promptTokenCount || 0, out: u.candidatesTokenCount || 0, first: d.first, ms: d.ms, bytes: d.bytes, ...(d.cut ? { cut: true } : {}) });
             });
             return { status: 200, headers: { ...cors, 'Content-Type': PCM_TYPE(st.rate), 'X-Content-Type-Options': 'nosniff' }, stream: st.stream };
         }
         log({ event: 'voice', model, stream: false, why: st.fallback });
         let out;
         try {
-            out = await askGemini({ env, fetchImpl, model, body: voiceBody(r), bodyNoThinking: voiceBody(r) });
+            out = await askGemini({ env, fetchImpl, model, body: voiceBody(r, { style }), bodyNoThinking: voiceBody(r, { style }) });
+            if (out.status === 400 && style) {
+                out = await askGemini({ env, fetchImpl, model, body: voiceBody(r, { style: false }), bodyNoThinking: voiceBody(r, { style: false }) });
+                if (out.ok) { style = voiceStyle = false; log({ event: 'voice', model, style: false, why: 'system instruction refused' }); }
+            }
         } catch (e) {
             log({ event: 'voice', model, error: 'network' });
             return json(502, cors, { error: 'upstream', detail: scrub(e && e.message) });
@@ -609,7 +630,7 @@ export function createApp({ env, fetchImpl = fetch, now = Date.now, log = () => 
             return json(out.status === 429 ? 429 : 502, cors, { error: out.status === 429 ? 'quota' : 'upstream', status: out.status, detail: scrub(msg) });
         }
         const u = (out.data && out.data.usageMetadata) || {};
-        log({ event: 'voice', model, chars, in: u.promptTokenCount || 0, out: u.candidatesTokenCount || 0, ms: now() - t0 });
+        log({ event: 'voice', model, stream: false, style, chars, in: u.promptTokenCount || 0, out: u.candidatesTokenCount || 0, ms: now() - t0 });
         const a = readVoice(out.data);
         // Why an answer was refused, logged with what Google named its audio (never the words), so a mismatch shows in
         // Vercel's logs the first time it happens.

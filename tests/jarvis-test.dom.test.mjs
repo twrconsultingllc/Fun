@@ -4063,7 +4063,7 @@ export async function fakeProxy({ on = true, owner = 'Tony', model = 'gemini-3.5
             st.tts.push(body);
             if (st.voiceGate) await st.voiceGate;
             if (st.ttsFail) return jres(st.ttsFail, { error: { code: st.ttsFail, message: 'failed', status: 'UNAVAILABLE' } });
-            let words = body.contents[0].parts[0].text.replace(/^[^:]*: /, '');
+            let words = body.contents[0].parts[0].text; // only the words are spoken since review 83 (the style is a system instruction)
             if (words.length % 2) words += ' ';
             const b = Buffer.from(words), cut = Math.max(1, (b.length >> 1) | 1);
             const ev = (x) => 'data: ' + JSON.stringify({ candidates: [{ content: { role: 'model', parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: x.toString('base64') } }] }, index: 0 }] }) + '\r\n\r\n';
@@ -4077,7 +4077,7 @@ export async function fakeProxy({ on = true, owner = 'Tony', model = 'gemini-3.5
             st.tts.push(body);
             if (st.voiceGate) await st.voiceGate;
             if (st.ttsFail) return jres(st.ttsFail, { error: { code: st.ttsFail, message: 'failed', status: 'UNAVAILABLE' } });
-            let words = body.contents[0].parts[0].text.replace(/^[^:]*: /, '');
+            let words = body.contents[0].parts[0].text; // only the words are spoken since review 83 (the style is a system instruction)
             if (words.length % 2) words += ' ';
             return jres(200, { candidates: [{ content: { role: 'model', parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: Buffer.from(words).toString('base64') } }] }, finishReason: 'STOP', index: 0 }], usageMetadata: { promptTokenCount: 9, candidatesTokenCount: 50 } });
         }
@@ -4640,6 +4640,7 @@ export async function ownVoice(t, page) {
             const call = P.voice().at(-1);
             t.ok('POST /api/voice with the skin and the words, no cookies, no referrer, a plain string body', call && call.method === 'POST' && call.credentials === 'omit' && call.referrerPolicy === 'no-referrer' && JSON.stringify(JSON.parse(call.body)) === JSON.stringify({ skin: 'jarvis', text: 'That would be 56.' }));
             t.ok('in Charon\'s voice, through the real proxy', P.tts.at(-1)?.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName === 'Charon');
+            t.eq('…and Google is asked to speak exactly his line, with nothing in front of it (review 83)', P.tts.at(-1)?.contents[0].parts[0].text, 'That would be 56.');
             from = rig.log.timeline.length;
             await typeIn(env, 'tell me a joke');
             tl = await said(env, rig, from);
@@ -4656,6 +4657,7 @@ export async function ownVoice(t, page) {
             t.eq('…and still plays in his voice', tl.join(' | '), 'live:Running at peak efficiency, thank you for asking.');
             const kept = () => [...(rig.caches.get(J.CACHE_PREFIX + 'voice-live') || new Map()).keys()].map((k) => decodeURIComponent(k));
             t.ok('in a cache of its own, named with the page\'s prefix, so "update Jarvis" clears it', kept().some((k) => k.includes('Running at peak efficiency')));
+            t.ok('…at a versioned address (review 83), so lines kept before the fix are never played', kept().every((k) => k.includes('/jarvis/voice/live/v2/')));
             await turn(env, rig, 'what is seven times eight');
             t.ok('a line with a number is voiced again, not kept', !kept().some((k) => /56/.test(k)) && P.voice().length === n1 + 1);
             await turn(env, rig, 'my name is tony');
@@ -4771,6 +4773,24 @@ export async function ownVoice(t, page) {
                 J.say('Anytime.'); await wait(5);
                 t.ok('a new answer stops every queued buffer, not only the latest', queued.every((x) => x.halted));
             } finally { envQ.close(); }
+        }
+
+        // Lines kept before review 83 had the style read aloud in front of them: they're deleted, never played.
+        {
+            const rigO = voiceRig({});
+            const old = 'https://jarvis.test/jarvis/voice/live/jarvis?t=' + encodeURIComponent('Running at peak efficiency, thank you for asking.');
+            const PO = await fakeProxy({ on: true });
+            const envO = await open(rigO, PO, { beforeParse(w) { w.caches.open('jarvis-test-voice-live').then((c) => c.put(old, new Response(new Uint8Array([1, 2, 3, 4])))); } });
+            try {
+                const JO = envO.window.__jarvis;
+                await until(() => /My spoken lines go to Google too/.test(envO.document.getElementById('log').textContent), 5000);
+                await settle(envO, rigO);
+                const n0 = PO.voice().length;
+                const tlO = await turn(envO, rigO, 'how are you');
+                const keys = [...(rigO.caches.get(JO.CACHE_PREFIX + 'voice-live') || new Map()).keys()];
+                t.ok('a line kept before the fix is not played: it\'s voiced again', PO.voice().length === n0 + 1 && tlO.join(' | ') === 'live:Running at peak efficiency, thank you for asking.');
+                t.ok('…and the old copy is deleted, leaving only the new one', !keys.includes(old) && keys.some((k) => k.includes('/live/v2/')));
+            } finally { envO.close(); }
         }
 
         const rig = voiceRig({});

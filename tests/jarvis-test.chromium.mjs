@@ -1035,7 +1035,7 @@ try {
             PX.tts.length = 0;
             seen = await sayIt('what is seven times eight');
             ok('a line with no recording: the live voice, streamed raw PCM from the proxy (audio/L16), played by real Web Audio', PX.tts.length === 1 && PX.types.at(-1) === 'audio/L16;rate=24000;channels=1' && seen.some((x) => x[1]) && PX.hits.some((x) => x.path === '/api/voice' && x.method === 'POST' && /^text\/plain/.test(x.type)), `${PX.tts.length} tts, ${PX.types.at(-1)}`);
-            ok('in Charon\'s voice, the words exact', PX.tts[0]?.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName === 'Charon' && /: That would be 56\.$/.test(PX.tts[0]?.contents[0].parts[0].text || ''));
+            ok('in Charon\'s voice, only the words spoken (the style is a system instruction)', PX.tts[0]?.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName === 'Charon' && PX.tts[0]?.contents[0].parts[0].text === 'That would be 56.' && !!PX.tts[0]?.systemInstruction);
             const lv = seen.filter((x) => x[1]).map((x) => x[0]);
             ok('the orb follows the live voice too', lv.length > 3 && Math.max(...lv) > 0.2, JSON.stringify(lv.slice(0, 6)));
             ok('SPEAKING while the stream plays, then STANDBY', seen.some((x) => x[1] && x[2] === 'SPEAKING') && seen.at(-1)[2] === 'STANDBY', JSON.stringify(seen.map((x) => x[2]).slice(-3)));

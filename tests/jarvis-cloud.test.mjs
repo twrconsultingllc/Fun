@@ -348,8 +348,14 @@ export default async function run(t) {
 
         const vb = voiceBody({ skin: 'matrix', text: 'There is no spoon.' });
         t.ok('the request: audio out, the skin\'s voice by name', vb.generationConfig.responseModalities.join() === 'AUDIO' && vb.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName === 'Algenib');
-        t.eq('…the style, then the words, word for word', vb.contents[0].parts[0].text, VOICES.matrix.style + ': There is no spoon.');
-        t.ok('…no tools, no system prompt, nothing but the line', Object.keys(vb).sort().join() === 'contents,generationConfig' && vb.contents.length === 1);
+        // Since 2026-10-12 (review 83): every skin read its style aloud when it went in front of the words. Only the line is
+        // spoken now; the style is a system instruction, which isn't.
+        t.eq('…the text to speak is the line, word for word, and nothing else', vb.contents[0].parts[0].text, 'There is no spoon.');
+        t.eq('…the style goes in the system instruction, with the rule never to say it', vb.systemInstruction.parts[0].text, VOICES.matrix.style + '. ' + core.VOICE_RULE);
+        t.ok('…no tools, nothing else in the request', Object.keys(vb).sort().join() === 'contents,generationConfig,systemInstruction' && vb.contents.length === 1 && vb.contents[0].parts.length === 1);
+        const plainVb = voiceBody({ skin: 'matrix', text: 'There is no spoon.' }, { style: false });
+        t.ok('style off: the words alone, no system instruction, the same voice', !plainVb.systemInstruction && plainVb.contents[0].parts[0].text === 'There is no spoon.' && plainVb.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName === 'Algenib');
+        t.ok('no style text is ever in the spoken part, for any skin', Object.keys(VOICES).every((k) => !voiceBody({ skin: k, text: 'Hi.' }).contents[0].parts[0].text.includes(VOICES[k].style.slice(0, 12))));
 
         const rv = readVoice(ttsOk().json);
         t.ok('the audio is read back: PCM and its rate', rv.rate === 24000 && rv.pcm.length === 4800 && rv.pcm[1] === 37);
@@ -390,7 +396,8 @@ export default async function run(t) {
         t.ok('200 with audio/wav bytes', r.status === 200 && r.headers['Content-Type'] === 'audio/wav' && r.body instanceof Uint8Array && r.body.length === 4844);
         t.ok('CORS for the Pages site, no-store, nosniff', r.headers['Access-Control-Allow-Origin'] === ORIGIN && r.headers['Cache-Control'] === 'no-store' && r.headers['X-Content-Type-Options'] === 'nosniff');
         t.eq('POSTed to the text-to-speech model the live list named', sent.url, 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent');
-        t.eq('…in Fenrir\'s voice, the words as sent', JSON.parse(sent.init.body).contents[0].parts[0].text, VOICES.panther.style + ": Let's go, Cats!");
+        t.eq('…in Fenrir\'s voice, only the words spoken', JSON.parse(sent.init.body).contents[0].parts[0].text, "Let's go, Cats!");
+        t.eq('…his style as the system instruction', JSON.parse(sent.init.body).systemInstruction.parts[0].text, VOICES.panther.style + '. ' + core.VOICE_RULE);
         t.eq('the key in x-goog-api-key, never a URL', sent.init.headers['x-goog-api-key'] + String(a.f.calls.some(c => c.url.includes(KEY))), KEY + 'false');
         const logged = JSON.stringify(logs);
         t.ok('the log has the model and token counts', /"event":"voice"/.test(logged) && /"out":75/.test(logged) && /preview-tts/.test(logged));
@@ -497,8 +504,16 @@ export default async function run(t) {
         t.ok('…each piece whole 16-bit samples (an odd split is carried over)', got.length === 2 && got.every((c) => c.length % 2 === 0) && got[0].length === 1000);
         await new Promise((res) => setTimeout(res, 0));
         const sl = logs.find((l) => l.event === 'voice' && l.stream === true);
-        t.ok('logged when the stream ends: streamed, characters, token counts, how long the first audio and the whole line took', sl && sl.chars === 37 && sl.in === 30 && sl.out === 120 && typeof sl.first === 'number' && typeof sl.ms === 'number' && sl.bytes === 4800 && !sl.cut);
+        t.ok('logged when the stream ends: streamed, with the style, characters, token counts, how long the first audio and the whole line took', sl && sl.style === true && sl.chars === 37 && sl.in === 30 && sl.out === 120 && typeof sl.first === 'number' && typeof sl.ms === 'number' && sl.bytes === 4800 && !sl.cut);
         t.ok('…and never the words', !JSON.stringify(logs).includes('Hidden'));
+        // After the first live log (2026-10-12): first was 0, because the clock started after Google had answered, and
+        // Google answers only once it has audio. The clock now starts before the call, so first is the real wait.
+        const tlogs = [];
+        a = app({}, [edge({ supercharge: true }), catalog(TTS), streamG(() => { clock += 1500; return { status: 200, text: SSE }; })], tlogs);
+        r = await vpost(a);
+        await drain(r.stream); await new Promise((res) => setTimeout(res, 0));
+        const tl = tlogs.find((l) => l.stream === true);
+        t.ok('first and ms count the wait before Google answers (1.5 s here), not 0', tl && tl.first >= 1500 && tl.ms >= 1500);
 
         // A real ReadableStream, cut at awkward places (mid-event, mid-line), the way the network delivers it.
         const enc = new TextEncoder().encode(SSE), cuts = [7, 300, 301, 2000, enc.length];
@@ -561,7 +576,27 @@ export default async function run(t) {
         await it.next(); await it.return();
         await new Promise((res) => setTimeout(res, 0));
         t.ok('closing the stream early cancels the read from Google', cancelled);
-        t.eq('the style still goes in front of the words in the streamed request', JSON.parse(sent.init.body).contents[0].parts[0].text, VOICES.jarvis.style + ': Hidden words. All systems are online.');
+        t.ok('the streamed request speaks only the words, with the style as the system instruction', JSON.parse(sent.init.body).contents[0].parts[0].text === 'Hidden words. All systems are online.' && JSON.parse(sent.init.body).systemInstruction.parts[0].text.startsWith(VOICES.jarvis.style));
+        // A model that refuses a system instruction (400): asked again with the words alone, once, and this instance stops
+        // sending it. Never the style in the words as a way round it.
+        const reqs = [], slogs = [];
+        const picky = (init) => { const b = JSON.parse(init.body); reqs.push(b); return b.systemInstruction ? { status: 400, json: { error: { code: 400, message: 'systemInstruction is not supported for this model' } } } : null; };
+        a = app({}, [edge({ supercharge: true }), catalog(TTS), streamG((url, init) => picky(init) || { status: 200, text: SSE })], slogs);
+        r = await vpost(a);
+        t.ok('system instruction refused on the stream: asked again with the words alone, and it streams', r.status === 200 && r.stream && reqs.length === 2 && !reqs[1].systemInstruction && reqs[1].contents[0].parts[0].text === 'All systems are online.');
+        await drain(r.stream); await new Promise((res) => setTimeout(res, 0));
+        t.ok('…logged once as refused, and the line logged with style false', slogs.filter((l) => l.why === 'system instruction refused').length === 1 && slogs.some((l) => l.stream === true && l.style === false));
+        reqs.length = 0;
+        r = await vpost(a);
+        await drain(r.stream);
+        t.ok('…and the next line goes without it straight away (one call, not two)', reqs.length === 1 && !reqs[0].systemInstruction);
+        const preqs = [];
+        a = app({}, [edge({ supercharge: true }), catalog(TTS), streamG(() => ({ status: 404, json: {} })), plainG((url, init) => { const b = JSON.parse(init.body); preqs.push(b); return b.systemInstruction ? { status: 400, json: { error: { code: 400, message: 'no system instruction' } } } : ttsOk(); })]);
+        r = await vpost(a);
+        t.ok('the same on the old request: refused, then the words alone, a WAV', r.status === 200 && r.headers['Content-Type'] === 'audio/wav' && preqs.length === 2 && !preqs[1].systemInstruction);
+        a = both(() => ({ status: 400, json: { error: { code: 400, message: 'bad' } } }), () => ({ status: 400, json: { error: { code: 400, message: 'bad' } } }));
+        r = await vpost(a);
+        t.ok('a 400 for some other reason, with or without the style: 502, and no loop', r.status === 502 && a.f.calls.filter((c) => /enerateContent/.test(c.url)).length <= 4);
         t.ok('the Vercel adapter writes a stream as it comes, and stops when the page goes away', /if \(out\.stream\)/.test(await readFile(ROOT + 'api/_app.js', 'utf8')) && /res\.write\(/.test(await readFile(ROOT + 'api/_app.js', 'utf8')) && /res\.on\('close'/.test(await readFile(ROOT + 'api/_app.js', 'utf8')));
         void streamVoice;
     }
