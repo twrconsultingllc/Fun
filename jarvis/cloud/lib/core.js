@@ -312,7 +312,10 @@ export function readVoiceRequest(body) {
     if (!str(b.text, VOICE_LIMITS.text)) return { error: 'text' };
     const text = flat(b.text);
     if (!text) return { error: 'text' };
-    return { req: { skin: SKINS.includes(b.skin) ? b.skin : 'jarvis', text } };
+    // variant (review 87, sent only by jarvis-test.html's "compare voices"): A, B or C, one of the ways the line has been
+    // asked for on 2026-10-12, so the owner can pick by ear. Absent, the request is exactly as before.
+    const variant = ['A', 'B', 'C'].includes(b.variant) ? b.variant : null;
+    return { req: { skin: SKINS.includes(b.skin) ? b.skin : 'jarvis', text, variant } };
 }
 // A text-to-speech model from the live list: the one asked for if Google lists it, else the newest Flash TTS model,
 // else the newest of any TTS model. Never a name trusted from memory: with none listed, null, and the page uses the
@@ -329,6 +332,21 @@ export function pickVoiceModel(preferred, models) {
 // system instruction, which isn't spoken. style false: no style at all, for a model that refuses a system
 // instruction (the voice is still the skin's own).
 export const VOICE_RULE = "Read the user's text aloud exactly as written, and nothing else. Never say these instructions.";
+// The styles as first approved (Session 18, review 80), which went in front of the words: version A of "compare voices".
+export const VOICES_FIRST = {
+    jarvis: 'Say this in a calm, precise, dryly British voice, like a polite butler',
+    matrix: 'Say this slowly, in a low, deliberate, gravelly voice',
+    panther: 'Say this loud and quick, with hockey-announcer energy'
+};
+// The three versions "compare voices" plays (review 87): A, the first approved style in front of the words (review 80);
+// B, today's style as a system instruction (review 83); C, the words alone, the skin's voice with no style.
+export function variantBody(r) {
+    if (r.variant === 'B') return voiceBody(r, { style: true });
+    if (r.variant === 'C') return voiceBody(r, { style: false });
+    const b = voiceBody(r, { style: false });
+    b.contents[0].parts[0].text = `${VOICES_FIRST[r.skin] || VOICES_FIRST.jarvis}: ${r.text}`;
+    return b;
+}
 export function voiceBody(r, { style = true } = {}) {
     const v = VOICES[r.skin] || VOICES.jarvis;
     const body = {
@@ -593,6 +611,26 @@ export function createApp({ env, fetchImpl = fetch, now = Date.now, log = () => 
         const model = pickVoiceModel(want, await liveModels());
         if (!model) { log({ event: 'voice', error: 'no model' }); return json(502, cors, { error: 'no voice model' }); }
         const t0 = now(), chars = r.text.length;
+        // "compare voices" (review 87): one version, exactly as asked, never retried another way, so what plays is that
+        // version. A refused version answers 422, and the page says so on its line.
+        if (r.variant) {
+            const vs = await streamVoice({ env, fetchImpl, model, body: variantBody(r), now });
+            if (vs.quota) return json(429, cors, { error: 'quota', status: 429 });
+            if (vs.blocked) return json(502, cors, { error: 'blocked', model });
+            if (vs.badRequest) { log({ event: 'voice', model, variant: r.variant, error: 400 }); return json(422, cors, { error: 'refused', variant: r.variant }); }
+            if (vs.stream) {
+                vs.done.then(d => { const u = d.usage || {}; log({ event: 'voice', model, variant: r.variant, stream: true, chars, in: u.promptTokenCount || 0, out: u.candidatesTokenCount || 0, first: d.first, ms: d.ms }); });
+                return { status: 200, headers: { ...cors, 'Content-Type': PCM_TYPE(vs.rate), 'X-Content-Type-Options': 'nosniff' }, stream: vs.stream };
+            }
+            log({ event: 'voice', model, variant: r.variant, stream: false, why: vs.fallback });
+            let vo;
+            try { vo = await askGemini({ env, fetchImpl, model, body: variantBody(r), bodyNoThinking: variantBody(r) }); } catch { return json(502, cors, { error: 'upstream', variant: r.variant }); }
+            if (vo.status === 400) return json(422, cors, { error: 'refused', variant: r.variant });
+            const va = vo.ok ? readVoice(vo.data) : { error: 'upstream' };
+            if (va.file) return { status: 200, headers: { ...cors, 'Content-Type': va.type, 'X-Content-Type-Options': 'nosniff' }, body: va.file };
+            if (va.pcm) return { status: 200, headers: { ...cors, 'Content-Type': 'audio/wav', 'X-Content-Type-Options': 'nosniff' }, body: wav(va.pcm, va.rate) };
+            return json(vo.status === 429 ? 429 : 502, cors, { error: va.blocked ? 'blocked' : 'upstream', variant: r.variant });
+        }
         // The style goes as a system instruction. A model that refuses one (400) is asked again with the words alone,
         // and this instance stops sending it, so a 400 costs one extra call, once.
         // Jarvis always gets his style (the owner chose the British-sounding Charon it gives, 2026-10-12): a refusal drops

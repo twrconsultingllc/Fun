@@ -619,6 +619,33 @@ export default async function run(t) {
         t.ok('a 400 for some other reason, with or without the style: 502, and no loop', r.status === 502 && a.f.calls.filter((c) => /enerateContent/.test(c.url)).length <= 4);
         t.ok('the Vercel adapter writes a stream as it comes, and stops when the page goes away', /if \(out\.stream\)/.test(await readFile(ROOT + 'api/_app.js', 'utf8')) && /res\.write\(/.test(await readFile(ROOT + 'api/_app.js', 'utf8')) && /res\.on\('close'/.test(await readFile(ROOT + 'api/_app.js', 'utf8')));
         void streamVoice;
+
+        // Review 87: "compare voices" on jarvis-test.html asks for one line three ways, by letter. Each is sent exactly as
+        // that version, never retried another way; a request without a letter is as before (every check above).
+        const { variantBody, VOICES_FIRST } = core;
+        const vA = variantBody({ skin: 'jarvis', text: 'Hello.', variant: 'A' });
+        t.eq('version A: the first approved style in front of the words, no system instruction (as in review 80)', JSON.stringify(vA), JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'Say this in a calm, precise, dryly British voice, like a polite butler: Hello.' }] }], generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Charon' } } } } }));
+        t.ok('…with each skin\'s first style', variantBody({ skin: 'matrix', text: 'Hi.', variant: 'A' }).contents[0].parts[0].text === VOICES_FIRST.matrix + ': Hi.' && variantBody({ skin: 'panther', text: 'Hi.', variant: 'A' }).contents[0].parts[0].text === VOICES_FIRST.panther + ': Hi.');
+        t.eq('version B: today\'s request (the style as a system instruction)', JSON.stringify(variantBody({ skin: 'matrix', text: 'Hi.', variant: 'B' })), JSON.stringify(core.voiceBody({ skin: 'matrix', text: 'Hi.' })));
+        t.eq('version C: the words alone', JSON.stringify(variantBody({ skin: 'panther', text: 'Hi.', variant: 'C' })), JSON.stringify(core.voiceBody({ skin: 'panther', text: 'Hi.' }, { style: false })));
+        t.ok('a letter other than A, B or C is ignored', core.readVoiceRequest({ text: 'Hi.', variant: 'D' }).req.variant === null && core.readVoiceRequest({ text: 'Hi.', variant: 'A' }).req.variant === 'A' && core.readVoiceRequest({ text: 'Hi.' }).req.variant === null);
+        const vreqs = [], vlogs = [];
+        a = app({}, [edge({ supercharge: true }), catalog(TTS), streamG((url, init) => { const b = JSON.parse(init.body); vreqs.push(b); return b.systemInstruction ? { status: 400, json: { error: { code: 400, message: 'no' } } } : { status: 200, text: SSE }; })], vlogs);
+        r = await vpost(a, { skin: 'jarvis', text: 'Secret words.', variant: 'A' }); await drain(r.stream);
+        t.ok('version A streams, as asked, with one call', r.status === 200 && r.stream && vreqs.length === 1 && vreqs[0].contents[0].parts[0].text.startsWith(VOICES_FIRST.jarvis));
+        vreqs.length = 0;
+        r = await vpost(a, { skin: 'jarvis', text: 'Secret words.', variant: 'B' });
+        t.ok('version B refused by Google: 422 refused, and never retried another way', r.status === 422 && JSON.parse(r.body).error === 'refused' && vreqs.length === 1);
+        vreqs.length = 0;
+        r = await vpost(a, { skin: 'jarvis', text: 'Secret words.' }); await drain(r.stream);
+        t.ok('…and a version B refusal changes nothing for ordinary requests (Jarvis still tries his style first)', vreqs.length === 2 && !!vreqs[0].systemInstruction);
+        await new Promise((res) => setTimeout(res, 0));
+        t.ok('versions are logged by letter, never with the words', vlogs.some((l) => l.variant === 'A' && l.stream === true) && vlogs.some((l) => l.variant === 'B' && l.error === 400) && !JSON.stringify(vlogs).includes('Secret'));
+        a = app({}, [edge({ supercharge: true }), catalog(TTS), streamG(() => ({ status: 404, json: {} })), plainG(() => ttsOk())]);
+        r = await vpost(a, { skin: 'matrix', text: 'Hi.', variant: 'C' });
+        t.ok('a version still plays the old way when streaming isn\'t there (a WAV)', r.status === 200 && r.headers['Content-Type'] === 'audio/wav');
+        a = app({}, [edge({ supercharge: false }), catalog(TTS), streamG(() => ({ status: 200, text: SSE }))]);
+        t.eq('versions need the supercharger like any line (503 when off)', (await vpost(a, { skin: 'jarvis', text: 'Hi.', variant: 'A' })).status, 503);
     }
 
 }

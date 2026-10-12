@@ -1208,12 +1208,12 @@ async function voiceKeep(text,buf){
   }catch(e){}
 }
 // One segment's audio, or null (and the browser says it instead), with seg.why saying what went wrong.
-const VOICE_WHY={429:'busy',502:'Gemini voice failed',503:'switched off'};
+const VOICE_WHY={422:'refused by Google',429:'busy',502:'Gemini voice failed',503:'switched off'};
 async function voiceLoad(seg,keep){
   try{
     if(seg.kind==='rec'){const r=await fetch(seg.file);if(r.ok)return await r.arrayBuffer();seg.why='recording missing';return null}
     const kept=keep&&voiceKeepable(seg.text)?await voiceKept(seg.text):null;if(kept){seg.saved=true;return kept}
-    const res=await cloudFetch('/api/voice',{method:'POST',body:JSON.stringify({skin,text:seg.text}),wait:voiceOut.fetchWait});
+    const res=await cloudFetch('/api/voice',{method:'POST',body:JSON.stringify(seg.variant?{skin,text:seg.text,variant:seg.variant}:{skin,text:seg.text}),wait:voiceOut.fetchWait});
     if(res.status===503){seg.why=VOICE_WHY[503];charger.voice=false;cloudCheck();return null}
     if(!res.ok||!/^audio\//.test(res.headers&&res.headers.get?res.headers.get('content-type')||'':'')){seg.why=VOICE_WHY[res.status]||'Gemini voice failed';if(res.status!==429)voiceFail();return null}
     voiceOut.fails=0;
@@ -1379,6 +1379,30 @@ async function voiceSay(words,gen,{keep=true,line=null}={}){
     if(gen===sayGen){lastWord=null;setMode('idle')}
   }finally{voiceOut.active--}
 }
+// "Compare voices" (review 87): the same line in each of the three ways his voice has been asked for on 2026-10-12, one
+// after another, each tagged with its letter, so the owner can pick by ear (Claude can't hear Google's voice from its
+// container). A: the first approved style in front of the words (review 80). B: today's style as a system instruction
+// (review 83). C: the words alone. Nothing is kept on the device, and failures don't count towards resting the live voice.
+const VOICE_COMPARE_RE=/^(?:compare|try|test|play)(?: your| the| all)?(?: three)? voices?(?: versions?)?(?: please)?$|^voice versions?(?: please)?$/;
+async function voiceCompare(){
+  const line=VOICE_SAMPLES[skin][1]||VOICE_SAMPLES[skin][0],fails=voiceOut.fails;
+  voiceOut.active++;
+  try{
+    for(const v of ['A','B','C']){
+      const gen=++sayGen;if(synth)synth.cancel();voiceStop();
+      add(`Version ${v}. ${line}`,'ai');const ln=log.lastElementChild;
+      const ctx=voiceCtx();if(!ctx||!voiceLiveOK()){voiceMark(ln,'VERSION '+v+' · '+(!ctx?'NO SOUND HERE':'SUPERCHARGER OFF'),{fell:true});continue}
+      const seg={kind:'live',text:line,variant:v};
+      const buf=await Promise.race([voiceLoad(seg,false),nap(voiceOut.fetchWait).then(()=>{seg.why=seg.why||'too slow';return null})]);
+      if(gen!==sayGen)return;
+      if(!buf){voiceMark(ln,'VERSION '+v+' · '+String(seg.why||'Gemini voice failed').toUpperCase(),{fell:true});continue}
+      voiceMark(ln,'VERSION '+v+' · '+VOICE_NAMES[skin].toUpperCase(),{his:true});
+      await (buf.chunks?voicePlayFeed(buf,gen):voicePlayBuf(buf,gen));
+      if(gen!==sayGen)return;
+      await nap(500);
+    }
+  }finally{voiceOut.active--;voiceOut.fails=fails;lastWord=null;setMode('idle')}
+}
 // "Voice samples": the lines the owner approved on 2026-10-12, for the skin he's wearing.
 const VOICE_SAMPLES={
   jarvis:['Hello. All systems are online.','Suit diagnostics complete. Repulsors charged, flight stabilizers online. Try not to hit any buildings.','Why did the robot go on vacation? It needed to recharge its batteries.'],
@@ -1491,7 +1515,7 @@ const GAUNTLET=[
    note:'A protocol runs several commands with one phrase: make one, then say its name to run it. In Chrome or Edge, turn on always listening with the HEY JARVIS switch, then start what you say with my name. Reboot to watch me power up again. Install Jarvis puts me on your home screen, and after one visit I work offline. On an iPhone, the installed Jarvis has its own storage, separate from Safari\'s, so it starts fresh.'},
   {k:'time',name:'Time',theme:'follow-ups and memory',links:[['now Jupiter'],['bigger'],['slower'],['again'],['go back'],['why'],['show me your memory'],['what do you know about me'],['what do you save'],['back up my settings'],['restore my settings'],['send my settings to my phone'],['scan settings']],
    note:"Talk in fragments after a scene, and ask why after an answer. Tell me your name, or things like my dog is Rex or I'm going to the beach, and I'll remember them for this visit. Leave me alone for a few minutes and I'll dream. I never keep anything personal. On an iPhone, Safari clears my settings after 7 days without a visit, so back them up to keep a copy, or send them to another device."},
-  {k:'soul',name:'Soul',theme:'you and me',links:[['switch to Matrix'],['switch to Panthers'],['back to Jarvis'],['make the orb blue'],['speak faster'],['use imperial units'],['open with the galaxy'],['voice samples'],['the browser voice','use the browser voice'],['my own voice','use your own voice'],['mixed voices','mix the voices'],['learn that'],['how well do you know me'],["what's my favourite"],["what haven't I tried"],['stop putting my favourites first']],
+  {k:'soul',name:'Soul',theme:'you and me',links:[['switch to Matrix'],['switch to Panthers'],['back to Jarvis'],['make the orb blue'],['speak faster'],['use imperial units'],['open with the galaxy'],['voice samples'],['compare voices'],['the browser voice','use the browser voice'],['my own voice','use your own voice'],['mixed voices','mix the voices'],['learn that'],['how well do you know me'],["what's my favourite"],["what haven't I tried"],['stop putting my favourites first']],
    note:"Settings like my orb and my voice stay on this device. My own voice plays from recordings on this site, and while my supercharger is on, Google's Gemini voices the rest. Say use the browser voice if you'd rather hear this device's, or mix the voices to have both. If I don't understand you, say learn that and tell me what you meant, or teach me straight out: when I say beam me up, I mean show me the galaxy. I only learn a phrase when you ask me to. The more we talk, the better I know you."},
 ];
 const HELP_LINE="Here's what I can do. Pick a stone.",HELP_MARK='⁣';
@@ -3324,6 +3348,7 @@ function runBoot(){
 }
 let greeted=false; // the first-visit and streak lines are said once per visit, not on every reboot
 let bootWaiting=false;
+let greetWaiting=false; // the opening is waiting for the supercharger's status (review 87), so an announcement joins it
 function finishBoot(){
   if(boot.hidden)return;
   // The greeting, the streak and the opening scene need what was saved, so they wait for the database (Session 9).
@@ -3334,8 +3359,11 @@ function finishBoot(){
   let g=greeting();
   if(!greeted){greeted=true;g+=firstTime?" This looks like my first time on this device.":streak.days>1?' '+streakLine(streak.days):'';
     if(!firstTime){const x=greetExtras();if(x)g+=' '+x}} // Session 11: the level, then the recap or a nudge
-  if(charger.pending){g+=' '+charger.pending;charger.pending=''} // the supercharger turned on or off during the boot (Session 17)
-  say(g);q.focus();
+  q.focus();
+  // Review 87: the opening is said in his own voice, so when he could use it and the supercharger's status hasn't come
+  // back yet, he waits for it (at most 3 seconds) instead of opening in the phone's voice.
+  const greet=()=>{greetWaiting=false;if(charger.pending){g+=' '+charger.pending;charger.pending=''} say(g)}; // the supercharger turned on or off during the boot (Session 17)
+  if(voiceOut.AC&&(settings.voice||'his')!=='browser'&&charger.checking){greetWaiting=true;Promise.race([charger.checking,nap(3000)]).then(greet)}else greet();
   // A favourite scene opens after the greeting; its intro goes in the log rather than cutting the greeting off.
   if(settings.scene)setTimeout(async()=>{if(H||booting)return;const r=await project({kind:settings.scene});if(r)add(r,'ai')},1200);
 }
@@ -3565,7 +3593,7 @@ const CAPABILITIES=[
   {key:'wake-up',name:"wake up, daddy's home",ids:['cmd:wake-up'],cmds:["wake up daddy's home"],hint:"I have a proper entrance. Say ⟦wake up, daddy's home|wake up daddy's home⟧."},
   {key:'mic',name:'talking to me',ids:['feature:mic'],can:'mic',cmds:[],hint:"You can talk instead of typing. Tap the 🎙 button."},
   {key:'wake-word',name:'always listening',ids:['feature:wake-word'],can:'wake',cmds:['always listen'],hint:"In Chrome or Edge I can listen for my name. Turn on ⟦always listening|always listen⟧."},
-  {key:'voice',name:'voices',ids:['feature:voice'],can:'voices',cmds:['voice samples'],hint:"You can pick my voice from the menu beside the SKIN button, or say ⟦voice samples⟧ to hear mine."},
+  {key:'voice',name:'voices',ids:['feature:voice'],can:'voices',cmds:['voice samples','compare voices'],hint:"You can pick my voice from the menu beside the SKIN button, or say ⟦voice samples⟧ to hear mine."},
   {key:'backup',name:'the settings backup',ids:['cmd:backup'],cmds:['back up my settings'],hint:"I can keep a copy of your settings as a file. Say ⟦back up my settings⟧."},
   {key:'restore',name:'restoring a backup',ids:['cmd:restore'],cmds:['restore my settings'],hint:"A backup file goes back in with ⟦restore my settings⟧."},
   {key:'qr',name:'the settings code',ids:['cmd:qr'],cmds:['send my settings to my phone'],hint:"I can show your settings as a code for your phone. Say ⟦send my settings to my phone⟧."},
@@ -4729,7 +4757,7 @@ async function cloudCheck(){
 }
 // Said once the boot screen has gone (the greeting carries it), and never over an answer being said.
 function cloudAnnounce(t,tries=0){
-  if(!greeted||booting){charger.pending=t;return} // the greeting carries it (the boot screen fades for a moment after it)
+  if(!greeted||booting||greetWaiting){charger.pending=t;return} // the greeting carries it (the boot screen fades for a moment after it)
   if(tries<15&&(mode==='think'||speakingNow())){setTimeout(()=>cloudAnnounce(t,tries+1),1000);return}
   say(t);
 }
@@ -4912,6 +4940,13 @@ async function respond(text,inner=false){
   const ma=memoryAsk(text);if(ma!==null)return ma;
   const se=settingsIntent(text);if(se){track('cmd:setting');note(se.key==='color'||se.key==='speed'?se.key:null);return applySetting(se)}
   if(VOICE_SAMPLE_RE.test(normPhrase(text).replace(/^jarvis /,''))){track('feature:voice');note(null);return voiceSamples()}
+  if(VOICE_COMPARE_RE.test(normPhrase(text).replace(/^jarvis /,''))){
+    track('feature:voice');note(null);
+    if(!voiceOut.AC||!voiceLiveOK())return "Comparing my voices needs my supercharger on, and a browser that can play sound.";
+    // After this line is said, the three versions play in turn.
+    setTimeout(function wait(){if(speakingNow())return setTimeout(wait,150);voiceCompare()},300);
+    return 'Three versions of my voice, the same line each time. Tell your engineer which letter sounds right.';
+  }
   const sk=skinIntent(text);if(sk){note('skin');return setSkin(sk)}
   if(BRIEF_RE.test(normPhrase(text).replace(/^(?:jarvis )/,''))){track('cmd:briefing');note(null);return await briefing()}
   if(upgradeIntent(text)){note(null);return await upgradeBrain()}
@@ -5124,7 +5159,7 @@ if(SR){
   }
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={voiceKeepV:VOICE_KEEP_V,sayGen:()=>sayGen,VOICE_NAMES,voiceBrowser,voiceLevel,voiceOut,voicePcmType,voiceFeed,voiceWav,voicePlayFeed,voicePlan,voiceSay,voiceManifest,voiceList,voiceLines,voiceRecordable,voiceKeepable,voiceSamples,VOICE_SAMPLES,VOICE_SAMPLE_RE,speechSentences,speakBrowser,speakingNow,charger,cloudSet,cloudCheck,askCloud,cloudIntent,cloudReport,modelName,CLOUD,CLOUD_TAG,installIntent,installJarvis,updateJarvis,setReload:f=>{reloadPage=f},setInstallPrompt:e=>{installPrompt=e},SW_URL,SW_SCOPE,CACHE_PREFIX,say,setTitle,GAUNTLET,GAUNTLET_TEXT,HELP_LINE,helpSplit,openGauntlet,closeGauntlet,pickStone,chatOpen,freeArea,full:()=>full,setLlmLib:f=>{llmLib=f},llmLibReal,gpuCheck,fullBrainIntent,BRAIN_PICKS,parseBrain,cleanSay,brainGuess,checkPick,systemPrompt,brainFacts,brainReport,LLM,micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
+window.__jarvis={voiceCompare,VOICE_COMPARE_RE,voiceKeepV:VOICE_KEEP_V,sayGen:()=>sayGen,VOICE_NAMES,voiceBrowser,voiceLevel,voiceOut,voicePcmType,voiceFeed,voiceWav,voicePlayFeed,voicePlan,voiceSay,voiceManifest,voiceList,voiceLines,voiceRecordable,voiceKeepable,voiceSamples,VOICE_SAMPLES,VOICE_SAMPLE_RE,speechSentences,speakBrowser,speakingNow,charger,cloudSet,cloudCheck,askCloud,cloudIntent,cloudReport,modelName,CLOUD,CLOUD_TAG,installIntent,installJarvis,updateJarvis,setReload:f=>{reloadPage=f},setInstallPrompt:e=>{installPrompt=e},SW_URL,SW_SCOPE,CACHE_PREFIX,say,setTitle,GAUNTLET,GAUNTLET_TEXT,HELP_LINE,helpSplit,openGauntlet,closeGauntlet,pickStone,chatOpen,freeArea,full:()=>full,setLlmLib:f=>{llmLib=f},llmLibReal,gpuCheck,fullBrainIntent,BRAIN_PICKS,parseBrain,cleanSay,brainGuess,checkPick,systemPrompt,brainFacts,brainReport,LLM,micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
   SETTING_CHOICES,cleanSettings,cleanStreak,streakLine,settingsIntent,applySetting,settings:()=>({...settings}),inUnits,ORB_COLOURS,ring:()=>ringRGB,SPEEDS,
   memoryTell,memoryAsk,memoryForget,memory:()=>memory.map(x=>({...x})),memoryStars,forgetStar,constellation,constellationLinks,get firstTime(){return firstTime},streak:()=>({...streak}),
   STEPS,BUILTIN,PROTO_MAX,PROTO_STEPS,stepOf,protoName,nameProblem,protoProblem,protoCreate,adjuster,noteScene,fragment,
