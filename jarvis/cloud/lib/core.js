@@ -1,7 +1,8 @@
-/* J.A.R.V.I.S. supercharger: the logic behind the two Vercel functions in ../api/.
+/* J.A.R.V.I.S. supercharger: the logic behind the three Vercel functions in ../api/.
  *
  * The page on GitHub Pages asks /api/status whether the supercharger is on, and, while it is, sends what nothing on
- * the device understood to /api/brain, which asks Google's Gemini. The owner turns it on and off in Vercel, never on
+ * the device understood to /api/brain, which asks Google's Gemini. Since Session 18, while it's on, /api/voice turns
+ * a line he says into audio with Gemini's text-to-speech model, in one voice per skin. The owner turns it on and off in Vercel, never on
  * the page: an Edge Config item (supercharge, until, model, owner), or, without Edge Config, environment variables,
  * where it's on unless SUPERCHARGE says otherwise.
  *
@@ -31,6 +32,9 @@ export const LIMITS = {
     outputTokens: 512
 };
 export const RATE = { perIpPerMinute: 12, perInstancePerMinute: 120 };
+// The live voice (Session 18): one call per answer, usually, so a little more room than questions get.
+export const VOICE_LIMITS = { body: 2000, text: 600 };
+export const VOICE_RATE = { perIpPerMinute: 20, perInstancePerMinute: 200 };
 const SWITCH_TTL = 30000;     // Edge Config read at most every 30 s per instance
 const CATALOG_TTL = 3600000;  // the live model list, at most hourly
 
@@ -276,12 +280,84 @@ export async function askGemini({ env, fetchImpl, model, body, bodyNoThinking })
     return { ok: res.ok, status: res.status, data };
 }
 
-/* ---------- The two handlers, without Vercel ---------- */
+/* ---------- The live voice (Session 18) ---------- */
+// One named Gemini voice per skin, and how it speaks. The style goes in front of the words, the way Google's
+// text-to-speech guide does it ("Say cheerfully: Have a wonderful day!"). The owner approved these on 2026-10-12.
+export const VOICES = {
+    jarvis: { name: 'Charon', style: 'Say this in a calm, precise, dryly British voice, like a polite butler' },
+    matrix: { name: 'Algenib', style: 'Say this slowly, in a low, deliberate, gravelly voice' },
+    panther: { name: 'Fenrir', style: 'Say this loud and quick, with hockey-announcer energy' }
+};
+// The body: {skin, text}, at most 600 characters of words. Returns {req} or {error}.
+export function readVoiceRequest(body) {
+    let b = body;
+    if (typeof b === 'string') {
+        if (b.length > VOICE_LIMITS.body) return { error: 'too large' };
+        try { b = JSON.parse(b); } catch { return { error: 'not JSON' }; }
+    } else if (b && JSON.stringify(b).length > VOICE_LIMITS.body) return { error: 'too large' };
+    if (!b || typeof b !== 'object' || Array.isArray(b)) return { error: 'not an object' };
+    if (!str(b.text, VOICE_LIMITS.text)) return { error: 'text' };
+    const text = flat(b.text);
+    if (!text) return { error: 'text' };
+    return { req: { skin: SKINS.includes(b.skin) ? b.skin : 'jarvis', text } };
+}
+// A text-to-speech model from the live list: the one asked for if Google lists it, else the newest Flash TTS model,
+// else the newest of any TTS model. Never a name trusted from memory: with none listed, null, and the page uses the
+// browser's voice.
+export function pickVoiceModel(preferred, models) {
+    const tts = (models || []).filter(m => /^gemini-[\d.]+-.*tts/.test(m));
+    if (preferred && tts.includes(preferred)) return preferred;
+    const ver = m => (m.match(/gemini-(\d+(?:\.\d+)?)/) || [0, 0])[1] * 1;
+    const newest = list => list.slice().sort((a, b) => ver(b) - ver(a) || a.length - b.length)[0] || null;
+    return newest(tts.filter(m => /flash/.test(m) && !/lite/.test(m))) || newest(tts.filter(m => /flash/.test(m))) || newest(tts);
+}
+export function voiceBody(r) {
+    const v = VOICES[r.skin] || VOICES.jarvis;
+    return {
+        contents: [{ role: 'user', parts: [{ text: `${v.style}: ${r.text}` }] }],
+        generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: v.name } } } }
+    };
+}
+// Gemini's audio answer: base64 PCM (mimeType "audio/L16;codec=pcm;rate=24000", 16-bit mono), read back to
+// {pcm, rate}, or {blocked} / {error}.
+const MAX_PCM = 4000000; // about 80 seconds at 24 kHz, well over what 600 characters take to say
+export function readVoice(data) {
+    if (!data || typeof data !== 'object') return { error: 'empty' };
+    if (data.promptFeedback && data.promptFeedback.blockReason) return { blocked: true };
+    const c = Array.isArray(data.candidates) && data.candidates[0];
+    if (!c) return { error: 'no candidate' };
+    if (c.finishReason === 'SAFETY' || c.finishReason === 'PROHIBITED_CONTENT' || c.finishReason === 'BLOCKLIST') return { blocked: true };
+    const part = ((c.content && c.content.parts) || []).find(p => p && p.inlineData && typeof p.inlineData.data === 'string');
+    if (!part) return { error: 'no audio' };
+    const mime = String(part.inlineData.mimeType || '');
+    if (!/^audio\/(?:L16|pcm)\b/i.test(mime)) return { error: 'audio type' };
+    const rate = Number((mime.match(/rate=(\d+)/) || [0, 24000])[1]);
+    if (!(rate >= 8000 && rate <= 48000)) return { error: 'audio rate' };
+    const b64 = part.inlineData.data;
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(b64) || b64.length * 3 / 4 > MAX_PCM) return { error: 'audio data' };
+    let pcm;
+    try { const bin = atob(b64); pcm = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) pcm[i] = bin.charCodeAt(i); } catch { return { error: 'audio data' }; }
+    if (pcm.length < 2) return { error: 'no audio' };
+    return { pcm: pcm.length % 2 ? pcm.subarray(0, pcm.length - 1) : pcm, rate };
+}
+// The PCM wrapped as a WAV file (44-byte header), which every browser can decode.
+export function wav(pcm, rate) {
+    const out = new Uint8Array(44 + pcm.length), d = new DataView(out.buffer);
+    const tag = (at, s) => { for (let i = 0; i < 4; i++) out[at + i] = s.charCodeAt(i); };
+    tag(0, 'RIFF'); d.setUint32(4, 36 + pcm.length, true); tag(8, 'WAVE');
+    tag(12, 'fmt '); d.setUint32(16, 16, true); d.setUint16(20, 1, true); d.setUint16(22, 1, true);
+    d.setUint32(24, rate, true); d.setUint32(28, rate * 2, true); d.setUint16(32, 2, true); d.setUint16(34, 16, true);
+    tag(36, 'data'); d.setUint32(40, pcm.length, true); out.set(pcm, 44);
+    return out;
+}
+
+/* ---------- The three handlers, without Vercel ---------- */
 // Each takes {method, headers, body} and returns {status, headers, body}; ../api/*.js adapt Vercel's req and res.
 export function createApp({ env, fetchImpl = fetch, now = Date.now, log = () => {} }) {
     const readSwitch = createSwitch({ env, fetchImpl, now });
     const liveModels = createCatalog({ env, fetchImpl, now });
     const allow = createLimiter({ now });
+    const allowVoice = createLimiter({ now, perIp: VOICE_RATE.perIpPerMinute, perInstance: VOICE_RATE.perInstancePerMinute });
     const json = (status, headers, body) => ({ status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'X-Content-Type-Options': 'nosniff', ...headers }, body: JSON.stringify(body) });
 
     async function status(req) {
@@ -289,9 +365,10 @@ export function createApp({ env, fetchImpl = fetch, now = Date.now, log = () => 
         if (req.method === 'OPTIONS') return { status: 204, headers: cors, body: '' };
         if (req.method !== 'GET') return json(405, cors, { error: 'method' });
         const sw = await readSwitch(), t = now(), on = isOn(sw, t) && !!env.GEMINI_API_KEY;
-        // Cached by Vercel's edge for 20 s, so a busy page doesn't read Edge Config for every visitor.
+        // Cached by Vercel's edge for 20 s, so a busy page doesn't read Edge Config for every visitor. voice: this
+        // proxy has /api/voice (Session 18), so the page knows not to try it on an older deployment.
         return json(200, { ...cors, 'Cache-Control': 'public, max-age=0, s-maxage=20' }, {
-            on, owner: sw.owner, model: on ? (sw.model || DEFAULT_MODEL) : null, until: on && sw.until ? new Date(sw.until).toISOString() : null
+            on, owner: sw.owner, model: on ? (sw.model || DEFAULT_MODEL) : null, until: on && sw.until ? new Date(sw.until).toISOString() : null, voice: on
         });
     }
 
@@ -328,5 +405,40 @@ export function createApp({ env, fetchImpl = fetch, now = Date.now, log = () => 
         return json(200, cors, { ...a, model });
     }
 
-    return { status, brain };
+    // POST /api/voice: {skin, text} in, audio/wav out, while the supercharger is on. Logs only the model and token
+    // counts, never the words. Any failure is JSON with an error status, and the page then uses the browser's voice.
+    async function voice(req) {
+        const origin = req.headers.origin, cors = { ...corsHeaders(origin, env), 'Cache-Control': 'no-store' };
+        if (req.method === 'OPTIONS') return { status: 204, headers: cors, body: '' };
+        if (req.method !== 'POST') return json(405, cors, { error: 'method' });
+        if (!origin || !allowedOrigins(env).includes(origin)) return json(403, cors, { error: 'origin' });
+        const sw = await readSwitch();
+        if (!isOn(sw, now()) || !env.GEMINI_API_KEY) return json(503, cors, { off: true, owner: sw.owner });
+        if (!allowVoice(callerIp(req.headers))) return json(429, cors, { error: 'busy' });
+        const { req: r, error } = readVoiceRequest(req.body);
+        if (error) return json(400, cors, { error });
+        const want = env.JARVIS_VOICE_MODEL && MODEL_RE.test(env.JARVIS_VOICE_MODEL) ? env.JARVIS_VOICE_MODEL : null;
+        const model = pickVoiceModel(want, await liveModels());
+        if (!model) { log({ event: 'voice', error: 'no model' }); return json(502, cors, { error: 'no voice model' }); }
+        let out;
+        try {
+            out = await askGemini({ env, fetchImpl, model, body: voiceBody(r), bodyNoThinking: voiceBody(r) });
+        } catch (e) {
+            log({ event: 'voice', model, error: 'network' });
+            return json(502, cors, { error: 'upstream', detail: scrub(e && e.message) });
+        }
+        if (!out.ok) {
+            const msg = out.data && out.data.error && out.data.error.message;
+            log({ event: 'voice', model, error: out.status });
+            return json(out.status === 429 ? 429 : 502, cors, { error: out.status === 429 ? 'quota' : 'upstream', status: out.status, detail: scrub(msg) });
+        }
+        const u = (out.data && out.data.usageMetadata) || {};
+        log({ event: 'voice', model, in: u.promptTokenCount || 0, out: u.candidatesTokenCount || 0 });
+        const a = readVoice(out.data);
+        if (a.blocked) return json(502, cors, { error: 'blocked', model });
+        if (a.error) return json(502, cors, { error: 'format', detail: a.error, model });
+        return { status: 200, headers: { ...cors, 'Content-Type': 'audio/wav', 'X-Content-Type-Options': 'nosniff' }, body: wav(a.pcm, a.rate) };
+    }
+
+    return { status, brain, voice };
 }

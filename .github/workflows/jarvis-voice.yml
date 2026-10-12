@@ -1,0 +1,88 @@
+# J.A.R.V.I.S.: record his fixed lines in his own voice (Session 18 of jarvis/build-plan.html).
+#
+# Run it by hand from the Actions tab ("J.A.R.V.I.S. voice" → Run workflow). There's no schedule.
+# It collects every fixed line the test copy says word for word (jarvis/voice/collect.mjs), works out
+# which are new or changed since jarvis/voice/manifest.json, and only those go to Gemini's
+# text-to-speech model, in each skin's voice. Each recording is saved as a small MP3 under
+# jarvis/voice/<skin>/, listed in the manifest with its SHA-256, and committed as github-actions[bot].
+# Re-running it costs only for what changed.
+#
+# "dry-run" (the default) only prints what would be recorded and how big it would be: no key is
+# read and nothing leaves GitHub. "record" runs the same dry run first, then records.
+#
+# Needs the repository secret GEMINI_API_KEY (Settings → Secrets and variables → Actions). It's put
+# in the environment of the one step that records, and nowhere else.
+
+name: J.A.R.V.I.S. voice
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry-run prints what would be recorded; record records it'
+        type: choice
+        options: [dry-run, record]
+        default: dry-run
+      limit:
+        description: 'At most this many lines in one run'
+        type: number
+        default: 400
+
+permissions:
+  contents: write
+
+concurrency:
+  group: jarvis-voice
+  cancel-in-progress: false
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      # No token left in git config while the recording runs; only the last step gets it, to push.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      # jsdom, to open the page and read its lines.
+      - name: Install the test tools
+        working-directory: tests
+        run: npm ci --ignore-scripts
+
+      - name: Collect the lines
+        run: node jarvis/voice/collect.mjs > "$RUNNER_TEMP/lines.json"
+
+      - name: Dry run
+        run: node jarvis/voice/record.mjs --lines="$RUNNER_TEMP/lines.json" --dry-run
+
+      - name: Record
+        if: inputs.mode == 'record'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          command -v ffmpeg >/dev/null || { sudo apt-get update -q && sudo apt-get install -yq ffmpeg; }
+          node jarvis/voice/record.mjs --lines="$RUNNER_TEMP/lines.json" --limit="$LIMIT"
+
+      - name: Commit if anything was recorded
+        if: inputs.mode == 'record'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -z "$(git status --porcelain -- jarvis/voice)" ]; then
+            echo "Nothing new to record; nothing to commit."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A jarvis/voice
+          git commit -m 'J.A.R.V.I.S.: record his voice'
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          # Someone may have pushed while this ran; replay this one commit on top.
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"
