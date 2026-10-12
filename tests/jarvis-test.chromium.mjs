@@ -84,6 +84,11 @@ const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.le
 const work = await mkdtemp(join(tmpdir(), 'jarvis-chromium-'));
 const OUT = arg('out') ? resolve(arg('out')) : work;
 const exists = (p) => access(p).then(() => true, () => false);
+// --step=13 (or --step=11,13) runs only those steps, for a small fix (CLAUDE.md: "Small fixes: test only what changed").
+// With no --step, every step runs, as at the end of a session and before a promotion.
+const STEP = arg('step') ? new Set(arg('step').split(',').map((x) => Number(x.trim()))) : null;
+if (STEP && [...STEP].some((n) => !Number.isInteger(n) || n < 1 || n > 13)) { console.error(`--step takes step numbers from 1 to 13, got ${arg('step')}`); process.exit(2); }
+const want = (...n) => !STEP || n.some((k) => STEP.has(k));
 
 async function loadPlaywright() {
     for (const spec of ['playwright', '/opt/node22/lib/node_modules/playwright/index.mjs']) {
@@ -210,6 +215,9 @@ const memoryCore = async (page, shot) => {
 };
 
 try {
+    // Steps 1–3 also set up the shared profile that steps 4 and 5 use, so asking for 4 or 5 runs them too.
+    let test;
+    if (want(1, 2, 3, 4, 5)) {
     // 1. What an older jarvis.html left in localStorage, put there from a page on the same origin that doesn't save.
     const seed = await ctx.newPage(); await seed.goto(BASE + 'index.html');
     await seed.evaluate(() => { const d = new Date();
@@ -221,7 +229,7 @@ try {
     await seed.close();
 
     // 2. The test copy.
-    let test = await open('jarvis-test.html');
+    test = await open('jarvis-test.html');
     let st = await test.evaluate(() => ({ skin: window.__jarvis.skin(), color: window.__jarvis.settings().color, dbOK: window.__jarvis.dbOK() }));
     ok('the test copy copies jarvis.html\'s settings in on its first run', st.skin === 'panther' && st.color === 'pink' && st.dbOK, JSON.stringify(st));
     await test.evaluate(async () => { const J = window.__jarvis; await J.answer('switch to the matrix'); await J.answer('make the orb blue'); await J.answer('tell me a joke'); await J.answer('show me the galaxy'); await J.answer('close'); });
@@ -272,8 +280,9 @@ try {
     ok('no sideways scroll at phone size', await test.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await test.close();
 
+    } // end of steps 1–3
     // 4. Session 10: protocols in real IndexedDB, the HUD line, House Party and follow-ups, at both sizes.
-    if (three) for (const [w, h] of [[1280, 800], [390, 844]]) {
+    if (three && want(4)) for (const [w, h] of [[1280, 800], [390, 844]]) {
         test = await open('jarvis-test.html', { width: w, height: h });
         await test.click('#boot-skip'); await test.waitForTimeout(800);
         const say = (q) => test.evaluate((x) => window.__jarvis.answer(x), q);
@@ -354,7 +363,7 @@ try {
     }
 
     // 5. Session 8: moving settings to another device. Device A is this profile; device B is a second browser.
-    {
+    if (want(5)) {
         const a = await open('jarvis-test.html');
         await a.click('#boot-skip'); await a.waitForTimeout(600);
         const sayA = (q) => a.evaluate((x) => window.__jarvis.answer(x), q);
@@ -461,7 +470,7 @@ try {
         } finally { await ctxB.close(); }
     }
     // 6. Session 11: clearance, in a fresh profile at each size, so each one starts as a newcomer.
-    if (three) for (const [w, h] of [[1280, 800], [390, 844]]) {
+    if (three && want(6)) for (const [w, h] of [[1280, 800], [390, 844]]) {
         const ctxC = await chromium.launchPersistentContext(join(work, `profile-c-${w}`), { executablePath, headless: true,
             args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: w, height: h } });
         await proxyRoute(ctxC);
@@ -523,7 +532,7 @@ try {
     // somewhat-close "make me smile" asks "Did you mean a joke?" (a screenshot), which yes answers. The real database
     // is the same before and after apart from the usage counts, the Cache API is unused, and a reload starts without it.
     // Slow under SwiftShader: the model works out the example sentences' fingerprints on the CPU.
-    if (three) for (const [w, h] of [[1280, 800], [390, 844]]) {
+    if (three && want(7)) for (const [w, h] of [[1280, 800], [390, 844]]) {
         const ctxM = await chromium.launchPersistentContext(join(work, `profile-m-${w}`), { executablePath, headless: true,
             args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: w, height: h } });
         await proxyRoute(ctxM);
@@ -598,7 +607,7 @@ try {
     // A protocol and a setting are saved first, so the version 3 upgrade can be seen to keep the older tables. "Tell me
     // about Peru" spins the real globe to Peru and reads the facts (a screenshot); "how far is Mars" opens the solar
     // system near Mars; "tell me about the Mark 42" opens the suit schematic. The pack lands in real IndexedDB.
-    if (three) for (const [w, h] of [[1280, 800], [390, 844]]) {
+    if (three && want(8)) for (const [w, h] of [[1280, 800], [390, 844]]) {
         const ctxK = await chromium.launchPersistentContext(join(work, `profile-k-${w}`), { executablePath, headless: true,
             args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: w, height: h } });
         await proxyRoute(ctxK);
@@ -647,7 +656,7 @@ try {
     // tokenizer or a single weight. A config with one byte changed must be refused by WebLLM's own integrity check. Last, a
     // fake engine stands in, so the install line and a labelled answer with its FULL BRAIN tag can be screenshotted.
     const GPU_ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--enable-unsafe-webgpu', '--use-webgpu-adapter=swiftshader', '--enable-features=Vulkan'];
-    for (const [w, h] of [[1280, 800], [390, 844]]) {
+    if (want(9)) for (const [w, h] of [[1280, 800], [390, 844]]) {
         const ctxL = await chromium.launchPersistentContext(join(work, `profile-l-${w}`), { executablePath, headless: true, args: GPU_ARGS, viewport: { width: w, height: h } });
         await proxyRoute(ctxL);
         const asked = []; ctxL.on('request', (rq) => asked.push(rq.url()));
@@ -729,7 +738,7 @@ try {
     // opens the Infinity Gauntlet; the projector's caption is a two-line peek that MORE opens and HIDE tucks away, and
     // each scene is centred in the space it leaves. Measured, not just screenshotted, at 1280×800, 390×844 and a short
     // phone (360×640), in a fresh profile each.
-    for (const [w, h] of [[1280, 800], [390, 844], [360, 640]]) {
+    if (want(10)) for (const [w, h] of [[1280, 800], [390, 844], [360, 640]]) {
         const ctxS = await chromium.launchPersistentContext(join(work, `profile-s-${w}`), { executablePath, headless: true,
             args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: w, height: h }, acceptDownloads: true });
         await proxyRoute(ctxS);
@@ -823,7 +832,7 @@ try {
     }
 
     // 11. Session 17: the supercharger, offline and install, in a fresh profile at each size.
-    for (const [w, h] of [[1280, 800], [390, 844]]) {
+    if (want(11)) for (const [w, h] of [[1280, 800], [390, 844]]) {
         const ctxX = await chromium.launchPersistentContext(join(work, `profile-x-${w}`), { executablePath, headless: true,
             args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: w, height: h } });
         await proxyRoute(ctxX);
@@ -927,7 +936,7 @@ try {
     // 12. The promotion on 2026-10-12: jarvis.html has its own worker (jarvis-sw.js, caches jarvis-main-*) and manifest. In
     // one profile, as on a phone with both pages open: each worker controls only its own page, the caches stay apart,
     // "update Jarvis" on one leaves the other's alone, and the main page is installable and works offline.
-    {
+    if (want(12)) {
         const ctxP = await chromium.launchPersistentContext(join(work, 'profile-p'), { executablePath, headless: true,
             args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: 390, height: 844 } });
         await proxyRoute(ctxP);
@@ -966,7 +975,7 @@ try {
     }
 
     // 13. Session 18: his own voice. A recording, offline too, and the live voice, with the orb following the audio.
-    {
+    if (want(13)) {
         const ctxV = await chromium.launchPersistentContext(join(work, 'profile-v'), { executablePath, headless: true,
             args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], viewport: { width: 390, height: 844 } });
         await proxyRoute(ctxV);
@@ -1038,6 +1047,7 @@ ok('no page errors or CSP violations', !problems.length);
 console.log(results.map((r) => r.line).join('\n'));
 if (problems.length) console.log('\n' + problems.join('\n'));
 if (!three) console.log('\nskipped: the memory-core checks (three.js could not be fetched from npm; pass --three=<path>)');
+console.log(STEP ? `\nsteps run: ${[...STEP].sort((x, y) => x - y).join(', ')}${[...STEP].some((n) => n === 4 || n === 5) ? ' (with 1–3, which set up their profile)' : ''}` : '\nsteps run: all 13');
 console.log(`\nscreenshots: ${OUT}`);
 const failed = results.filter((r) => !r.pass).length;
 console.log(failed ? `${failed} failed` : `${results.length} passed`);

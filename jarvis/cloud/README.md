@@ -4,9 +4,11 @@ A small Vercel project that holds the Gemini API key for `jarvis-test.html`
 (Session 17 of [`jarvis/build-plan.html`](../build-plan.html#s17)). The page
 lives on GitHub Pages and can't keep a secret, so it asks this proxy instead.
 
-- `GET /api/status` → `{on, owner, model, until, voice}`: is the supercharger
-  on? `voice` says this deployment has `/api/voice`. Cached by Vercel's edge
-  for 20 seconds.
+- `GET /api/status` → `{on, owner, model, until, voice, version}`: is the
+  supercharger on? `voice` says this deployment has `/api/voice`. `version` is
+  the first seven characters of the commit Vercel built it from
+  (`VERCEL_GIT_COMMIT_SHA`), so you can see a fix is live without opening
+  Vercel. Cached by Vercel's edge for 20 seconds.
 - `POST /api/brain` → `{say, do, kind, model}`: one question to Gemini while
   it's on. `do` holds at most three action IDs, only ones the page listed.
   The page checks them again before running anything.

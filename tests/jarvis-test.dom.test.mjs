@@ -130,7 +130,47 @@ const HAND_FILES = {
 
 export const name = 'J.A.R.V.I.S. Test (jarvis-test.html)';
 
+/* --section=<name>[,<name>] (tests/run.mjs) runs only these parts, for a small fix. With none, everything runs, as at
+ * the end of a session and before a promotion. The opening checks (the page loads, the brain, the CSP) are "core". */
+export const SECTIONS = ['core', 'voiceWiring', 'micErrors', 'wakeWiring', 'briefingChecks', 'speechWiring', 'skinsAndMemory', 'voicePicker', 'androidVoices', 'memoryChecks', 'memoryFoundation', 'keptApart', 'protocolsAndFollowUps', 'backupAndQr', 'heRemembersYou', 'meaningModule', 'knowledgePack', 'fullBrain', 'supercharger', 'installAndUpdate', 'ownVoice', 'commandLinks', 'screens'];
 export default async function run(t, page) {
+    if (page.sections) {
+        const unknown = page.sections.filter((n) => !SECTIONS.includes(n));
+        if (unknown.length) { t.ok(`known sections (${unknown.join(', ')} isn't one; try ${SECTIONS.join(', ')})`, false); return; }
+        const parts = { voiceWiring, micErrors, wakeWiring, briefingChecks, speechWiring, skinsAndMemory, voicePicker, androidVoices, memoryChecks, memoryFoundation, keptApart, protocolsAndFollowUps, backupAndQr, heRemembersYou, meaningModule, knowledgePack, fullBrain, supercharger, installAndUpdate, ownVoice, commandLinks, screens };
+        for (const n of page.sections) {
+            if (n === 'core') await runCore(t, page);
+            else await parts[n](t, page);
+        }
+        t.note(`sections run: ${page.sections.join(', ')}`);
+        return;
+    }
+    await runCore(t, page);
+    await voiceWiring(t, page);
+    await micErrors(t, page);
+    await wakeWiring(t, page);
+    await briefingChecks(t, page);
+    await speechWiring(t, page);
+    await skinsAndMemory(t, page);
+    await voicePicker(t, page);
+    await androidVoices(t, page);
+    await memoryChecks(t, page);
+    await memoryFoundation(t, page);
+    await keptApart(t, page);
+    await protocolsAndFollowUps(t, page);
+    await backupAndQr(t, page);
+    await heRemembersYou(t, page);
+    await meaningModule(t, page);
+    await knowledgePack(t, page);
+    await fullBrain(t, page);
+    await supercharger(t, page);
+    await installAndUpdate(t, page);
+    await ownVoice(t, page);
+    await commandLinks(t, page);
+    await screens(t, page);
+}
+
+async function runCore(t, page) {
     let env;
     try {
         // An https origin, not the file:// one, so localStorage (the remembered name) works.
@@ -718,28 +758,6 @@ export default async function run(t, page) {
         close();
     }
 
-    await voiceWiring(t, page);
-    await micErrors(t, page);
-    await wakeWiring(t, page);
-    await briefingChecks(t, page);
-    await speechWiring(t, page);
-    await skinsAndMemory(t, page);
-    await voicePicker(t, page);
-    await androidVoices(t, page);
-    await memoryChecks(t, page);
-    await memoryFoundation(t, page);
-    await keptApart(t, page);
-    await protocolsAndFollowUps(t, page);
-    await backupAndQr(t, page);
-    await heRemembersYou(t, page);
-    await meaningModule(t, page);
-    await knowledgePack(t, page);
-    await fullBrain(t, page);
-    await supercharger(t, page);
-    await installAndUpdate(t, page);
-    await ownVoice(t, page);
-    await commandLinks(t, page);
-    await screens(t, page);
 }
 
 // Session 11 of jarvis/build-plan.html: he remembers you (review 63). The recap, clearance levels, favourites and the

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #81 — Faster small fixes, and the proxy's version</title>
+<meta name="description" content="Short review of 2026-10-12's process change: targeted test runs for small fixes (--section, --step), short reviews for them, and /api/status naming the commit the supercharger proxy was built from.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #81 — Faster small fixes, and the proxy's version</h1>
+    <p class="sub">You chose three ways to speed up small fixes on 2026-10-12. Small fixes run only the tests they touch, with new <code>--section</code> and <code>--step</code> options. They get a short review like this one. And <code>/api/status</code> on the supercharger proxy now names the commit it was built from, so a fix can be seen to be live without waiting on Vercel. All three are recorded in <code>CLAUDE.md</code>.</p>
+    <div class="meta">Review performed 2026-10-12 · scope: <code>jarvis/cloud/lib/core.js</code>, <code>jarvis/cloud/README.md</code>, <code>tests/run.mjs</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>tests/jarvis-test.chromium.mjs</code>, <code>tests/jarvis-cloud.test.mjs</code>, <code>tests/README.md</code>, <code>CLAUDE.md</code> · suites run: <code>jarvis-cloud</code> in full; <code>jarvis-test</code> in full (its structure changed); <code>jarvis-test --section=ownVoice</code> and <code>--section=nope</code>, to try the option; <code>jarvis-test.chromium.mjs --step=13</code>.</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">2 items: 2 verified clean.</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title"><code>version</code> in <code>/api/status</code></div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The value is the first seven characters of <code>VERCEL_GIT_COMMIT_SHA</code>. It is shown only if it is 7 to 40 hex characters, and is otherwise <code>null</code>, so nothing else can reach the answer through it. A commit hash in a public repository is already public. The page ignores the field. Checks cover a real hash (in capitals), none, and <code>&lt;script&gt;</code>. With the hex check removed, the suite failed (1 check).</p></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Targeted runs leave the full run unchanged</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The page suite's list of parts moved into <code>SECTIONS</code>. With no <code>--section</code> it runs <code>core</code> and then every part in the same order as before: 2,005 checks, exactly as before. An unknown section fails and lists the real names. A suite without sections runs in full and says so. In the Chromium script, each step is guarded by <code>want(n)</code>. Asking for step 4 or 5 also runs steps 1 to 3, which set up their profile, and the summary prints which steps ran. <code>--section=ownVoice</code> took 28 seconds, against roughly 15 to 20 minutes for the whole page suite. <code>--step=13</code> ran its 15 checks in 31 seconds, with no page errors and no CSP violations, against about 15 minutes for all 13 steps.</p></div>
+    </div>
+  </section>
+  <footer>Review #81 · previous: <a href="80.html">review 80</a></footer>
+</div>
+</body>
+</html>
