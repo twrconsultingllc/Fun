@@ -292,10 +292,14 @@ export async function askGemini({ env, fetchImpl, model, body, bodyNoThinking })
 /* ---------- The live voice (Session 18) ---------- */
 // One named Gemini voice per skin, and how it speaks. The style goes in front of the words, the way Google's
 // text-to-speech guide does it ("Say cheerfully: Have a wonderful day!"). The owner approved these on 2026-10-12.
+// After the first live try (2026-10-12): a 230-character answer came back as 895 audio tokens, about 36 seconds at
+// Google's 25 tokens a second, where a natural pace is about 15 seconds. "Calm", "slowly" and "deliberate" asked for
+// that, and every extra second is a second more to wait and to pay for. So each style now asks for a natural, brisk
+// pace and keeps the character (the owner agreed the same day).
 export const VOICES = {
-    jarvis: { name: 'Charon', style: 'Say this in a calm, precise, dryly British voice, like a polite butler' },
-    matrix: { name: 'Algenib', style: 'Say this slowly, in a low, deliberate, gravelly voice' },
-    panther: { name: 'Fenrir', style: 'Say this loud and quick, with hockey-announcer energy' }
+    jarvis: { name: 'Charon', style: 'Say this at a brisk, natural speaking pace, in a precise, dryly British voice, like a polite butler' },
+    matrix: { name: 'Algenib', style: 'Say this at a natural speaking pace, in a low, calm, gravelly voice' },
+    panther: { name: 'Fenrir', style: 'Say this fast, loud and excited, with hockey-announcer energy' }
 };
 // The body: {skin, text}, at most 600 characters of words. Returns {req} or {error}.
 export function readVoiceRequest(body) {
@@ -348,7 +352,8 @@ function unbase64(s) {
         return out;
     } catch { return null; }
 }
-export function readVoice(data) {
+// odd: keep an odd last byte (a streamed piece, whose next piece carries the other half of the sample).
+export function readVoice(data, { odd = false } = {}) {
     const info = { mime: null, parts: 0, bytes: 0 };
     if (!data || typeof data !== 'object') return { error: 'empty', info };
     if (data.promptFeedback && data.promptFeedback.blockReason) return { blocked: true, info };
@@ -376,8 +381,8 @@ export function readVoice(data) {
     if (FILE_TYPES[base]) return all.length > 0 ? { file: all, type: FILE_TYPES[base], info } : { error: 'no audio', info };
     const m = mime.match(/rate=(\d+)/i), rate = m ? Number(m[1]) : 24000;
     if (!(rate >= 8000 && rate <= 48000)) return { error: 'audio rate', info };
-    if (all.length < 2) return { error: 'no audio', info };
-    return { pcm: all.length % 2 ? all.subarray(0, all.length - 1) : all, rate, info };
+    if (all.length < (odd ? 1 : 2)) return { error: 'no audio', info };
+    return { pcm: all.length % 2 && !odd ? all.subarray(0, all.length - 1) : all, rate, info };
 }
 // The PCM wrapped as a WAV file (44-byte header), which every browser can decode.
 export function wav(pcm, rate) {
@@ -388,6 +393,123 @@ export function wav(pcm, rate) {
     d.setUint32(24, rate, true); d.setUint32(28, rate * 2, true); d.setUint16(32, 2, true); d.setUint16(34, 16, true);
     tag(36, 'data'); d.setUint32(40, pcm.length, true); out.set(pcm, 44);
     return out;
+}
+
+/* ---------- The live voice, streamed (after review 81) ---------- */
+// Google's text-to-speech models answer streamGenerateContent (?alt=sse) with the audio in pieces as it's made, so he
+// can start speaking about a second after Google does instead of after the whole line is made. Each event is a small
+// answer of the usual shape, read by readVoice(). The page gets the raw PCM as it arrives, as audio/L16, and plays it
+// as it comes. Anything odd before the first audio (no stream, an audio file instead of PCM, an error) and the line is
+// asked for the old way instead, so streaming can only make him faster, never quieter.
+export const PCM_TYPE = rate => `audio/L16;rate=${rate};channels=1`;
+const FIRST_AUDIO_MS = 20000; // the longest the first piece of audio may take before the line is given up
+// The events of a server-sent event stream, parsed as JSON. body: a web ReadableStream (Node's fetch), an async
+// iterable of bytes, or failing both, text() all at once (the test fakes).
+export async function* sseEvents(res) {
+    const dec = new TextDecoder();
+    let buf = '';
+    const out = function* (final) {
+        const blocks = buf.split(/\r?\n\r?\n/);
+        buf = final ? '' : blocks.pop();
+        for (const b of blocks) {
+            const data = b.split(/\r?\n/).filter(l => l.startsWith('data:')).map(l => l.slice(5).replace(/^ /, '')).join('\n');
+            if (!data || data === '[DONE]') continue;
+            let j; try { j = JSON.parse(data); } catch { continue; }
+            yield j;
+        }
+    };
+    const body = res.body;
+    if (body && typeof body.getReader === 'function') {
+        const reader = body.getReader();
+        try {
+            for (;;) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buf += dec.decode(value, { stream: true });
+                yield* out(false);
+            }
+        } finally { try { reader.cancel().catch(() => {}); } catch { } }
+    } else if (body && typeof body[Symbol.asyncIterator] === 'function') {
+        for await (const value of body) { buf += typeof value === 'string' ? value : dec.decode(value, { stream: true }); yield* out(false); }
+    } else if (typeof res.text === 'function') {
+        buf = await res.text();
+    } else throw new Error('no stream');
+    buf += dec.decode();
+    yield* out(true);
+}
+// Asks for the line as a stream. Returns {stream, rate, done} once the first audio has arrived, or {fallback: why}
+// (and the caller asks the old way), or {blocked}, {quota}. stream yields Uint8Array PCM, an even number of bytes each
+// time; done resolves, when it ends, to what's logged: token counts, bytes, and whether it ended early.
+export async function streamVoice({ env, fetchImpl, model, body, now }) {
+    const url = `${GEMINI}/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
+    let res;
+    try {
+        res = await fetchImpl(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY || '' }, body: JSON.stringify(body) });
+    } catch { return { fallback: 'network' }; }
+    if (!res || res.status === 429) return res ? { quota: true } : { fallback: 'no answer' };
+    if (!res.ok) return { fallback: 'status ' + res.status };
+    let events;
+    try { events = sseEvents(res); } catch { return { fallback: 'no stream' }; }
+    const t0 = now(), info = { usage: null, bytes: 0, cut: false, events: 0 };
+    let rate = null, carry = null, first = null;
+    // Reads events until one holds audio. Returns the PCM, or {end} / {blocked} / {fallback}.
+    const nextAudio = async () => {
+        for (;;) {
+            let step;
+            try { step = await events.next(); } catch { return { fallback: 'stream broke' }; }
+            if (step.done) return { end: true };
+            const ev = step.value; info.events++;
+            if (ev.usageMetadata) info.usage = ev.usageMetadata;
+            if (ev.error) return { fallback: 'error event' };
+            const hasAudio = ev.candidates && ev.candidates[0] && ev.candidates[0].content && (ev.candidates[0].content.parts || []).some(p => p && (p.inlineData || p.inline_data));
+            if (!hasAudio) { const v = readVoice(ev); if (v.blocked) return { blocked: true }; continue; }
+            const v = readVoice(ev, { odd: true });
+            if (v.blocked) return { blocked: true };
+            if (v.error) return { fallback: 'format ' + v.error };
+            if (v.file) return { fallback: 'file' };
+            if (rate === null) rate = v.rate;
+            if (v.rate !== rate) return { fallback: 'rate changed' };
+            return { pcm: v.pcm };
+        }
+    };
+    // Raw PCM may come in odd-sized pieces; one byte is held back so each piece the page gets is whole samples.
+    const even = pcm => {
+        let b = pcm;
+        if (carry) { const j = new Uint8Array(carry.length + b.length); j.set(carry); j.set(b, carry.length); b = j; carry = null; }
+        if (b.length % 2) { carry = b.subarray(b.length - 1); b = b.subarray(0, b.length - 1); }
+        return b;
+    };
+    let timer;
+    const firstStep = await Promise.race([nextAudio(), new Promise(r => { timer = setTimeout(() => r({ fallback: 'first audio too slow' }), FIRST_AUDIO_MS); })]);
+    clearTimeout(timer);
+    if (firstStep.blocked) { events.return().catch(() => {}); return { blocked: true }; }
+    if (!firstStep.pcm) { events.return().catch(() => {}); return { fallback: firstStep.fallback || 'no audio' }; }
+    first = now() - t0;
+    let finish;
+    const done = new Promise(r => { finish = r; });
+    async function* stream() {
+        try {
+            let pcm = even(firstStep.pcm);
+            for (;;) {
+                if (pcm.length) {
+                    if (info.bytes + pcm.length > MAX_AUDIO) { info.cut = true; break; }
+                    info.bytes += pcm.length;
+                    yield pcm;
+                }
+                const s = await nextAudio();
+                if (s.end) break;
+                if (!s.pcm) { info.cut = true; break; }
+                pcm = even(s.pcm);
+            }
+            // Cut short: thrown, so the adapter breaks the connection instead of ending it cleanly, and the page knows
+            // the line is incomplete (it plays what came, but never keeps it).
+            if (info.cut) throw new Error('voice cut short');
+        } finally {
+            events.return().catch(() => {});
+            finish({ ...info, first, ms: now() - t0 });
+        }
+    }
+    return { stream: stream(), rate, done };
 }
 
 /* ---------- The three handlers, without Vercel ---------- */
@@ -445,7 +567,7 @@ export function createApp({ env, fetchImpl = fetch, now = Date.now, log = () => 
         return json(200, cors, { ...a, model });
     }
 
-    // POST /api/voice: {skin, text} in, audio/wav out, while the supercharger is on. Logs only the model and token
+    // POST /api/voice: {skin, text} in, audio out (streamed PCM, audio/L16, or else a WAV), while the supercharger is on. Logs only the model and token
     // counts, never the words. Any failure is JSON with an error status, and the page then uses the browser's voice.
     async function voice(req) {
         const origin = req.headers.origin, cors = { ...corsHeaders(origin, env), 'Cache-Control': 'no-store' };
@@ -460,6 +582,20 @@ export function createApp({ env, fetchImpl = fetch, now = Date.now, log = () => 
         const want = env.JARVIS_VOICE_MODEL && MODEL_RE.test(env.JARVIS_VOICE_MODEL) ? env.JARVIS_VOICE_MODEL : null;
         const model = pickVoiceModel(want, await liveModels());
         if (!model) { log({ event: 'voice', error: 'no model' }); return json(502, cors, { error: 'no voice model' }); }
+        const t0 = now(), chars = r.text.length;
+        // Streamed first: he starts as soon as the first audio arrives. Logged when the stream ends, with how long the
+        // first audio took (first) and the whole line (ms), in milliseconds, and how many characters were voiced.
+        const st = await streamVoice({ env, fetchImpl, model, body: voiceBody(r), now });
+        if (st.quota) { log({ event: 'voice', model, stream: true, error: 429 }); return json(429, cors, { error: 'quota', status: 429 }); }
+        if (st.blocked) { log({ event: 'voice', model, stream: true, error: 'blocked' }); return json(502, cors, { error: 'blocked', model }); }
+        if (st.stream) {
+            st.done.then(d => {
+                const u = d.usage || {};
+                log({ event: 'voice', model, stream: true, chars, in: u.promptTokenCount || 0, out: u.candidatesTokenCount || 0, first: d.first, ms: d.ms, bytes: d.bytes, ...(d.cut ? { cut: true } : {}) });
+            });
+            return { status: 200, headers: { ...cors, 'Content-Type': PCM_TYPE(st.rate), 'X-Content-Type-Options': 'nosniff' }, stream: st.stream };
+        }
+        log({ event: 'voice', model, stream: false, why: st.fallback });
         let out;
         try {
             out = await askGemini({ env, fetchImpl, model, body: voiceBody(r), bodyNoThinking: voiceBody(r) });
@@ -473,7 +609,7 @@ export function createApp({ env, fetchImpl = fetch, now = Date.now, log = () => 
             return json(out.status === 429 ? 429 : 502, cors, { error: out.status === 429 ? 'quota' : 'upstream', status: out.status, detail: scrub(msg) });
         }
         const u = (out.data && out.data.usageMetadata) || {};
-        log({ event: 'voice', model, in: u.promptTokenCount || 0, out: u.candidatesTokenCount || 0 });
+        log({ event: 'voice', model, chars, in: u.promptTokenCount || 0, out: u.candidatesTokenCount || 0, ms: now() - t0 });
         const a = readVoice(out.data);
         // Why an answer was refused, logged with what Google named its audio (never the words), so a mismatch shows in
         // Vercel's logs the first time it happens.

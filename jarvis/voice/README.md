@@ -8,7 +8,8 @@ each line in one of three voices, tried in this order:
    works offline once the service worker has it.
 2. **The live voice.** Otherwise, while the supercharger is on, the words go
    through the proxy's `/api/voice` (see [`../cloud/README.md`](../cloud/README.md))
-   to Gemini's text-to-speech model. Fixed lines voiced this way are kept on
+   to Gemini's text-to-speech model, streamed so he starts as soon as Google
+   does (review 82). Fixed lines voiced this way are kept on
    the device, in a cache of the page's own. Answers from Gemini or the full
    brain are never kept, and nor is a line with a digit, a name or anything
    `personal()` flags.

@@ -154,7 +154,7 @@ const executablePath = (await exists('/opt/pw-browsers/chromium')) ? '/opt/pw-br
 // /api/status as it loads. PX.on is the switch (a change is a redeploy, as with the environment variables).
 const PROXY = 'https://jarvis-cloud-gamma.vercel.app';
 const CORE = await import('../jarvis/cloud/lib/core.js');
-const PX = { on: false, owner: 'Tony', gemini: { say: 'Paris is lovely in spring.', do: [], kind: 'chat' }, hits: [], app: null, tts: [] };
+const PX = { on: false, owner: 'Tony', gemini: { say: 'Paris is lovely in spring.', do: [], kind: 'chat' }, hits: [], app: null, tts: [], noStream: false, types: [] };
 const gjson = (status, body) => ({ ok: status < 300, status, json: async () => body });
 // Session 18: the voice model's answer, in its real shape: base64 16-bit mono PCM at 24 kHz. A second of a 330 Hz tone
 // that swells and fades, so the orb has a loudness to follow.
@@ -163,6 +163,16 @@ PX.redeploy = () => { PX.app = CORE.createApp({ env: { GEMINI_API_KEY: 'test-key
     fetchImpl: async (url, init) => {
         if (/\/models\?/.test(url)) return gjson(200, { models: ['gemini-3.5-flash', 'gemini-2.5-flash-preview-tts'].map((m) => ({ name: 'models/' + m, supportedGenerationMethods: ['generateContent'] })) });
         const body = JSON.parse(init.body);
+        // Review 82: streamed, as server-sent events, the tone in four pieces (one an odd size). PX.noStream answers 404,
+        // as a model without streaming would, and the proxy asks the old way.
+        if (url.includes(':streamGenerateContent')) {
+            if (PX.noStream) return gjson(404, { error: { code: 404, message: 'not supported' } });
+            PX.tts.push(body);
+            const raw = Buffer.from(TONE, 'base64'), cuts = [0, 9601, 24000, 36000, raw.length];
+            const ev = (b) => 'data: ' + JSON.stringify({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: b.toString('base64') } }] } }] }) + '\r\n\r\n';
+            const sse = cuts.slice(1).map((c, i) => ev(raw.subarray(cuts[i], c))).join('') + 'data: ' + JSON.stringify({ candidates: [{ content: { parts: [] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 20, candidatesTokenCount: 25 } }) + '\r\n\r\n';
+            return { ok: true, status: 200, json: async () => null, text: async () => sse };
+        }
         if (body.generationConfig?.responseModalities) { PX.tts.push(body); return gjson(200, { candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: TONE } }] }, finishReason: 'STOP' }] }); }
         return gjson(200, { candidates: [{ content: { role: 'model', parts: [{ text: JSON.stringify(PX.gemini) }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 10 } });
     } }); };
@@ -177,6 +187,10 @@ async function proxyRoute(c) {
         const fn = { '/api/status': 'status', '/api/brain': 'brain', '/api/voice': 'voice' }[path];
         if (!fn) { await route.fulfill({ status: 404, body: '' }); return; }
         const out = await PX.app[fn]({ method: rq.method(), headers, body: rq.postData() });
+        if (path === '/api/voice') PX.types.push(out.headers['Content-Type']);
+        // Review 82: a streamed answer. Playwright can only fulfil a whole body, so the pieces are joined; the page still
+        // reads it through its stream reader and plays raw PCM with real Web Audio.
+        if (out.stream) { const parts = []; for await (const c of out.stream) parts.push(Buffer.from(c)); await route.fulfill({ status: out.status, headers: out.headers, body: Buffer.concat(parts) }); return; }
         await route.fulfill({ status: out.status, headers: out.headers, body: typeof out.body === 'string' ? out.body : Buffer.from(out.body) });
     });
 }
@@ -1020,10 +1034,38 @@ try {
             ok('turned on, he says his spoken lines go to Google too', /My spoken lines go to Google too/.test(await p.evaluate(() => document.getElementById('log').textContent)));
             PX.tts.length = 0;
             seen = await sayIt('what is seven times eight');
-            ok('a line with no recording: the live voice, a real WAV from the proxy, decoded and played', PX.tts.length === 1 && seen.some((x) => x[1]) && PX.hits.some((x) => x.path === '/api/voice' && x.method === 'POST' && /^text\/plain/.test(x.type)), `${PX.tts.length} tts`);
+            ok('a line with no recording: the live voice, streamed raw PCM from the proxy (audio/L16), played by real Web Audio', PX.tts.length === 1 && PX.types.at(-1) === 'audio/L16;rate=24000;channels=1' && seen.some((x) => x[1]) && PX.hits.some((x) => x.path === '/api/voice' && x.method === 'POST' && /^text\/plain/.test(x.type)), `${PX.tts.length} tts, ${PX.types.at(-1)}`);
             ok('in Charon\'s voice, the words exact', PX.tts[0]?.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName === 'Charon' && /: That would be 56\.$/.test(PX.tts[0]?.contents[0].parts[0].text || ''));
             const lv = seen.filter((x) => x[1]).map((x) => x[0]);
             ok('the orb follows the live voice too', lv.length > 3 && Math.max(...lv) > 0.2, JSON.stringify(lv.slice(0, 6)));
+            ok('SPEAKING while the stream plays, then STANDBY', seen.some((x) => x[1] && x[2] === 'SPEAKING') && seen.at(-1)[2] === 'STANDBY', JSON.stringify(seen.map((x) => x[2]).slice(-3)));
+            // The tone is one second: played as one run, it should be heard for about that long, not cut or doubled.
+            const heard = seen.filter((x) => x[1]).length * 50;
+            ok('the whole streamed second plays, once', heard >= 700 && heard <= 1600, `${heard} ms`);
+            // Without streaming (an older model), the old way still works: a whole WAV.
+            PX.noStream = true; PX.tts.length = 0;
+            seen = await sayIt('what is seven times nine');
+            ok('a model without streaming: the proxy asks the old way, and a real WAV plays', PX.tts.length === 1 && PX.types.at(-1) === 'audio/wav' && seen.some((x) => x[1]), `${PX.tts.length} tts, ${PX.types.at(-1)}`);
+            PX.noStream = false;
+            // Played as it arrives: a stream that sends 1.5 s of tone in six pieces a quarter of a second apart, through
+            // the page's own fetch, so real Web Audio has to start before the last piece is there.
+            const prog = await p.evaluate(async () => {
+                const J = window.__jarvis, rate = 24000, n = rate * 1.5, pcm = new Int16Array(n);
+                for (let i = 0; i < n; i++) pcm[i] = Math.round(Math.sin(2 * Math.PI * 300 * i / rate) * 16000);
+                const bytes = new Uint8Array(pcm.buffer), real = window.fetch, t = { first: 0, closed: 0, sent: 0 };
+                window.fetch = async (u, o) => {
+                    if (!String(u).endsWith('/api/voice')) return real(u, o);
+                    const body = new ReadableStream({ async start(c) { const k = bytes.length / 6; for (let i = 0; i < 6; i++) { c.enqueue(bytes.slice(i * k, (i + 1) * k)); t.sent++; await new Promise((r) => setTimeout(r, 250)); } t.closed = performance.now(); c.close(); } });
+                    return new Response(body, { status: 200, headers: { 'content-type': 'audio/L16;rate=24000;channels=1' } });
+                };
+                const t0 = performance.now();
+                J.say('That would be 99.');
+                await new Promise((res) => { const tick = () => { if (!t.first && J.voiceOut.src) t.first = performance.now(); if (t.closed && !J.speakingNow()) res(); else setTimeout(tick, 20); }; tick(); });
+                window.fetch = real;
+                return { first: Math.round(t.first - t0), closed: Math.round(t.closed - t0), ended: Math.round(performance.now() - t0) };
+            });
+            ok(`streamed audio starts playing before the stream has finished arriving (sound at ${prog.first} ms, last piece at ${prog.closed} ms)`, prog.first > 0 && prog.first < prog.closed - 700, JSON.stringify(prog));
+            ok('…and plays to the end of it', prog.ended >= 1400, JSON.stringify(prog));
             await p.evaluate(() => window.__jarvis.say('Anytime.')); await watchVoice(2000);
             const live = await p.evaluate(async () => (await caches.keys()).includes('jarvis-test-voice-live') ? (await (await caches.open('jarvis-test-voice-live')).keys()).map((r) => decodeURIComponent(r.url)) : []);
             ok('a fixed line voiced live is kept on the device; one with a number isn\'t', live.some((u) => u.endsWith('?t=Anytime.')) && !live.some((u) => /56/.test(u)), live.join());
