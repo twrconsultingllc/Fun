@@ -4733,7 +4733,7 @@ export async function ownVoice(t, page) {
             J.voiceOut.failAt = Date.now() - 121000;
             await turn(env, rig, 'what is nine times five');
             t.ok('…for two minutes, not the rest of the visit', P.voice().length === v3 + 1 && P.voice().at(-1).body.includes('That would be 45.') && note() === 'GEMINI · ALGENIB' && !fell());
-            t.ok('the tag is styled: plain for the browser\'s voice, green for his own, amber for a fallback', /\.voice-tag\{display:block;[^}]*color:var\(--label\)/.test(src) && /\.voice-tag\.his\{color:var\(--phos\)\}/.test(src) && /\.voice-tag\.fell\{color:var\(--amber\)\}/.test(src));
+            t.ok('the tag is styled: plain for the browser\'s voice, green for his own, amber for a fallback', /\.voice-tag\{display:inline-block;[^}]*color:var\(--label\)/.test(src) && /@media \(max-height:700px\)\{body:not\(\.chat-open\) #log \.voice-tag\{display:none\}\}/.test(src) && /\.voice-tag\.his\{color:var\(--phos\)\}/.test(src) && /\.voice-tag\.fell\{color:var\(--amber\)\}/.test(src));
             P.on = false; P.redeploy(); J.voiceOut.fails = 0;
             from = rig.log.timeline.length;
             J.say('That would be 60.');

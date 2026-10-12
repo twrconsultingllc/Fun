@@ -140,6 +140,8 @@ function serve() {
     return new Promise((r) => server.listen(0, '127.0.0.1', () => r(server)));
 }
 
+// Since review 84 every line he says carries a .voice-tag naming the voice that said it, and real Chromium has Web
+// Audio, so it's always there: every check of his words reads the line without it (review 86).
 const results = [], problems = [];
 const ok = (name, cond, extra = '') => results.push({ pass: !!cond, line: `${cond ? 'ok  ' : 'FAIL'} ${name}${!cond && extra ? '  (got ' + extra + ')' : ''}` });
 const sorted = (o) => JSON.stringify(o, Object.keys(o).sort());
@@ -207,7 +209,11 @@ async function open(file, size = { width: 1280, height: 800 }, on = ctx) {
     // Session 17: offline, Chrome can't fetch the manifest's icons (it fetches them itself, not through the page's
     // service worker) and says so. That's the network being gone, not a page error.
     // The same goes for the supercharger requests failing: Chrome logs each as a failed resource.
-    const OFFLINE_ICON = /^Error while trying to use the following icon from the Manifest: |^Failed to load resource: net::ERR_INTERNET_DISCONNECTED$/;
+    // Since Session 18 (on jarvis.html since review 86), a request the service worker can't answer offline, such as the
+    // recordings' manifest after "update Jarvis" cleared its copy, fails as ERR_FAILED, the way a worker's failed fetch
+    // shows. The page treats it as no recordings, which is right; it's the network being gone, so it's let through
+    // only while offline, like the others.
+    const OFFLINE_ICON = /^Error while trying to use the following icon from the Manifest: |^Failed to load resource: net::ERR_(?:INTERNET_DISCONNECTED|FAILED)$/;
     page.on('console', (m) => { if (DOWN && OFFLINE_ICON.test(m.text())) return; if ((m.type() === 'error' && !MEDIAPIPE_LOG.test(m.text())) || /Refused/.test(m.text())) problems.push(`${file} console: ${m.text()}`); });
     await page.goto(BASE + file); await page.waitForFunction(() => window.__jarvis);
     await page.evaluate(() => window.__jarvis.ready);
@@ -368,7 +374,7 @@ try {
             await test.waitForTimeout(400);
             const booted = await test.evaluate(() => !document.getElementById('boot').hidden && !document.getElementById('holo').classList.contains('open'));
             await test.waitForFunction(() => document.getElementById('holo-title').textContent.includes('SUIT') && document.getElementById('boot').hidden, null, { timeout: 30000 });
-            const said = await test.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].slice(-2).map((m) => m.textContent).join(' | '));
+            const said = await test.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].slice(-2).map(((m) => m ? [...m.childNodes].filter((x) => !(x.classList && x.classList.contains('voice-tag'))).map((x) => x.textContent).join('') : '')).join(' | '));
             ok('"wake up, daddy\'s home" reboots him, then builds the suit', booted && said.split(' | ').length === 2 && /Welcome home\. Suiting up/.test(said), said);
             await test.evaluate(() => window.__jarvis.protocolDone());
         }
@@ -445,7 +451,7 @@ try {
                 const got = await b.evaluate(() => ({ stat: document.getElementById('holo-stat').textContent, skin: window.__jarvis.skin(), settings: window.__jarvis.settings(), protocols: Object.keys(window.__jarvis.protocols()),
                     cam: window.__camLog.map(({ c, s }) => ({ c, live: s.getTracks().filter((t) => t.readyState === 'live').length, audio: s.getAudioTracks().length })),
                     decoder: typeof BarcodeDetector === 'function' ? 'BarcodeDetector' : 'jsQR', sri: document.querySelector('script[src*="jarvis/qr/jsQR.js"]')?.integrity,
-                    said: [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent }));
+                    said: ((m) => m ? [...m.childNodes].filter((x) => !(x.classList && x.classList.contains('voice-tag'))).map((x) => x.textContent).join('') : '')([...document.querySelectorAll('#log .msg.ai')].pop()) }));
                 ok(`B scans A's code through the fake camera at ${w}×${h} (${got.decoder})`, /Point the camera/.test(started) && /CODE READ/.test(got.stat) && got.skin === 'panther' && got.protocols.includes('game day'), JSON.stringify(got));
                 await b.screenshot({ path: join(OUT, `transfer-read-${w}.png`) });
                 ok('the camera was video only, and is off once the code is read', got.cam.length === 1 && got.cam[0].c.audio === false && got.cam[0].audio === 0 && got.cam[0].live === 0 && !(await b.$('.xfer video')), JSON.stringify(got.cam));
@@ -456,8 +462,8 @@ try {
                     const chooser = b.waitForEvent('filechooser');
                     await b.click('.xfer-btns button[data-x="restore"]');
                     await (await chooser).setFiles(backupPath);
-                    await b.waitForFunction(() => /^Restored/.test([...document.querySelectorAll('#log .msg.ai')].pop()?.textContent || '') && window.__jarvis.saved().events.some((e) => e.id === 'cmd:restore' && e.n >= 2), null, { timeout: 10000 }).catch(() => {});
-                    const said2 = await b.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent);
+                    await b.waitForFunction(() => /^Restored/.test(((m) => m ? [...m.childNodes].filter((x) => !(x.classList && x.classList.contains('voice-tag'))).map((x) => x.textContent).join('') : '')([...document.querySelectorAll('#log .msg.ai')].pop())) && window.__jarvis.saved().events.some((e) => e.id === 'cmd:restore' && e.n >= 2), null, { timeout: 10000 }).catch(() => {});
+                    const said2 = await b.evaluate(() => ((m) => m ? [...m.childNodes].filter((x) => !(x.classList && x.classList.contains('voice-tag'))).map((x) => x.textContent).join('') : '')([...document.querySelectorAll('#log .msg.ai')].pop()));
                     const dbB = await dbOf(b), evB = Object.values(dbB.events || {});
                     ok('RESTORE FROM FILE takes the downloaded backup', /^Restored your skin, your settings.* protocols? and your usage counts\./.test(said2 || ''), said2);
                     ok('in B\'s real IndexedDB: A\'s protocol and counts, B\'s own protocol, nothing dropped', dbB.protocols?.['"game day"'] && dbB.protocols?.['"bedtime"'] && file.days.every(([id, day, n]) => evB.some((e) => e.id === id && e.day === day && e.n >= n))
@@ -492,7 +498,7 @@ try {
             const p = await open('jarvis-test.html', { width: w, height: h }, ctxC);
             await p.click('#boot-skip'); await p.waitForTimeout(800);
             const say = (q) => p.evaluate((x) => window.__jarvis.answer(x), q);
-            const lastAi = () => p.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent || '');
+            const lastAi = () => p.evaluate(() => ((m) => m ? [...m.childNodes].filter((x) => !(x.classList && x.classList.contains('voice-tag'))).map((x) => x.textContent).join('') : '')([...document.querySelectorAll('#log .msg.ai')].pop()));
             ok(`a newcomer is level 1 at ${w}×${h}`, await p.evaluate(() => window.__jarvis.levelNow()) === 1);
             // The memory core: four red locked stars on the outer shell, among the dim ones not found yet.
             await say('show me your memory'); await p.waitForTimeout(2500);
@@ -522,7 +528,7 @@ try {
             const sw = await p.evaluate(() => { const e = document.getElementById('levelup'), r = e.getBoundingClientRect(); return { text: e.textContent, shown: !e.hidden && r.width > 0, inside: r.left >= 0 && r.right <= innerWidth, holo: document.getElementById('holo-title').textContent }; });
             ok(`"ACCESS LEVEL 3 GRANTED" sweeps in over the suit at ${w}×${h}`, sw.shown && sw.inside && sw.text === 'ACCESS LEVEL 3 GRANTEDENGINEER' && /SUIT/.test(sw.holo), JSON.stringify(sw));
             await p.screenshot({ path: join(OUT, `level-up-${w}.png`) });
-            await p.waitForFunction(() => /Access level three granted: Engineer/.test([...document.querySelectorAll('#log .msg.ai')].pop()?.textContent || ''), null, { timeout: 5000 }).catch(() => {});
+            await p.waitForFunction(() => /Access level three granted: Engineer/.test(((m) => m ? [...m.childNodes].filter((x) => !(x.classList && x.classList.contains('voice-tag'))).map((x) => x.textContent).join('') : '')([...document.querySelectorAll('#log .msg.ai')].pop())), null, { timeout: 5000 }).catch(() => {});
             ok('and he says so after his answer', /Access level three granted: Engineer\./.test(await lastAi()), await lastAi());
             await p.waitForTimeout(3600);
             ok('the sweep goes after a few seconds', await p.evaluate(() => document.getElementById('levelup').hidden));
@@ -555,7 +561,7 @@ try {
         try {
             const p = await open('jarvis-test.html', { width: w, height: h }, ctxM);
             await p.click('#boot-skip'); await p.waitForTimeout(800);
-            const lastAi = () => p.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent || '');
+            const lastAi = () => p.evaluate(() => ((m) => m ? [...m.childNodes].filter((x) => !(x.classList && x.classList.contains('voice-tag'))).map((x) => x.textContent).join('') : '')([...document.querySelectorAll('#log .msg.ai')].pop()));
             // Waits for his answer to appear (about 2 s for the upgrade under SwiftShader, before Session 18 too), then 900 ms more.
             const type = async (q) => { const n = await p.evaluate(() => document.querySelectorAll('#log .msg').length); await p.fill('#q', q); await p.press('#q', 'Enter');
                 await p.waitForFunction((n) => { const m = [...document.querySelectorAll('#log .msg')]; return m.length >= n + 2 && m.at(-1).classList.contains('ai'); }, n, { timeout: 10000 }).catch(() => {});
@@ -629,7 +635,7 @@ try {
         try {
             const p = await open('jarvis-test.html', { width: w, height: h }, ctxK);
             await p.click('#boot-skip'); await p.waitForTimeout(800);
-            const lastAi = () => p.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent || '');
+            const lastAi = () => p.evaluate(() => ((m) => m ? [...m.childNodes].filter((x) => !(x.classList && x.classList.contains('voice-tag'))).map((x) => x.textContent).join('') : '')([...document.querySelectorAll('#log .msg.ai')].pop()));
             const type = async (q, ms = 2500) => { await p.fill('#q', q); await p.press('#q', 'Enter'); await p.waitForTimeout(ms); return lastAi(); };
             await type('create movie night protocol make the orb purple then open the galaxy', 900);
             await type('close', 600);
@@ -678,7 +684,7 @@ try {
         try {
             const p = await open('jarvis-test.html', { width: w, height: h }, ctxL);
             await p.click('#boot-skip'); await p.waitForTimeout(800);
-            const lastAi = () => p.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent || '');
+            const lastAi = () => p.evaluate(() => ((m) => m ? [...m.childNodes].filter((x) => !(x.classList && x.classList.contains('voice-tag'))).map((x) => x.textContent).join('') : '')([...document.querySelectorAll('#log .msg.ai')].pop()));
             const type = async (q, ms = 1500) => { await p.fill('#q', q); await p.press('#q', 'Enter'); await p.waitForTimeout(ms); return lastAi(); };
             ok(`nothing is fetched from jarvis/llm/ at start-up at ${w}×${h}`, llmAsked().length === 0, llmAsked().join());
             const gpu = await p.evaluate(() => window.__jarvis.gpuCheck());
@@ -766,6 +772,10 @@ try {
             const orb = await rect('#orb'), below = (await Promise.all(['#log-handle', '#log'].map(rect))).filter(Boolean);
             ok(`the face sits above the chat strip at ${w}×${h}`, orb && below.every((r) => orb.bottom <= r.top + 1), JSON.stringify({ orb, below }));
             ok(`and stays a usable size at ${w}×${h}`, orb && orb.height >= 140, JSON.stringify(orb));
+            // Review 86: the voice tag sits at the end of his line; on a short screen it's hidden in the strip (it pushed the
+            // face under 140 px at 360×640) and shown when the chat is open.
+            const tagShown = await p.evaluate(() => { const g = [...document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag'); return g ? getComputedStyle(g).display !== 'none' : null; });
+            ok(`the voice tag is ${h <= 700 ? 'hidden in the strip on this short screen' : 'shown in the strip'} at ${w}×${h}`, tagShown === (h > 700));
             ok(`the strip shows only the latest reply at ${w}×${h}`, await p.evaluate(() => [...document.querySelectorAll('#log .msg')].filter((m) => getComputedStyle(m).display !== 'none').length) === 1);
             const logR = await rect('#log');
             ok(`a long reply scrolls inside the strip rather than covering the face at ${w}×${h}`, logR && logR.bottom <= (await rect('#f')).top + 1 && logR.height <= Math.min(0.34 * h, 260) + 1, JSON.stringify(logR));
@@ -856,7 +866,7 @@ try {
         PX.on = true; PX.redeploy(); PX.hits.length = 0;
         try {
             let p = await open('jarvis-test.html', { width: w, height: h }, ctxX);
-            const lastAi = () => p.evaluate(() => [...document.querySelectorAll('#log .msg.ai')].pop()?.textContent || '');
+            const lastAi = () => p.evaluate(() => ((m) => m ? [...m.childNodes].filter((x) => !(x.classList && x.classList.contains('voice-tag'))).map((x) => x.textContent).join('') : '')([...document.querySelectorAll('#log .msg.ai')].pop()));
             const type = async (q, ms = 1500) => { await p.fill('#q', q); await p.press('#q', 'Enter'); await p.waitForTimeout(ms); return lastAi(); };
             const fonts = () => p.evaluate(async () => { for (const wt of [300, 500, 700]) await document.fonts.load(`${wt} 16px "Chakra Petch"`).catch(() => {});
                 return [...document.fonts].filter((f) => /Chakra/.test(f.family)).map((f) => `${f.weight}:${f.status}`).sort().join(); });

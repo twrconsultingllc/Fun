@@ -105,8 +105,9 @@ body.holo-on #wake-note{display:none}
 .sc-tag{display:none;font-size:.7rem;font-weight:700;letter-spacing:.14em;color:var(--void);background:var(--amber);padding:2px 6px;vertical-align:middle;margin-left:6px}
 :root[data-supercharged] .sc-tag{display:inline-block}
 .brain-tag.cloud{color:var(--phos)}
-.voice-tag{display:block;font-size:.62rem;font-weight:700;letter-spacing:.12em;color:var(--label);margin-top:4px}
+.voice-tag{display:inline-block;font-size:.62rem;font-weight:700;letter-spacing:.12em;color:var(--label);margin-left:8px;white-space:nowrap}
 .voice-tag.his{color:var(--phos)}.voice-tag.fell{color:var(--amber)}
+@media (max-height:700px){body:not(.chat-open) #log .voice-tag{display:none}} /* a short phone's strip has no room for it: the face keeps its size; open the chat to see it */
 #rain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1;opacity:.35}
 #rain[hidden]{display:none}
 .skin-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
@@ -1160,7 +1161,7 @@ function voiceLevel(){
   return clamp(Math.sqrt(sum/v.buf.length)*4,0,1);
 }
 // Stops everything playing or queued: a recording is one source, streamed audio is many, queued back to back.
-function voiceStop(){const all=[...voiceOut.srcs];voiceOut.srcs.clear();voiceOut.src=null;for(const s of all)try{s.onended=null;s.stop()}catch(e){}}
+function voiceStop(){const all=[...voiceOut.srcs];voiceOut.srcs=new Set();voiceOut.src=null;for(const s of all)try{s.onended=null;s.stop()}catch(e){}}
 // Whether he's speaking in any voice: the browser's, or audio of his own (loading or playing).
 const speakingNow=()=>!!(synth&&synth.speaking)||voiceOut.active>0;
 // After three failures in a row the live voice rests for two minutes, rather than for the rest of the visit.
