@@ -58,12 +58,13 @@ const SUITES = [
 const DEFAULT_BASE = new URL('../', import.meta.url).pathname;
 
 function parseArgs(argv) {
-    const args = { base: DEFAULT_BASE, target: null, only: null, page: null };
+    const args = { base: DEFAULT_BASE, target: null, only: null, page: null, section: null };
     for (const arg of argv.slice(2)) {
         if (arg.startsWith('--base=')) args.base = arg.slice('--base='.length);
         else if (arg.startsWith('--target=')) args.target = arg.slice('--target='.length);
         else if (arg.startsWith('--only=')) args.only = arg.slice('--only='.length);
         else if (arg.startsWith('--page=')) args.page = arg.slice('--page='.length);
+        else if (arg.startsWith('--section=')) args.section = arg.slice('--section='.length);
         else if (arg === '--help' || arg === '-h') args.help = true;
         else if (!arg.startsWith('--')) args.target = arg;
     }
@@ -87,6 +88,9 @@ Usage: node run.mjs [--base=<dir|url>] [--only=<suite>] [--page=<file>] [--targe
   --only     Run a single suite: ${SUITES.map((s) => s.id).join(', ')}
   --page     Run every suite that covers one page, e.g. ai-swarm.html
   --target   Force an exact page for the selected suites. Best with --only.
+  --section  Run only these parts of a suite that has them (comma-separated),
+             e.g. --only=jarvis-test --section=ownVoice. For small fixes; a
+             suite without sections runs in full and says so.
 
 First run: cd tests && npm install   (installs jsdom)
 `);
@@ -126,7 +130,9 @@ for (const suite of selected) {
     const module = await import(suite.file);
     console.log(`\n${BOLD}══ ${module.name || suite.id} ══${OFF}  ${DIM}${page.source} (${(page.html.length / 1024).toFixed(0)} KB)${OFF}`);
     try {
-        await module.default(harness, page);
+        // --section: a suite that has sections reads page.sections and runs only those (CLAUDE.md: small fixes).
+        if (args.section && !module.SECTIONS) console.log(`  ${DIM}(no sections in this suite: it runs in full)${OFF}`);
+        await module.default(harness, args.section && module.SECTIONS ? { ...page, sections: args.section.split(',').map((x) => x.trim()).filter(Boolean) } : page);
     } catch (error) {
         crashed++;
         console.log(`  ${RED}CRASH${OFF} ${suite.id}: ${error.message}`);

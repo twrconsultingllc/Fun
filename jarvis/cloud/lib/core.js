@@ -108,6 +108,14 @@ export function createSwitch({ env, fetchImpl, now }) {
     };
 }
 
+/* ---------- Which deployment this is ---------- */
+// The commit Vercel built this deployment from (VERCEL_GIT_COMMIT_SHA, set by Vercel for every Git deployment), first
+// seven characters, so /api/status shows at a glance whether a fix is live. null when it isn't set or looks odd.
+export function version(env) {
+    const sha = String(env.VERCEL_GIT_COMMIT_SHA || '').trim().toLowerCase();
+    return /^[0-9a-f]{7,40}$/.test(sha) ? sha.slice(0, 7) : null;
+}
+
 /* ---------- Who may call ---------- */
 export function allowedOrigins(env) {
     const list = String(env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(s => /^https?:\/\/[^/\s]+$/.test(s));
@@ -399,7 +407,8 @@ export function createApp({ env, fetchImpl = fetch, now = Date.now, log = () => 
         // Cached by Vercel's edge for 20 s, so a busy page doesn't read Edge Config for every visitor. voice: this
         // proxy has /api/voice (Session 18), so the page knows not to try it on an older deployment.
         return json(200, { ...cors, 'Cache-Control': 'public, max-age=0, s-maxage=20' }, {
-            on, owner: sw.owner, model: on ? (sw.model || DEFAULT_MODEL) : null, until: on && sw.until ? new Date(sw.until).toISOString() : null, voice: on
+            on, owner: sw.owner, model: on ? (sw.model || DEFAULT_MODEL) : null, until: on && sw.until ? new Date(sw.until).toISOString() : null, voice: on,
+            version: version(env)
         });
     }
 

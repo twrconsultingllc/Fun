@@ -134,6 +134,39 @@ re-audit and runs everything. Adding a suite's line to `SUITES` in
 `tests/run.mjs` is not a shared change: run just that suite. In the review
 report, name which suites ran.
 
+### Small fixes: test only what changed, and say so
+
+A small fix runs only the parts of a suite that the change touches, not the
+whole suite. The user chose this on 2026-10-12, after a one-feature fix to
+J.A.R.V.I.S.'s voice spent most of an hour re-running about 2,000 page
+checks and all 13 Chromium steps. For the J.A.R.V.I.S. test copy:
+
+```bash
+cd tests
+node run.mjs --only=jarvis-test --section=ownVoice
+node jarvis-test.chromium.mjs --step=13
+```
+
+`--section` takes the names in `SECTIONS` in `tests/jarvis-test.dom.test.mjs`
+(comma-separated; `core` is the opening checks). `--step` takes Chromium step
+numbers from 1 to 13; asking for 4 or 5 also runs 1 to 3, which set up their
+profile. A suite with no sections runs in full and says so. Proxy changes
+still run the whole `jarvis-cloud` suite, which takes seconds. Still break the
+changed code on purpose and confirm the targeted run fails.
+
+The full runs still happen at the end of a session, before a promotion, and
+for a Full Monty review. A "small fix" here means a fix to work already merged:
+a bug, a timing, a wording, a test that needs adjusting. A new feature or a
+build-plan session isn't one. When in doubt, run everything.
+
+### Small fixes get a short review
+
+A small fix still gets its numbered report in `tests/secrpts/`, in the usual
+template, but a short one: one or two findings for what changed, the
+sections and steps that ran, and the broken copies that failed. The full
+write-up is for new pages, sessions and substantive updates. The user chose
+this on 2026-10-12, with the targeted runs above.
+
 When a test fails, re-derive the expected value from first principles before
 changing it. Do not "fix" a failure by pasting in whatever the page now prints —
 during the TriCalc 4.0 rewrite three failures turned out to be wrong
@@ -681,6 +714,17 @@ deployment limit. `refreshHours` is 0 to match, and the page then says
   add its publisher name to `excludeSources` in `feeds.config.json`, which
   the fetcher matches against each item's publisher. `wire-core` fails if a
   search gains a `-site:`.
+
+## Checking the supercharger proxy is live: `/api/status` → `version`
+
+Since 2026-10-12, <https://jarvis-cloud-gamma.vercel.app/api/status> includes
+`version`, the first seven characters of the commit Vercel built the proxy
+from (`VERCEL_GIT_COMMIT_SHA`). After merging a change under `jarvis/cloud/`,
+compare it with the merge commit's hash instead of waiting for Vercel's status
+on GitHub. That status can lag or never arrive: after PR #130 it never showed,
+though Vercel had deployed in 17 seconds. The container can't reach
+`*.vercel.app`, so ask the user to open the address and read `version` back.
+The user chose this on 2026-10-12.
 
 ## Vercel builds only the project whose folder changed
 

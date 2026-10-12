@@ -137,6 +137,14 @@ fake Cache Storage and network. It also recomputes `LIB_HASH` from the
 library files it keeps, so changing one of them without changing `LIB_HASH`
 fails the suite.
 
+For a small fix, run only what it touches (see "Small fixes" in the root
+`CLAUDE.md`):
+
+```bash
+node run.mjs --only=jarvis-test --section=ownVoice   # parts listed in SECTIONS
+node jarvis-test.chromium.mjs --step=13              # steps 1 to 13
+```
+
 Session 18 (his own voice) adds `jarvis-voice.test.mjs` (`--only=jarvis-voice`).
 It checks that every line `jarvis/voice/collect.mjs` would record is said word
 for word in a typed turn, and that none has a digit, a date word or a name.

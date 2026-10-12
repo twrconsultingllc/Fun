@@ -394,6 +394,10 @@ export default async function run(t) {
         const s = parse(await get(a));
         t.eq('/api/status says the voice is there while it\'s on', s.voice, true);
         t.eq('…and not while it\'s off', parse(await get(app({}, [edge({ supercharge: false })]))).voice, false);
+        // Since 2026-10-12: the commit this deployment was built from, so a fix can be seen to be live.
+        t.eq('/api/status names the commit Vercel built it from (7 characters)', parse(await get(app({ VERCEL_GIT_COMMIT_SHA: '1E0296AED585B8DFC12B233796FF89ED2E4D538F' }, [edge({ supercharge: false })]))).version, '1e0296a');
+        t.eq('…null when Vercel doesn\'t set it', String(parse(await get(app({}, [edge({ supercharge: true })]))).version), 'null');
+        t.eq('…and null for anything that isn\'t a commit hash', String(parse(await get(app({ VERCEL_GIT_COMMIT_SHA: '<script>' }, [edge({ supercharge: true })]))).version), 'null');
 
         const env = app({ JARVIS_VOICE_MODEL: 'gemini-2.5-pro-preview-tts' }, [edge({ supercharge: true }), catalog(TTS), gemini((url) => { sent = { url }; return ttsOk(); })]);
         await vpost(env);
