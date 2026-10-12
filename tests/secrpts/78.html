@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #78 — J.A.R.V.I.S.: Session 17 promoted to the main page</title>
+<meta name="description" content="Review of promoting jarvis-test.html to jarvis.html on 2026-10-12: the supercharger, the self-hosted font and three.js, offline use and install, with a service worker, caches and manifest of the main page's own.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #78 — J.A.R.V.I.S.: Session 17 promoted to the main page</h1>
+    <p class="sub">You asked for the test copy to go to the main page, after the supercharger answered well on your phone. <code>jarvis.html</code> now has everything from Session 17: the supercharger, the font and three.js hosted on the site, offline use and install. It has its own database, as before, and new this time, its own service worker, caches and install manifest, so the two pages never interfere.</p>
+    <div class="meta">Review performed 2026-10-12 · scope: <code>jarvis.html</code>, <code>jarvis-sw.js</code> (new), <code>jarvis/app/main.webmanifest</code> (new), <code>jarvis-test.html</code> (one export), <code>jarvis-test-sw.js</code> (a comment), <code>tests/jarvis.dom.test.mjs</code>, <code>tests/jarvis-test.dom.test.mjs</code>, <code>tests/jarvis-test-sw.test.mjs</code>, <code>tests/jarvis-test.chromium.mjs</code>, <code>tests/run.mjs</code>, <code>tests/README.md</code>, <code>jarvis/build-plan.html</code>, <code>CLAUDE.md</code> · suites run: <code>--page=jarvis.html</code> (<code>jarvis</code>, <code>jarvis-sw</code>), <code>--page=jarvis-test.html</code> (<code>jarvis-test</code>, <code>jarvis-cloud</code>, <code>jarvis-test-sw</code>), then <code>jarvis-test.chromium.mjs</code> on its own.</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 75%;"></div></div>
+    <div class="progress-label">8 items: 6 verified clean or fixed, 2 open.</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Security and privacy</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What differs between the two pages, and nothing else</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>A line-by-line comparison of the two pages shows only the intended differences:</p><ul>
+        <li>the title, the description and the TEST tag, with its style;</li>
+        <li>the header line, which is now "Demo build", because the old "no internet brain" stopped being true with the supercharger;</li>
+        <li><code>DB_NAME</code>, still <code>jarvis</code>;</li>
+        <li>three comments;</li>
+        <li>the worker's names, <code>SW_URL='jarvis-sw.js'</code>, <code>SW_SCOPE='./jarvis.html'</code> and <code>CACHE_PREFIX='jarvis-main-'</code>;</li>
+        <li>the manifest link, <code>jarvis/app/main.webmanifest</code>, and the iPhone home-screen title, "Jarvis".</li>
+      </ul><p>So the main page now has the test copy's CSP: <code>connect-src 'self' https://jarvis-cloud-gamma.vercel.app</code>, with no cdnjs and no Google Fonts. Every Session 17 finding in <a href="73.html">review 73</a> and <a href="74.html">review 74</a> now applies to it as well.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Two workers that can't touch each other</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Session 17's notes said the main page's worker would use the prefix <code>jarvis-</code>. That would also match the test copy's <code>jarvis-test-</code> caches. The main worker's clean-up on activation, and "update Jarvis" on the main page, would then have deleted the test copy's saved files.</p></div>
+      <div class="fix-note"><b>Fix:</b> The main page uses <code>jarvis-main-</code>. The worker suite now runs for both pages and checks that neither prefix starts the other. With the main worker's prefix set to plain <code>jarvis-</code>, 3 checks failed. With its page set to the test copy, 12 failed. CLAUDE.md now says a promotion keeps these names apart, like <code>DB_NAME</code>.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Two installs</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>main.webmanifest</code> is the test copy's manifest with its own <code>id</code>, <code>start_url</code> and <code>scope</code> (all <code>jarvis.html</code>) and its own names ("J.A.R.V.I.S.", "Jarvis"). The icons are shared, and it names nothing outside the site. The two pages install as two apps. On an iPhone, each installed app has its own storage, as Jarvis says when asked to install.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The supercharger now reaches everyone</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>Carried from reviews 72 and 74, and wider now. The supercharger is on by default, and <code>jarvis.html</code> is the page other people use. Anyone who opens it while it's on is told that what he can't answer goes to Google's Gemini. Their questions do go there, and Vercel sees their IP address. Cost is held only by the budget and daily quota on Google's side. This is your choice, recorded in the build plan. To turn it off, set <code>SUPERCHARGE=false</code> in Vercel and redeploy.</p></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The suites</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>tests/jarvis.dom.test.mjs</code> is the test copy's suite with the same changes the last promotion made: the database name, the page's name, and the two test-copy-only sections ("Test copy" and "kept apart from jarvis.html"). They were applied as a patch made from that promotion, and every hunk applied. The "update Jarvis" check now reads the page's own <code>CACHE_PREFIX</code>, so it works on both pages. Results: <code>jarvis</code> 1,883 checks (up from 1,774) and <code>jarvis-sw</code> 86, all passing. <code>jarvis-test</code> 1,897, <code>jarvis-cloud</code> 123 and <code>jarvis-test-sw</code> 86, all passing.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">In headless Chromium</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p><code>tests/jarvis-test.chromium.mjs</code>: 320 checks, all passing, run on its own after the jsdom suites. The new step 12 opens both pages in one browser profile, as on a phone. It checks that two workers are registered, each scoped to its own page and controlling only that page. The caches are apart: two <code>jarvis-main-</code> and two <code>jarvis-test-</code>. The main page has the supercharger and is installable with its own manifest. "Update Jarvis" on the main page cleared only its own caches. Offline, the main page loaded from its own saved copy and said the supercharger is unavailable (screenshot at 390×844, with no TEST tag). The earlier steps still pass with the test copy.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A count lost to an instant reload</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The Chromium check of saves surviving a reload ("today's counts") lost the galaxy's usage count in 2 of 4 runs, yesterday and today. The step reloads the page within milliseconds of the last command. A usage count goes to IndexedDB in a transaction that finishes a moment later, and a reload in that moment cancels it. On a real device, that's at most one count lost by reloading instantly after a command. It has been the same since Session 9, so it's noted here rather than worked around in the page.</p></div>
+      <div class="fix-note"><b>Fix:</b> The step waits half a second before reloading, with a comment saying why. It's the step that was wrong: it means to check saves surviving a reload, not that race.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What only you can check</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>The live main page, on your phone:</p><ul>
+        <li>the supercharger announcement and an answer;</li>
+        <li>installing it beside the test copy;</li>
+        <li>opening it offline.</li>
+      </ul><p><code>*.github.io</code> can't be reached from this container.</p></div>
+    </div>
+  </section>
+  <footer>Previous review: <a href="77.html">#77</a> (Session 18 added to the build plan).</footer>
+</div>
+</body>
+</html>

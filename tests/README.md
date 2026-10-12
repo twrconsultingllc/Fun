@@ -128,8 +128,11 @@ the two compete for the CPU.
 
 The page side of the supercharger is checked in `jarvis-test.dom.test.mjs`
 against the same real proxy code (`fakeProxy()`). The service worker and the
-install manifest have their own suite, `jarvis-test-sw.test.mjs`
-(`--only=jarvis-test-sw`). It runs the worker in a `node:vm` sandbox with a
+install manifest have their own suite, `jarvis-test-sw.test.mjs`. It's
+registered once per page (`--only=jarvis-test-sw` for the test copy's
+`jarvis-test-sw.js`, `--only=jarvis-sw` for `jarvis.html`'s `jarvis-sw.js`,
+since the promotion on 2026-10-12), and checks that the two never share a
+scope, a cache or an install. It runs the worker in a `node:vm` sandbox with a
 fake Cache Storage and network. It also recomputes `LIB_HASH` from the
 library files it keeps, so changing one of them without changing `LIB_HASH`
 fails the suite.

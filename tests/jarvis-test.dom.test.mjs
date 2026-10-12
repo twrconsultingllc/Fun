@@ -4337,7 +4337,9 @@ export async function installAndUpdate(t, page) {
     const env = await openDom(page.html, URL_, { ...quiet, beforeParse(w) {
         const deleted = [];
         w.__deleted = deleted;
-        w.caches = { keys: async () => ['jarvis-test-shell', 'jarvis-test-lib-abc', 'jarvis-shell', 'webllm/model'], delete: async (k) => { deleted.push(k); return true; } };
+        // This page's caches (its CACHE_PREFIX), the other J.A.R.V.I.S. page's, and WebLLM's.
+        const mine = () => w.__jarvis.CACHE_PREFIX, other = () => (mine() === 'jarvis-test-' ? 'jarvis-main-' : 'jarvis-test-');
+        w.caches = { keys: async () => [mine() + 'shell', mine() + 'lib-abc', other() + 'shell', 'webllm/model'], delete: async (k) => { deleted.push(k); return true; } };
         Object.defineProperty(w.navigator, 'onLine', { configurable: true, get: () => w.__online !== false });
     } });
     try {
@@ -4357,7 +4359,8 @@ export async function installAndUpdate(t, page) {
         t.eq('(nothing deleted, no reload)', env.window.__deleted.length + reloads, 0);
         env.window.__online = true;
         t.eq('"update Jarvis" online', await typeIn(env, 'update yourself'), "Updating. I've cleared my saved copy, and I'll reload with the latest version in a moment.");
-        t.eq('it deletes only its own caches, not the main page\'s or the full brain\'s', env.window.__deleted.join(), 'jarvis-test-shell,jarvis-test-lib-abc');
+        const P = J.CACHE_PREFIX;
+        t.eq('it deletes only its own caches, not the other J.A.R.V.I.S. page\'s or the full brain\'s', env.window.__deleted.join(), `${P}shell,${P}lib-abc`);
         await wait(2700);
         t.eq('then reloads', reloads, 1);
         t.ok('"upgrade your brain" is still the meaning module, not an update', !/Updating/.test(await typeIn(env, 'upgrade your brain')));
