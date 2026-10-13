@@ -472,7 +472,8 @@ export async function streamVoice({ env, fetchImpl, model, body, now }) {
     try {
         res = await fetchImpl(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY || '' }, body: JSON.stringify(body) });
     } catch { return { fallback: 'network' }; }
-    if (!res || res.status === 429) return res ? { quota: true } : { fallback: 'no answer' };
+    if (!res) return { fallback: 'no answer' };
+    if (res.status === 429) { let m = ''; try { const d = await res.json(); m = d && d.error && d.error.message || ''; } catch { } return { quota: true, detail: scrub(m) }; }
     if (res.status === 400) return { badRequest: true, fallback: 'status 400' };
     if (!res.ok) return { fallback: 'status ' + res.status };
     let events;
@@ -537,6 +538,15 @@ export async function streamVoice({ env, fetchImpl, model, body, now }) {
         }
     }
     return { stream: stream(), rate, done };
+}
+
+// What a voiced line was made with, for the test copy's chat (review 89), so the owner needn't open Vercel's log: the
+// model, whether the style went with it, and the version asked for. Never the words. The page reads it through
+// Access-Control-Expose-Headers; jarvis.html ignores it.
+export function voiceInfo({ model, style, variant }) {
+    // style: on (a system instruction), off, or words (version A: in front of the words, as first approved).
+    const st = variant === 'A' ? 'words' : style ? 'on' : 'off';
+    return { 'X-Jarvis-Voice': `model=${model}; style=${st}${variant ? '; version=' + variant : ''}`, 'Access-Control-Expose-Headers': 'X-Jarvis-Voice' };
 }
 
 /* ---------- The three handlers, without Vercel ---------- */
@@ -615,20 +625,20 @@ export function createApp({ env, fetchImpl = fetch, now = Date.now, log = () => 
         // version. A refused version answers 422, and the page says so on its line.
         if (r.variant) {
             const vs = await streamVoice({ env, fetchImpl, model, body: variantBody(r), now });
-            if (vs.quota) return json(429, cors, { error: 'quota', status: 429 });
+            if (vs.quota) return json(429, cors, { error: 'quota', status: 429, detail: vs.detail || '' });
             if (vs.blocked) return json(502, cors, { error: 'blocked', model });
             if (vs.badRequest) { log({ event: 'voice', model, variant: r.variant, error: 400 }); return json(422, cors, { error: 'refused', variant: r.variant }); }
             if (vs.stream) {
                 vs.done.then(d => { const u = d.usage || {}; log({ event: 'voice', model, variant: r.variant, stream: true, chars, in: u.promptTokenCount || 0, out: u.candidatesTokenCount || 0, first: d.first, ms: d.ms }); });
-                return { status: 200, headers: { ...cors, 'Content-Type': PCM_TYPE(vs.rate), 'X-Content-Type-Options': 'nosniff' }, stream: vs.stream };
+                return { status: 200, headers: { ...cors, ...voiceInfo({ model, style: r.variant === 'B', variant: r.variant }), 'Content-Type': PCM_TYPE(vs.rate), 'X-Content-Type-Options': 'nosniff' }, stream: vs.stream };
             }
             log({ event: 'voice', model, variant: r.variant, stream: false, why: vs.fallback });
             let vo;
             try { vo = await askGemini({ env, fetchImpl, model, body: variantBody(r), bodyNoThinking: variantBody(r) }); } catch { return json(502, cors, { error: 'upstream', variant: r.variant }); }
             if (vo.status === 400) return json(422, cors, { error: 'refused', variant: r.variant });
             const va = vo.ok ? readVoice(vo.data) : { error: 'upstream' };
-            if (va.file) return { status: 200, headers: { ...cors, 'Content-Type': va.type, 'X-Content-Type-Options': 'nosniff' }, body: va.file };
-            if (va.pcm) return { status: 200, headers: { ...cors, 'Content-Type': 'audio/wav', 'X-Content-Type-Options': 'nosniff' }, body: wav(va.pcm, va.rate) };
+            if (va.file) return { status: 200, headers: { ...cors, ...voiceInfo({ model, style: r.variant === 'B', variant: r.variant }), 'Content-Type': va.type, 'X-Content-Type-Options': 'nosniff' }, body: va.file };
+            if (va.pcm) return { status: 200, headers: { ...cors, ...voiceInfo({ model, style: r.variant === 'B', variant: r.variant }), 'Content-Type': 'audio/wav', 'X-Content-Type-Options': 'nosniff' }, body: wav(va.pcm, va.rate) };
             return json(vo.status === 429 ? 429 : 502, cors, { error: va.blocked ? 'blocked' : 'upstream', variant: r.variant });
         }
         // The style goes as a system instruction. A model that refuses one (400) is asked again with the words alone,
@@ -644,14 +654,14 @@ export function createApp({ env, fetchImpl = fetch, now = Date.now, log = () => 
             st = await streamVoice({ env, fetchImpl, model, body: voiceBody(r, { style: false }), now });
             if (!st.badRequest) { style = false; if (!always) voiceStyle = false; log({ event: 'voice', model, style: false, why: 'system instruction refused' }); }
         }
-        if (st.quota) { log({ event: 'voice', model, stream: true, error: 429 }); return json(429, cors, { error: 'quota', status: 429 }); }
+        if (st.quota) { log({ event: 'voice', model, stream: true, error: 429 }); return json(429, cors, { error: 'quota', status: 429, detail: st.detail || '' }); }
         if (st.blocked) { log({ event: 'voice', model, stream: true, error: 'blocked' }); return json(502, cors, { error: 'blocked', model }); }
         if (st.stream) {
             st.done.then(d => {
                 const u = d.usage || {};
                 log({ event: 'voice', model, stream: true, style, chars, in: u.promptTokenCount || 0, out: u.candidatesTokenCount || 0, first: d.first, ms: d.ms, bytes: d.bytes, ...(d.cut ? { cut: true } : {}) });
             });
-            return { status: 200, headers: { ...cors, 'Content-Type': PCM_TYPE(st.rate), 'X-Content-Type-Options': 'nosniff' }, stream: st.stream };
+            return { status: 200, headers: { ...cors, ...voiceInfo({ model, style }), 'Content-Type': PCM_TYPE(st.rate), 'X-Content-Type-Options': 'nosniff' }, stream: st.stream };
         }
         log({ event: 'voice', model, stream: false, why: st.fallback });
         let out;
@@ -677,8 +687,8 @@ export function createApp({ env, fetchImpl = fetch, now = Date.now, log = () => 
         // Vercel's logs the first time it happens.
         if (a.blocked) { log({ event: 'voice', model, error: 'blocked' }); return json(502, cors, { error: 'blocked', model }); }
         if (a.error) { log({ event: 'voice', model, error: 'format', detail: a.error, ...a.info }); return json(502, cors, { error: 'format', detail: a.error, model }); }
-        if (a.file) return { status: 200, headers: { ...cors, 'Content-Type': a.type, 'X-Content-Type-Options': 'nosniff' }, body: a.file };
-        return { status: 200, headers: { ...cors, 'Content-Type': 'audio/wav', 'X-Content-Type-Options': 'nosniff' }, body: wav(a.pcm, a.rate) };
+        if (a.file) return { status: 200, headers: { ...cors, ...voiceInfo({ model, style }), 'Content-Type': a.type, 'X-Content-Type-Options': 'nosniff' }, body: a.file };
+        return { status: 200, headers: { ...cors, ...voiceInfo({ model, style }), 'Content-Type': 'audio/wav', 'X-Content-Type-Options': 'nosniff' }, body: wav(a.pcm, a.rate) };
     }
 
     return { status, brain, voice };

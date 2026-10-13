@@ -107,7 +107,8 @@ body.holo-on #wake-note{display:none}
 .brain-tag.cloud{color:var(--phos)}
 .voice-tag{display:inline-block;font-size:.62rem;font-weight:700;letter-spacing:.12em;color:var(--label);margin-left:8px;white-space:nowrap}
 .voice-tag.his{color:var(--phos)}.voice-tag.fell{color:var(--amber)}
-@media (max-height:700px){body:not(.chat-open) #log .voice-tag{display:none}} /* a short phone's strip has no room for it: the face keeps its size; open the chat to see it */
+.voice-info{display:block;font-size:.62rem;letter-spacing:.03em;color:var(--label);margin-top:3px;line-height:1.3} /* test copy (review 89): the details Vercel's log would give */
+@media (max-height:700px){body:not(.chat-open) #log .voice-tag,body:not(.chat-open) #log .voice-info{display:none}} /* a short phone's strip has no room for it: the face keeps its size; open the chat to see it */
 #rain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1;opacity:.35}
 #rain[hidden]{display:none}
 .skin-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
@@ -1087,7 +1088,7 @@ function say(text,{quiet=false,browser=false}={}){
   const line=quiet?null:log.lastElementChild;
   if(!browser&&(settings.voice||'his')!=='browser'&&voiceOut.AC){voiceSay(words,gen,{keep:!fromModel,line}).then(then);return}
   if(!synth){setMode('idle');then();return}
-  if(voiceOut.AC)voiceMark(line,voiceBrowser()); // the browser's voice by choice (the setting, or the voice menu's sample)
+  if(voiceOut.AC){voiceMark(line,voiceBrowser());voiceDetail(line,browser?'the voice menu\'s sample, in the voice you picked':'the voice setting is the browser\'s')} // by choice
   speakBrowser(words,gen).then(then);
   // Some browsers never start speaking (no voices installed); don't stay stuck on PROCESSING.
   setTimeout(()=>{if(mode==='think')setMode('idle')},1500);
@@ -1214,15 +1215,34 @@ async function voiceKeep(text,buf){
 }
 // One segment's audio, or null (and the browser says it instead), with seg.why saying what went wrong.
 const VOICE_WHY={422:'refused by Google',429:'busy',502:'Gemini voice failed',503:'switched off'};
+// Why the proxy refused a line, from its answer (review 89), so the chat can say it plainly: Google's quota, the proxy's
+// own limit, Google failing, and so on. seg.why is the short reason on the tag; seg.detail the longer one under it.
+function voiceRefused(seg,status,j){
+  const e=j&&typeof j.error==='string'?j.error:'',d=j&&typeof j.detail==='string'?j.detail.slice(0,160):'',g=j&&j.status?' '+j.status:'';
+  const [why,detail]=status===429&&e==='quota'?['Google quota reached',`Google refused it (429)${d?': '+d:''}`]
+    :status===429?['too many at once',"the proxy's own limit, 40 lines a minute from one address"]
+    :status===422?['refused by Google',`Google refused version ${j&&j.variant||''} (400)`]
+    :e==='blocked'?['blocked by Google','Google blocked this line']
+    :e==='format'?['unreadable audio',`Google's audio couldn't be read${d?' ('+d+')':''}`]
+    :e==='no voice model'?['no voice model','Google listed no text-to-speech model']
+    :status===403?['not allowed here','the proxy refused this site']
+    :['Gemini voice failed',`the proxy answered ${status}${e?' ('+e+(g?','+g:'')+')':''}${d?': '+d:''}`];
+  seg.why=why;seg.detail=detail;voiceOut.lastWhy=why;
+}
 async function voiceLoad(seg,keep){
   try{
-    if(seg.kind==='rec'){const r=await fetch(seg.file);if(r.ok)return await r.arrayBuffer();seg.why='recording missing';return null}
-    const kept=keep&&voiceKeepable(seg.text)?await voiceKept(seg.text):null;if(kept){seg.saved=true;return kept}
+    if(seg.kind==='rec'){const r=await fetch(seg.file);if(r.ok){seg.info='recording from this site';return await r.arrayBuffer()}seg.why='recording missing';seg.detail=`the recording answered ${r.status}`;return null}
+    const kept=keep&&voiceKeepable(seg.text)?await voiceKept(seg.text):null;if(kept){seg.saved=true;seg.info='saved on this device, no call to Google';return kept}
+    const t0=performance.now();
     const res=await cloudFetch('/api/voice',{method:'POST',body:JSON.stringify(seg.variant?{skin,text:seg.text,variant:seg.variant}:{skin,text:seg.text}),wait:voiceOut.fetchWait});
-    if(res.status===503){seg.why=VOICE_WHY[503];charger.voice=false;cloudCheck();return null}
-    if(!res.ok||!/^audio\//.test(res.headers&&res.headers.get?res.headers.get('content-type')||'':'')){seg.why=VOICE_WHY[res.status]||'Gemini voice failed';if(res.status!==429)voiceFail();return null}
+    const ms=Math.round(performance.now()-t0),type=res.headers&&res.headers.get?res.headers.get('content-type')||'':'';
+    if(res.status===503){seg.why=VOICE_WHY[503];seg.detail='the supercharger was switched off';charger.voice=false;cloudCheck();return null}
+    if(!res.ok||!/^audio\//.test(type)){let j=null;try{j=await res.json()}catch(e){}voiceRefused(seg,res.status,j);if(res.status!==429)voiceFail();return null}
     voiceOut.fails=0;
-    const pcm=voicePcmType(res.headers.get('content-type'));
+    // What it was made with, from the proxy's X-Jarvis-Voice header, and how long until the sound began.
+    const h=String(res.headers.get('x-jarvis-voice')||''),hm=h.match(/model=([a-z0-9.-]{1,60})/),hs=h.match(/style=(on|off|words)/);
+    const pcm=voicePcmType(type);
+    seg.info=[hm?hm[1]:'model not reported',pcm?'streamed':'whole file',hs?(hs[1]==='words'?'style in front of the words':'style '+hs[1]):'',`sound began in ${(ms/1000).toFixed(1)} s`,`${seg.text.length} characters`].filter(Boolean).join(' · ');
     if(pcm){
       // Streamed (review 82): played as it arrives. Kept on the device, as a WAV, only once it has all arrived.
       const feed=voiceFeed(res,pcm);
@@ -1232,7 +1252,19 @@ async function voiceLoad(seg,keep){
     const buf=await res.arrayBuffer();
     if(keep&&voiceKeepable(seg.text))voiceKeep(seg.text,buf);
     return buf;
-  }catch(e){if(seg.kind==='live'){seg.why=e&&e.name==='AbortError'?'too slow':'unreachable';voiceFail()}else seg.why='recording missing';return null}
+  }catch(e){
+    if(seg.kind==='live'){const slow=e&&e.name==='AbortError';seg.why=slow?'too slow':'unreachable';seg.detail=slow?`no answer from the proxy in ${Math.round(voiceOut.fetchWait/1000)} s`:`couldn't reach the proxy (${errText(e).slice(0,80)})`;voiceOut.lastWhy=seg.why;voiceFail()}
+    else{seg.why='recording missing';seg.detail='the recording couldn\'t be fetched'}
+    return null;
+  }
+}
+// The details under a line's voice tag (review 89, test copy): what each piece was made with, or why it failed, so the
+// owner sees in the chat what Vercel's log would tell him. One entry per piece, in order.
+function voiceDetail(line,text){
+  if(!line||!text)return;
+  let d=line.querySelector('.voice-info');
+  if(!d){d=document.createElement('span');d.className='voice-info';line.append(d)}
+  d.textContent=d.textContent?d.textContent+' | '+text:text;
 }
 // Every line he says aloud is tagged with the voice that actually said it (since 2026-10-12, review 84): "GEMINI ·
 // CHARON" for the live voice, "… · SAVED" when it played from this device, "RECORDED · CHARON" for a recording, and
@@ -1346,6 +1378,7 @@ async function voiceSay(words,gen,{keep=true,line=null}={}){
       // Only a fallback he didn't mean to make gets a note: the supercharger's voice was there but couldn't be used.
       // The supercharger's voice was there but couldn't be used: the note says why. Otherwise it's the usual browser voice.
       voiceNote(line,charger.on&&charger.voice?(!running?'tap to allow sound':voicePaused()?'live voice resting after failures':''):'');
+      voiceDetail(line,!charger.on?'supercharger off, so the browser\'s voice':!charger.voice?'this proxy has no voice of his':!running?'phones only play a page\'s sound after a tap':voicePaused()?`resting 2 minutes after 3 failures in a row; the last: ${voiceOut.lastWhy||'not recorded'}`:'no recording for this line, and the live voice is off');
       await speakBrowser(words,gen);return;
     }
     const mode=settings.voice||'his';
@@ -1356,6 +1389,7 @@ async function voiceSay(words,gen,{keep=true,line=null}={}){
       const buf=await fetchPiece(x,x===segs[0]?voiceOut.first:voiceOut.fetchWait);
       if(gen!==sayGen||!buf)return false;
       voiceMark(line,voiceHis(x.kind,x.saved),{his:true}); // tagged as it starts, so the tag shows while he speaks
+      voiceDetail(line,x.info);
       const ok=await (buf.chunks?voicePlayFeed(buf,gen):voicePlayBuf(buf,gen));
       if(!ok&&gen===sayGen)x.why='could not play it';
       return ok;
@@ -1371,14 +1405,14 @@ async function voiceSay(words,gen,{keep=true,line=null}={}){
       if(mode==='his'){
         // His voice never switches mid-answer (review 85). Nothing said yet: the whole answer in the browser's voice.
         // Partway through: that piece is asked for once more, and if it fails again he stops there (the chat has it all).
-        if(!started){voiceNote(line,x.why||'Gemini voice failed');await speakBrowser(segs.slice(i).map(y=>y.text).join(' '),gen);return}
+        if(!started){voiceNote(line,x.why||'Gemini voice failed');voiceDetail(line,x.detail);await speakBrowser(segs.slice(i).map(y=>y.text).join(' '),gen);return}
         x.why='';x.audio=voiceLoad(x,keep);ok=await play(x);
         if(gen!==sayGen)return;
         if(ok)continue;
-        voiceMark(line,'STOPPED · '+String(x.why||'Gemini voice failed').toUpperCase(),{fell:true});
+        voiceMark(line,'STOPPED · '+String(x.why||'Gemini voice failed').toUpperCase(),{fell:true});voiceDetail(line,x.detail);
         break;
       }
-      voiceNote(line,x.why||'Gemini voice failed'); // mixed: that piece in the browser's voice, in place
+      voiceNote(line,x.why||'Gemini voice failed');voiceDetail(line,x.detail); // mixed: that piece in the browser's voice, in place
       await speakBrowser(x.text,gen,{last});
     }
     if(gen===sayGen){lastWord=null;setMode('idle')}
@@ -1396,12 +1430,13 @@ async function voiceCompare(){
     for(const v of ['A','B','C']){
       const gen=++sayGen;if(synth)synth.cancel();voiceStop();
       add(`Version ${v}. ${line}`,'ai');const ln=log.lastElementChild;
-      const ctx=voiceCtx();if(!ctx||!voiceLiveOK()){voiceMark(ln,'VERSION '+v+' · '+(!ctx?'NO SOUND HERE':'SUPERCHARGER OFF'),{fell:true});continue}
+      const ctx=voiceCtx();
+      if(!ctx||!voiceLiveOK()){voiceMark(ln,'VERSION '+v+' · '+(!ctx?'NO SOUND HERE':voicePaused()?'LIVE VOICE RESTING':'SUPERCHARGER OFF'),{fell:true});voiceDetail(ln,voicePaused()?`resting 2 minutes after 3 failures in a row; the last: ${voiceOut.lastWhy||'not recorded'}`:'');continue}
       const seg={kind:'live',text:line,variant:v};
       const buf=await Promise.race([voiceLoad(seg,false),nap(voiceOut.fetchWait).then(()=>{seg.why=seg.why||'too slow';return null})]);
       if(gen!==sayGen)return;
-      if(!buf){voiceMark(ln,'VERSION '+v+' · '+String(seg.why||'Gemini voice failed').toUpperCase(),{fell:true});continue}
-      voiceMark(ln,'VERSION '+v+' · '+VOICE_NAMES[skin].toUpperCase(),{his:true});
+      if(!buf){voiceMark(ln,'VERSION '+v+' · '+String(seg.why||'Gemini voice failed').toUpperCase(),{fell:true});voiceDetail(ln,seg.detail);continue}
+      voiceMark(ln,'VERSION '+v+' · '+VOICE_NAMES[skin].toUpperCase(),{his:true});voiceDetail(ln,seg.info);
       await (buf.chunks?voicePlayFeed(buf,gen):voicePlayBuf(buf,gen));
       if(gen!==sayGen)return;
       await nap(500);
@@ -5165,7 +5200,7 @@ if(SR){
   }
 }else{mic.addEventListener('click',()=>add("Voice input isn't supported in this browser. Try Chrome or Edge, or just type.",'ai'))}
 
-window.__jarvis={voiceCompare,VOICE_COMPARE_RE,voiceKeepV:VOICE_KEEP_V,sayGen:()=>sayGen,VOICE_NAMES,voiceBrowser,voiceLevel,voiceOut,voicePcmType,voiceFeed,voiceWav,voicePlayFeed,voicePlan,voiceSay,voiceManifest,voiceList,voiceLines,voiceRecordable,voiceKeepable,voiceSamples,VOICE_SAMPLES,VOICE_SAMPLE_RE,speechSentences,speakBrowser,speakingNow,charger,cloudSet,cloudCheck,askCloud,cloudIntent,cloudReport,modelName,CLOUD,CLOUD_TAG,installIntent,installJarvis,updateJarvis,setReload:f=>{reloadPage=f},setInstallPrompt:e=>{installPrompt=e},SW_URL,SW_SCOPE,CACHE_PREFIX,say,setTitle,GAUNTLET,GAUNTLET_TEXT,HELP_LINE,helpSplit,openGauntlet,closeGauntlet,pickStone,chatOpen,freeArea,full:()=>full,setLlmLib:f=>{llmLib=f},llmLibReal,gpuCheck,fullBrainIntent,BRAIN_PICKS,parseBrain,cleanSay,brainGuess,checkPick,systemPrompt,brainFacts,brainReport,LLM,micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
+window.__jarvis={voiceRefused,voiceCompare,VOICE_COMPARE_RE,voiceKeepV:VOICE_KEEP_V,sayGen:()=>sayGen,VOICE_NAMES,voiceBrowser,voiceLevel,voiceOut,voicePcmType,voiceFeed,voiceWav,voicePlayFeed,voicePlan,voiceSay,voiceManifest,voiceList,voiceLines,voiceRecordable,voiceKeepable,voiceSamples,VOICE_SAMPLES,VOICE_SAMPLE_RE,speechSentences,speakBrowser,speakingNow,charger,cloudSet,cloudCheck,askCloud,cloudIntent,cloudReport,modelName,CLOUD,CLOUD_TAG,installIntent,installJarvis,updateJarvis,setReload:f=>{reloadPage=f},setInstallPrompt:e=>{installPrompt=e},SW_URL,SW_SCOPE,CACHE_PREFIX,say,setTitle,GAUNTLET,GAUNTLET_TEXT,HELP_LINE,helpSplit,openGauntlet,closeGauntlet,pickStone,chatOpen,freeArea,full:()=>full,setLlmLib:f=>{llmLib=f},llmLibReal,gpuCheck,fullBrainIntent,BRAIN_PICKS,parseBrain,cleanSay,brainGuess,checkPick,systemPrompt,brainFacts,brainReport,LLM,micTrouble,plainText,chipCommands,chipCmds:()=>[...new Set([...CHIP_CMDS].map(k=>k.split('|')[1]))],CAN_DO,personal,store,scrubStore,storedSummary,STORE_KEYS,speechChunks,SKINS,skinIntent,setSkin,skin:()=>skin,learned:()=>({...learned}),normPhrase,answer,brainKnown,PLACES,CITIES,CONTINENTS,latLonVec,vecLatLon,faceAngles,arcDeg,subsolar,daylight,onLand,coastSegments,oceanName,placeLine,SUIT_PARTS,SUIT_CALLOUTS,SUIT_LINES,SUIT_HALF,suitOrder,suitBuildTime,suitAssembly,layoutCallouts,brain,mathAnswer,intent,shapePoints,project,finishBoot,classifyHand,createGestures,scanReadout,coverMap,createFaceTracker,READOUTS,startScan,orbPulse,briefSpam,wakeCommand,wakeIntent,setWake:(...a)=>setWake(...a),wakeOK,briefing,briefingText,neuralLayout,createNeuralSim,layerLine,NEURAL_SHAPES,energy:()=>energy,hearing:()=>hearing,
   SETTING_CHOICES,cleanSettings,cleanStreak,streakLine,settingsIntent,applySetting,settings:()=>({...settings}),inUnits,ORB_COLOURS,ring:()=>ringRGB,SPEEDS,
   memoryTell,memoryAsk,memoryForget,memory:()=>memory.map(x=>({...x})),memoryStars,forgetStar,constellation,constellationLinks,get firstTime(){return firstTime},streak:()=>({...streak}),
   STEPS,BUILTIN,PROTO_MAX,PROTO_STEPS,stepOf,protoName,nameProblem,protoProblem,protoCreate,adjuster,noteScene,fragment,

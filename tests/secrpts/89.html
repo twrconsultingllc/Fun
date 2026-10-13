@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #89 — Voice details in the chat</title>
+<meta name="description" content="Short review of 2026-10-13's change: jarvis-test.html shows under each line what Vercel's log would (model, streaming, style, time to sound) and why a line failed (Google's quota versus the proxy's limit, with Google's own message), via one new proxy header.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #89 — Voice details in the chat</h1>
+    <p class="sub">Your screenshot after <a href="88.html">review 88</a> showed Version A tagged <code>BUSY</code>: the proxy answering 429. That's Google's quota or the proxy's per-minute limit, and the page couldn't tell which. At your request, the test copy now shows in the chat what Vercel's log would, so you needn't open Vercel.</p>
+    <div class="meta">Review performed 2026-10-13 · scope: <code>jarvis-test.html</code> (<code>voiceLoad</code>, <code>voiceRefused</code>, <code>voiceDetail</code>), <code>jarvis/cloud/lib/core.js</code> (<code>voiceInfo</code>, <code>streamVoice</code>) · suites run: <code>jarvis-cloud</code> in full, <code>jarvis-test --section=ownVoice</code>, Chromium steps 10 and 13.</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">2 items: 2 verified clean.</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">What reaches the page</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The proxy adds one header to a voiced line, <code>X-Jarvis-Voice: model=…; style=on|off|words</code> (plus the version from "compare voices"), and exposes only that header to the page. It never carries the words. A Google quota refusal on the streamed path now passes on Google's message, scrubbed of any key like every other error (a check sends a key-shaped string and confirms it's gone). On the page, everything is set with <code>textContent</code>, and the reason text is cut to 160 characters. <code>jarvis.html</code> reads neither and is unchanged.</p>
+      <div class="fix-note"><b>Broken copies (each failed <code>jarvis-cloud</code>):</b> the header not exposed (1 check); Google's words dropped from a streamed 429 (1). <code>jarvis-cloud</code>: 264 checks, up from 259.</div></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">A details line under each tag, and the real reason</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>Under each line's voice tag is a details line: the model, streamed or not, the style, how long until the sound began, and the length. For a recording it says "recording from this site", and for a saved line "saved on this device, no call to Google". When a line fails, the tag names the cause: <code>GOOGLE QUOTA REACHED</code> with Google's own message, <code>TOO MANY AT ONCE</code> for the proxy's 40-a-minute limit, <code>REFUSED BY GOOGLE</code>, <code>UNREADABLE AUDIO</code>, <code>TOO SLOW</code> (no answer in 25 seconds) or <code>UNREACHABLE</code>. When the live voice is resting, it names the last failure. "Compare voices" no longer says <code>SUPERCHARGER OFF</code> when the voice is actually resting. On screens under 700 px tall the details hide in the collapsed strip with the tag. In Chromium, the face kept its size at all three widths, and a screenshot at 390 px shows the details under his line.</p>
+      <div class="fix-note"><b>Broken copies (each failed <code>ownVoice</code>):</b> a quota refusal shown as "busy" (2 checks); the details never shown (2). <code>ownVoice</code>: 174 checks. Chromium steps 10 and 13: 86 checks, then 26 on re-running step 13.</div></div>
+    </div>
+  </section>
+  <footer>Review #89 · previous: <a href="88.html">review 88</a></footer>
+</div>
+</body>
+</html>
