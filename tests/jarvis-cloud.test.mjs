@@ -496,6 +496,9 @@ export default async function run(t) {
         let r = await vpost(a, { skin: 'jarvis', text: 'Hidden words. All systems are online.' });
         t.ok('200, streamed: audio/L16 at the rate Google named, and no body to buffer', r.status === 200 && r.headers['Content-Type'] === PCM_TYPE(24000) && r.headers['Content-Type'] === 'audio/L16;rate=24000;channels=1' && r.stream && r.body === undefined);
         t.ok('CORS for the Pages site, no-store, nosniff', r.headers['Access-Control-Allow-Origin'] === ORIGIN && r.headers['Cache-Control'] === 'no-store' && r.headers['X-Content-Type-Options'] === 'nosniff');
+        // Review 89: what it was made with, for the test copy's chat, readable cross-origin; never the words.
+        t.eq('it says what it was made with (model, style), for the chat', r.headers['X-Jarvis-Voice'], 'model=gemini-3.8-flash-tts; style=on');
+        t.eq('…readable from the page (exposed to CORS)', r.headers['Access-Control-Expose-Headers'], 'X-Jarvis-Voice');
         t.eq('POSTed to streamGenerateContent as server-sent events', sent.url, 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-tts:streamGenerateContent?alt=sse');
         t.ok('…the same request as before: the skin\'s voice and style, the words exact, the key in a header only', JSON.stringify(JSON.parse(sent.init.body)) === JSON.stringify(core.voiceBody({ skin: 'jarvis', text: 'Hidden words. All systems are online.' })) && sent.init.headers['x-goog-api-key'] === KEY && !sent.url.includes(KEY));
         t.ok('only one call to Google for the line', a.f.calls.filter(c => /enerateContent/.test(c.url)).length === 1);
@@ -544,6 +547,10 @@ export default async function run(t) {
         a = both(() => ({ status: 429, json: { error: { code: 429, message: 'Quota exceeded' } } }), () => { n++; return ttsOk(); });
         r = await vpost(a);
         t.ok('Google\'s quota reached on the stream: 429, and not asked again the old way', r.status === 429 && JSON.parse(r.body).error === 'quota' && n === 0);
+        t.eq('…with Google\'s own words, so the chat can show them (review 89)', JSON.parse(r.body).detail, 'Quota exceeded');
+        a = both(() => ({ status: 429, json: { error: { code: 429, message: `Quota exceeded for ${KEY}` } } }));
+        r = await vpost(a);
+        t.ok('…scrubbed of any key', r.status === 429 && !r.body.includes(KEY));
         a = both(() => ({ status: 200, text: 'data: ' + JSON.stringify({ promptFeedback: { blockReason: 'SAFETY' } }) + '\n\n' }), () => { n++; return ttsOk(); });
         r = await vpost(a);
         t.ok('blocked in the stream: 502 blocked, and not asked again', r.status === 502 && JSON.parse(r.body).error === 'blocked' && n === 0);
@@ -633,6 +640,7 @@ export default async function run(t) {
         a = app({}, [edge({ supercharge: true }), catalog(TTS), streamG((url, init) => { const b = JSON.parse(init.body); vreqs.push(b); return b.systemInstruction ? { status: 400, json: { error: { code: 400, message: 'no' } } } : { status: 200, text: SSE }; })], vlogs);
         r = await vpost(a, { skin: 'jarvis', text: 'Secret words.', variant: 'A' }); await drain(r.stream);
         t.ok('version A streams, as asked, with one call', r.status === 200 && r.stream && vreqs.length === 1 && vreqs[0].contents[0].parts[0].text.startsWith(VOICES_FIRST.jarvis));
+        t.eq('…and says which version, with the style it carried', r.headers['X-Jarvis-Voice'], 'model=gemini-3.8-flash-tts; style=words; version=A');
         vreqs.length = 0;
         r = await vpost(a, { skin: 'jarvis', text: 'Secret words.', variant: 'B' });
         t.ok('version B refused by Google: 422 refused, and never retried another way', r.status === 422 && JSON.parse(r.body).error === 'refused' && vreqs.length === 1);

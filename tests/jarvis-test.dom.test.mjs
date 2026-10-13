@@ -4557,6 +4557,14 @@ export async function ownVoice(t, page) {
             const core = await import('../jarvis/cloud/lib/core.js');
             t.eq('the voice names his tag shows are the proxy\'s own (review 84)', JSON.stringify(J.VOICE_NAMES), JSON.stringify(Object.fromEntries(Object.entries(core.VOICES).map(([k, v]) => [k, v.name]))));
             t.eq('with no device voice picked, the browser tag is just BROWSER VOICE', J.voiceBrowser(''), 'BROWSER VOICE');
+            // Review 89: why a line was refused, said plainly in the chat, from the proxy's answer.
+            const why = (st, j) => { const sg = {}; J.voiceRefused(sg, st, j); return sg.why + ' | ' + sg.detail; };
+            t.eq('Google\'s quota (429 quota): said as such, with Google\'s own words', why(429, { error: 'quota', status: 429, detail: 'Quota exceeded for requests per day' }), 'Google quota reached | Google refused it (429): Quota exceeded for requests per day');
+            t.eq('the proxy\'s own limit (429 busy): said as such', why(429, { error: 'busy' }), "too many at once | the proxy's own limit, 40 lines a minute from one address");
+            t.eq('Google failing (502 upstream 500)', why(502, { error: 'upstream', status: 500, detail: 'Internal error' }), 'Gemini voice failed | the proxy answered 502 (upstream, 500): Internal error');
+            t.eq('unreadable audio', why(502, { error: 'format', detail: 'audio type' }), "unreadable audio | Google's audio couldn't be read (audio type)");
+            t.eq('a version refused (422)', why(422, { error: 'refused', variant: 'B' }), 'refused by Google | Google refused version B (400)');
+            t.eq('an answer that isn\'t JSON still gets a reason', why(500, null), 'Gemini voice failed | the proxy answered 500');
         } finally { env.close(); }
     }
 
@@ -4705,6 +4713,8 @@ export async function ownVoice(t, page) {
             from = rig.log.timeline.length;
             J.say('Listen carefully. That would be 58.');
             t.eq('busy (429): the same', (await said(env, rig, from)).join(' | '), `rec:${F(2)} | tts:That would be 58.`);
+            const q429 = [...env.document.querySelectorAll('#log .msg.ai')].pop();
+            t.ok('…and the chat says it was Google\'s quota, with Google\'s words, not just "busy" (review 89)', /GOOGLE QUOTA REACHED$/.test(q429?.querySelector('.voice-tag')?.textContent || '') && /^recording from this site \| Google refused it \(429\): failed$/.test(q429?.querySelector('.voice-info')?.textContent || ''), q429?.querySelector('.voice-info')?.textContent);
             P.ttsFail = 0; P.down = true;
             from = rig.log.timeline.length;
             J.say('That would be 59. Free your mind.');
@@ -4733,7 +4743,7 @@ export async function ownVoice(t, page) {
             J.voiceOut.failAt = Date.now() - 121000;
             await turn(env, rig, 'what is nine times five');
             t.ok('…for two minutes, not the rest of the visit', P.voice().length === v3 + 1 && P.voice().at(-1).body.includes('That would be 45.') && note() === 'GEMINI · ALGENIB' && !fell());
-            t.ok('the tag is styled: plain for the browser\'s voice, green for his own, amber for a fallback', /\.voice-tag\{display:inline-block;[^}]*color:var\(--label\)/.test(src) && /@media \(max-height:700px\)\{body:not\(\.chat-open\) #log \.voice-tag\{display:none\}\}/.test(src) && /\.voice-tag\.his\{color:var\(--phos\)\}/.test(src) && /\.voice-tag\.fell\{color:var\(--amber\)\}/.test(src));
+            t.ok('the tag is styled: plain for the browser\'s voice, green for his own, amber for a fallback', /\.voice-tag\{display:inline-block;[^}]*color:var\(--label\)/.test(src) && /@media \(max-height:700px\)\{body:not\(\.chat-open\) #log \.voice-tag,body:not\(\.chat-open\) #log \.voice-info\{display:none\}\}/.test(src) && /\.voice-tag\.his\{color:var\(--phos\)\}/.test(src) && /\.voice-tag\.fell\{color:var\(--amber\)\}/.test(src));
             P.on = false; P.redeploy(); J.voiceOut.fails = 0;
             from = rig.log.timeline.length;
             J.say('That would be 60.');
@@ -4896,6 +4906,9 @@ export async function ownVoice(t, page) {
             let tl = await said(env, rig, from);
             t.eq('a line with no recording is streamed and played as it arrives', tl.join(' | '), 'stream:That would be 56.');
             t.eq('…tagged with his Gemini voice', [...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-tag')?.textContent, 'GEMINI · CHARON');
+            // Review 89: under the tag, what Vercel's log would say: the model, streamed, the style, how long until sound.
+            const info0 = [...env.document.querySelectorAll('#log .msg.ai')].pop()?.querySelector('.voice-info')?.textContent || '';
+            t.ok('…and under it, the details: model, streamed, style on, how long until the sound, characters', /^gemini-2\.5-flash-preview-tts · streamed · style on · sound began in \d+\.\d s · 17 characters$/.test(info0), info0);
             t.eq('…the proxy answered audio/L16', P.streamTypes.at(-1), 'audio/L16;rate=24000;channels=1');
             t.ok('…from one call to Google, the streamed one', P.tts.length > 0 && P.tts.at(-1).generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName === 'Charon');
             t.ok('back to STANDBY after', env.document.getElementById('state').textContent === 'STANDBY');
@@ -4952,7 +4965,7 @@ export async function ownVoice(t, page) {
         let env = await open(rig, await fakeProxy({ on: false }), { idb });
         try {
             const J = env.window.__jarvis, lastMsg = () => [...env.document.querySelectorAll('#log .msg.ai')].pop();
-            const lastAi = () => [...lastMsg().childNodes].filter((n) => !(n.classList && n.classList.contains('voice-tag'))).map((n) => n.textContent).join('');
+            const lastAi = () => [...lastMsg().childNodes].filter((n) => !(n.classList && (n.classList.contains('voice-tag') || n.classList.contains('voice-info')))).map((n) => n.textContent).join('');
             await settle(env, rig);
             for (const [q, v] of [['use the browser voice', 'browser'], ["switch to the browser's voice", 'browser'], ['use the device voice', 'browser'], ['mix the voices', 'mixed'], ['mixed voices', 'mixed'],
                 ['use your own voice', null], ['go back to your own voice', null], ['his own voice', null]]) {
