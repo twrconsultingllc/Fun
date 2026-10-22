@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #90 — Tests workflow (CI)</title>
+<meta name="description" content="Review of a new GitHub Actions workflow, .github/workflows/ci.yml, that runs every jsdom suite in tests/ on pushes to main and on pull requests, with a read-only token and pinned actions.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #90 — Tests workflow (CI)</h1>
+    <p class="sub">A new workflow, <code>.github/workflows/ci.yml</code> ("Tests"), runs <code>npm test</code> in <code>tests/</code> on every push to <code>main</code>, on every pull request, and by hand. Until now the suites only ran inside a session. This repo is public, so the runs use no Actions minutes from the account's allowance.</p>
+    <div class="meta">Review performed 2026-10-22 · scope: <code>.github/workflows/ci.yml</code> (new) · suites run: all, locally (<code>npm test</code>), since this adds the job that runs them all.</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 67%;"></div></div>
+    <div class="progress-label">3 items: 2 verified clean, 1 open.</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Read-only token, pinned actions, no secrets</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The workflow sets <code>permissions: contents: read</code>, and checkout uses <code>persist-credentials: false</code>, so no token is left in git config while the tests run. <code>actions/checkout</code> and <code>actions/setup-node</code> are pinned to the same full commit SHAs as the four existing workflows. Both installs use <code>npm ci --ignore-scripts</code> against committed lockfiles. It reads no secrets. The <code>pull_request</code> trigger (not <code>pull_request_target</code>) runs a fork's code without the repo's secrets or a write token. <code>npm audit</code> found 0 vulnerabilities in <code>tests/</code>, <code>daily-wire/</code>, <code>battle-bots/</code> and <code>battle-bots-V2/</code>.</p></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">It runs the same suites a session runs</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>A local run of <code>npm test</code> passed 6,025 checks and failed 1: <code>wire-core</code>'s "fetcher module loads", because <code>daily-wire/</code>'s own dependency wasn't installed. The workflow now installs it the same way <code>daily-wire.yml</code> does, and <code>wire-core</code> then passed all 107 checks. The run took 16 min 39 s on the clock but only 1 min 22 s of CPU time (most of it is the suites' own timer waits), so the job's 45-minute timeout leaves room. A newer push to the same branch cancels a run still in progress. The YAML parses (checked with Python's <code>yaml.safe_load</code>).</p>
+      <div class="fix-note"><b>Broken copy:</b> the first version, without the Daily Wire install, failed the local run (the 1 failure above). That's the failure the added step fixes.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">It reports; it can't stop a deploy</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p>GitHub Pages publishes <code>main</code> on its own, whether or not this run passes. So a red run means the last push should be checked, not that the site was protected. The Chromium checks (<code>tests/*.chromium.mjs</code>) aren't in the workflow, because they need Playwright, a browser and ffmpeg. They stay a by-hand check in a claude.ai/code session. Left open on purpose: blocking the deploy would mean switching Pages to an Actions-based deploy, a bigger change nobody has asked for.</p></div>
+    </div>
+  </section>
+  <footer>Review #90 · previous: <a href="89.html">review 89</a></footer>
+</div>
+</body>
+</html>

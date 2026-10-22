@@ -20,6 +20,11 @@ run per changed page), not everything. Run the full set only after a change to
 npm test             # every suite, against the working copy
 ```
 
+On GitHub, the **Tests** workflow (`.github/workflows/ci.yml`) runs `npm test`
+on every push to `main` and every pull request, and can be started by hand from
+the Actions tab. It only reports: GitHub Pages publishes `main` either way. The
+Chromium checks (`*.chromium.mjs`) aren't part of it.
+
 To check what is **actually deployed** rather than your working copy:
 
 ```bash
