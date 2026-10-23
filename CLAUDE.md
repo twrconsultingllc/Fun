@@ -739,6 +739,15 @@ limit. A new Vercel project gets the same line, and
 `tests/vercel-builds.test.mjs` (in `FOLDERS`) runs the real command against
 a scratch git repo. GitHub Pages isn't affected: it publishes every commit.
 
+The command must only ever exit 0 (skip) or 1 (build). Vercel treats any
+other exit code as a failed deployment, not as "build". Vercel's clone is
+shallow, so once a project has skipped about 20 commits, the commit it last
+deployed falls out of the clone and `git diff` exits 128. From 2026-10-12
+that failed every `main` deploy of `fun` and `funv2`, with an email each
+time, and would have stopped a real Battle Bots change from deploying
+(review 91). The command now falls back to the commit before when the last
+deploy isn't in the clone, and turns any other git error into "build".
+
 ## The root `.gitignore`'s `.env.*` also swallows `.env.example`
 
 `.gitignore` has both `.env` and `.env.*` to keep real secrets out of every

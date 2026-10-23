@@ -91,8 +91,9 @@ deployment (Deployments → the latest one → Redeploy). `vercel.json` skips a
 Git-triggered build when nothing under `jarvis/cloud/` changed since the
 commit Vercel last deployed (`VERCEL_GIT_PREVIOUS_SHA`), so other work in the
 repo doesn't redeploy it. A commit that does change this folder deploys it.
-The battle-bots projects use the same rule; `tests/vercel-builds.test.mjs`
-runs it.
+If that commit is no longer in Vercel's shallow clone, it compares with the
+commit before instead. The battle-bots projects use the same rule;
+`tests/vercel-builds.test.mjs` runs it.
 
 If Vercel answers a deploy with "Deployment rate limited", the account has
 used its daily deployments. Nothing deploys until it frees up, and the live
