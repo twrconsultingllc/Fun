@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #91 — Vercel skip rule: never a failed deployment</title>
+<meta name="description" content="Short review of a fix to the ignoreCommand in the three vercel.json files: when the last-deployed commit has fallen out of Vercel's shallow clone, it compares with the commit before instead of exiting with git's error code, which Vercel counted as a failed deployment.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #91 — Vercel skip rule: never a failed deployment</h1>
+    <p class="sub">Every merge to <code>main</code> since 2026-10-12 (PR #134 onward, seven merges) showed "Deployment has failed" for the <code>fun</code> and <code>funv2</code> Vercel projects, and Vercel emailed each time. The live apps were never affected: they kept serving their last good build. The cause was the build-skip rule added in <a href="76.html">review 76</a>.</p>
+    <div class="meta">Review performed 2026-10-23 · scope: <code>battle-bots/vercel.json</code>, <code>battle-bots-V2/vercel.json</code>, <code>jarvis/cloud/vercel.json</code> (<code>ignoreCommand</code>), <code>tests/vercel-builds.test.mjs</code> · suites run: <code>vercel-builds</code> in full (a small fix, per CLAUDE.md).</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="progress-label">2 items: 1 fixed, 1 verified clean.</div>
+  </header>
+  <section>
+    <h2><span class="num">01</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The rule exited 128 once the last deploy left Vercel's shallow clone</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The rule compared <code>HEAD</code> with <code>VERCEL_GIT_PREVIOUS_SHA</code>, the commit each project last actually deployed. Skipped builds don't move that commit forward. For <code>fun</code> it stayed at the merge of PR #124 (<code>2da5de1</code>). Vercel's commit statuses show the skip still working 20 commits later (<code>2e976d2</code>) and failing 22 commits later (<code>441943f</code>), from then on at every merge. At that point the commit was no longer in Vercel's shallow clone, and <code>git diff</code> exited 128. The old test assumed any non-zero code meant "build". Vercel treats only 1 that way and reports anything else as a failed deployment. So a real Battle Bots change would also have failed to deploy. Vercel's own logs couldn't be read from this container; the diagnosis rests on the status timeline and on reproducing the exit code.</p>
+      <p>The new command is <code>p="$VERCEL_GIT_PREVIOUS_SHA"; git cat-file -e "$p^{commit}" 2&gt;/dev/null || p=HEAD^; git diff --quiet "$p" HEAD -- . || exit 1</code>. If the last deploy is missing, or there isn't one, it compares with the commit before. Any other git error ends in <code>exit 1</code> (build), so it only ever answers 0 or 1. The cost: a change made in an earlier commit that never deployed, and that has since left the clone, could be skipped. A manual Redeploy in Vercel covers that.</p>
+      <div class="fix-note"><b>Checks:</b> <code>vercel-builds</code> now clones its scratch repo two commits deep and asks about an older deploy, the real failure. Fixed: 20 passed. Broken copy (the old command): 7 failed. In a 5-deep clone of this repo with <code>VERCEL_GIT_PREVIOUS_SHA=2da5de1</code>, the old command exited 128 and the new one 0.</div></div>
+    </div>
+  </section>
+  <section>
+    <h2><span class="num">02</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Same inputs, no new surface</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The command still reads only Vercel's own <code>VERCEL_GIT_PREVIOUS_SHA</code>, always quoted, and runs git read-only (<code>cat-file -e</code>, <code>diff --quiet</code>) inside Vercel's build container. Each <code>vercel.json</code> keeps its security headers (the suite checks it). Merging this changes all three folders, so each project builds once, which also moves each project's last deploy up to date.</p></div>
+    </div>
+  </section>
+  <footer>Review #91 · previous: <a href="90.html">review 90</a></footer>
+</div>
+</body>
+</html>
