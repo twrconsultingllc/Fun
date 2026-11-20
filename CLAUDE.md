@@ -676,6 +676,36 @@ github.com:
 
 Opening and merging pull requests does work, through the GitHub tools.
 
+## TriCalc (`tricalc.html`): no third-party dependencies, and a hashed script
+
+`tricalc.html` is handed to another website (Full Circle Triathlon Coaching)
+to host as one file. So since 2026-11-20 (review 93) it loads nothing from
+any other site: no Tailwind CDN, no Google Fonts, no Font Awesome, no CDN of
+any kind. Keep it that way. Two things follow:
+
+- **Styles are compiled Tailwind, not the CDN.** The big `<style>` block at
+  the top is the output of `tailwindcss@3.4.19` with the page's colour
+  config and system font stacks. A new utility class used in the markup has
+  no CSS until that block is regenerated, so rebuild it with the Tailwind
+  CLI (via npm; the CDN is blocked in the claude.ai/code container), or
+  write the rule by hand in the page's own `<style>` block. Icons are inline
+  SVG `<symbol>`s at the top of `<body>` (Font Awesome Free 6.4.0 path data,
+  CC BY 4.0, so keep the attribution comment). A new icon gets a new
+  `<symbol>` from the same npm package, not a `<link>` to the icon kit.
+- **The CSP allows the one inline script by its sha256.** Any edit to that
+  script, even one character, changes the hash, and browsers then refuse to
+  run it, with only a console error. After editing it, recompute the hash
+  with the `node -e` command in the comment above the CSP meta tag and put it
+  in `script-src`. Never add inline `on*=` handlers: buttons use
+  `data-action` and the `ACTIONS` table. Don't write the literal text
+  `<script>` in a comment either: the regex-based hash finders, including
+  the suite's, then match the comment instead of the script (this happened
+  while building review 93).
+
+`tests/tricalc.dom.test.mjs` fails if an off-page `src`/`href`, an
+`@import`, an inline handler or a missing icon symbol comes back, or if the
+hash and the script drift apart.
+
 ## My Daily Wire (`daily-wire.html`): two traps
 
 `daily-wire.html` is a news reader whose headlines come from
