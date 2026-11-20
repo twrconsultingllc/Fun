@@ -704,9 +704,25 @@ any kind. Keep it that way. Two things follow:
   the suite's, then match the comment instead of the script (this happened
   while building review 93).
 
-`tests/tricalc.dom.test.mjs` fails if an off-page `src`/`href`, an
-`@import`, an inline handler or a missing icon symbol comes back, or if the
-hash and the script drift apart.
+`tests/tricalc.dom.test.mjs` fails if anything is loaded from another site
+(`<a href>` links are allowed, since nothing loads until they're clicked),
+if an inline handler or a missing icon symbol comes back, or if the hash and
+the script drift apart. It also pins the "Get Coached" link.
+
+**The same file also goes to fullcirclecoaching.com.** It's Full Circle
+Triathlon Coaching's own site (WordPress with Elementor, hosted by Esosoft).
+They host `tricalc.html` as its own page at
+`https://fullcirclecoaching.com/tricalc.html`, and "Get Coached" links to
+their `https://fullcirclecoaching.com/contact/` (review 95). They were sent a
+zip on 2026-11-20: `tricalc.html`, `TriCalc-Hosting-Guide.pdf` and
+`SHA256SUMS.txt`. The guide quotes the file's SHA-256, its size in bytes and
+the line the link is on (422). So any change to `tricalc.html` means more than
+an update to this site: the user has to send Full Circle a new zip. Rebuild
+it, with the new checksum, size and line number in the guide, and give the
+user the checksum to send separately from the zip. Say so whenever
+`tricalc.html` changes. The guide's source isn't in this repo; the user keeps
+the PDF. Don't change the link without the user's say-so: it's Full Circle's
+page.
 
 ## My Daily Wire (`daily-wire.html`): two traps
 

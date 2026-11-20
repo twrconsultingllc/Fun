@@ -220,7 +220,8 @@
     </div>
     <div class="item">
       <div class="item-head"><div class="item-title">Editing the script means updating its hash</div><span class="badge open">Open (by design)</span></div>
-      <div class="item-body"><p>That's the cost of hash-based CSP: change one character in the script and browsers refuse to run it. A comment above the CSP says so and gives a one-line <code>node -e</code> command that prints the new hash. The suite fails if the two drift apart. A first draft of that comment contained the literal text <code>&lt;script&gt;</code>, so the regex-based hash finder matched the comment instead of the script. The suite caught it, and the comment and command now avoid the literal tag. The "Get Coached" button also still has no destination (it scrolls to the top) until a booking URL is supplied.</p></div>
+      <div class="item-body"><p>That's the cost of hash-based CSP: change one character in the script and browsers refuse to run it. A comment above the CSP says so and gives a one-line <code>node -e</code> command that prints the new hash. The suite fails if the two drift apart. A first draft of that comment contained the literal text <code>&lt;script&gt;</code>, so the regex-based hash finder matched the comment instead of the script. The suite caught it, and the comment and command now avoid the literal tag. The "Get Coached" button also still has no destination (it scrolls to the top) until a booking URL is supplied.</p>
+      <div class="fix-note"><b>Update 2026-11-20:</b> "Get Coached" now links to <code>https://fullcirclecoaching.com/contact/</code>. See <a href="95.html">review 95</a>. The hash point above still stands.</div></div>
     </div>
     <div class="item">
       <div class="item-head"><div class="item-title">New suite checks, each proven against a broken copy</div><span class="badge fixed">Fixed</span></div>
