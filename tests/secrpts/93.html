@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>Review #93 — TriCalc: no third-party dependencies</title>
+<meta name="description" content="Review of tricalc.html made self-contained so it can be handed to another website: Tailwind CDN, Google Fonts and Font Awesome removed, inline handlers replaced, CSP locked to the page's own hashed script. Also fixes reports 90 to 92, which rendered blank.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-border: #232a38;
+    --text: #dfe4ee;
+    --text-dim: #8891a4;
+    --accent: #5aa9ff;
+    --fixed: #2ecc71;
+    --fixed-bg: rgba(46, 204, 113, 0.12);
+    --open: #f0a83c;
+    --open-bg: rgba(240, 168, 60, 0.12);
+    --code-bg: #1a2030;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel-border: #dde1ea;
+      --text: #1c2230;
+      --text-dim: #5b6478;
+      --accent: #1976d2;
+      --fixed: #1e8e46;
+      --fixed-bg: rgba(30, 142, 70, 0.1);
+      --open: #b5720a;
+      --open-bg: rgba(181, 114, 10, 0.1);
+      --code-bg: #eef0f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  .meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 14px; }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.fixed { background: var(--fixed); }
+  .dot.open { background: var(--open); }
+
+  .progress-bar {
+    margin-top: 24px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--fixed), #58e08a);
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .item-title { font-weight: 600; font-size: 0.98rem; }
+  .badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.fixed { background: var(--fixed-bg); color: var(--fixed); }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.partial { background: rgba(90, 169, 255, 0.12); color: var(--accent); }
+
+  .item-body {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .item-body p { margin: 10px 0; }
+  .item-body p:first-child { margin-top: 0; }
+  .item-body p:last-child { margin-bottom: 0; }
+  .item-body ul { margin: 8px 0; padding-left: 20px; }
+  .item-body li { margin: 6px 0; }
+  .item-body b { color: var(--text); }
+  .item-body code {
+    background: var(--code-bg);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .fix-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--panel-border);
+    font-size: 0.85rem;
+    color: var(--fixed);
+  }
+  .fix-note b { color: var(--fixed); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Review #93 — TriCalc: no third-party dependencies</h1>
+    <p class="sub"><code>tricalc.html</code> is being given to another site to host. It loaded three things from other servers at runtime: Tailwind's in-browser compiler from <code>cdn.tailwindcss.com</code>, Inter and JetBrains Mono from Google Fonts, and Font Awesome 6.4.0 from cdnjs. All three are gone, and the page now makes no request to any other site.</p>
+    <div class="meta">Review performed 2026-11-20 · scope: <code>tricalc.html</code>, <code>tests/tricalc.dom.test.mjs</code>, and <code>tests/secrpts/90.html</code>–<code>92.html</code> · suites run: <code>node run.mjs --page=tricalc.html</code> (tricalc core and dom: 126 passed, 0 failed; 112 before, plus 14 new checks) · headless Chromium: before/after screenshots at 1280 px and 390 px, every button clicked with the page's real CSP enforced · 7 broken copies, each failing its check.</div>
+    <div class="legend">
+      <span><span class="dot fixed"></span> Fixed / confirmed clean</span>
+      <span><span class="dot open"></span> Open</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width: 80%;"></div></div>
+    <div class="progress-label">10 items: 8 fixed or confirmed clean, 2 open.</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Security</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Tailwind's CDN script ran unpinned third-party code</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p><code>&lt;script src="https://cdn.tailwindcss.com"&gt;</code> runs whatever that server sends, and it can't carry an SRI hash because its content changes between releases. Tailwind describes it as a development tool, not for production. If it failed to load, the page lost almost all its styling.</p>
+      <div class="fix-note"><b>Fix:</b> the CSS is now generated once with the Tailwind CLI (<code>tailwindcss@3.4.19</code>, the latest 3.x, which is what the CDN served) and the page's own colour config, and inlined as one <code>&lt;style&gt;</code> block (23.4 KB, MIT licence banner kept). No Tailwind code runs in the browser.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Google Fonts and Font Awesome contacted outside servers on every visit</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Each visit sent the visitor's IP address to <code>fonts.googleapis.com</code>, <code>fonts.gstatic.com</code> and <code>cdnjs.cloudflare.com</code>. Font Awesome also downloaded its full stylesheet and two icon fonts for the 13 icons used.</p>
+      <div class="fix-note"><b>Fix:</b> text uses each device's system font (Segoe UI on Windows, San Francisco on Apple, Roboto on Android). The 13 icons are inline SVG, one <code>&lt;symbol&gt;</code> each, using the path data from the same <code>@fortawesome/fontawesome-free@6.4.0</code> release, so they look the same. Playwright logged every request in the before and after runs: 7 to other sites before (the CDN script, a font CSS file, the icon CSS, two font files, two icon fonts), 0 after.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">CSP now allows nothing from outside, and only the page's own script</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>Old policy: <code>script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com</code>, plus style and font allowances for three CDNs. New policy: <code>default-src 'none'; script-src 'sha256-…'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'</code>. The one inline script is allowed by its hash, so an injected script wouldn't run even if a way to inject one were found.</p>
+      <div class="fix-note"><b>Check:</b> in headless Chromium, with the policy enforced, the page rendered and every button worked, with no console errors and no "Refused" messages. The suite checks that the hash in the policy matches the script.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Inline styles are still allowed</div><span class="badge open">Open</span></div>
+      <div class="item-body"><p><code>style-src 'unsafe-inline'</code> stays, because the compiled CSS is an inline block and the time-split bar sets widths in <code>style</code> attributes. The risk is low: nothing from the URL or storage reaches markup (next item). Removing it would need a hash for the style block and CSSOM-set widths. That's possible, but it would make the page harder for the other site to restyle.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Share links and saved plans can't inject markup</div><span class="badge fixed">Confirmed clean</span></div>
+      <div class="item-body"><p>The page builds 9 pieces of HTML with <code>innerHTML</code>. Every value from outside goes through <code>applyParams()</code>, whether it comes from the URL or from localStorage (<code>fc-tricalc-v4</code>). Units must match a fixed list, the preset must be a known key (<code>findPreset</code>), the start time must match <code>^\d{2}:\d{2}$</code>, and every distance and pace is converted with <code>num()</code>. So only built-in labels and numbers reach markup.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Code quality</h2>
+    <div class="item">
+      <div class="item-head"><div class="item-title">11 inline event handlers replaced by one listener</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>The <code>onclick</code>/<code>onchange</code> attributes, including the two built in script strings for preset buttons, are now <code>data-action</code> attributes handled by a single <code>ACTIONS</code> table and one delegated click listener. The race dropdown has its own <code>change</code> listener. This is what lets the CSP leave out <code>'unsafe-inline'</code> for scripts.</p>
+      <div class="fix-note"><b>Check:</b> the old suite check, "every inline handler is defined", would now pass with nothing to check, so it was replaced by real clicks on the units, Apply, other-distance, Reset and dropdown controls. In Chromium, Share and Copy were also clicked (toast shown, clipboard filled), as were Now and Get Coached.</div></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">The look matches the old page</div><span class="badge fixed">Confirmed</span></div>
+      <div class="item-body"><p>Screenshots were taken before and after at 1280 px and 390 px. Since the container can't reach the Tailwind CDN, the "before" run served the CDN script from a stand-in that injects CSS compiled from the original page, and Font Awesome from npm. The two match apart from icon anti-aliasing and the number font: JetBrains Mono became the system monospace font. There's no sideways scroll at either width. Caveat: this container has Inter installed as a system font, so the "after" text still looks like Inter there. On real devices it will be the system font listed above.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Editing the script means updating its hash</div><span class="badge open">Open (by design)</span></div>
+      <div class="item-body"><p>That's the cost of hash-based CSP: change one character in the script and browsers refuse to run it. A comment above the CSP says so and gives a one-line <code>node -e</code> command that prints the new hash. The suite fails if the two drift apart. A first draft of that comment contained the literal text <code>&lt;script&gt;</code>, so the regex-based hash finder matched the comment instead of the script. The suite caught it, and the comment and command now avoid the literal tag. The "Get Coached" button also still has no destination (it scrolls to the top) until a booking URL is supplied.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">New suite checks, each proven against a broken copy</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>New checks: nothing in <code>src</code>/<code>href</code> points off the page, no <code>@import</code> or remote <code>url()</code>, no inline handlers, exactly one inline script, <code>default-src 'none'</code>, no <code>'unsafe-inline'</code> for scripts, the hash matches, every <code>data-action</code> has a handler, and every icon has a symbol. Seven broken copies were run, and each failed the right check: a CDN script added back, a protocol-relative font link, a script edited without updating its hash, a preset action emptied, an <code>onclick</code> added back, a missing icon symbol, and <code>default-src 'self'</code>.</p>
+      <p>jsdom's CSS parser can't read the compiled Tailwind CSS and reports "Could not parse CSS stylesheet". Only that exact message is ignored, in this suite alone. Script errors still fail, and real Chromium logged none.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-head"><div class="item-title">Reports 90, 91 and 92 rendered as blank pages</div><span class="badge fixed">Fixed</span></div>
+      <div class="item-body"><p>All three stopped their CSS at <code>footer {</code> with no closing <code>&lt;/style&gt;</code>, so the browser read the whole report as CSS. Headless Chromium showed 0 characters of visible text for each. The missing <code>footer</code> rule and <code>&lt;/style&gt;</code> were restored from 89.html. They now show 2,448, 2,722 and 1,989 characters. No other report is missing <code>&lt;/style&gt;</code>.</p></div>
+    </div>
+  </section>
+  <footer>Review #93 · previous: <a href="92.html">review 92</a></footer>
+</div>
+</body>
+</html>
