@@ -696,7 +696,9 @@ any kind. Keep it that way. Two things follow:
   script, even one character, changes the hash, and browsers then refuse to
   run it, with only a console error. After editing it, recompute the hash
   with the `node -e` command in the comment above the CSP meta tag and put it
-  in `script-src`. Never add inline `on*=` handlers: buttons use
+  in `script-src`. That command turns Windows (CRLF) line endings into LF
+  first, as browsers do before hashing; without that it prints a wrong hash
+  for a file saved on Windows (review 94). Never add inline `on*=` handlers: buttons use
   `data-action` and the `ACTIONS` table. Don't write the literal text
   `<script>` in a comment either: the regex-based hash finders, including
   the suite's, then match the comment instead of the script (this happened
