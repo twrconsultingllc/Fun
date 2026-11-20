@@ -6,8 +6,9 @@
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <!-- Self-contained: loads nothing from any other site. The CSP below lets only the page's own
      script run, identified by its sha256. If you edit that script, update the hash, or the browser
-     will refuse to run it. To print the new hash, run this next to the file:
-     node -e "const s=require('fs').readFileSync('tricalc.html','utf8'),o='<scr'+'ipt>',c='</scr'+'ipt>',a=s.lastIndexOf(o)+o.length;console.log(require('crypto').createHash('sha256').update(s.slice(a,s.lastIndexOf(c))).digest('base64'))" -->
+     will refuse to run it. To print the new hash, run this next to the file (it handles Windows
+     line endings the way browsers do):
+     node -e "const s=require('fs').readFileSync('tricalc.html','utf8').replace(/\r\n?/g,'\n'),o='<scr'+'ipt>',c='</scr'+'ipt>',a=s.lastIndexOf(o)+o.length;console.log(require('crypto').createHash('sha256').update(s.slice(a,s.lastIndexOf(c))).digest('base64'))" -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-hDDK4wH4JYjWYUjd0Rmlm5nW3o3uM8qTJkR7nr+kyvs='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
     <meta name="description" content="Triathlon pace, split and finish-time calculator. Ironman, 70.3, Olympic, Sprint and run-only distances in imperial or metric units.">
     <meta name="theme-color" content="#020617">

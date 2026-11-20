@@ -7,6 +7,10 @@
  */
 
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { openDom, domHelpers } from './lib/page.mjs';
 
 export const name = 'tricalc — page behavior';
@@ -160,6 +164,24 @@ export default async function run(t, page) {
     t.ok('CSP allows no inline script by blanket permission', !/script-src[^;]*'unsafe-inline'/.test(csp));
     const hash = createHash('sha256').update(scripts[0] ? scripts[0][2] : '', 'utf8').digest('base64');
     t.ok('CSP script hash matches the script (edit the script -> update the hash)', csp.includes(`'sha256-${hash}'`));
+    // The comment above the CSP tells whoever hosts the page how to re-hash
+    // after an edit. Run that exact command on the file as saved with Unix
+    // and with Windows line endings: browsers hash both the same (the HTML
+    // parser turns CRLF into LF), so the command must too.
+    const recipe = (page.html.match(/node -e "([^"]+)"/) || [])[1] || '';
+    const recipeHashes = ['\n', '\r\n'].map((eol) => {
+        const dir = mkdtempSync(join(tmpdir(), 'tricalc-hash-'));
+        try {
+            writeFileSync(join(dir, 'tricalc.html'), page.html.replace(/\r?\n/g, eol));
+            return execFileSync(process.execPath, ['-e', recipe], { cwd: dir, encoding: 'utf8' }).trim();
+        } catch (e) {
+            return 'command failed: ' + String(e.message).split('\n')[0];
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    });
+    t.eq('the re-hash command in the comment gives the CSP hash (Unix line endings)', recipeHashes[0], hash);
+    t.eq('the re-hash command in the comment gives the CSP hash (Windows line endings)', recipeHashes[1], hash);
 
     t.section('Share links round-trip a plan');
     window.applyPreset('olympic');
