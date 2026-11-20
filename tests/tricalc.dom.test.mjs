@@ -2,16 +2,21 @@
  *
  * These click buttons, type into fields and read rendered text, so they test
  * the page as an athlete uses it rather than testing internals. They also
- * check structural health (no missing element ids, no dead inline handlers)
+ * check structural health (no missing element ids, every button wired)
  * which catches the usual breakages when the markup is rewritten.
  */
 
+import { createHash } from 'node:crypto';
 import { openDom, domHelpers } from './lib/page.mjs';
 
 export const name = 'tricalc — page behavior';
 
 export default async function run(t, page) {
-    const { window, document, errors } = await openDom(page.html, page.url);
+    // jsdom's CSS parser predates the compiled Tailwind CSS (:is(), @media
+    // ranges...) and reports "Could not parse CSS stylesheet" for it. That is
+    // jsdom only: real Chromium loads the page with no console errors. Only
+    // that exact message is ignored; script errors still fail this check.
+    const { window, document, errors } = await openDom(page.html, page.url, { ignore: /^Could not parse CSS stylesheet$/ });
     const { $, text, type, pick, blur, secondsOf } = domHelpers(window);
 
     t.section('The page boots without errors');
@@ -118,10 +123,43 @@ export default async function run(t, page) {
     t.eq('every element id the script looks up exists', referenced.filter((id) => !$(id)).join(', ') || 'none', 'none');
     const allIds = [...document.querySelectorAll('[id]')].map((n) => n.id);
     t.eq('no duplicate element ids', allIds.filter((v, i) => allIds.indexOf(v) !== i).join(', ') || 'none', 'none');
-    const handlers = [...new Set([...page.html.matchAll(/on(?:click|change|input)="([A-Za-z0-9_]+)\(/g)].map((m) => m[1]))];
-    t.eq(`every inline handler is defined (${handlers.length} found)`, handlers.filter((fn) => typeof window[fn] !== 'function').join(', ') || 'none', 'none');
+    const actions = [...new Set([...document.querySelectorAll('[data-action]')].map((n) => n.getAttribute('data-action')))];
+    t.eq(`every data-action has a handler (${actions.length} found)`, actions.filter((a) => typeof window.ACTIONS[a] !== 'function').join(', ') || 'none', 'none');
+    const uses = [...document.querySelectorAll('use')].map((u) => u.getAttribute('href'));
+    t.eq(`every icon points at a symbol in the sprite (${uses.length} found)`, uses.filter((h) => !/^#ico-/.test(h) || !document.querySelector(h + '[viewBox]')).join(', ') || 'none', 'none');
     t.ok('viewport meta present (mobile scaling)', /name="viewport"[^>]*width=device-width/.test(page.html));
     t.ok('inputs are 16px on mobile (blocks iOS focus zoom)', /@media \(max-width: 767px\)[\s\S]{0,120}font-size: 16px/.test(page.html));
+
+    t.section('Buttons work by clicking them (no inline handlers)');
+    $('unitMetricBtn').click();
+    t.eq('Metric button switches units', $('unitMetricBtn').getAttribute('aria-pressed'), 'true');
+    $('unitImperialBtn').click();
+    t.eq('Imperial button switches back', $('unitImperialBtn').getAttribute('aria-pressed'), 'true');
+    $('triPresetGrid').querySelectorAll('button')[2].click();
+    t.eq('a preset card Apply button loads that race', text('presetLabelBadge'), 'Olympic Tri');
+    [...$('otherPresetGrid').querySelectorAll('button')].find((b) => /Marathon/.test(b.textContent) && !/Half/.test(b.textContent)).click();
+    t.eq('an other-distance tile loads that race', text('topTotalDisplay'), '03:42:42');
+    pick('selectPresetDropdown', 'half_ironman');
+    t.eq('the race dropdown loads that race', text('presetLabelBadge'), 'Half-Iron (70.3)');
+    document.querySelector('[data-action="reset"]').click();
+    t.eq('Reset button restores the Ironman plan', text('topTotalDisplay'), '10:48:48');
+
+    t.section('Self-contained: nothing loads from another site');
+    // The page is handed to other sites as one file, so it must not depend on
+    // a CDN, web fonts or an icon kit (Tailwind, Google Fonts and Font Awesome
+    // were removed on 2026-11-20).
+    const fetched = [...page.html.matchAll(/\s(?:src|href|action|poster|data)=["']?\s*((?:https?:)?\/\/[^"'\s>]+)/gi)].map((m) => m[1]);
+    t.eq('no src/href pointing off the page', fetched.join(', ') || 'none', 'none');
+    t.eq('no CSS @import or remote url()', (page.html.match(/@import|url\(\s*["']?(?:https?:)?\/\//gi) || []).join(', ') || 'none', 'none');
+    t.eq('no inline on* handlers in markup or script', (page.html.match(/\son[a-z]+\s*=\s*["']/gi) || []).join(', ') || 'none', 'none');
+    const markup = page.html.replace(/<!--[\s\S]*?-->/g, '');
+    const scripts = [...markup.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
+    t.eq('exactly one script, inline', scripts.map((m) => m[1].trim() || 'inline').join(', '), 'inline');
+    const csp = (page.html.match(/http-equiv="Content-Security-Policy" content="([^"]*)"/) || [])[1] || '';
+    t.ok('CSP blocks everything by default', /(^|;\s*)default-src 'none'/.test(csp));
+    t.ok('CSP allows no inline script by blanket permission', !/script-src[^;]*'unsafe-inline'/.test(csp));
+    const hash = createHash('sha256').update(scripts[0] ? scripts[0][2] : '', 'utf8').digest('base64');
+    t.ok('CSP script hash matches the script (edit the script -> update the hash)', csp.includes(`'sha256-${hash}'`));
 
     t.section('Share links round-trip a plan');
     window.applyPreset('olympic');
