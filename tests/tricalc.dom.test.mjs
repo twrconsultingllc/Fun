@@ -148,12 +148,30 @@ export default async function run(t, page) {
     document.querySelector('[data-action="reset"]').click();
     t.eq('Reset button restores the Ironman plan', text('topTotalDisplay'), '10:48:48');
 
+    t.section('Get Coached goes to the Full Circle contact page');
+    const coach = [...document.querySelectorAll('a')].find((a) => /Get Coached/i.test(a.textContent));
+    t.eq('Get Coached link target', coach && coach.getAttribute('href'), 'https://fullcirclecoaching.com/contact/');
+    t.eq('Get Coached is a plain link (no data-action intercepting it)', coach && coach.hasAttribute('data-action'), false);
+    // Click it the way a visitor does and check nothing on the page cancels the
+    // navigation. A listener on window runs after the page's own document
+    // listener; it records the result, then stops jsdom (which can't navigate).
+    let navigationCancelledByPage = null;
+    const probe = (e) => { navigationCancelledByPage = e.defaultPrevented; e.preventDefault(); };
+    window.addEventListener('click', probe);
+    if (coach) coach.click();
+    window.removeEventListener('click', probe);
+    t.eq('clicking Get Coached is not cancelled by the page', navigationCancelledByPage, false);
+
     t.section('Self-contained: nothing loads from another site');
     // The page is handed to other sites as one file, so it must not depend on
     // a CDN, web fonts or an icon kit (Tailwind, Google Fonts and Font Awesome
     // were removed on 2026-11-20).
-    const fetched = [...page.html.matchAll(/\s(?:src|href|action|poster|data)=["']?\s*((?:https?:)?\/\/[^"'\s>]+)/gi)].map((m) => m[1]);
-    t.eq('no src/href pointing off the page', fetched.join(', ') || 'none', 'none');
+    // Anything the browser would load: src/href/action/poster/data on any tag,
+    // except <a href>, which is a link the visitor chooses to follow.
+    const fetched = [...page.html.matchAll(/<([a-z0-9-]+)\b[^>]*?\s(src|href|action|poster|data|srcset)=["']?\s*((?:https?:)?\/\/[^"'\s>]+)/gi)]
+        .filter((m) => !(m[1].toLowerCase() === 'a' && m[2].toLowerCase() === 'href'))
+        .map((m) => `<${m[1]} ${m[2]}=${m[3]}>`);
+    t.eq('nothing is loaded from another site (links excepted)', fetched.join(', ') || 'none', 'none');
     t.eq('no CSS @import or remote url()', (page.html.match(/@import|url\(\s*["']?(?:https?:)?\/\//gi) || []).join(', ') || 'none', 'none');
     t.eq('no inline on* handlers in markup or script', (page.html.match(/\son[a-z]+\s*=\s*["']/gi) || []).join(', ') || 'none', 'none');
     const markup = page.html.replace(/<!--[\s\S]*?-->/g, '');
