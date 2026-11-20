@@ -711,9 +711,16 @@ the script drift apart. It also pins the "Get Coached" link.
 
 **The same file also goes to fullcirclecoaching.com.** It's Full Circle
 Triathlon Coaching's own site (WordPress with Elementor, hosted by Esosoft).
-They host `tricalc.html` as its own page at
-`https://fullcirclecoaching.com/tricalc.html`, and "Get Coached" links to
-their `https://fullcirclecoaching.com/contact/` (review 95). They were sent a
+They host it as its own page behind a "soft gate": the file is uploaded
+under an unlisted name they chose, kept out of their menu, and their Typeform
+sends people to it after they fill in the form (the user explained this to
+them verbally on 2026-11-20, so the guide doesn't cover it). Never write that
+address into this repo or anything public, or the gate is pointless. The gate
+is soft: anyone with the link can pass it on, and the calculator's Share
+button copies it. They may ask to remove Share from their copy, which would
+make their file differ from this one. Their file is unchanged apart from its
+name, so the checksum still matches. "Get Coached" links to their
+`https://fullcirclecoaching.com/contact/` (review 95). They were sent a
 zip on 2026-11-20: `tricalc.html`, `TriCalc-Hosting-Guide.pdf` and
 `SHA256SUMS.txt`. The guide quotes the file's SHA-256, its size in bytes and
 the line the link is on (422). So any change to `tricalc.html` means more than
